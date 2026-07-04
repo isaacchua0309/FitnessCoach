@@ -7,104 +7,22 @@
 
 import SwiftUI
 
-// MARK: - Pace
+// MARK: - Impact row
 
-struct PlanProjectionPaceCard: View {
-    let projection: PlanProjection
-    var validationError: String?
-    var supplementalWarning: String?
-
-    private let copy = FormaProductCopy.PlanProjection.self
+struct PlanProjectionImpactRow: View {
+    let label: String
+    let value: String
 
     var body: some View {
-        PlanEditCard {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                if let validationError {
-                    Text(validationError)
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                } else {
-                    difficultyHeader
-
-                    if projection.hasPaceMetrics {
-                        paceRows
-                    }
-
-                    if let supplementalWarning {
-                        Text(supplementalWarning)
-                            .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    if let validationMessage = projection.validationMessage {
-                        Text(validationMessage)
-                            .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var difficultyHeader: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(projection.difficultyLabel)
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background {
-                    Capsule()
-                        .fill(FormaPlanTokens.Color.planAccentSoft)
-                }
-
-            Text(projection.difficultyDescription)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
+                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
+            Text(value)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    @ViewBuilder
-    private var paceRows: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let weekly = projection.weeklyRateKg {
-                metricRow(
-                    label: copy.weeklyPaceLabel,
-                    value: formatKgRate(weekly, period: "/week")
-                )
-            }
-            if let monthly = projection.monthlyRateKg {
-                metricRow(
-                    label: copy.monthlyPaceLabel,
-                    value: formatKgRate(monthly, period: "/month")
-                )
-            }
-            if let balance = projection.dailyDeficitOrSurplusLabel {
-                metricRow(label: copy.energyBalanceLabel, value: balance)
-            }
-        }
-    }
-
-    private func metricRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            Spacer()
-            Text(value)
-                .font(FormaTokens.Typography.caption.weight(.medium))
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-        }
-    }
-
-    private func formatKgRate(_ value: Double, period: String) -> String {
-        let amount = value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value)) kg"
-            : String(format: "%.1f kg", value)
-        return amount + period
     }
 }
 
@@ -117,42 +35,48 @@ struct PlanProjectionEnergyCard: View {
 
     var body: some View {
         if projection.hasEnergyTargets || projection.hasMacroTargets {
-            PlanEditCard {
+            PlanProjectionCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     if let maintenance = projection.maintenanceCalories {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.maintenanceLabel,
-                            value: "\(maintenance) kcal"
+                            value: "\(maintenance) kcal",
+                            valueWeight: .medium
                         )
                     }
                     if let target = projection.targetCalories {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.targetCaloriesLabel,
-                            value: "\(target) kcal"
+                            value: "\(target) kcal",
+                            valueWeight: .medium
                         )
                     }
                     if let protein = projection.proteinTargetG {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.proteinLabel,
-                            value: formatGrams(protein)
+                            value: formatGrams(protein),
+                            valueWeight: .medium
                         )
                     }
                     if let carbs = projection.carbTargetG {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.carbsLabel,
-                            value: formatGrams(carbs)
+                            value: formatGrams(carbs),
+                            valueWeight: .medium
                         )
                     }
                     if let fat = projection.fatTargetG {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.fatLabel,
-                            value: formatGrams(fat)
+                            value: formatGrams(fat),
+                            valueWeight: .medium
                         )
                     }
                     if let water = projection.waterTargetMl {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.waterLabel,
-                            value: "\(water) ml"
+                            value: "\(water) ml",
+                            valueWeight: .medium
                         )
                     }
                     if let validationMessage = projection.validationMessage,
@@ -163,18 +87,6 @@ struct PlanProjectionEnergyCard: View {
                     }
                 }
             }
-        }
-    }
-
-    private func metricRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            Spacer()
-            Text(value)
-                .font(FormaTokens.Typography.caption.weight(.medium))
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
         }
     }
 
@@ -193,24 +105,12 @@ struct PlanProjectionImpactCard: View {
     private let copy = FormaProductCopy.PlanProjection.self
 
     var body: some View {
-        PlanEditCard {
+        PlanProjectionCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                impactRow(label: copy.adherenceLabel, value: projection.adherenceEstimate)
-                impactRow(label: copy.recoveryLabel, value: projection.recoveryImpact)
-                impactRow(label: copy.hungerLabel, value: projection.hungerImpact)
+                PlanProjectionImpactRow(label: copy.adherenceLabel, value: projection.adherenceEstimate)
+                PlanProjectionImpactRow(label: copy.recoveryLabel, value: projection.recoveryImpact)
+                PlanProjectionImpactRow(label: copy.hungerLabel, value: projection.hungerImpact)
             }
-        }
-    }
-
-    private func impactRow(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            Text(value)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

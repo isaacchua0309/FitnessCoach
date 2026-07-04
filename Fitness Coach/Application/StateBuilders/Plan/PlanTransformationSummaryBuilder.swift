@@ -42,9 +42,9 @@ enum PlanTransformationSummaryBuilder {
             FormaProductCopy.PlanEditTarget.estimatedDuration(weeks: $0)
         }
 
-        let finish = projection.estimatedCompletionLabel?
-            .replacingOccurrences(of: "Estimated finish: ", with: "")
-            .replacingOccurrences(of: ".", with: "")
+        let finish = PlanEditTimelineCopy.monthYearDisplay(
+            fromCompletionLabel: projection.estimatedCompletionLabel
+        )
 
         let progress = progressFraction(
             currentWeightKg: currentWeightKg,

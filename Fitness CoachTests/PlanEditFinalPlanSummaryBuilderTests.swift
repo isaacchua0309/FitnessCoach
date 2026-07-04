@@ -54,7 +54,7 @@ final class PlanEditFinalPlanSummaryBuilderTests: XCTestCase {
             FormaProductCopy.PlanEditReview.planReadyHeadline
         )
         XCTAssertEqual(summary.inputChanges.count, 1)
-        XCTAssertTrue(summary.inputChanges.first?.summary.contains("now") == true)
+        XCTAssertTrue(summary.inputChanges.first?.summary.contains("Changed from") == true)
     }
 
     func testTodayChangesNoteWhenTargetsMatchBaseline() {
@@ -75,6 +75,87 @@ final class PlanEditFinalPlanSummaryBuilderTests: XCTestCase {
         XCTAssertEqual(
             summary.todayNote,
             FormaProductCopy.PlanEditReview.todayNoChangeNote
+        )
+    }
+
+    func testAggressiveTargetPreviewSurfacesWarningInSummary() {
+        let baseline = PlanMissionControlFixtures.loseProfile
+        var formState = PlanFormState(profile: baseline)
+        formState.goalWeightKgText = "70"
+        let projection = PlanProjectionBuilder.build(formState: formState, goalType: .loseFat)
+        let review = PlanEditReviewBuilder.build(baseline: baseline, formState: formState)
+
+        let preview = CalorieTargetResult(
+            estimatedBMR: 1_480,
+            estimatedTDEE: 2_290,
+            targets: baseline.targets,
+            estimatedDailyDeficit: 700,
+            isAggressive: true,
+            warning: nil
+        )
+
+        let summary = PlanEditFinalPlanSummaryBuilder.build(
+            baseline: baseline,
+            formState: formState,
+            goalType: .loseFat,
+            projection: projection,
+            review: review,
+            targetPreview: preview
+        )
+
+        XCTAssertNotNil(summary.warning)
+        XCTAssertEqual(
+            summary.warning?.title,
+            FormaProductCopy.PlanEditReview.aggressiveDeficitTitle
+        )
+    }
+
+    func testEstimatedFinishMonthYearAppearsInSummary() {
+        let baseline = PlanMissionControlFixtures.loseProfile
+        let formState = PlanFormState(profile: baseline)
+        let projection = PlanProjectionBuilder.build(formState: formState, goalType: .loseFat)
+        let review = PlanEditReviewBuilder.build(baseline: baseline, formState: formState)
+
+        let summary = PlanEditFinalPlanSummaryBuilder.build(
+            baseline: baseline,
+            formState: formState,
+            goalType: .loseFat,
+            projection: projection,
+            review: review
+        )
+
+        XCTAssertNotNil(summary.estimatedFinish)
+        XCTAssertFalse(summary.estimatedFinish?.isEmpty == true)
+    }
+
+    func testWarningCodeFromTargetPreviewSurfacesInSummary() {
+        let baseline = PlanMissionControlFixtures.loseProfile
+        var formState = PlanFormState(profile: baseline)
+        formState.goalWeightKgText = "70"
+        let projection = PlanProjectionBuilder.build(formState: formState, goalType: .loseFat)
+        let review = PlanEditReviewBuilder.build(baseline: baseline, formState: formState)
+
+        let preview = CalorieTargetResult(
+            estimatedBMR: 1_480,
+            estimatedTDEE: 2_290,
+            targets: baseline.targets,
+            estimatedDailyDeficit: 700,
+            isAggressive: false,
+            warning: "aggressiveDeficit"
+        )
+
+        let summary = PlanEditFinalPlanSummaryBuilder.build(
+            baseline: baseline,
+            formState: formState,
+            goalType: .loseFat,
+            projection: projection,
+            review: review,
+            targetPreview: preview
+        )
+
+        XCTAssertEqual(
+            summary.warning?.title,
+            FormaProductCopy.PlanEditReview.aggressiveDeficitTitle
         )
     }
 }

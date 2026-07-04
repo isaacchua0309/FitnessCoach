@@ -7,6 +7,10 @@
 
 import Foundation
 
+enum PlanEditWarningCode {
+    static let aggressiveDeficit = "aggressiveDeficit"
+}
+
 struct PlanEditReviewWarning: Equatable, Sendable {
     let title: String
     let body: String
@@ -41,7 +45,7 @@ enum PlanEditWarningCopyMapper {
 
     private static func mappedWarning(for code: String) -> PlanEditReviewWarning? {
         switch code {
-        case "aggressiveDeficit":
+        case PlanEditWarningCode.aggressiveDeficit:
             return aggressiveDeficitWarning()
         default:
             return nil
@@ -49,6 +53,6 @@ enum PlanEditWarningCopyMapper {
     }
 
     private static func shouldWarn(for projection: PlanProjection) -> Bool {
-        projection.difficultyLabel == "Faster cut"
+        projection.difficultyLabel == PlanEditDifficultyLabelBuilder.fasterCutLabel
     }
 }

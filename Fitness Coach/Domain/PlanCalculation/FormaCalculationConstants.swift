@@ -95,6 +95,9 @@ nonisolated static let daysPerAverageMonth: Double = 30.4375
     /// Maximum allowed weight-loss rate for custom and derived paces.
 nonisolated static let maxWeeklyWeightLossKg: Double = 1.2
 
+    /// Below this weekly loss rate, pace is considered very slow (warning only).
+nonisolated static let minMeaningfulWeeklyLossKg: Double = 0.1
+
 nonisolated static var maxMonthlyWeightLossKg: Double {
         maxWeeklyWeightLossKg * daysPerAverageMonth / 7.0
     }

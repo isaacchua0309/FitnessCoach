@@ -40,9 +40,15 @@ enum FormaPlanTokens {
         @MainActor
         static var planSuccess: SwiftUI.Color { active.planSuccess }
         @MainActor
+        static var planSuccessSoft: SwiftUI.Color { active.planSuccessSoft }
+        @MainActor
+        static var planSuccessBorder: SwiftUI.Color { active.planSuccessBorder }
+        @MainActor
         static var planWarning: SwiftUI.Color { active.planWarning }
         @MainActor
         static var planWarningSoft: SwiftUI.Color { active.planWarningSoft }
+        @MainActor
+        static var planWarningBorder: SwiftUI.Color { active.planWarningBorder }
         @MainActor
         static var planDanger: SwiftUI.Color { active.planDanger }
         @MainActor
@@ -50,7 +56,21 @@ enum FormaPlanTokens {
         @MainActor
         static var planInputBackground: SwiftUI.Color { active.planInputBackground }
         @MainActor
+        static var planInputBorder: SwiftUI.Color { active.planInputBorder }
+        @MainActor
         static var planCardBorder: SwiftUI.Color { active.planCardBorder }
+        @MainActor
+        static var planSubtleCardBorder: SwiftUI.Color { active.planSubtleCardBorder }
+        @MainActor
+        static var planSelectedBorder: SwiftUI.Color { active.planSelectedBorder }
+        @MainActor
+        static var planAccentBorder: SwiftUI.Color { active.planAccentBorder }
+        @MainActor
+        static var planAccentHighlight: SwiftUI.Color { active.planAccentHighlight }
+        @MainActor
+        static var planDisabledAction: SwiftUI.Color { active.planDisabledAction }
+        @MainActor
+        static var planUpToDateBackground: SwiftUI.Color { active.planUpToDateBackground }
         @MainActor
         static var planProgressTrack: SwiftUI.Color { active.planProgressTrack }
         @MainActor
@@ -83,7 +103,7 @@ enum PlanEditCardChrome {
                     .stroke(
                         LinearGradient(
                             colors: [
-                                FormaPlanTokens.Color.planAccent.opacity(0.14),
+                                FormaPlanTokens.Color.planAccentHighlight,
                                 FormaPlanTokens.Color.planCardBorder
                             ],
                             startPoint: .topLeading,

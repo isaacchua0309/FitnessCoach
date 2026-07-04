@@ -12,28 +12,20 @@ struct PlanPaceOutcomeCard: View {
     let isSelected: Bool
     let action: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     private let copy = FormaProductCopy.PlanEditTarget.self
 
     var body: some View {
-        Button(action: action) {
+        PlanSelectableCard(
+            isSelected: isSelected,
+            accessibilityLabel: accessibilityLabel,
+            action: action
+        ) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 headerRow
                 outcomeRows
                 coachingLine
             }
-            .padding(FormaTokens.Spacing.cardPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground)
-            .overlay(cardBorder)
-            .contentShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: isSelected)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     private var headerRow: some View {
@@ -57,13 +49,7 @@ struct PlanPaceOutcomeCard: View {
 
             Spacer(minLength: 0)
 
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                    .transition(.scale.combined(with: .opacity))
-                    .accessibilityHidden(true)
-            }
+            PlanSelectableCard.selectionCheckmark(isSelected: isSelected)
         }
     }
 
@@ -77,15 +63,16 @@ struct PlanPaceOutcomeCard: View {
         } else {
             VStack(alignment: .leading, spacing: 4) {
                 if let weekly = presentation.weeklyChangeLabel {
-                    metricRow(label: copy.weeklyChangeLabel, value: weekly)
+                    PlanMetricRow(label: copy.weeklyChangeLabel, value: weekly, valueWeight: .medium)
                 }
                 if let monthly = presentation.monthlyChangeLabel {
-                    metricRow(label: copy.monthlyChangeLabel, value: monthly)
+                    PlanMetricRow(label: copy.monthlyChangeLabel, value: monthly, valueWeight: .medium)
                 }
                 if let finish = presentation.estimatedFinishLabel {
-                    metricRow(
+                    PlanMetricRow(
                         label: FormaProductCopy.PlanEditTarget.estimatedFinishLabel,
-                        value: finish
+                        value: finish,
+                        valueWeight: .medium
                     )
                 }
             }
@@ -109,37 +96,6 @@ struct PlanPaceOutcomeCard: View {
         }
     }
 
-    private func metricRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            Spacer()
-            Text(value)
-                .font(FormaTokens.Typography.caption.weight(.medium))
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-        }
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .fill(
-                isSelected
-                    ? FormaPlanTokens.Color.planSelectedCardBackground
-                    : FormaPlanTokens.Color.planUnselectedCardBackground
-            )
-    }
-
-    private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .stroke(
-                isSelected
-                    ? FormaPlanTokens.Color.planAccent
-                    : FormaPlanTokens.Color.planCardBorder.opacity(0.45),
-                lineWidth: isSelected ? 1.5 : 1
-            )
-    }
-
     private var accessibilityLabel: String {
         var parts = [
             "\(presentation.title), \(presentation.subtitle)",
@@ -154,9 +110,13 @@ struct PlanPaceOutcomeCard: View {
         if let finish = presentation.estimatedFinishLabel {
             parts.append("\(FormaProductCopy.PlanEditTarget.estimatedFinishLabel), \(finish)")
         }
-        parts.append(presentation.coachingDescription)
-        if isSelected {
-            parts.append("Selected")
+        if let validationError = presentation.validationError {
+            parts.append("\(FormaProductCopy.PlanEditAccessibility.errorPrefix). \(validationError)")
+        } else {
+            parts.append(presentation.coachingDescription)
+            if let warning = presentation.warningMessage {
+                parts.append("\(FormaProductCopy.PlanEditAccessibility.warningPrefix). \(warning)")
+            }
         }
         return parts.joined(separator: ". ")
     }

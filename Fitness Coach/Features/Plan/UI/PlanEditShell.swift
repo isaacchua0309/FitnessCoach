@@ -7,11 +7,6 @@
 
 import SwiftUI
 
-private enum PlanEditShellLayout {
-    static let sectionSpacing: CGFloat = FormaTokens.Spacing.sm
-    static let bottomInset: CGFloat = FormaTokens.Spacing.md
-}
-
 // MARK: - Shell
 
 struct PlanEditShell<Content: View>: View {
@@ -27,6 +22,15 @@ struct PlanEditShell<Content: View>: View {
     let onConfirm: () -> Void
     @ViewBuilder var content: () -> Content
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private enum Layout {
+        static let progressHeight: CGFloat = 3
+        static let progressSpacing: CGFloat = 6
+        static let sectionSpacing: CGFloat = FormaTokens.Spacing.sm
+        static let bottomInset: CGFloat = FormaTokens.Spacing.md
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             PlanEditProgressIndicator(
@@ -35,11 +39,15 @@ struct PlanEditShell<Content: View>: View {
             )
             .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
             .padding(.top, FormaTokens.Spacing.xs)
-            .padding(.bottom, PlanEditShellLayout.sectionSpacing)
+            .padding(.bottom, Layout.sectionSpacing)
 
-            PlanEditHeroCard(state: heroState)
+            PlanHeroCard(state: heroState)
                 .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
-                .padding(.bottom, PlanEditShellLayout.sectionSpacing)
+                .padding(.bottom, Layout.sectionSpacing)
+                .animation(
+                    PlanEditMotion.animation(PlanEditMotion.heroUpdate, reduceMotion: reduceMotion),
+                    value: heroState
+                )
 
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -50,24 +58,35 @@ struct PlanEditShell<Content: View>: View {
         .tint(FormaPlanTokens.Color.planAccent)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel", action: onCancel)
+                Button(FormaProductCopy.PlanEditCommon.cancel, action: onCancel)
             }
             ToolbarItem(placement: .confirmationAction) {
                 if showsConfirmation {
                     Button(action: onConfirm) {
-                        if isConfirmationLoading {
-                            SwiftUI.ProgressView()
-                        } else {
-                            Text(confirmationTitle)
+                        Group {
+                            if isConfirmationLoading {
+                                SwiftUI.ProgressView()
+                                    .tint(FormaPlanTokens.Color.planAccent)
+                            } else {
+                                Text(confirmationTitle)
+                            }
                         }
                     }
+                    .foregroundStyle(confirmActionColor)
                     .disabled(!isConfirmationEnabled || isConfirmationLoading)
                 }
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear.frame(height: PlanEditShellLayout.bottomInset)
+            Color.clear.frame(height: Layout.bottomInset)
         }
+        .planEditSupportsDynamicType()
+    }
+
+    private var confirmActionColor: Color {
+        isConfirmationEnabled && !isConfirmationLoading
+            ? FormaPlanTokens.Color.planAccent
+            : FormaPlanTokens.Color.planDisabledAction
     }
 }
 
@@ -76,6 +95,8 @@ struct PlanEditShell<Content: View>: View {
 struct PlanEditProgressIndicator: View {
     let stepCount: Int
     let currentStepIndex: Int
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 6) {
@@ -89,74 +110,44 @@ struct PlanEditProgressIndicator: View {
                     .frame(height: 3)
             }
         }
+        .animation(
+            PlanEditMotion.animation(PlanEditMotion.progress, reduceMotion: reduceMotion),
+            value: currentStepIndex
+        )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Step \(currentStepIndex + 1) of \(max(stepCount, 1))")
+        .accessibilityLabel(FormaProductCopy.PlanEditAccessibility.progressLabel)
+        .accessibilityValue(
+            PlanEditAccessibility.progressValue(
+                currentStep: currentStepIndex,
+                stepCount: stepCount
+            )
+        )
     }
 }
 
-// MARK: - Hero card
-
-struct PlanEditHeroCard: View {
-    let state: PlanEditHeroState
-
-    var body: some View {
-        PlanEditCard {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                Text(state.motivationalLine)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-                    heroMetric(label: state.goalLabel, value: state.goalValue)
-                    heroMetric(label: state.currentWeightLabel, value: state.currentWeight)
-                    heroMetric(label: state.targetWeightLabel, value: state.targetWeight)
-                }
-
-                if let totalChangeLine = state.totalChangeLine {
-                    Text(totalChangeLine)
-                        .font(FormaTokens.Typography.caption.weight(.medium))
-                        .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                if let estimatedFinishLine = state.estimatedFinishLine {
-                    Text(estimatedFinishLine)
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(state.accessibilitySummary)
-    }
-
-    private func heroMetric(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label.uppercased())
-                .font(FormaTokens.Typography.caption2.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-            Text(value)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
+#Preview("Edit Plan shell — Ocean Blue") {
+    planEditShellPreview(palette: .oceanBlue, appearance: .dark)
 }
 
-#Preview("Edit Plan shell") {
-    let projection = PlanProjectionBuilder.build(
-        formState: PlanPreviewData.formState,
-        goalType: .loseFat,
-        referenceDate: Date(),
-        calendar: .current
-    )
+#Preview("Edit Plan shell — Blossom Pink") {
+    planEditShellPreview(palette: .blossomPink, appearance: .dark)
+}
+
+#Preview("Edit Plan shell — Emerald Green") {
+    planEditShellPreview(palette: .emeraldGreen, appearance: .light)
+}
+
+#Preview("Edit Plan shell — Sunset Orange") {
+    planEditShellPreview(palette: .sunsetOrange, appearance: .light)
+}
+
+@MainActor
+private func planEditShellPreview(
+    palette: AppThemePalette,
+    appearance: AppAppearanceMode
+) -> some View {
+    let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+    let projection = PlanProjectionBuilder.build(formState: formState, goalType: .loseFat)
 
     return NavigationStack {
         PlanEditShell(
@@ -164,7 +155,7 @@ struct PlanEditHeroCard: View {
             stepCount: 5,
             currentStepIndex: 1,
             heroState: PlanEditHeroStateBuilder.build(projection: projection),
-            confirmationTitle: "Next",
+            confirmationTitle: FormaProductCopy.PlanEditCommon.next,
             showsConfirmation: true,
             isConfirmationEnabled: true,
             isConfirmationLoading: false,
@@ -179,5 +170,5 @@ struct PlanEditHeroCard: View {
             .scrollContentBackground(.hidden)
         }
     }
-    .formaThemePreview()
+    .formaThemePreview(appearance: appearance, palette: palette)
 }

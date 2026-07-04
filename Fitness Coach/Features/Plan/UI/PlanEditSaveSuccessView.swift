@@ -10,7 +10,9 @@ import SwiftUI
 struct PlanEditSaveSuccessView: View {
     let state: PlanEditSaveSuccessState
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsCheckmark = false
+    @State private var showsCopy = false
 
     var body: some View {
         VStack(spacing: FormaTokens.Spacing.lg) {
@@ -36,6 +38,7 @@ struct PlanEditSaveSuccessView: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .opacity(showsCopy ? 1 : 0)
             .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
 
             Spacer(minLength: FormaTokens.Spacing.xl)
@@ -44,27 +47,45 @@ struct PlanEditSaveSuccessView: View {
         .background(FormaPlanTokens.Color.planBackground.ignoresSafeArea())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(state.accessibilitySummary)
+        .planEditSupportsDynamicType()
         .onAppear {
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.72)) {
-                showsCheckmark = true
-            }
+            playSuccessAnimation()
+            PlanEditAccessibility.announce(state.accessibilitySummary)
         }
     }
 
     private var checkmarkIcon: some View {
         ZStack {
             Circle()
-                .fill(FormaPlanTokens.Color.planSuccess.opacity(0.14))
+                .fill(FormaPlanTokens.Color.planSuccessSoft)
                 .frame(width: 88, height: 88)
+                .scaleEffect(showsCheckmark ? 1 : 0.92)
+                .opacity(showsCheckmark ? 1 : 0)
 
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 56))
                 .foregroundStyle(FormaPlanTokens.Color.planSuccess)
-                .scaleEffect(showsCheckmark ? 1 : 0.55)
+                .scaleEffect(showsCheckmark ? 1 : 0.88)
                 .opacity(showsCheckmark ? 1 : 0)
-                .symbolEffect(.bounce, value: showsCheckmark)
         }
         .accessibilityHidden(true)
+    }
+
+    private func playSuccessAnimation() {
+        PlanEditMotion.withAnimationIfEnabled(PlanEditMotion.successReveal, reduceMotion: reduceMotion) {
+            showsCheckmark = true
+        }
+
+        guard !reduceMotion else {
+            showsCopy = true
+            return
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            PlanEditMotion.withAnimationIfEnabled(PlanEditMotion.successReveal, reduceMotion: reduceMotion) {
+                showsCopy = true
+            }
+        }
     }
 }
 
@@ -72,7 +93,7 @@ struct PlanEditSaveSuccessView: View {
     PlanEditSaveSuccessView(
         state: PlanEditSaveSuccessState(
             title: FormaProductCopy.PlanEditSave.planUpdatedTitle,
-            trackLine: FormaProductCopy.PlanEditSave.onTrackForGoal("Lose Fat", by: "March 2026"),
+            trackLine: FormaProductCopy.PlanEditSave.onTrackForGoal("Lose fat", by: "March 2026"),
             todayLine: FormaProductCopy.PlanEditSave.todayTargetsRegenerated,
             accessibilitySummary: "Plan updated"
         )

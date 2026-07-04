@@ -30,7 +30,7 @@ final class PlanEditSaveSuccessBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.title, FormaProductCopy.PlanEditSave.planUpdatedTitle)
         XCTAssertEqual(state.todayLine, FormaProductCopy.PlanEditSave.todayTargetsRegenerated)
-        XCTAssertTrue(state.trackLine.contains("Lose Fat"))
+        XCTAssertTrue(state.trackLine.contains("Lose fat"))
         XCTAssertTrue(state.trackLine.contains("by"))
         XCTAssertTrue(state.accessibilitySummary.contains(state.title))
     }
@@ -62,7 +62,7 @@ final class PlanEditSaveSuccessBuilderTests: XCTestCase {
 
         XCTAssertEqual(
             state.trackLine,
-            FormaProductCopy.PlanEditSave.onTrackForGoalOnly("Gain Muscle")
+            FormaProductCopy.PlanEditSave.onTrackForGoalOnly("Build muscle")
         )
     }
 }

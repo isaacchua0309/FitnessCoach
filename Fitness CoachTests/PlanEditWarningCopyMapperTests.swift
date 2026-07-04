@@ -10,7 +10,7 @@ final class PlanEditWarningCopyMapperTests: XCTestCase {
 
     func testAggressiveDeficitCodeMapsToFriendlyCopy() {
         let warning = PlanEditWarningCopyMapper.userFacingWarning(
-            warningCode: "aggressiveDeficit",
+            warningCode: PlanEditWarningCode.aggressiveDeficit,
             isAggressive: false
         )
 
@@ -36,5 +36,61 @@ final class PlanEditWarningCopyMapperTests: XCTestCase {
         )
 
         XCTAssertNil(warning)
+    }
+
+    func testFasterCutProjectionTriggersFriendlyWarning() {
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+        formState.weightLossPaceChoice = .aggressive
+
+        let projection = PlanProjectionBuilder.build(
+            formState: formState,
+            goalType: .loseFat
+        )
+
+        let warning = PlanEditWarningCopyMapper.userFacingWarning(
+            warningCode: nil,
+            isAggressive: false,
+            projection: projection
+        )
+
+        XCTAssertNotNil(warning)
+        XCTAssertEqual(warning?.title, FormaProductCopy.PlanEditReview.aggressiveDeficitTitle)
+    }
+
+    func testModerateProjectionDoesNotTriggerDifficultyWarning() {
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+        formState.weightLossPaceChoice = .moderate
+
+        let projection = PlanProjectionBuilder.build(
+            formState: formState,
+            goalType: .loseFat
+        )
+
+        let warning = PlanEditWarningCopyMapper.userFacingWarning(
+            warningCode: nil,
+            isAggressive: false,
+            projection: projection
+        )
+
+        XCTAssertNil(warning)
+    }
+
+    func testUserFacingWarningCopyAvoidsRawEnumKeys() {
+        let samples = [
+            FormaProductCopy.PlanEditReview.aggressiveDeficitTitle,
+            FormaProductCopy.PlanEditReview.aggressiveDeficitBody,
+            PlanEditWarningCopyMapper.aggressiveDeficitWarning().title,
+            PlanEditWarningCopyMapper.aggressiveDeficitWarning().body
+        ]
+
+        for sample in samples {
+            XCTAssertFalse(sample.contains("aggressiveDeficit"))
+            XCTAssertFalse(sample.contains("loseFat"))
+            XCTAssertFalse(sample.contains("WeightLossPaceChoice"))
+            XCTAssertNil(
+                PlanCopySafetyPolicy.forbiddenViolation(in: sample),
+                "Forbidden Plan copy in: \(sample)"
+            )
+        }
     }
 }

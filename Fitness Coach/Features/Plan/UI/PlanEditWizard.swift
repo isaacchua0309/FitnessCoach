@@ -9,6 +9,8 @@ import SwiftUI
 
 struct PlanEditWizard: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @Binding var formState: PlanFormState
     let baselineProfile: UserProfile
@@ -25,6 +27,10 @@ struct PlanEditWizard: View {
     @State private var isGeneratingTargets = false
     @State private var showExpertAdjustments = false
     @State private var targetPreview: CalorieTargetResult?
+    @State private var didInitialize = false
+    @State private var showsDiscardChangesConfirmation = false
+    @State private var isStepTransitionInFlight = false
+    @State private var stepTransitionGeneration = 0
 
     /// Activity step — used by Plan tab deep links.
     static let activityLevelStep: PlanEditWizardStep = .activityLevel
@@ -37,27 +43,39 @@ struct PlanEditWizard: View {
         PlanEditWizardFlow.step(at: stepIndex, formState: formState)
     }
 
+    private var reviewState: PlanEditReviewState {
+        PlanEditReviewBuilder.build(
+            baseline: baselineProfile,
+            formState: formState
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Group {
                 if let saveSuccessState {
                     PlanEditSaveSuccessView(state: saveSuccessState)
+                        .transition(reduceMotion ? .identity : .opacity)
                 } else {
                     wizardContent
+                        .transition(reduceMotion ? .identity : .opacity)
                 }
             }
-            .onAppear {
-                goalType = PlanStateBuilder.goalType(for: formState.asProfileSnapshot())
-                if let index = PlanEditWizardFlow.index(of: initialStep, formState: formState) {
-                    stepIndex = index
-                } else {
-                    stepIndex = 0
+            .animation(
+                PlanEditMotion.animation(PlanEditMotion.stepTransition, reduceMotion: reduceMotion),
+                value: saveSuccessState != nil
+            )
+            .onAppear(perform: initializeIfNeeded)
+            .onChange(of: scenePhase) { _, newPhase in
+                // Preserve in-progress edits when the app backgrounds.
+                guard newPhase == .active, didInitialize else { return }
+            }
+            .onChange(of: formState.currentWeightKgText) { _, _ in
+                if goalType == .maintain {
+                    formState.syncMaintainGoalWeightFromCurrent()
                 }
-                formState.applyTrainingRhythmDefaultsForCurrentActivity()
             }
-            .onChange(of: formState.birthDate) { _, _ in
-                formState.syncAgeTextFromBirthDate()
-            }
+            .formaThemeReactive()
         }
     }
 
@@ -71,14 +89,20 @@ struct PlanEditWizard: View {
                 showsConfirmation: showsConfirmation,
                 isConfirmationEnabled: isConfirmationEnabled,
                 isConfirmationLoading: isConfirmationLoading,
-                onCancel: {
-                    onCancel()
-                    dismiss()
-                },
+                onCancel: requestCancel,
                 onConfirm: handleConfirmation
             ) {
                 Form {
-                    stepContent
+                    animatedStepContent
+
+                    if let inlineNotice = stepInlineNotice {
+                        Section {
+                            Text(inlineNotice)
+                                .font(FormaTokens.Typography.caption)
+                                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
 
                     if let errorMessage {
                         Section {
@@ -86,10 +110,38 @@ struct PlanEditWizard: View {
                                 .font(.subheadline)
                                 .foregroundStyle(FormaPlanTokens.Color.planDanger)
                         }
+                        .planEditAnnounces(announcedError(errorMessage))
                     }
                 }
                 .scrollContentBackground(.hidden)
+                .animation(
+                    PlanEditMotion.animation(PlanEditMotion.stepTransition, reduceMotion: reduceMotion),
+                    value: currentStep
+                )
                 .environment(\.planProjection, projection)
+        }
+        .interactiveDismissDisabled(hasUnsavedChanges)
+        .planEditSupportsDynamicType()
+        .confirmationDialog(
+            FormaProductCopy.PlanEditWizardCopy.discardChangesTitle,
+            isPresented: $showsDiscardChangesConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(FormaProductCopy.PlanEditWizardCopy.discardChanges, role: .destructive) {
+                performCancel()
+            }
+            Button(FormaProductCopy.PlanEditWizardCopy.keepEditing, role: .cancel) {}
+        } message: {
+            Text(FormaProductCopy.PlanEditWizardCopy.discardChangesMessage)
+        }
+    }
+
+    @ViewBuilder
+    private var animatedStepContent: some View {
+        if let step = currentStep {
+            stepContent
+                .id(step)
+                .transition(reduceMotion ? .identity : PlanEditMotion.stepContentTransition)
         }
     }
 
@@ -132,9 +184,9 @@ struct PlanEditWizard: View {
     private var confirmationTitle: String {
         switch currentStep {
         case .confirmTargets:
-            return "Save Plan"
+            return FormaProductCopy.PlanEditCommon.savePlan
         default:
-            return "Next"
+            return FormaProductCopy.PlanEditCommon.next
         }
     }
 
@@ -148,11 +200,15 @@ struct PlanEditWizard: View {
     }
 
     private var isConfirmationEnabled: Bool {
+        guard !isNavigationLocked else { return false }
+
         switch currentStep {
         case .confirmTargets:
-            return targetPreview != nil && !isSaving && saveSuccessState == nil
-        case .reviewChanges:
-            return canAdvanceFromCurrentStep
+            return PlanEditWizardStepGate.canSave(
+                targetPreview: targetPreview,
+                reviewHasChanges: reviewState.hasChanges,
+                isSaving: isSaving
+            ) && saveSuccessState == nil
         default:
             return canAdvanceFromCurrentStep
         }
@@ -169,7 +225,32 @@ struct PlanEditWizard: View {
         }
     }
 
+    private var hasUnsavedChanges: Bool {
+        PlanEditWizardStepGate.hasUnsavedChanges(
+            baseline: baselineProfile,
+            formState: formState
+        )
+    }
+
+    private var isNavigationLocked: Bool {
+        isStepTransitionInFlight || isSaving || isGeneratingTargets
+    }
+
+    private var stepInlineNotice: String? {
+        switch currentStep {
+        case .confirmTargets where !reviewState.hasChanges:
+            return FormaProductCopy.PlanEditWizardCopy.saveNoChangesHint
+        case .activityLevel
+            where PlanEditWizardStepGate.shouldWarnCustomPaceAfterActivityChange(formState: formState):
+            return FormaProductCopy.PlanEditPace.activityChangedCustomPace
+        default:
+            return nil
+        }
+    }
+
     private func handleConfirmation() {
+        guard !isNavigationLocked else { return }
+
         switch currentStep {
         case .confirmTargets:
             save()
@@ -199,11 +280,25 @@ struct PlanEditWizard: View {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
                     PlanTransformationSummaryCard(state: transformationSummary)
 
-                    PlanGoalWeightInputField(
-                        text: $formState.goalWeightKgText,
-                        unitSystem: formState.unitSystem,
-                        validationMessage: goalWeightValidationMessage
-                    )
+                    if goalType == .maintain {
+                        maintainGoalSummary
+                    } else {
+                        PlanGoalWeightInputField(
+                            text: $formState.goalWeightKgText,
+                            unitSystem: formState.unitSystem,
+                            validationMessage: goalWeightValidationMessage
+                        )
+                    }
+
+                    if let nonCutPaceNotice = PlanEditWizardStepGate.nonCutPaceNotice(
+                        goalType: goalType,
+                        formState: formState
+                    ) {
+                        Text(nonCutPaceNotice)
+                            .font(FormaTokens.Typography.caption)
+                            .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
                     if goalType == .loseFat {
                         WeightLossPaceSettingsView(
@@ -218,6 +313,9 @@ struct PlanEditWizard: View {
                         .onChange(of: formState.weightLossPaceChoice) { _, _ in
                             formState.syncAggressivenessFromPaceChoice()
                         }
+                        .onChange(of: formState.advancedPaceDraft.amountText) { _, _ in
+                            formState.recordCustomPaceCaptureIfNeeded()
+                        }
                     } else {
                         PlanProjectionImpactCard(projection: projection)
                     }
@@ -227,6 +325,39 @@ struct PlanEditWizard: View {
                 .listRowSeparator(.hidden)
             }
         }
+    }
+
+    private var maintainGoalSummary: some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            Text(FormaProductCopy.PlanEditTarget.targetWeightTitle)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
+
+            Text(maintainGoalLine)
+                .font(FormaTokens.Typography.body)
+                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let validationMessage = goalWeightValidationMessage {
+                Text(validationMessage)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaPlanTokens.Color.planDanger)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(announcedError(validationMessage))
+                    .planEditAnnounces(announcedError(validationMessage))
+            }
+        }
+    }
+
+    private var maintainGoalLine: String {
+        if let currentKg = parsedPositive(formState.currentWeightKgText) {
+            let summary = OnboardingGoalWeightBounds.weightSummary(
+                valueKg: currentKg,
+                unitSystem: formState.unitSystem
+            )
+            return FormaProductCopy.PlanEditTarget.maintainAroundWeight(summary)
+        }
+        return FormaProductCopy.PlanEditTarget.maintainTargetSummary
     }
 
     private var transformationSummary: PlanTransformationSummaryState {
@@ -255,10 +386,14 @@ struct PlanEditWizard: View {
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             } header: {
-                FormaSettingsSectionHeader(title: "Birthday")
+                FormaSettingsSectionHeader(title: FormaProductCopy.PlanEditCommon.birthdayTitle)
             } footer: {
                 if let birthDate = formState.birthDate {
-                    Text("Age used for calculations: \(PlanFormatter.age(BirthDateAgeResolver.age(from: birthDate)))")
+                    Text(
+                        FormaProductCopy.PlanEditCommon.ageForPlan(
+                            PlanFormatter.age(BirthDateAgeResolver.age(from: birthDate))
+                        )
+                    )
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                 } else {
@@ -271,22 +406,7 @@ struct PlanEditWizard: View {
             Section {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     ForEach([Sex.male, .female, .other], id: \.self) { sex in
-                        Button {
-                            formState.sex = sex
-                        } label: {
-                            HStack {
-                                Text(PlanFormatter.sex(sex))
-                                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                                Spacer()
-                                if formState.sex == sex {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                                }
-                            }
-                            .padding(.vertical, FormaTokens.Spacing.xs)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
+                        sexSelectionRow(for: sex)
                     }
                 }
                 .padding(.vertical, FormaTokens.Spacing.xs)
@@ -294,7 +414,7 @@ struct PlanEditWizard: View {
             } header: {
                 FormaSettingsSectionHeader(title: FormaProductCopy.ProfileForm.sex)
             } footer: {
-                Text("Biological sex is required for calorie and macro calculations.")
+                Text(FormaProductCopy.PlanEditCommon.sexRequiredNote)
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             }
@@ -330,16 +450,12 @@ struct PlanEditWizard: View {
     }
 
     private var reviewChangesStep: some View {
-        let review = PlanEditReviewBuilder.build(
-            baseline: baselineProfile,
-            formState: formState
-        )
         let summary = PlanEditFinalPlanSummaryBuilder.build(
             baseline: baselineProfile,
             formState: formState,
             goalType: goalType,
             projection: projection,
-            review: review
+            review: reviewState
         )
 
         return Section {
@@ -356,46 +472,33 @@ struct PlanEditWizard: View {
             Section {
                 HStack {
                     Spacer()
-                    SwiftUI.ProgressView("Calculating targets…")
+                    SwiftUI.ProgressView(FormaProductCopy.PlanEditActivity.calculatingTargets)
                     Spacer()
                 }
             }
         } else if let preview = targetPreview {
-            let review = PlanEditReviewBuilder.build(
-                baseline: baselineProfile,
-                formState: formState
-            )
             let summary = PlanEditFinalPlanSummaryBuilder.build(
                 baseline: baselineProfile,
                 formState: formState,
                 goalType: goalType,
                 projection: projection,
-                review: review,
+                review: reviewState,
                 targetPreview: preview
             )
 
             Section {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
-                    if let warning = summary.warning {
-                        PlanEditReviewWarningCard(warning: warning)
-                    }
-
-                    PlanEditFinalPlanCard(state: summary)
-
-                    if !summary.todayChanges.isEmpty {
-                        PlanEditTodayChangesCard(
-                            changes: summary.todayChanges,
-                            note: summary.todayNote
-                        )
-                    }
-                }
+                PlanEditReviewStepView(
+                    summary: summary,
+                    showsStatusBanner: false,
+                    showsInputChanges: false
+                )
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             }
         } else {
             Section {
-                Text("Unable to preview targets. Go back and check your inputs.")
+                Text(FormaProductCopy.PlanEditActivity.previewUnavailable)
                                 .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
             }
         }
@@ -404,34 +507,21 @@ struct PlanEditWizard: View {
     // MARK: Validation
 
     private var parsedWeightKg: Double {
-        Double(formState.currentWeightKgText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 70
+        parsedPositive(formState.currentWeightKgText) ?? 70
     }
 
     private var parsedGoalWeightKg: Double {
-        Double(formState.goalWeightKgText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? parsedWeightKg
+        parsedPositive(formState.goalWeightKgText) ?? parsedWeightKg
     }
 
     private var canAdvanceFromCurrentStep: Bool {
-        switch currentStep {
-        case .goalAndTargetWeight:
-            guard goalWeightValidationMessage == nil else { return false }
-            guard goalType == .loseFat else { return true }
-            return pacePreview.isSaveable
-        case .birthdayAndSex:
-            guard let birthDate = formState.birthDate else { return false }
-            return BirthDateAgeResolver.isValidBirthDate(birthDate) && formState.sex != .preferNotToSay
-        case .heightAndWeight:
-            return PlanBodyBaselineValidationBuilder.validate(
-                heightText: formState.heightCmText,
-                weightText: formState.currentWeightKgText
-            ).isValid
-        case .activityLevel, .reviewChanges:
-            return true
-        case .confirmTargets:
-            return targetPreview != nil
-        case .none:
-            return false
-        }
+        PlanEditWizardStepGate.canAdvance(
+            from: currentStep,
+            formState: formState,
+            goalType: goalType,
+            goalWeightValidationMessage: goalWeightValidationMessage,
+            pacePreview: pacePreview
+        )
     }
 
     private var pacePreview: WeightLossPacePreviewModel {
@@ -445,17 +535,100 @@ struct PlanEditWizard: View {
 
     // MARK: Actions
 
+    private func sexSelectionRow(for sex: Sex) -> some View {
+        let isSelected = formState.sex == sex
+
+        return Button {
+            formState.sex = sex
+        } label: {
+            HStack {
+                Text(PlanFormatter.sex(sex))
+                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(PlanFormatter.sex(sex))
+        .accessibilityValue(PlanEditAccessibility.selectionValue(isSelected: isSelected))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func announcedError(_ message: String) -> String {
+        "\(FormaProductCopy.PlanEditAccessibility.errorPrefix). \(message)"
+    }
+
+    private func initializeIfNeeded() {
+        guard !didInitialize else { return }
+        didInitialize = true
+        goalType = PlanStateBuilder.goalType(for: formState.asProfileSnapshot())
+        if let index = PlanEditWizardFlow.index(of: initialStep, formState: formState) {
+            stepIndex = index
+        } else {
+            stepIndex = 0
+        }
+        formState.applyTrainingRhythmDefaultsForCurrentActivity()
+        if goalType == .maintain {
+            formState.syncMaintainGoalWeightFromCurrent()
+        }
+    }
+
+    private func requestCancel() {
+        if hasUnsavedChanges {
+            showsDiscardChangesConfirmation = true
+        } else {
+            performCancel()
+        }
+    }
+
+    private func performCancel() {
+        onCancel()
+        dismiss()
+    }
+
     private func advance() {
-        withAnimation(.easeInOut(duration: 0.2)) {
+        guard !isStepTransitionInFlight else { return }
+        guard stepIndex < flow.count - 1 else { return }
+
+        beginStepTransition {
             stepIndex = min(stepIndex + 1, flow.count - 1)
         }
     }
 
+    private func beginStepTransition(_ updates: @escaping () -> Void) {
+        guard !isStepTransitionInFlight else { return }
+
+        isStepTransitionInFlight = true
+        stepTransitionGeneration += 1
+        let generation = stepTransitionGeneration
+
+        PlanEditMotion.withAnimationIfEnabled(
+            PlanEditMotion.stepTransition,
+            reduceMotion: reduceMotion,
+            updates
+        )
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + PlanEditMotion.stepTransitionDuration) {
+            guard generation == stepTransitionGeneration else { return }
+            isStepTransitionInFlight = false
+        }
+    }
+
     private func advanceFromReview() {
+        guard !isGeneratingTargets else { return }
         isGeneratingTargets = true
         Task {
             do {
                 let preview = try await onPrepareTargets(formState)
+                guard !Task.isCancelled else { return }
                 targetPreview = preview
                 formState.applyGeneratedTargets(preview.targets)
                 isGeneratingTargets = false
@@ -467,7 +640,13 @@ struct PlanEditWizard: View {
     }
 
     private func applyGoalType(_ type: PlanGoalType) {
-        guard let current = Double(formState.currentWeightKgText.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+        goalType = type
+
+        if type != .loseFat {
+            formState.resetPaceForNonCutGoal()
+        }
+
+        guard let current = parsedPositive(formState.currentWeightKgText) else {
             return
         }
 
@@ -485,17 +664,27 @@ struct PlanEditWizard: View {
     }
 
     private func save() {
-        guard !isSaving, saveSuccessState == nil else { return }
+        guard !isNavigationLocked else { return }
+        guard PlanEditWizardStepGate.canSave(
+            targetPreview: targetPreview,
+            reviewHasChanges: reviewState.hasChanges,
+            isSaving: isSaving
+        ), saveSuccessState == nil else { return }
         isSaving = true
         Task {
             do {
                 try await onSave(formState)
+                guard !Task.isCancelled else { return }
                 let success = PlanEditSaveSuccessBuilder.build(projection: projection)
-                saveSuccessState = success
+                PlanEditMotion.withAnimationIfEnabled(
+                    PlanEditMotion.successReveal,
+                    reduceMotion: reduceMotion
+                ) {
+                    saveSuccessState = success
+                }
                 isSaving = false
                 try? await Task.sleep(nanoseconds: PlanEditSaveSuccessBuilder.displayDurationNanoseconds)
-                onCancel()
-                dismiss()
+                performCancel()
             } catch {
                 isSaving = false
             }
@@ -508,9 +697,12 @@ struct PlanEditWizard: View {
     }
 
     private func parsedPositive(_ text: String) -> Double? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let value = Double(trimmed), value > 0 else { return nil }
-        return value
+        switch PlanNumericInputParser.parsePositiveDecimal(text) {
+        case .success(let value):
+            return value
+        case .failure:
+            return nil
+        }
     }
 
     private func formatDouble(_ value: Double) -> String {
@@ -565,4 +757,5 @@ private extension PlanFormState {
         onCancel: {},
         onPrepareTargets: { _ in PlanPreviewData.generatedPreview }
     )
+    .formaThemePreview()
 }

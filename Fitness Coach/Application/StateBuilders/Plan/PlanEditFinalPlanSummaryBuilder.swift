@@ -55,9 +55,9 @@ enum PlanEditFinalPlanSummaryBuilder {
         let copy = FormaProductCopy.PlanEditReview.self
         let isUpToDate = !review.hasChanges
 
-        let finish = projection.estimatedCompletionLabel?
-            .replacingOccurrences(of: "Estimated finish: ", with: "")
-            .replacingOccurrences(of: ".", with: "")
+        let finish = PlanEditTimelineCopy.monthYearDisplay(
+            fromCompletionLabel: projection.estimatedCompletionLabel
+        )
 
         let projectedTargets = resolvedTargets(
             projection: projection,

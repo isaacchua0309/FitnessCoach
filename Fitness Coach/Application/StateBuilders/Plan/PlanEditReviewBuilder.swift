@@ -19,19 +19,6 @@ struct PlanEditReviewState: Equatable, Sendable {
     let hasChanges: Bool
 }
 
-struct PlanEditTargetComparisonRow: Identifiable, Equatable, Sendable {
-    let id: String
-    let label: String
-    let before: String
-    let after: String
-}
-
-struct PlanEditTargetComparisonState: Equatable, Sendable {
-    let rows: [PlanEditTargetComparisonRow]
-    let isAggressive: Bool
-    let warning: String?
-}
-
 enum PlanEditReviewBuilder {
 
     static func build(
@@ -49,9 +36,9 @@ enum PlanEditReviewBuilder {
         appendChange(
             to: &rows,
             id: "goal",
-            label: "Goal",
-            before: baselineGoal.rawValue,
-            after: formGoal.rawValue
+            label: FormaProductCopy.PlanEditReview.goalLabel,
+            before: PlanGoalSelectionBuilder.displayTitle(for: baselineGoal),
+            after: PlanGoalSelectionBuilder.displayTitle(for: formGoal)
         )
 
         appendChange(
@@ -66,7 +53,7 @@ enum PlanEditReviewBuilder {
             appendChange(
                 to: &rows,
                 id: "birthday",
-                label: "Birthday",
+                label: FormaProductCopy.PlanEditCommon.birthdayTitle,
                 before: formattedBirthDate(baselineBirthDate, calendar: calendar),
                 after: formattedBirthDate(formBirthDate, calendar: calendar)
             )
@@ -74,8 +61,8 @@ enum PlanEditReviewBuilder {
             appendChange(
                 to: &rows,
                 id: "birthday",
-                label: "Birthday",
-                before: "Not set",
+                label: FormaProductCopy.PlanEditCommon.birthdayTitle,
+                before: FormaProductCopy.PlanEditCommon.notSet,
                 after: formattedBirthDate(formBirthDate, calendar: calendar)
             )
         }
@@ -135,40 +122,20 @@ enum PlanEditReviewBuilder {
                 to: &rows,
                 id: "bodyFat",
                 label: FormaProductCopy.ProfileForm.bodyFat,
-                before: PlanFormatter.percent(baselineBodyFat) ?? "Not set",
-                after: PlanFormatter.percent(formBodyFat) ?? "Not set"
+                before: PlanFormatter.percent(baselineBodyFat) ?? FormaProductCopy.PlanEditCommon.notSet,
+                after: PlanFormatter.percent(formBodyFat) ?? FormaProductCopy.PlanEditCommon.notSet
             )
         } else if let formBodyFat = formSnapshot.estimatedBodyFatPercentage {
             appendChange(
                 to: &rows,
                 id: "bodyFat",
                 label: FormaProductCopy.ProfileForm.bodyFat,
-                before: "Not set",
-                after: PlanFormatter.percent(formBodyFat) ?? "Not set"
+                before: FormaProductCopy.PlanEditCommon.notSet,
+                after: PlanFormatter.percent(formBodyFat) ?? FormaProductCopy.PlanEditCommon.notSet
             )
         }
 
         return PlanEditReviewState(changes: rows, hasChanges: !rows.isEmpty)
-    }
-
-    static func buildTargetComparison(
-        before: UserTargets,
-        preview: CalorieTargetResult
-    ) -> PlanEditTargetComparisonState {
-        let after = preview.targets
-        let rows: [PlanEditTargetComparisonRow] = [
-            comparisonRow("calories", "Calories", PlanFormatter.kcal(before.calorieTarget), PlanFormatter.kcal(after.calorieTarget)),
-            comparisonRow("protein", "Protein", PlanFormatter.grams(before.proteinTarget), PlanFormatter.grams(after.proteinTarget)),
-            comparisonRow("carbs", "Carbs", PlanFormatter.grams(before.carbTarget), PlanFormatter.grams(after.carbTarget)),
-            comparisonRow("fat", "Fat", PlanFormatter.grams(before.fatTarget), PlanFormatter.grams(after.fatTarget)),
-            comparisonRow("water", "Water", PlanFormatter.ml(before.waterTargetMl), PlanFormatter.ml(after.waterTargetMl))
-        ]
-
-        return PlanEditTargetComparisonState(
-            rows: rows,
-            isAggressive: preview.isAggressive,
-            warning: preview.warning
-        )
     }
 
     private static func appendChange(
@@ -182,15 +149,6 @@ enum PlanEditReviewBuilder {
         rows.append(
             PlanEditChangeRow(id: id, label: label, before: before, after: after)
         )
-    }
-
-    private static func comparisonRow(
-        _ id: String,
-        _ label: String,
-        _ before: String,
-        _ after: String
-    ) -> PlanEditTargetComparisonRow {
-        PlanEditTargetComparisonRow(id: id, label: label, before: before, after: after)
     }
 
     private static func formattedBirthDate(_ date: Date, calendar: Calendar) -> String {

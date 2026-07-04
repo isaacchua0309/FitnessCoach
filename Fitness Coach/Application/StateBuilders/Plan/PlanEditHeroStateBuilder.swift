@@ -51,15 +51,17 @@ enum PlanEditHeroStateBuilder {
     }
 
     private static func motivationalLine(for goalLabel: String) -> String {
+        let copy = FormaProductCopy.PlanEditHero.self
+        let goal = FormaProductCopy.PlanEditGoal.self
         switch goalLabel {
-        case PlanGoalType.loseFat.rawValue:
-            return FormaProductCopy.PlanEditHero.motivationalFatLoss
-        case PlanGoalType.maintain.rawValue:
-            return FormaProductCopy.PlanEditHero.motivationalMaintenance
-        case PlanGoalType.gainMuscle.rawValue:
-            return FormaProductCopy.PlanEditHero.motivationalMuscleGain
+        case goal.loseFatTitle:
+            return copy.motivationalFatLoss
+        case goal.maintainTitle:
+            return copy.motivationalMaintenance
+        case goal.gainMuscleTitle:
+            return copy.motivationalMuscleGain
         default:
-            return FormaProductCopy.PlanEditHero.motivationalFatLoss
+            return copy.motivationalFatLoss
         }
     }
 

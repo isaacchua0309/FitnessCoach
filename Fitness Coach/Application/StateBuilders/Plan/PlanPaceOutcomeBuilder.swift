@@ -82,9 +82,9 @@ enum PlanPaceOutcomeBuilder {
             calendar: calendar
         )
 
-        let finish = projection.estimatedCompletionLabel?
-            .replacingOccurrences(of: "Estimated finish: ", with: "")
-            .replacingOccurrences(of: ".", with: "")
+        let finish = PlanEditTimelineCopy.monthYearDisplay(
+            fromCompletionLabel: projection.estimatedCompletionLabel
+        )
 
         return PlanPaceOutcomePresentation(
             choice: choice,

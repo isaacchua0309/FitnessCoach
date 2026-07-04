@@ -37,8 +37,9 @@ struct WeightLossPacePreviewModel: Equatable, Sendable {
 
 enum WeightLossPacePreviewBuilder {
 
-    static let paceWarningCopy =
-        "This pace may be difficult to sustain. Forma recommends a slower target for recovery and consistency."
+    static var paceWarningCopy: String {
+        FormaProductCopy.PlanEditPace.aggressivePaceWarning
+    }
 
     static func build(
         choice: WeightLossPaceChoice,
@@ -68,7 +69,7 @@ enum WeightLossPacePreviewBuilder {
         }
 
         guard weightKg > 0 else {
-            return invalid(message: "Enter a valid baseline weight to preview pace.")
+            return invalid(message: FormaProductCopy.PlanEditPace.enterBaselineWeight)
         }
 
         let pace: WeightLossPace
@@ -112,13 +113,13 @@ enum WeightLossPacePreviewBuilder {
         )
 
         guard let breakdown = WeightLossRateCalculator.paceBreakdown(input: planInput) else {
-            return invalid(message: "Unable to preview this pace.")
+            return invalid(message: FormaProductCopy.PlanEditPace.unableToPreview)
         }
 
         let weeksPerMonth = FormaCalculationConstants.daysPerAverageMonth / 7.0
         let monthlyKg = breakdown.requestedWeeklyLossKg * weeksPerMonth
         let safetyDisplay = safetyDisplay(for: validation.safetyLevel)
-        let warningMessage = validation.warnings.isEmpty ? nil : paceWarningCopy
+        let warningMessage = validation.warnings.first?.message
 
         return WeightLossPacePreviewModel(
             weeklyLossKg: breakdown.requestedWeeklyLossKg,

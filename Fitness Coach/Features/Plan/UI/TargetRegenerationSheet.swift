@@ -16,69 +16,47 @@ struct TargetRegenerationSheet: View {
 
     @State private var isApplying = false
 
+    private let copy = FormaProductCopy.PlanTargetRegeneration.self
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    if preview.isAggressive || preview.warning != nil {
-                        Label(
-                            "These targets may be aggressive. Review before applying.",
-                            systemImage: "exclamationmark.triangle.fill"
-                        )
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(FormaPlanTokens.Color.planWarning)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            FormaPlanTokens.Color.planWarningSoft,
-                            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+                    if let warning = PlanEditWarningCopyMapper.userFacingWarning(
+                        warningCode: preview.warning,
+                        isAggressive: preview.isAggressive
+                    ) {
+                        PlanWarningCard(
+                            model: PlanWarningCardDisplayModel(
+                                title: warning.title,
+                                body: warning.body
+                            )
                         )
                     }
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Estimates")
-                            .font(.headline)
-                        previewRow("BMR", "\(preview.estimatedBMR) kcal")
-                        previewRow("TDEE", "\(preview.estimatedTDEE) kcal")
-                        previewRow("Daily deficit", "\(preview.estimatedDailyDeficit) kcal")
-                    }
-                    .padding()
-                    .background(
-                        FormaPlanTokens.Color.planElevatedSurface,
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    PlanMacroSummaryCard(
+                        model: PlanMacroSummaryCardDisplayModel(
+                            title: copy.estimatesTitle,
+                            rows: estimateRows
+                        )
                     )
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Generated Targets")
-                            .font(.headline)
-                        previewRow("Calories", PlanFormatter.kcal(preview.targets.calorieTarget))
-                        previewRow("Protein", PlanFormatter.grams(preview.targets.proteinTarget))
-                        previewRow("Carbs", PlanFormatter.grams(preview.targets.carbTarget))
-                        previewRow("Fat", PlanFormatter.grams(preview.targets.fatTarget))
-                        previewRow("Water", PlanFormatter.ml(preview.targets.waterTargetMl))
-                        previewRow(
-                            "Aggressiveness",
-                            PlanFormatter.aggressiveness(preview.targets.aggressiveness)
+                    PlanMacroSummaryCard(
+                        model: PlanMacroSummaryCardDisplayModel(
+                            title: copy.targetsTitle,
+                            rows: targetRows
                         )
-                        if let weeklyLoss = PlanFormatter.weeklyLoss(preview.targets.expectedWeeklyWeightLossKg) {
-                            previewRow("Expected weekly loss", weeklyLoss)
-                        }
-                    }
-                    .padding()
-                    .background(
-                        FormaPlanTokens.Color.planElevatedSurface,
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
                     )
                 }
-                .padding()
+                .padding(FormaTokens.Spacing.pageHorizontal)
             }
             .background(FormaPlanTokens.Color.planBackground)
-            .navigationTitle("Regenerated Targets")
+            .navigationTitle(copy.navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .tint(FormaPlanTokens.Color.planAccent)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(copy.cancel) {
                         onCancel()
                         dismiss()
                     }
@@ -90,25 +68,73 @@ struct TargetRegenerationSheet: View {
                         if isApplying {
                             SwiftUI.ProgressView()
                         } else {
-                            Text("Apply")
+                            Text(copy.apply)
                         }
                     }
                     .disabled(isApplying)
                 }
             }
+            .planEditSupportsDynamicType()
         }
     }
 
-    private func previewRow(_ title: String, _ value: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-            Spacer()
-            Text(value)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
+    private var estimateRows: [PlanMetricRowDisplayModel] {
+        [
+            PlanMetricRowDisplayModel(id: "bmr", label: copy.bmrLabel, value: PlanFormatter.kcal(preview.estimatedBMR)),
+            PlanMetricRowDisplayModel(id: "tdee", label: copy.tdeeLabel, value: PlanFormatter.kcal(preview.estimatedTDEE)),
+            PlanMetricRowDisplayModel(
+                id: "deficit",
+                label: copy.dailyDeficitLabel,
+                value: PlanFormatter.kcal(preview.estimatedDailyDeficit)
+            )
+        ]
+    }
+
+    private var targetRows: [PlanMetricRowDisplayModel] {
+        var rows = [
+            PlanMetricRowDisplayModel(
+                id: "calories",
+                label: copy.caloriesLabel,
+                value: PlanFormatter.kcal(preview.targets.calorieTarget)
+            ),
+            PlanMetricRowDisplayModel(
+                id: "protein",
+                label: copy.proteinLabel,
+                value: PlanFormatter.grams(preview.targets.proteinTarget)
+            ),
+            PlanMetricRowDisplayModel(
+                id: "carbs",
+                label: copy.carbsLabel,
+                value: PlanFormatter.grams(preview.targets.carbTarget)
+            ),
+            PlanMetricRowDisplayModel(
+                id: "fat",
+                label: copy.fatLabel,
+                value: PlanFormatter.grams(preview.targets.fatTarget)
+            ),
+            PlanMetricRowDisplayModel(
+                id: "water",
+                label: copy.waterLabel,
+                value: PlanFormatter.ml(preview.targets.waterTargetMl)
+            ),
+            PlanMetricRowDisplayModel(
+                id: "aggressiveness",
+                label: copy.aggressivenessLabel,
+                value: PlanFormatter.aggressiveness(preview.targets.aggressiveness)
+            )
+        ]
+
+        if let weeklyLoss = PlanFormatter.weeklyLoss(preview.targets.expectedWeeklyWeightLossKg) {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "weeklyLoss",
+                    label: copy.expectedWeeklyLossLabel,
+                    value: weeklyLoss
+                )
+            )
         }
+
+        return rows
     }
 
     private func apply() {

@@ -141,7 +141,7 @@ enum PlanCalculationBridge {
             targets: targets,
             estimatedDailyDeficit: result.dailyDeficitKcal,
             isAggressive: aggressive,
-            warning: aggressive ? "aggressiveDeficit" : nil
+            warning: aggressive ? PlanEditWarningCode.aggressiveDeficit : nil
         )
     }
 

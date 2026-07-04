@@ -28,12 +28,12 @@ final class PlanEditHeroStateBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(state.motivationalLine, FormaProductCopy.PlanEditHero.motivationalFatLoss)
-        XCTAssertEqual(state.goalValue, PlanGoalType.loseFat.rawValue)
+        XCTAssertEqual(state.goalValue, PlanGoalSelectionBuilder.displayTitle(for: .loseFat))
         XCTAssertEqual(state.currentWeight, "80 kg")
         XCTAssertEqual(state.targetWeight, "70 kg")
-        XCTAssertEqual(state.totalChangeLine, "10 kg to your target.")
-        XCTAssertEqual(state.estimatedFinishLine, "Estimated finish: March 2026.")
-        XCTAssertTrue(state.accessibilitySummary.contains("10 kg to your target."))
+        XCTAssertEqual(state.totalChangeLine, "10 kg between now and your goal.")
+        XCTAssertEqual(state.estimatedFinishLine, "On track for March 2026.")
+        XCTAssertTrue(state.accessibilitySummary.contains("10 kg between now and your goal."))
     }
 
     func testMaintenanceHeroOmitsEstimatedFinish() {
@@ -58,7 +58,7 @@ final class PlanEditHeroStateBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(state.motivationalLine, FormaProductCopy.PlanEditHero.motivationalMuscleGain)
-        XCTAssertEqual(state.totalChangeLine, "3 kg to your target.")
+        XCTAssertEqual(state.totalChangeLine, "3 kg between now and your goal.")
         XCTAssertNil(state.estimatedFinishLine)
     }
 
@@ -73,7 +73,7 @@ final class PlanEditHeroStateBuilderTests: XCTestCase {
         )
         let state = PlanEditHeroStateBuilder.build(projection: projection)
 
-        XCTAssertEqual(state.estimatedFinishLine, "Estimated finish: March 2027.")
+        XCTAssertEqual(state.estimatedFinishLine, "On track for March 2027.")
     }
 
     func testMissingWeightsUseUnavailablePlaceholder() {

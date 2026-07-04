@@ -160,23 +160,35 @@ final class PlanEditWizardTests: XCTestCase {
         XCTAssertEqual(review.changes.first { $0.id == "goalWeight" }?.after, "70 kg")
     }
 
-    func testTargetComparisonShowsBeforeAndAfterCalories() throws {
+    func testFinalSummaryTodayChangesReflectTargetPreview() throws {
         var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         formState.selectActivityLevel(.sedentary)
 
         let input = try XCTUnwrap(try? formState.makeCalorieTargetInput())
-        let container = try! AppContainer(inMemory: true)
-        let preview = try! container.targetService.generateInitialTargets(from: input)
+        let container = try AppContainer(inMemory: true)
+        let preview = try container.targetService.generateInitialTargets(from: input)
 
-        let comparison = PlanEditReviewBuilder.buildTargetComparison(
-            before: PlanMissionControlFixtures.loseProfile.targets,
-            preview: preview
+        let projection = PlanProjectionBuilder.build(formState: formState, goalType: .loseFat)
+        let review = PlanEditReviewBuilder.build(
+            baseline: PlanMissionControlFixtures.loseProfile,
+            formState: formState,
+            referenceDate: referenceDate,
+            calendar: calendar
         )
 
-        XCTAssertFalse(comparison.rows.isEmpty)
+        let summary = PlanEditFinalPlanSummaryBuilder.build(
+            baseline: PlanMissionControlFixtures.loseProfile,
+            formState: formState,
+            goalType: .loseFat,
+            projection: projection,
+            review: review,
+            targetPreview: preview
+        )
+
+        XCTAssertTrue(summary.hasTodayChanges)
         XCTAssertNotEqual(
-            comparison.rows.first { $0.id == "calories" }?.before,
-            comparison.rows.first { $0.id == "calories" }?.after
+            summary.todayChanges.first { $0.id == "calories" }?.previousValue,
+            summary.todayChanges.first { $0.id == "calories" }?.value
         )
     }
 

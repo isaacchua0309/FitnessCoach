@@ -8,7 +8,7 @@ import XCTest
 
 final class PlanActivityLevelPresentationBuilderTests: XCTestCase {
 
-    func testOptionsIncludeFriendlyCopyForAllLevels() throws {
+    func testOptionsIncludeFriendlyCopyForAllLevels() {
         let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         let options = PlanActivityLevelPresentationBuilder.options(formState: formState)
 

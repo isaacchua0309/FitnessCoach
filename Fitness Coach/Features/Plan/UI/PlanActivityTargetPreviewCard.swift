@@ -14,54 +14,70 @@ struct PlanActivityTargetPreviewCard: View {
     private let activityCopy = FormaProductCopy.PlanEditActivity.self
 
     var body: some View {
-        PlanEditCard {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                Text(activityCopy.targetPreviewTitle)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
+        if state.isComplete {
+            PlanMacroSummaryCard(model: summaryModel)
+                .accessibilityElement(children: .combine)
+        } else {
+            PlanProjectionCard {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                    Text(activityCopy.targetPreviewTitle)
+                        .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                        .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
 
-                if state.isComplete {
-                    metricRow(
-                        label: projectionCopy.maintenanceLabel,
-                        value: state.maintenanceCalories
-                    )
-                    metricRow(
-                        label: projectionCopy.targetCaloriesLabel,
-                        value: state.targetCalories
-                    )
-                    metricRow(
-                        label: projectionCopy.proteinLabel,
-                        value: state.proteinTarget
-                    )
-                    metricRow(
-                        label: activityCopy.trainingAssumptionLabel,
-                        value: state.trainingAssumption
-                    )
-                } else {
                     Text(FormaProductCopy.PlanProjection.incompleteCalculation)
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .accessibilityElement(children: .combine)
         }
-        .accessibilityElement(children: .combine)
     }
 
-    @ViewBuilder
-    private func metricRow(label: String, value: String?) -> some View {
-        if let value {
-            HStack(alignment: .firstTextBaseline) {
-                Text(label)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-                Spacer(minLength: FormaTokens.Spacing.sm)
-                Text(value)
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                    .multilineTextAlignment(.trailing)
-            }
+    private var summaryModel: PlanMacroSummaryCardDisplayModel {
+        var rows: [PlanMetricRowDisplayModel] = []
+
+        if let maintenanceCalories = state.maintenanceCalories {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "maintenance",
+                    label: projectionCopy.maintenanceLabel,
+                    value: maintenanceCalories
+                )
+            )
         }
+        if let targetCalories = state.targetCalories {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "target",
+                    label: projectionCopy.targetCaloriesLabel,
+                    value: targetCalories
+                )
+            )
+        }
+        if let proteinTarget = state.proteinTarget {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "protein",
+                    label: projectionCopy.proteinLabel,
+                    value: proteinTarget
+                )
+            )
+        }
+        if let trainingAssumption = state.trainingAssumption {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "training",
+                    label: activityCopy.trainingAssumptionLabel,
+                    value: trainingAssumption
+                )
+            )
+        }
+
+        return PlanMacroSummaryCardDisplayModel(
+            title: activityCopy.targetPreviewTitle,
+            rows: rows
+        )
     }
 }
 

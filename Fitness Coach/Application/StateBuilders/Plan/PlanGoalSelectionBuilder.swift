@@ -29,6 +29,10 @@ enum PlanGoalSelectionBuilder {
         PlanStateBuilder.goalType(for: profile)
     }
 
+    static func displayTitle(for goalType: PlanGoalType) -> String {
+        presentation(for: goalType, isRecommended: false).title
+    }
+
     private static func presentation(
         for goalType: PlanGoalType,
         isRecommended: Bool

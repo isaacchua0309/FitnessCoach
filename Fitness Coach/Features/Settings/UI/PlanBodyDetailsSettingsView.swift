@@ -32,7 +32,7 @@ struct PlanBodyDetailsSettingsView: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             sectionHeader(presentation.profileDetailsSectionTitle)
 
-            PlanEditCard(compact: true) {
+            PlanProjectionCard(compact: true) {
                 VStack(spacing: 0) {
                     ForEach(Array(presentation.detailRows.enumerated()), id: \.element.id) { index, row in
                         if index > 0 {

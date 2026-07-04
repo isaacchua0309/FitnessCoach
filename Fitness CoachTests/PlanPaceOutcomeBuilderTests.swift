@@ -19,7 +19,7 @@ final class PlanPaceOutcomeBuilderTests: XCTestCase {
         referenceDate = calendar.date(from: DateComponents(year: 2026, month: 1, day: 15))!
     }
 
-    func testOptionsIncludeAllPaceChoicesWithFriendlyTitles() throws {
+    func testOptionsIncludeAllPaceChoicesWithFriendlyTitles() {
         var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         formState.currentWeightKgText = "80"
         formState.goalWeightKgText = "70"

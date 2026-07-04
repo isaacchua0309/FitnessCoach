@@ -12,12 +12,14 @@ struct PlanActivityLevelCard: View {
     let isSelected: Bool
     let action: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     private let copy = FormaProductCopy.PlanEditActivity.self
 
     var body: some View {
-        Button(action: action) {
+        PlanSelectableCard(
+            isSelected: isSelected,
+            accessibilityLabel: accessibilityLabel,
+            action: action
+        ) {
             HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
                 Image(systemName: presentation.iconSystemName)
                     .font(.title3.weight(.semibold))
@@ -51,26 +53,10 @@ struct PlanActivityLevelCard: View {
                     }
                 }
 
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                        .padding(.top, 2)
-                        .transition(.scale.combined(with: .opacity))
-                        .accessibilityHidden(true)
-                }
+                PlanSelectableCard.selectionCheckmark(isSelected: isSelected)
+                    .padding(.top, 2)
             }
-            .padding(FormaTokens.Spacing.cardPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground)
-            .overlay(cardBorder)
-            .contentShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: isSelected)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     private var headerRow: some View {
@@ -82,25 +68,6 @@ struct PlanActivityLevelCard: View {
         }
     }
 
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .fill(
-                isSelected
-                    ? FormaPlanTokens.Color.planSelectedCardBackground
-                    : FormaPlanTokens.Color.planUnselectedCardBackground
-            )
-    }
-
-    private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .stroke(
-                isSelected
-                    ? FormaPlanTokens.Color.planAccent
-                    : FormaPlanTokens.Color.planCardBorder.opacity(0.45),
-                lineWidth: isSelected ? 1.5 : 1
-            )
-    }
-
     private var accessibilityLabel: String {
         var parts = [
             presentation.title,
@@ -109,9 +76,6 @@ struct PlanActivityLevelCard: View {
         ]
         if let maintenanceImpactLabel = presentation.maintenanceImpactLabel {
             parts.append("\(copy.maintenanceImpactLabel), \(maintenanceImpactLabel)")
-        }
-        if isSelected {
-            parts.append("Selected")
         }
         return parts.joined(separator: ". ")
     }
