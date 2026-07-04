@@ -2,9 +2,9 @@
 
 Production documentation for the **cloud persistence foundation** in Forma (Fitness Coach).
 
-**Status:** Phase 2 foundation **implemented** (DTOs, paths, mappers, remote store client, security rules, tests, DI). **Sync is not live.**
+**Status:** Phase 2 foundation **implemented** (DTOs, paths, mappers, remote store client, security rules, tests, DI).
 
-**Related PR:** [#108](https://github.com/isaacchua0309/FitnessCoach/pull/108)
+> **Phase 3 update:** The local-first sync engine is now implemented — see [Phase 3 — Local-First Sync Engine](./PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md). Tables and flag defaults below describe **Phase 2 scope at ship time** (schema/rules without live sync).
 
 ---
 
