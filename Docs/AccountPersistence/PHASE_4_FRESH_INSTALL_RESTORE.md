@@ -269,7 +269,7 @@ AccountRestoreCoordinator.scheduleBackgroundBackfill
 AccountInitialRestoreService.runBackgroundBackfill
         │
         ├─ Wider daily log window: AccountRestorePolicy.backgroundDailyLogLookbackDays (365)
-        ├─ Wider weight window: AccountRestorePolicy.backgroundWeightLookfillDays (730)
+        ├─ Wider weight window: AccountRestorePolicy.backgroundWeightLookbackDays (730)
         └─ No blocking UI
         │
         ▼
