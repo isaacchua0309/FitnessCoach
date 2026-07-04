@@ -134,11 +134,253 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             )
         }
 
-        return await runRestore(
+        return await runBackgroundBackfillRestore(
             uid: normalizedUID,
             reason: reason,
-            mode: .backgroundBackfill
+            startedAt: now
         )
+    }
+
+    // MARK: - Background backfill
+
+    private func runBackgroundBackfillRestore(
+        uid: String,
+        reason: AccountRestoreReason,
+        startedAt: Date
+    ) async -> AccountRestoreSummary {
+        AccountRestoreLogger.event(
+            "background_backfill_started",
+            fields: [
+                "uid": uid,
+                "reason": reason.rawValue
+            ]
+        )
+        stateStore.markBackgroundBackfillStarted(uid: uid, now: startedAt)
+
+        guard isUIDStillCurrent(uid) else {
+            return finishBackgroundSkipped(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt,
+                message: "Account changed before backfill could start."
+            )
+        }
+
+        guard networkChecker.isNetworkAvailable else {
+            AccountRestoreLogger.warn("background_backfill_offline", fields: ["uid": uid])
+            return finishBackgroundSkipped(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt,
+                message: "Background backfill deferred until network is available."
+            )
+        }
+
+        let localStatus: AccountLocalDataStatus
+        do {
+            localStatus = try await localInspector.inspectLocalData(for: uid)
+        } catch {
+            AccountRestoreLogger.error(
+                "background_backfill_local_inspection_failed",
+                fields: ["uid": uid],
+                underlying: error
+            )
+            return finishBackgroundFailed(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt,
+                message: "Background backfill could not inspect local account data."
+            )
+        }
+
+        guard localStatus.hasProfile else {
+            return finishBackgroundSkipped(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt,
+                message: "Background backfill requires a local profile."
+            )
+        }
+
+        let today = dateProvider.now
+        let dailyRange = AccountRestorePolicy.dailyLogDateRange(
+            for: .backgroundBackfill,
+            referenceDate: today,
+            calendar: calendar
+        )
+        let weightRange = AccountRestorePolicy.weightDateRange(
+            for: .backgroundBackfill,
+            referenceDate: today,
+            calendar: calendar
+        )
+
+        let recentPullSummary = await puller.pullRecentAccountData(
+            for: uid,
+            from: dailyRange.start,
+            to: dailyRange.end
+        )
+
+        if Task.isCancelled || !isUIDStillCurrent(uid) {
+            return finishBackgroundSkipped(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt,
+                message: "Background backfill was cancelled."
+            )
+        }
+
+        var pullSummary = recentPullSummary
+        if weightRange.start != dailyRange.start || weightRange.end != dailyRange.end {
+            let weightPullSummary = await puller.pullRecentAccountData(
+                for: uid,
+                from: weightRange.start,
+                to: weightRange.end
+            )
+            pullSummary = AccountRestoreOutcomeSupport.mergePullSummaries(
+                recentPullSummary,
+                weightPullSummary
+            )
+        }
+
+        if Task.isCancelled || !isUIDStillCurrent(uid) {
+            return finishBackgroundSkipped(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt,
+                message: "Background backfill was cancelled."
+            )
+        }
+
+        refreshDailyTotals(from: weightRange.start, to: weightRange.end)
+
+        return finishBackgroundPullOutcome(
+            uid: uid,
+            reason: reason,
+            startedAt: startedAt,
+            profileRestored: localStatus.hasProfile,
+            pullSummary: pullSummary
+        )
+    }
+
+    private func finishBackgroundSkipped(
+        uid: String,
+        reason: AccountRestoreReason,
+        startedAt: Date,
+        message: String
+    ) -> AccountRestoreSummary {
+        let endedAt = dateProvider.now
+        let summary = AccountRestoreSummary(
+            uid: uid,
+            reason: reason,
+            mode: .backgroundBackfill,
+            status: .skipped,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            profileRestored: false,
+            dailyLogsRestored: 0,
+            foodEntriesRestored: 0,
+            waterEntriesRestored: 0,
+            weightEntriesRestored: 0,
+            dailyReviewsRestored: 0,
+            skippedLocalNewer: 0,
+            conflicts: 0,
+            failed: 0,
+            isPartial: false,
+            userFacingMessage: message
+        )
+        AccountRestoreLogger.event("background_backfill_skipped", fields: ["uid": uid])
+        return summary
+    }
+
+    private func finishBackgroundFailed(
+        uid: String,
+        reason: AccountRestoreReason,
+        startedAt: Date,
+        message: String
+    ) -> AccountRestoreSummary {
+        let endedAt = dateProvider.now
+        let summary = AccountRestoreSummary(
+            uid: uid,
+            reason: reason,
+            mode: .backgroundBackfill,
+            status: .partial,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            profileRestored: false,
+            dailyLogsRestored: 0,
+            foodEntriesRestored: 0,
+            waterEntriesRestored: 0,
+            weightEntriesRestored: 0,
+            dailyReviewsRestored: 0,
+            skippedLocalNewer: 0,
+            conflicts: 0,
+            failed: 1,
+            isPartial: true,
+            userFacingMessage: message
+        )
+        stateStore.markPartial(uid: uid, summary: summary, now: endedAt)
+        AccountRestoreLogger.warn("background_backfill_failed", fields: ["uid": uid])
+        return summary
+    }
+
+    private func finishBackgroundPullOutcome(
+        uid: String,
+        reason: AccountRestoreReason,
+        startedAt: Date,
+        profileRestored: Bool,
+        pullSummary: AccountSyncPullSummary
+    ) -> AccountRestoreSummary {
+        let endedAt = dateProvider.now
+        let isPartial = AccountRestoreOutcomeSupport.isPartialPullOutcome(
+            profileRestored: profileRestored,
+            pullSummary: pullSummary,
+            remoteFailure: nil
+        )
+        let status: AccountRestoreStatus = isPartial ? .partial : .completed
+        let summary = AccountRestoreSummary(
+            uid: uid,
+            reason: reason,
+            mode: .backgroundBackfill,
+            status: status,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            profileRestored: profileRestored,
+            dailyLogsRestored: pullSummary.dailyLogsFetched,
+            foodEntriesRestored: pullSummary.foodEntriesFetched,
+            waterEntriesRestored: pullSummary.waterEntriesFetched,
+            weightEntriesRestored: pullSummary.weightEntriesFetched,
+            dailyReviewsRestored: pullSummary.dailyReviewsFetched,
+            skippedLocalNewer: pullSummary.skippedLocalNewer,
+            conflicts: pullSummary.conflicts,
+            failed: pullSummary.failed,
+            isPartial: isPartial,
+            userFacingMessage: isPartial ? FormaProductCopy.AccountRestore.Partial.body : nil
+        )
+
+        if isPartial {
+            stateStore.markPartial(uid: uid, summary: summary, now: endedAt)
+            AccountRestoreLogger.warn(
+                "background_backfill_partial",
+                fields: [
+                    "uid": uid,
+                    "failed": String(pullSummary.failed),
+                    "conflicts": String(pullSummary.conflicts)
+                ]
+            )
+        } else {
+            stateStore.markCompleted(uid: uid, summary: summary, now: endedAt)
+            AccountRestoreLogger.event(
+                "background_backfill_completed",
+                fields: [
+                    "uid": uid,
+                    "dailyLogs": String(pullSummary.dailyLogsFetched),
+                    "foodEntries": String(pullSummary.foodEntriesFetched),
+                    "weightEntries": String(pullSummary.weightEntriesFetched)
+                ]
+            )
+        }
+
+        return summary
     }
 
     // MARK: - Core restore

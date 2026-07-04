@@ -162,6 +162,7 @@ final class AccountInitialRestoreServiceTests: XCTestCase {
     }
 
     func testBackgroundBackfillPullsWiderHistory() async throws {
+        _ = try harness.seedLocalProfile(ownerUID: ownerUID)
         harness.stateStore.markCompleted(
             uid: ownerUID,
             summary: completedBlockingSummary(),
@@ -188,6 +189,45 @@ final class AccountInitialRestoreServiceTests: XCTestCase {
         XCTAssertNotNil(harness.stateStore.loadState(uid: ownerUID).lastSuccessfulBackgroundBackfillAt)
         let logs = try harness.store.fetch(FetchDescriptor<DailyLogEntity>())
         XCTAssertFalse(logs.isEmpty)
+    }
+
+    func testBackgroundBackfillRequiresLocalProfile() async {
+        harness.stateStore.markCompleted(
+            uid: ownerUID,
+            summary: completedBlockingSummary(),
+            now: referenceDate
+        )
+
+        let summary = await harness.service.runBackgroundBackfill(
+            uid: ownerUID,
+            reason: .appLaunch
+        )
+
+        XCTAssertEqual(summary.status, .skipped)
+        XCTAssertNil(harness.stateStore.loadState(uid: ownerUID).lastSuccessfulBackgroundBackfillAt)
+    }
+
+    func testBackgroundBackfillPartialFailureAllowsRetry() async throws {
+        _ = try harness.seedLocalProfile(ownerUID: ownerUID)
+        harness.stateStore.markCompleted(
+            uid: ownerUID,
+            summary: completedBlockingSummary(),
+            now: referenceDate
+        )
+        harness.networkChecker.isNetworkAvailable = false
+
+        let summary = await harness.service.runBackgroundBackfill(
+            uid: ownerUID,
+            reason: .appLaunch
+        )
+
+        XCTAssertEqual(summary.status, .skipped)
+        XCTAssertTrue(
+            harness.stateStore.shouldRunBackgroundBackfill(
+                uid: ownerUID,
+                now: referenceDate.addingTimeInterval(60)
+            )
+        )
     }
 
     // MARK: - Fixtures

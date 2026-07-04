@@ -454,7 +454,10 @@ final class AppContainer {
             initialRestoreService: accountInitialRestoreService,
             stateStore: accountRestoreStateStore,
             syncCoordinator: accountSyncCoordinator,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID },
+            onBackgroundBackfillFinished: { [weak self] _ in
+                self?.refreshCenter.notifyBackgroundBackfillDidComplete()
+            }
         )
 
         actionCenter = FitnessActionCenter(

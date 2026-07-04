@@ -288,6 +288,58 @@ final class AccountRestoreStateStoreTests: XCTestCase {
         )
     }
 
+    func testPartialBackgroundBackfillDoesNotSetBackfillTimestamp() {
+        store.markCompleted(
+            uid: uidA,
+            summary: makeSummary(uid: uidA, mode: .blockingInitial, status: .completed),
+            now: referenceDate
+        )
+        store.markPartial(
+            uid: uidA,
+            summary: makeSummary(uid: uidA, mode: .backgroundBackfill, status: .partial),
+            now: referenceDate
+        )
+
+        XCTAssertNil(store.loadState(uid: uidA).lastSuccessfulBackgroundBackfillAt)
+        XCTAssertTrue(
+            store.shouldRunBackgroundBackfill(
+                uid: uidA,
+                now: referenceDate.addingTimeInterval(60)
+            )
+        )
+    }
+
+    func testCompletedBackgroundBackfillSetsBackfillTimestamp() {
+        store.markCompleted(
+            uid: uidA,
+            summary: makeSummary(uid: uidA, mode: .blockingInitial, status: .completed),
+            now: referenceDate
+        )
+        store.markCompleted(
+            uid: uidA,
+            summary: makeSummary(uid: uidA, mode: .backgroundBackfill, status: .completed),
+            now: referenceDate
+        )
+
+        XCTAssertNotNil(store.loadState(uid: uidA).lastSuccessfulBackgroundBackfillAt)
+    }
+
+    func testMarkBackgroundBackfillStartedPreservesTerminalStatus() {
+        store.markCompleted(
+            uid: uidA,
+            summary: makeSummary(uid: uidA, mode: .blockingInitial, status: .completed),
+            now: referenceDate
+        )
+
+        store.markBackgroundBackfillStarted(uid: uidA, now: referenceDate.addingTimeInterval(30))
+
+        XCTAssertEqual(store.loadState(uid: uidA).status, .completed)
+        XCTAssertEqual(
+            store.loadState(uid: uidA).lastStartedAt,
+            referenceDate.addingTimeInterval(30)
+        )
+    }
+
     // MARK: - Fixtures
 
     private func makeSummary(

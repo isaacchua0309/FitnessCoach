@@ -40,8 +40,11 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
     private let currentUIDProvider: () -> String?
     private let restoreEnabledProvider: () -> Bool
     private let dateProvider: DateProviding
+    private let onBackgroundBackfillFinished: ((AccountRestoreSummary) -> Void)?
     private let runGuard = AccountRestoreRunGuard()
     private var backgroundBackfillTask: Task<Void, Never>?
+    private var backgroundBackfillUID: String?
+    private let backgroundBackfillGuard = AccountRestoreRunGuard()
 
     init(
         namespaceService: AccountDataNamespacePreparing,
@@ -53,7 +56,8 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         syncCoordinator: AccountSyncCoordinating? = nil,
         currentUIDProvider: @escaping () -> String?,
         restoreEnabledProvider: @escaping () -> Bool = { AccountRestoreCoordinatorSupport.isRestoreEnabled },
-        dateProvider: DateProviding? = nil
+        dateProvider: DateProviding? = nil,
+        onBackgroundBackfillFinished: ((AccountRestoreSummary) -> Void)? = nil
     ) {
         self.namespaceService = namespaceService
         self.migrationService = migrationService
@@ -65,6 +69,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         self.currentUIDProvider = currentUIDProvider
         self.restoreEnabledProvider = restoreEnabledProvider
         self.dateProvider = dateProvider ?? SystemDateProvider()
+        self.onBackgroundBackfillFinished = onBackgroundBackfillFinished
     }
 
     func prepareAccountAfterSignIn(
@@ -120,16 +125,24 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         guard let normalizedUID = normalizedUID(uid) else { return }
         guard isUIDStillCurrent(normalizedUID) else { return }
         guard stateStore.shouldRunBackgroundBackfill(uid: normalizedUID, now: dateProvider.now) else { return }
+        guard backgroundBackfillGuard.tryBegin(uid: normalizedUID) else { return }
+        defer { backgroundBackfillGuard.end(uid: normalizedUID) }
 
-        _ = await initialRestoreService.runBackgroundBackfill(
+        let summary = await initialRestoreService.runBackgroundBackfill(
             uid: normalizedUID,
             reason: .appLaunch
         )
+
+        guard isUIDStillCurrent(normalizedUID) else { return }
+        guard shouldNotifyAfterBackgroundBackfill(summary) else { return }
+        onBackgroundBackfillFinished?(summary)
     }
 
     func cancelOnAccountSwitch() {
+        backgroundBackfillUID = nil
         backgroundBackfillTask?.cancel()
         backgroundBackfillTask = nil
+        backgroundBackfillGuard.cancel()
         runGuard.cancel()
     }
 
@@ -267,7 +280,9 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
             return accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt)
         }
 
-        scheduleBackgroundBackfill(uid: normalizedUID)
+        if summary.allowsContinuedEntry {
+            scheduleBackgroundBackfill(uid: normalizedUID)
+        }
         AccountRestoreLogger.event(
             "restore_coordinator_finished",
             fields: [
@@ -506,9 +521,26 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
 
     private func scheduleBackgroundBackfill(uid: String) {
         backgroundBackfillTask?.cancel()
+        backgroundBackfillUID = uid
+        let scheduledUID = uid
         backgroundBackfillTask = Task { [weak self] in
             guard let self else { return }
-            await self.runBackgroundBackfillIfNeeded(uid: uid)
+            await self.runBackgroundBackfillIfNeeded(uid: scheduledUID)
+            if self.backgroundBackfillUID == scheduledUID {
+                self.backgroundBackfillUID = nil
+            }
+        }
+    }
+
+    private func shouldNotifyAfterBackgroundBackfill(_ summary: AccountRestoreSummary) -> Bool {
+        guard summary.mode == .backgroundBackfill else { return false }
+        switch summary.status {
+        case .completed, .partial:
+            return true
+        case .skipped, .failed, .offline, .notStarted, .checking,
+             .restoringProfile, .restoringRecentData, .restoringWeightHistory,
+             .rebuildingLocalViews:
+            return false
         }
     }
 

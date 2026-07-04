@@ -32,6 +32,7 @@ protocol AccountRestoreStateStoring {
     func markFailed(uid: String, reason: AccountRestoreReason, message: String, now: Date)
     func markSkipped(uid: String, reason: AccountRestoreReason, now: Date)
     func prepareForManualRetry(uid: String, now: Date)
+    func markBackgroundBackfillStarted(uid: String, now: Date)
     func shouldRunBlockingRestore(uid: String, localDataStatus: AccountLocalDataStatus, now: Date) -> Bool
     func shouldRunBackgroundBackfill(uid: String, now: Date) -> Bool
     func clear(uid: String)
@@ -243,6 +244,11 @@ struct AccountRestoreStateStore: AccountRestoreStateStoring {
         removeValue(forKey: AccountRestoreStateStoreSupport.lastFailureMessageKey(for: normalizedUID))
     }
 
+    func markBackgroundBackfillStarted(uid: String, now: Date) {
+        guard let normalizedUID = AccountRestoreStateStoreSupport.normalizedUID(uid) else { return }
+        setDate(now, forKey: AccountRestoreStateStoreSupport.lastStartedAtKey(for: normalizedUID))
+    }
+
     func shouldRunBlockingRestore(
         uid: String,
         localDataStatus: AccountLocalDataStatus,
@@ -300,9 +306,13 @@ struct AccountRestoreStateStore: AccountRestoreStateStoring {
 
         switch mode {
         case .blockingInitial, .manualRetry:
-            setDate(now, forKey: AccountRestoreStateStoreSupport.lastSuccessfulBlockingRestoreAtKey(for: uid))
+            if status == .completed || status == .partial || status == .offline || status == .skipped {
+                setDate(now, forKey: AccountRestoreStateStoreSupport.lastSuccessfulBlockingRestoreAtKey(for: uid))
+            }
         case .backgroundBackfill:
-            setDate(now, forKey: AccountRestoreStateStoreSupport.lastSuccessfulBackgroundBackfillAtKey(for: uid))
+            if status == .completed {
+                setDate(now, forKey: AccountRestoreStateStoreSupport.lastSuccessfulBackgroundBackfillAtKey(for: uid))
+            }
         }
 
         userDefaults.set(schemaVersionProvider(), forKey: AccountRestoreStateStoreSupport.restoredSchemaVersionKey(for: uid))
