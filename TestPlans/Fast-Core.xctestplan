@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "id": "6EB11FCC-00C7-4CC7-A672-2A7AEA30DD3C",
+      "id": "C721AEC9-2187-4EAD-BADD-A9E9334EF152",
       "name": "Configuration 1",
       "options": {}
     }
@@ -60,6 +60,7 @@
         "BodyDetailsSettingsTests",
         "CloudUserProfileDocumentTests",
         "CoachAIHealthIntelligenceIntegrationTests",
+        "CoachContextPacketV2Tests",
         "CoachFoodEstimateDebugLogFormatterTests",
         "CoachFoodLoggingRegressionTests",
         "CoachHealthIntelligenceContextBuilderTests",
