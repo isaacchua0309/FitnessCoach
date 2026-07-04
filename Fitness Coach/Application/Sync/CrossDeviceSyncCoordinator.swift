@@ -68,6 +68,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
     private let networkChecker: any AccountSyncNetworkChecking
     private let uidProvider: any AccountUIDProviding
     private let refreshCenter: AppRefreshCenter
+    private let refreshEventBus: AccountDataRefreshPublishing?
     private let nowProvider: () -> Date
     private let runGuard = CrossDeviceSyncRunGuard()
     private var debouncedRealtimeTask: Task<Void, Never>?
@@ -80,6 +81,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
         networkChecker: any AccountSyncNetworkChecking = AlwaysAvailableAccountSyncNetworkChecker(),
         uidProvider: any AccountUIDProviding,
         refreshCenter: AppRefreshCenter,
+        refreshEventBus: AccountDataRefreshPublishing? = nil,
         nowProvider: @escaping () -> Date = Date.init
     ) {
         self.syncCoordinator = syncCoordinator
@@ -88,6 +90,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
         self.networkChecker = networkChecker
         self.uidProvider = uidProvider
         self.refreshCenter = refreshCenter
+        self.refreshEventBus = refreshEventBus
         self.nowProvider = nowProvider
     }
 
@@ -98,6 +101,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
         networkChecker: any AccountSyncNetworkChecking = AlwaysAvailableAccountSyncNetworkChecker(),
         currentUIDProvider: @escaping () -> String?,
         refreshCenter: AppRefreshCenter,
+        refreshEventBus: AccountDataRefreshPublishing? = nil,
         nowProvider: @escaping () -> Date = Date.init
     ) {
         self.init(
@@ -107,6 +111,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
             networkChecker: networkChecker,
             uidProvider: ClosureAccountUIDProvider(currentUIDProvider),
             refreshCenter: refreshCenter,
+            refreshEventBus: refreshEventBus,
             nowProvider: nowProvider
         )
     }
@@ -273,6 +278,12 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
         )
         if shouldRefreshUI {
             refreshCenter.notifyCrossDeviceSyncDidComplete()
+            publishRefreshEvent(
+                uid: normalizedUID,
+                reason: reason,
+                uploadedMutations: uploadedMutations,
+                pullSummary: pullSummary
+            )
         }
 
         let status = resolvedStatus(
@@ -364,6 +375,28 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
     private func recordAndReturn(traceId: String, summary: CrossDeviceSyncSummary) -> CrossDeviceSyncSummary {
         AccountSyncLogger.crossDeviceSyncCompleted(traceId: traceId, summary: summary)
         return summary
+    }
+
+    private func publishRefreshEvent(
+        uid: String,
+        reason: CrossDeviceSyncReason,
+        uploadedMutations: Int,
+        pullSummary: CrossDeviceSyncSummary
+    ) {
+        guard let refreshEventBus else { return }
+        let domains = AccountDataRefreshEventSupport.domains(
+            uploadedMutations: uploadedMutations,
+            pullSummary: pullSummary
+        )
+        guard !domains.isEmpty else { return }
+        refreshEventBus.publish(
+            AccountDataRefreshEvent(
+                uid: uid,
+                domains: domains,
+                reason: reason,
+                createdAt: nowProvider()
+            )
+        )
     }
 
     private func normalizedUID(_ uid: String) -> String? {

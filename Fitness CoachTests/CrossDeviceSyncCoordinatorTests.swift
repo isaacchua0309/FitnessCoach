@@ -5,6 +5,7 @@
 //  Forma — Cross-device sync coordinator tests (Phase 5).
 //
 
+import Combine
 import XCTest
 @testable import Fitness_Coach
 
@@ -20,6 +21,7 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
     private var defaults: UserDefaults!
     private var networkChecker: CrossDeviceSyncNetworkCheckerMock!
     private var refreshCenter: AppRefreshCenter!
+    private var refreshEventBus: AccountDataRefreshEventBus!
     private var sessionUID: String!
     private var coordinator: CrossDeviceSyncCoordinator!
 
@@ -31,6 +33,7 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
         cursorStore = AccountSyncCursorStore(userDefaults: defaults)
         networkChecker = CrossDeviceSyncNetworkCheckerMock()
         refreshCenter = AppRefreshCenter(now: referenceDate)
+        refreshEventBus = AccountDataRefreshEventBus(nowProvider: { self.referenceDate })
         sessionUID = ownerUID
         coordinator = CrossDeviceSyncCoordinator(
             syncCoordinator: syncCoordinator,
@@ -39,6 +42,7 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
             networkChecker: networkChecker,
             currentUIDProvider: { [weak self] in self?.sessionUID },
             refreshCenter: refreshCenter,
+            refreshEventBus: refreshEventBus,
             nowProvider: { self.referenceDate }
         )
     }
@@ -46,6 +50,7 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
     override func tearDown() async throws {
         coordinator.cancelPendingWork()
         coordinator = nil
+        refreshEventBus = nil
         refreshCenter = nil
         networkChecker = nil
         cursorStore = nil
@@ -181,6 +186,46 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(incrementalPuller.pullCallCount, 1)
     }
 
+    func testRefreshNowPublishesDomainRefreshEventWhenRemoteDataChanges() async {
+        incrementalPuller.nextSummary = makePullSummary(
+            inserted: 2,
+            pulledFoodEntries: 1
+        )
+        var received: AccountDataRefreshEvent?
+        let cancellable = refreshEventBus.events.sink { received = $0 }
+
+        _ = await coordinator.refreshNow(
+            uid: ownerUID,
+            mode: .manualRefresh,
+            reason: .manualPullToRefresh
+        )
+        refreshEventBus.flushImmediately()
+
+        XCTAssertEqual(received?.uid, ownerUID)
+        XCTAssertTrue(received?.domains.contains(.food) == true)
+        XCTAssertTrue(received?.domains.contains(.today) == true)
+        XCTAssertTrue(received?.domains.contains(.coachContext) == true)
+        XCTAssertEqual(received?.reason, .manualPullToRefresh)
+        cancellable.cancel()
+    }
+
+    func testRefreshNowPublishesPlanDomainWhenProfileChanges() async {
+        incrementalPuller.nextSummary = makePullSummary(pulledProfile: true)
+        var received: AccountDataRefreshEvent?
+        let cancellable = refreshEventBus.events.sink { received = $0 }
+
+        _ = await coordinator.refreshNow(
+            uid: ownerUID,
+            mode: .manualRefresh,
+            reason: .realtimeSnapshot
+        )
+        refreshEventBus.flushImmediately()
+
+        XCTAssertTrue(received?.domains.contains(.profile) == true)
+        XCTAssertTrue(received?.domains.contains(.plan) == true)
+        cancellable.cancel()
+    }
+
     func testManualRefreshAwaitsFullRun() async {
         let summary = await coordinator.manualRefresh(uid: ownerUID)
 
@@ -192,7 +237,8 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
 
     private func makePullSummary(
         inserted: Int = 0,
-        pulledProfile: Bool = false
+        pulledProfile: Bool = false,
+        pulledFoodEntries: Int = 0
     ) -> CrossDeviceSyncSummary {
         CrossDeviceSyncSummary(
             uid: ownerUID,
@@ -203,7 +249,7 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
             endedAt: referenceDate,
             uploadedMutations: 0,
             pulledDailyLogs: 0,
-            pulledFoodEntries: 0,
+            pulledFoodEntries: pulledFoodEntries,
             pulledWaterEntries: 0,
             pulledWeightEntries: 0,
             pulledDailyReviews: 0,
@@ -225,6 +271,9 @@ private final class CrossDeviceSyncNetworkCheckerMock: AccountSyncNetworkCheckin
 
     var isNetworkAvailable = true
 }
+
+@MainActor
+private final class TrackingAccountSyncCoordinator: AccountSyncCoordinating {
 
     var events: [String] = []
     var uploadCallCount = 0
