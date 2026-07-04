@@ -21,12 +21,21 @@ enum TodayLayout {
     static let headerToCardSpacing = FormaTokens.Spacing.xs
     /// Tight label-to-content gap in the status zone.
     static let compactSpacing: CGFloat = 4
+    /// Gap between hero value and supporting metrics.
+    static let heroMetricsSpacing: CGFloat = 6
+    /// Gap between mission block and next-best-action card.
+    static let primaryActionZoneSpacing = FormaTokens.Spacing.sm
     static let itemSpacing = FormaFeatureLayout.itemSpacing
     static let horizontalPadding = FormaFeatureLayout.horizontalPadding
     static let actionIconColumnWidth: CGFloat = 22
-    static let metricsProgressHeight: CGFloat = 4
+    static let metricsProgressHeight: CGFloat = 5
+    static let metricsProgressHeightPrimary: CGFloat = 6
+    /// Vertical padding inside meal and list rows.
+    static let cardRowVerticalPadding = FormaTokens.Spacing.sm
     /// Scroll padding below the last Today section (see `FormaMainTabLayout`).
     static let bottomScrollPadding = FormaFeatureLayout.scrollBottomPadding
+    /// Tighter spacing for reinforcement sections at the bottom of Today.
+    static let reinforcementSpacing = FormaTokens.Spacing.sm
 }
 
 struct TodaySectionLabel: View {
@@ -60,7 +69,7 @@ struct TodayActionCard<Content: View>: View {
     var body: some View {
         content
             .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.xs)
+            .padding(.vertical, FormaTokens.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FormaCardChrome.background(.accentLeading))
     }
@@ -82,26 +91,33 @@ struct TodayMetricsCard<Content: View>: View {
 
 struct TodayMetricProgressBar: View {
     let progress: Double
+    var height: CGFloat = TodayLayout.metricsProgressHeight
     var subdued: Bool = true
+    var isOverTarget: Bool = false
 
     private var clampedProgress: Double {
         min(max(progress, 0), 1)
     }
 
+    private var fillColor: Color {
+        if isOverTarget {
+            return FormaTokens.Color.destructive.opacity(subdued ? 0.8 : 1)
+        }
+        return FormaTokens.Color.progress.opacity(subdued ? 0.6 : 1)
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                RoundedRectangle(cornerRadius: height / 2, style: .continuous)
                     .fill(FormaTokens.Color.progressTrack)
 
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(
-                        FormaTokens.Color.progress.opacity(subdued ? 0.55 : 1)
-                    )
-                    .frame(width: max(geometry.size.width * clampedProgress, clampedProgress > 0 ? 3 : 0))
+                RoundedRectangle(cornerRadius: height / 2, style: .continuous)
+                    .fill(fillColor)
+                    .frame(width: max(geometry.size.width * clampedProgress, clampedProgress > 0 ? 4 : 0))
             }
         }
-        .frame(height: TodayLayout.metricsProgressHeight)
+        .frame(height: height)
         .accessibilityHidden(true)
     }
 }

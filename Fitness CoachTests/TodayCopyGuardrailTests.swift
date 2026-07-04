@@ -48,9 +48,6 @@ final class TodayCopyGuardrailTests: XCTestCase {
 
     private func todayCopySamples() -> [String] {
         var samples: [String] = [
-            FormaProductCopy.Today.caloriesRemaining,
-            FormaProductCopy.Today.caloriesAboveTarget,
-            FormaProductCopy.Today.defaultCoachNote,
             FormaProductCopy.Today.focusProteinLow,
             FormaProductCopy.Today.focusWaterLow,
             FormaProductCopy.Today.focusOnTrack,
@@ -67,6 +64,14 @@ final class TodayCopyGuardrailTests: XCTestCase {
             FormaProductCopy.Today.QuickActions.sectionTitle,
             FormaProductCopy.Today.QuickActions.logMealMicrocopy,
             FormaProductCopy.Today.Water.sectionTitle,
+            FormaProductCopy.Today.Victory.startEncouragement,
+            FormaProductCopy.Today.Victory.firstMeal,
+            FormaProductCopy.Today.Victory.proteinTarget,
+            FormaProductCopy.Today.Victory.caloriesOnTarget,
+            FormaProductCopy.Today.SmartCoach.proteinBehind,
+            FormaProductCopy.Today.SmartCoach.caloriesCloseToTarget,
+            FormaProductCopy.Today.EndOfDay.noLogsMessage,
+            FormaProductCopy.Today.EndOfDay.overallGreatWork,
         ]
 
         let overTarget = TodayPreviewData.overTargetDay

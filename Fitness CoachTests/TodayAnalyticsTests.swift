@@ -8,11 +8,12 @@ import XCTest
 
 final class TodayAnalyticsTests: XCTestCase {
 
-    func testSnapshotIncludesSafeBucketsAndFlags() {
+    func testSnapshotIncludesSafeStatusFields() {
         let state = TodayDashboardFixtures.partialDay(
             proteinConsumed: 90,
             proteinTarget: 180,
-            foodEntries: TodayPreviewData.foodEntries
+            foodEntries: TodayPreviewData.foodEntries,
+            date: TodayDashboardFixtures.date(hour: 14)
         )
 
         let snapshot = TodayAnalyticsContextBuilder.snapshot(
@@ -20,28 +21,36 @@ final class TodayAnalyticsTests: XCTestCase {
             healthConnected: true
         )
 
-        XCTAssertTrue(snapshot.hasMeals)
+        XCTAssertTrue(snapshot.hasMealLogged)
         XCTAssertEqual(snapshot.healthConnected, true)
-        XCTAssertEqual(snapshot.nextActionReason, TodayNextActionFormatting.analyticsReason(state.nextBestAction.reason))
-        XCTAssertFalse(snapshot.calorieProgressBucket.isEmpty)
-        XCTAssertFalse(snapshot.proteinProgressBucket.isEmpty)
+        XCTAssertEqual(snapshot.dayStage, TodayAnalyticsDayStage.afternoon.rawValue)
+        XCTAssertEqual(
+            snapshot.nextActionType,
+            TodayNextActionFormatting.analyticsReason(state.nextBestAction.reason)
+        )
+        XCTAssertEqual(snapshot.proteinStatus, TodayAnalyticsNutrientStatus.behind.rawValue)
+        XCTAssertEqual(snapshot.waterStatus, TodayAnalyticsNutrientStatus.behind.rawValue)
+        XCTAssertEqual(snapshot.calorieStatus, TodayAnalyticsCalorieStatus.under.rawValue)
     }
 
-    func testEmptyDayUsesNoneBuckets() {
-        let state = TodayDashboardFixtures.emptyDay()
+    func testEmptyDayUsesBehindStatuses() {
+        let state = TodayDashboardFixtures.emptyDay(date: TodayDashboardFixtures.date(hour: 9))
 
         let snapshot = TodayAnalyticsContextBuilder.snapshot(
             from: state,
             healthConnected: false
         )
 
-        XCTAssertFalse(snapshot.hasMeals)
-        XCTAssertEqual(snapshot.calorieProgressBucket, TodayAnalyticsProgressBucket.none.rawValue)
-        XCTAssertEqual(snapshot.proteinProgressBucket, TodayAnalyticsProgressBucket.none.rawValue)
+        XCTAssertFalse(snapshot.hasMealLogged)
+        XCTAssertEqual(snapshot.dayStage, TodayAnalyticsDayStage.morning.rawValue)
+        XCTAssertEqual(snapshot.proteinStatus, TodayAnalyticsNutrientStatus.behind.rawValue)
+        XCTAssertEqual(snapshot.waterStatus, TodayAnalyticsNutrientStatus.behind.rawValue)
+        XCTAssertEqual(snapshot.calorieStatus, TodayAnalyticsCalorieStatus.under.rawValue)
+        XCTAssertEqual(snapshot.workoutStatus, TodayAnalyticsWorkoutStatus.none.rawValue)
     }
 
-    func testOverTargetCaloriesUseOverBucket() {
-        let bucket = TodayAnalyticsContextBuilder.calorieBucket(
+    func testOverTargetCaloriesUseOverStatus() {
+        let status = TodayAnalyticsContextBuilder.calorieStatus(
             from: CalorieSummary(
                 consumed: 2_100,
                 target: 1_800,
@@ -51,26 +60,80 @@ final class TodayAnalyticsTests: XCTestCase {
             )
         )
 
-        XCTAssertEqual(bucket, TodayAnalyticsProgressBucket.over.rawValue)
+        XCTAssertEqual(status, .over)
+    }
+
+    func testNearTargetCaloriesUseNearStatus() {
+        let status = TodayAnalyticsContextBuilder.calorieStatus(
+            from: CalorieSummary(
+                consumed: 1_620,
+                target: 1_800,
+                remaining: 180,
+                progress: 0.9,
+                isOverTarget: false
+            )
+        )
+
+        XCTAssertEqual(status, .near)
+    }
+
+    func testCompletedWorkoutStatus() {
+        let state = TodayPreviewData.workoutCompleted
+
+        let snapshot = TodayAnalyticsContextBuilder.snapshot(
+            from: state,
+            healthConnected: true
+        )
+
+        XCTAssertEqual(snapshot.workoutStatus, TodayAnalyticsWorkoutStatus.completed.rawValue)
+    }
+
+    func testDayStageBuckets() {
+        XCTAssertEqual(
+            TodayAnalyticsContextBuilder.dayStage(for: TodayDashboardFixtures.date(hour: 9)).rawValue,
+            "morning"
+        )
+        XCTAssertEqual(
+            TodayAnalyticsContextBuilder.dayStage(for: TodayDashboardFixtures.date(hour: 14)).rawValue,
+            "afternoon"
+        )
+        XCTAssertEqual(
+            TodayAnalyticsContextBuilder.dayStage(for: TodayDashboardFixtures.date(hour: 19)).rawValue,
+            "evening"
+        )
+        XCTAssertEqual(
+            TodayAnalyticsContextBuilder.dayStage(for: TodayDashboardFixtures.date(hour: 22)).rawValue,
+            "night"
+        )
     }
 
     func testPropertiesOmitsSensitiveFields() {
         let parameters = TodayAnalyticsProperties.from(
             snapshot: TodayAnalyticsSnapshot(
-                hasMeals: true,
-                calorieProgressBucket: "mid",
-                proteinProgressBucket: "low",
-                healthConnected: true,
-                nextActionReason: "add_water"
+                dayStage: TodayAnalyticsDayStage.afternoon.rawValue,
+                nextActionType: "add_water",
+                hasMealLogged: true,
+                proteinStatus: TodayAnalyticsNutrientStatus.behind.rawValue,
+                waterStatus: TodayAnalyticsNutrientStatus.onTrack.rawValue,
+                calorieStatus: TodayAnalyticsCalorieStatus.under.rawValue,
+                workoutStatus: TodayAnalyticsWorkoutStatus.none.rawValue,
+                healthConnected: true
             ),
             actionType: "add_water",
             mealType: "lunch"
         ).asParameters()
 
-        XCTAssertEqual(parameters["hasMeals"], "true")
-        XCTAssertEqual(parameters["mealType"], "lunch")
+        XCTAssertEqual(parameters["has_meal_logged"], "true")
+        XCTAssertEqual(parameters["meal_type"], "lunch")
+        XCTAssertEqual(parameters["day_stage"], "afternoon")
+        XCTAssertEqual(parameters["next_action_type"], "add_water")
+        XCTAssertEqual(parameters["protein_status"], "behind")
+        XCTAssertEqual(parameters["water_status"], "on_track")
+        XCTAssertEqual(parameters["calorie_status"], "under")
+        XCTAssertEqual(parameters["workout_status"], "none")
         XCTAssertNil(parameters["foodName"])
-        XCTAssertNil(parameters["name"])
+        XCTAssertNil(parameters["calories"])
+        XCTAssertNil(parameters["weight"])
     }
 
     func testWaterAmountBuckets() {
@@ -109,15 +172,67 @@ final class TodayAnalyticsEventEmissionTests: XCTestCase {
             logDate: { [harness] in harness.today }
         )
         coordinator.updateAnalyticsContext(
-            from: TodayDashboardFixtures.partialDay(),
+            from: TodayDashboardFixtures.partialDay(
+                foodEntries: TodayPreviewData.foodEntries,
+                date: TodayDashboardFixtures.date(hour: 14)
+            ),
             healthConnected: false
         )
     }
 
     func testTodayViewedEventName() {
         coordinator.logTodayViewed()
-        XCTAssertEqual(analytics.events.last?.event, .viewed)
-        XCTAssertEqual(analytics.events.last?.properties.hasMeals, false)
+        XCTAssertEqual(analytics.events.last?.event.rawValue, "today_viewed")
+        XCTAssertEqual(analytics.events.last?.properties.hasMealLogged, true)
+        XCTAssertEqual(analytics.events.last?.properties.dayStage, "afternoon")
+    }
+
+    func testMissionAndSectionViewEvents() {
+        coordinator.logMissionViewed()
+        coordinator.logDailyVictoryViewed()
+        coordinator.logSmartCoachViewed()
+        coordinator.logEndOfDayWrapViewed()
+
+        XCTAssertEqual(analytics.events.map(\.event.rawValue), [
+            "today_mission_viewed",
+            "today_daily_victory_viewed",
+            "today_smart_coach_viewed",
+            "today_end_of_day_wrap_viewed"
+        ])
+    }
+
+    func testPrimaryCTATappedEvent() {
+        coordinator.logPrimaryCTATapped()
+        XCTAssertEqual(analytics.events.last?.event.rawValue, "today_primary_cta_tapped")
+        XCTAssertEqual(analytics.events.last?.properties.actionType, "log_meal")
+    }
+
+    func testNextBestActionViewAndTapEvents() {
+        let action = NextBestActionState(
+            title: "Protein",
+            subtitle: nil,
+            reason: .eatProtein,
+            primaryCTA: .scanFood,
+            secondaryCTAs: []
+        )
+
+        coordinator.logNextActionViewed(for: action)
+        coordinator.handleCTA(.scanFood, from: action)
+
+        XCTAssertEqual(analytics.events[0].event.rawValue, "today_next_best_action_viewed")
+        XCTAssertEqual(analytics.events[1].event.rawValue, "today_next_best_action_tapped")
+        XCTAssertEqual(analytics.events[1].properties.action, "eat_protein")
+    }
+
+    func testMealAddAndEditTappedEvents() {
+        coordinator.logMeal(for: .lunch)
+        XCTAssertEqual(analytics.events.last?.event.rawValue, "today_meal_add_tapped")
+        XCTAssertEqual(analytics.events.last?.properties.mealType, "lunch")
+
+        let entry = TodayPreviewData.foodEntries[0]
+        coordinator.openEditFood(entry)
+        XCTAssertEqual(analytics.events.last?.event.rawValue, "today_meal_edit_tapped")
+        XCTAssertEqual(analytics.events.last?.properties.mealType, "breakfast")
     }
 
     func testMealSavedEmitsMealTypeOnly() throws {
@@ -137,5 +252,6 @@ final class TodayAnalyticsEventEmissionTests: XCTestCase {
         let saved = try XCTUnwrap(analytics.events.last { $0.event == .logMealSaved })
         XCTAssertEqual(saved.properties.mealType, "breakfast")
         XCTAssertNil(saved.properties.asParameters()["name"])
+        XCTAssertNil(saved.properties.asParameters()["calories"])
     }
 }

@@ -45,15 +45,31 @@ struct FormaInlineEmptyState: View {
 
 // MARK: - Quick action chip
 
+enum FormaQuickActionChipStyle {
+    case secondary
+    case primary
+}
+
 struct FormaQuickActionChip: View {
     let title: String
     let action: () -> Void
+    var style: FormaQuickActionChipStyle = .secondary
     var accessibilityHint: String?
 
     var body: some View {
-        Button(title, action: action)
-            .buttonStyle(FormaThemedChipButtonStyle())
-            .accessibilityHint(accessibilityHint ?? "")
+        Group {
+            switch style {
+            case .secondary:
+                Button(title, action: action)
+                    .buttonStyle(FormaThemedChipButtonStyle())
+            case .primary:
+                Button(title, action: action)
+                    .buttonStyle(.borderedProminent)
+                    .tint(FormaTokens.Theme.primary)
+            }
+        }
+        .font(FormaTokens.Typography.caption.weight(.semibold))
+        .accessibilityHint(accessibilityHint ?? "")
     }
 }
 

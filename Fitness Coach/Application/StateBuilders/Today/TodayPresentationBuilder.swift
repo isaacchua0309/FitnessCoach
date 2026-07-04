@@ -9,7 +9,7 @@ import Foundation
 
 enum TodayPresentationBuilder {
 
-    static let endOfDayStartHour = 19
+    static let endOfDayStartHour = 20
     static let calorieTargetMetRemainingRatio = TodayMissionHeroFormatter.nearTargetRemainingRatio
 
     // MARK: - Dashboard
@@ -25,14 +25,8 @@ enum TodayPresentationBuilder {
         let nextBestAction = nextBestAction(from: inputs)
         let activity = activity(from: inputs)
         let meals = meals(from: inputs, emptyContext: emptyContext)
-        let victory = victory(from: inputs, mission: mission, macroHydration: macroHydration)
-        let smartCoach = smartCoach(
-            from: inputs,
-            mission: mission,
-            macroHydration: macroHydration,
-            activity: activity,
-            mealsEmptyKind: emptyContext.mealsEmptyKind
-        )
+        let victory = victory(from: inputs)
+        let smartCoach = smartCoach(from: inputs)
         let endOfDay = endOfDay(from: inputs)
 
         return TodayDashboardState(
@@ -223,21 +217,11 @@ enum TodayPresentationBuilder {
             phase = .noMealsToday
         }
 
-        let emptyCopy: TodayEmptyStateCopy?
-        if phase != .hasMeals {
-            emptyCopy = TodayEmptyStateFormatting.mealsEmptyCopy(for: emptyContext.mealsEmptyKind)
-        } else {
-            emptyCopy = nil
-        }
-
         return TodayMealsState(
             phase: phase,
             sectionTitle: FormaProductCopy.Today.Meals.sectionTitle,
             entries: inputs.foodEntries,
-            entryCount: inputs.foodEntries.count,
-            emptyTitle: emptyCopy?.title,
-            emptyBody: emptyCopy?.body,
-            emptyActionTitle: emptyCopy?.actionTitle
+            entryCount: inputs.foodEntries.count
         )
     }
 
@@ -252,7 +236,6 @@ enum TodayPresentationBuilder {
         return TodayMacroHydrationState(
             focus: focus,
             sectionTitle: FormaProductCopy.Today.MacroBalance.sectionTitle,
-            guidanceLine: macroHydrationGuidance(for: focus),
             macroSummary: inputs.macroSummary,
             waterSummary: inputs.waterSummary
         )
@@ -277,19 +260,6 @@ enum TodayPresentationBuilder {
         }
     }
 
-    static func macroHydrationGuidance(for focus: TodayMacroHydrationFocus) -> String? {
-        switch focus {
-        case .onTrack:
-            return nil
-        case .proteinBehind:
-            return FormaProductCopy.Today.SmartCoach.proteinBehind
-        case .waterBehind:
-            return FormaProductCopy.Today.SmartCoach.waterBehind
-        case .bothBehind:
-            return FormaProductCopy.Today.SmartCoach.bothBehind
-        }
-    }
-
     // MARK: - Activity
 
     static func activity(from inputs: TodayMissionControlInputs) -> TodayActivityState {
@@ -297,14 +267,6 @@ enum TodayPresentationBuilder {
         let showsConnectCTA = context.trainingDataSource == .appleHealth
             && context.trainingIntegration.showsConnectionGate
         let hasWorkout = inputs.workoutSummary.hasWorkout || (context.appleHealthWorkoutCount ?? 0) > 0
-        let displayLine = activityDisplayLine(
-            context: context,
-            legacyWorkoutSummary: inputs.workoutSummary,
-            date: inputs.date,
-            trainingFrequencyPerWeek: inputs.trainingFrequencyPerWeek,
-            showsConnectCTA: showsConnectCTA,
-            stepGoalAssumption: inputs.stepGoalAssumption
-        )
 
         let phase: TodayActivityPhase
         switch context.trainingDataSource {
@@ -331,152 +293,58 @@ enum TodayPresentationBuilder {
             appleHealthWorkoutCount: context.appleHealthWorkoutCount,
             stepsToday: context.stepsToday,
             stepGoalAssumption: inputs.stepGoalAssumption,
-            displayLine: displayLine,
             showsConnectCTA: showsConnectCTA,
             date: inputs.date,
             trainingFrequencyPerWeek: inputs.trainingFrequencyPerWeek
         )
     }
 
-    static func activityDisplayLine(
-        context: TodayActivityContext,
-        legacyWorkoutSummary: TodayWorkoutSummary,
-        date: Date,
-        trainingFrequencyPerWeek: Int,
-        showsConnectCTA: Bool,
-        stepGoalAssumption: Int?
-    ) -> String {
-        let activity = TodayActivityState(
-            phase: .hasData,
-            sectionTitle: FormaProductCopy.Today.Activity.sectionTitle,
-            legacyWorkoutSummary: legacyWorkoutSummary,
-            trainingIntegration: context.trainingIntegration,
-            trainingDataSource: context.trainingDataSource,
-            appleHealthWorkoutCount: context.appleHealthWorkoutCount,
-            stepsToday: context.stepsToday,
-            stepGoalAssumption: stepGoalAssumption,
-            displayLine: "",
-            showsConnectCTA: showsConnectCTA,
-            date: date,
-            trainingFrequencyPerWeek: trainingFrequencyPerWeek
-        )
-        return TodayActivitySectionFormatting.workoutLine(
-            for: TodayActivitySectionFormatting.workoutStatus(for: activity)
-        )
-    }
-
     // MARK: - Victory
 
-    static func victory(
-        from inputs: TodayMissionControlInputs,
-        mission: TodayMissionState,
-        macroHydration: TodayMacroHydrationState
-    ) -> TodayVictoryState {
-        let message: String?
-        if mission.phase == .targetMet {
-            message = FormaProductCopy.Today.Victory.targetMet
-        } else if mission.status == .onTrack,
-                  !inputs.foodEntries.isEmpty,
-                  macroHydration.focus == .onTrack,
-                  inputs.workoutSummary.hasWorkout || (inputs.activityContext.appleHealthWorkoutCount ?? 0) > 0 {
-            message = FormaProductCopy.Today.Victory.workoutStrongDay
-        } else {
-            message = nil
-        }
-
-        if let message {
-            return TodayVictoryState(isVisible: true, message: message)
-        }
-        return TodayVictoryState(isVisible: false, message: "")
+    static func victory(from inputs: TodayMissionControlInputs) -> TodayVictoryState {
+        DailyVictoryEngine.resolve(
+            DailyVictoryInput(
+                foodEntries: inputs.foodEntries,
+                proteinProgress: inputs.macroSummary.protein,
+                waterSummary: inputs.waterSummary,
+                calorieSummary: inputs.calorieSummary,
+                workoutSummary: inputs.workoutSummary,
+                activityContext: inputs.activityContext,
+                weightLoggedToday: inputs.weightLoggedToday
+            )
+        )
     }
 
-    // MARK: - Smart coach
-
-    static func smartCoach(
-        from inputs: TodayMissionControlInputs,
-        mission: TodayMissionState,
-        macroHydration: TodayMacroHydrationState,
-        activity: TodayActivityState,
-        mealsEmptyKind: TodayMealsEmptyKind
-    ) -> TodaySmartCoachState {
-        if mealsEmptyKind == .newProfileNoMeals || (inputs.foodEntries.isEmpty && mission.phase == .noMealsLogged) {
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .logFirstMeal,
-                message: FormaProductCopy.Today.SmartCoach.logFirstMeal,
-                coachPrefill: TodayCoachPrompt.logMeal()
+    static func smartCoach(from inputs: TodayMissionControlInputs) -> TodaySmartCoachState {
+        SmartCoachEngine.resolve(
+            SmartCoachInput(
+                date: inputs.date,
+                calendar: .current,
+                foodEntries: inputs.foodEntries,
+                proteinProgress: inputs.macroSummary.protein,
+                waterProgress: inputs.waterSummary.progress,
+                calorieSummary: inputs.calorieSummary,
+                workoutSummary: inputs.workoutSummary,
+                activityContext: inputs.activityContext
             )
-        }
-
-        if mission.phase == .overTarget {
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .overTarget,
-                message: FormaProductCopy.Today.SmartCoach.overTarget,
-                coachPrefill: TodayCoachPrompt.reviewToday
-            )
-        }
-
-        if activity.phase == .workoutCompleted, macroHydration.focus == .proteinBehind {
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .workoutCompleted,
-                message: FormaProductCopy.Today.SmartCoach.postWorkoutProtein,
-                coachPrefill: TodayCoachPrompt.logProtein
-            )
-        }
-
-        switch macroHydration.focus {
-        case .proteinBehind:
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .proteinBehind,
-                message: FormaProductCopy.Today.SmartCoach.proteinBehind,
-                coachPrefill: TodayCoachPrompt.logProtein
-            )
-        case .waterBehind:
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .waterBehind,
-                message: FormaProductCopy.Today.SmartCoach.waterBehind,
-                coachPrefill: TodayCoachPrompt.logWater
-            )
-        case .bothBehind:
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .proteinBehind,
-                message: FormaProductCopy.Today.SmartCoach.bothBehind,
-                coachPrefill: TodayCoachPrompt.logProtein
-            )
-        case .onTrack:
-            return TodaySmartCoachState(isVisible: false, context: nil, message: "", coachPrefill: nil)
-        }
+        )
     }
 
     // MARK: - End of day
 
     static func endOfDay(from inputs: TodayMissionControlInputs) -> TodayEndOfDayState {
-        let hour = Calendar.current.component(.hour, from: inputs.date)
-        let isEvening = hour >= endOfDayStartHour
-        let hasMeals = !inputs.foodEntries.isEmpty
-        let suggestsReview = isEvening && hasMeals && inputs.dailyReview == nil
-
-        guard isEvening, hasMeals else {
-            return TodayEndOfDayState(
-                isVisible: false,
-                message: "",
-                suggestsReview: false,
-                reviewCTATitle: nil
+        EndOfDayWrapUpEngine.resolve(
+            EndOfDayWrapUpInput(
+                date: inputs.date,
+                calendar: .current,
+                foodEntries: inputs.foodEntries,
+                calorieSummary: inputs.calorieSummary,
+                proteinProgress: inputs.macroSummary.protein,
+                waterSummary: inputs.waterSummary,
+                workoutSummary: inputs.workoutSummary,
+                activityContext: inputs.activityContext,
+                weightLoggedToday: inputs.weightLoggedToday
             )
-        }
-
-        return TodayEndOfDayState(
-            isVisible: true,
-            message: suggestsReview
-                ? FormaProductCopy.Today.EndOfDay.reviewPrompt
-                : FormaProductCopy.Today.EndOfDay.wrapUp,
-            suggestsReview: suggestsReview,
-            reviewCTATitle: suggestsReview ? FormaProductCopy.Today.EndOfDay.reviewAction : nil
         )
     }
 

@@ -16,9 +16,10 @@ final class TodayPresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.mission.phase, .brandNewUser)
         XCTAssertEqual(state.meals.phase, .brandNewUser)
-        XCTAssertTrue(state.smartCoach.isVisible)
-        XCTAssertEqual(state.smartCoach.context, .logFirstMeal)
-        XCTAssertFalse(state.victory.isVisible)
+        XCTAssertFalse(state.smartCoach.isVisible)
+        XCTAssertEqual(state.smartCoach.context, .hidden)
+        XCTAssertEqual(state.victory.kind, .startEncouragement)
+        XCTAssertEqual(state.victory.message, FormaProductCopy.Today.Victory.startEncouragement)
     }
 
     func testReturningUserNoMealsToday() {
@@ -29,7 +30,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.mission.phase, .noMealsLogged)
         XCTAssertEqual(state.meals.phase, .noMealsToday)
-        XCTAssertTrue(state.smartCoach.isVisible)
+        XCTAssertFalse(state.smartCoach.isVisible)
     }
 
     func testSomeMealsLoggedBuildsMealsState() {
@@ -63,7 +64,8 @@ final class TodayPresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.mission.phase, .targetMet)
         XCTAssertTrue(state.victory.isVisible)
-        XCTAssertEqual(state.victory.message, FormaProductCopy.Today.Victory.targetMet)
+        XCTAssertEqual(state.victory.kind, .caloriesOnTarget)
+        XCTAssertEqual(state.victory.message, FormaProductCopy.Today.Victory.caloriesOnTarget)
     }
 
     func testCalorieTargetExceededMissionAndSmartCoach() {
@@ -80,8 +82,8 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertEqual(state.mission.phase, .overTarget)
         XCTAssertEqual(state.mission.status, .overBudget)
         XCTAssertTrue(state.smartCoach.isVisible)
-        XCTAssertEqual(state.smartCoach.context, .overTarget)
-        XCTAssertFalse(state.victory.isVisible)
+        XCTAssertEqual(state.smartCoach.context, .caloriesExceeded)
+        XCTAssertEqual(state.victory.kind, .showedUp)
     }
 
     func testProteinBehindMacroHydrationAndSmartCoach() {
@@ -95,7 +97,6 @@ final class TodayPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(state.macroHydration.focus, .proteinBehind)
-        XCTAssertEqual(state.macroHydration.guidanceLine, FormaProductCopy.Today.SmartCoach.proteinBehind)
         XCTAssertTrue(state.smartCoach.isVisible)
         XCTAssertEqual(state.smartCoach.context, .proteinBehind)
     }
@@ -111,7 +112,6 @@ final class TodayPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(state.macroHydration.focus, .waterBehind)
-        XCTAssertEqual(state.macroHydration.guidanceLine, FormaProductCopy.Today.SmartCoach.waterBehind)
         XCTAssertTrue(state.smartCoach.isVisible)
         XCTAssertEqual(state.smartCoach.context, .waterBehind)
     }
@@ -150,7 +150,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertTrue(state.activity.showsConnectCTA == false)
     }
 
-    func testEndOfDayStateVisibleInEveningWithMeals() {
+    func testEndOfDayWrapUpVisibleInEveningWithMeals() {
         let evening = TodayDashboardFixtures.date(hour: 20)
         let state = build(
             date: evening,
@@ -159,11 +159,12 @@ final class TodayPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertTrue(state.endOfDay.isVisible)
-        XCTAssertTrue(state.endOfDay.suggestsReview)
-        XCTAssertEqual(state.endOfDay.reviewCTATitle, FormaProductCopy.Today.EndOfDay.reviewAction)
+        XCTAssertEqual(state.endOfDay.sectionTitle, FormaProductCopy.Today.EndOfDay.sectionTitle)
+        XCTAssertEqual(state.endOfDay.journeyActionTitle, FormaProductCopy.Today.EndOfDay.seeJourneyAction)
+        XCTAssertFalse(state.endOfDay.rows.isEmpty)
     }
 
-    func testEndOfDayHiddenDuringMorning() {
+    func testEndOfDayWrapUpHiddenDuringMorning() {
         let morning = TodayDashboardFixtures.date(hour: 9)
         let state = build(
             date: morning,

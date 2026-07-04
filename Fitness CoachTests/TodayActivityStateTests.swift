@@ -182,7 +182,6 @@ final class TodayActivityStateTests: XCTestCase {
             appleHealthWorkoutCount: appleHealthWorkoutCount,
             stepsToday: stepsToday,
             stepGoalAssumption: stepGoalAssumption,
-            displayLine: FormaProductCopy.Today.Activity.workoutNotLoggedLine,
             showsConnectCTA: showsConnectCTA,
             date: date,
             trainingFrequencyPerWeek: trainingFrequencyPerWeek

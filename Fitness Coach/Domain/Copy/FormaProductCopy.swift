@@ -1029,24 +1029,17 @@ enum FormaProductCopy {
     // MARK: - Today
 
     enum Today {
-        static let askCoachCTATitle = "Update today with Coach"
-        static let askCoachCTASubtitle = "Log meals, water, weight, or training."
         static let askCoachCTAAccessibilityHint = "Opens Coach"
-        static let mealsEmptyTitle = FormaProductCopy.EmptyState.Meals.title
-        static let mealsEmptyBody = FormaProductCopy.EmptyState.Meals.body
-        static let mealsLogMealAction = FormaProductCopy.EmptyState.Meals.action
         static let mealsLogMealAccessibilityHint = FormaProductCopy.EmptyState.Meals.actionAccessibilityHint
-        static let caloriesRemaining = "Calories remaining"
-        static let caloriesAboveTarget = "Above today's target"
-        static let defaultCoachNote = "Anchor your next meal with protein."
-        static let focusSectionTitle = "Today's focus"
         static let focusProteinLow = "Anchor your next meal with protein."
         static let focusWaterLow = "Drink water before your next meal."
         static let focusLogWeight = "Log your weight to keep your trend accurate."
         static let focusTraining = "Keep training simple and consistent."
         static let focusOnTrack = "You're on track. Keep the next choice simple."
-        static let nextActionsSectionTitle = "Next actions"
-        static let targetsSectionTitle = "Targets"
+
+        enum Header {
+            static let title = "Today"
+        }
 
         enum MacroBalance {
             static let sectionTitle = "Nutrition"
@@ -1144,23 +1137,45 @@ enum FormaProductCopy {
         }
 
         enum Victory {
-            static let targetMet = "Today's calorie target met."
-            static let workoutStrongDay = "Strong day — workout logged and nutrition on track."
+            static let startEncouragement = "Start with one log."
+            static let firstMeal = "First meal logged. Great start."
+            static let proteinTarget = "Protein target reached. Excellent work."
+            static let waterTarget = "Water target reached."
+            static let workoutCompleted = "Workout completed."
+            static let caloriesOnTarget = "Calories stayed on target."
+            static let showedUp = "You showed up today."
         }
 
         enum SmartCoach {
-            static let logFirstMeal = "Log your first meal to start today."
-            static let proteinBehind = "Add protein at your next meal."
-            static let waterBehind = "Drink water before your next meal."
-            static let bothBehind = "Catch up on protein and water at your next break."
-            static let overTarget = "Above target — keep logging honestly."
-            static let postWorkoutProtein = "Refuel with protein after your workout."
+            static let proteinBehind =
+                "Protein is behind. Prioritize lean protein at your next meal."
+            static let waterBehind = "Hydration is behind. Add water now."
+            static let caloriesCloseToTarget =
+                "You're close to your calorie limit. Keep dinner simple."
+            static let caloriesExceeded =
+                "You're above today's calorie target. Focus on hydration and recovery."
+            static let workoutRecovery = "Workout logged. Protein helps recovery."
+            static let endOfDayIncomplete =
+                "Key habits are still open tonight. Finish strong with one more log."
+            static let coachProteinAction = "Log protein with Coach"
+            static let coachReviewAction = "Review with Coach"
         }
 
         enum EndOfDay {
-            static let wrapUp = "Wrap up today when you're ready."
-            static let reviewPrompt = "Review today's log with Coach."
-            static let reviewAction = "Review today"
+            static let sectionTitle = "Today's Wrap-Up"
+            static let overallGreatWork = "Great work"
+            static let overallGoodStart = "Good start"
+            static let overallStillTime = "Still time to finish strong"
+            static let noLogsMessage = "One small log still counts."
+            static let seeJourneyAction = "See Journey"
+            static let seeJourneyHint = "Opens Journey"
+            static let rowCalories = "Calories"
+            static let rowProtein = "Protein"
+            static let rowWater = "Water"
+            static let rowWorkout = "Workout"
+            static let rowNotLogged = "Not logged"
+            static let workoutCompleted = "Completed"
+            static let workoutNotLogged = "Not logged"
         }
 
         enum EmptyState {
@@ -1208,9 +1223,6 @@ enum FormaProductCopy {
         static let statusWorkoutRecorded = "Workout recorded"
         static let statusNoWorkoutToday = "No workout today"
         static let statusNoAppleHealthWorkoutToday = "No Apple Health workout today"
-        static let nextActionQuickChipTitle = "Coach"
-        static let nextActionCoachHint = "Opens Coach"
-        static let nextActionConnectAppleHealthHint = "Connect Apple Health for training insights"
         static let nextActionTrainingInsightsHint = "Opens Training Insights"
 
         static func workoutsToday(_ count: Int) -> String {

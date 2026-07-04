@@ -195,9 +195,6 @@ struct TodayMealsState: Equatable {
     var sectionTitle: String
     var entries: [FoodEntry]
     var entryCount: Int
-    var emptyTitle: String?
-    var emptyBody: String?
-    var emptyActionTitle: String?
 
     var isEmpty: Bool { entries.isEmpty }
 }
@@ -214,7 +211,6 @@ enum TodayMacroHydrationFocus: Equatable, Sendable {
 struct TodayMacroHydrationState: Equatable {
     var focus: TodayMacroHydrationFocus
     var sectionTitle: String
-    var guidanceLine: String?
     var macroSummary: MacroSummary
     var waterSummary: WaterSummary
 }
@@ -238,7 +234,6 @@ struct TodayActivityState: Equatable {
     var appleHealthWorkoutCount: Int?
     var stepsToday: Int?
     var stepGoalAssumption: Int?
-    var displayLine: String
     var showsConnectCTA: Bool
     var date: Date
     var trainingFrequencyPerWeek: Int
@@ -265,34 +260,72 @@ struct TodayActivityContext: Equatable, Sendable {
 // MARK: - Victory
 
 struct TodayVictoryState: Equatable {
-    var isVisible: Bool
+    var kind: TodayVictoryKind
     var message: String
+
+    var isVisible: Bool {
+        kind != .hidden
+    }
+
+    static let hidden = TodayVictoryState(kind: .hidden, message: "")
 }
 
 // MARK: - Smart coach (contextual)
 
 enum TodaySmartCoachContext: Equatable, Sendable {
-    case logFirstMeal
+    case hidden
     case proteinBehind
     case waterBehind
-    case overTarget
-    case workoutCompleted
+    case caloriesCloseToTarget
+    case caloriesExceeded
+    case workoutRecovery
+    case endOfDayIncomplete
 }
 
 struct TodaySmartCoachState: Equatable {
-    var isVisible: Bool
-    var context: TodaySmartCoachContext?
+    var context: TodaySmartCoachContext
     var message: String
     var coachPrefill: String?
+    var coachActionTitle: String?
+
+    var isVisible: Bool {
+        context != .hidden
+    }
+
+    var accessibilityLabel: String {
+        [message, coachActionTitle].compactMap { $0 }.joined(separator: ". ")
+    }
+
+    static let hidden = TodaySmartCoachState(
+        context: .hidden,
+        message: "",
+        coachPrefill: nil,
+        coachActionTitle: nil
+    )
 }
 
 // MARK: - End of day
 
 struct TodayEndOfDayState: Equatable {
     var isVisible: Bool
-    var message: String
-    var suggestsReview: Bool
-    var reviewCTATitle: String?
+    var sectionTitle: String
+    var overallMessage: String?
+    var noLogsMessage: String?
+    var rows: [TodayEndOfDayRowState]
+    var journeyActionTitle: String
+    var journeyActionHint: String
+    var accessibilityLabel: String
+
+    static let hidden = TodayEndOfDayState(
+        isVisible: false,
+        sectionTitle: "",
+        overallMessage: nil,
+        noLogsMessage: nil,
+        rows: [],
+        journeyActionTitle: "",
+        journeyActionHint: "",
+        accessibilityLabel: ""
+    )
 }
 
 // MARK: - Shared nutrition summaries

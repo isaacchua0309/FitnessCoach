@@ -51,7 +51,7 @@ struct TodayNutritionProgressCard: View {
 
                 Text(row.ratioText)
                     .font(valueFont(for: row.emphasis))
-                    .foregroundStyle(valueColor(for: row.emphasis))
+                    .foregroundStyle(valueColor(for: row.emphasis, state: row.displayState))
                     .multilineTextAlignment(.trailing)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
@@ -60,20 +60,28 @@ struct TodayNutritionProgressCard: View {
 
             TodayMetricProgressBar(
                 progress: row.barProgress,
-                subdued: row.emphasis != .primary
+                height: progressBarHeight(for: row.emphasis),
+                subdued: row.emphasis != .primary,
+                isOverTarget: row.displayState == .overTarget
             )
 
             Text(row.remainingText)
                 .font(FormaTokens.Typography.caption)
                 .foregroundStyle(remainingTextColor(for: row.displayState))
                 .monospacedDigit()
-                .lineLimit(1)
+                .lineLimit(2)
                 .minimumScaleFactor(0.85)
         }
         .padding(.vertical, row.emphasis == .primary ? FormaTokens.Spacing.sm : TodayLayout.compactSpacing)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(row.accessibilityLabel)
         .accessibilityValue(row.accessibilityValue)
+    }
+
+    private func progressBarHeight(for emphasis: TodayNutritionRowEmphasis) -> CGFloat {
+        emphasis == .primary
+            ? TodayLayout.metricsProgressHeightPrimary
+            : TodayLayout.metricsProgressHeight
     }
 
     private func titleFont(for emphasis: TodayNutritionRowEmphasis) -> Font {
@@ -112,9 +120,21 @@ struct TodayNutritionProgressCard: View {
         }
     }
 
+    private func valueColor(
+        for emphasis: TodayNutritionRowEmphasis,
+        state: TodayNutritionDisplayState
+    ) -> Color {
+        if state == .overTarget {
+            return FormaTokens.Color.destructive
+        }
+        return valueColor(for: emphasis)
+    }
+
     private func remainingTextColor(for state: TodayNutritionDisplayState) -> Color {
         switch state {
-        case .overTarget, .missingTarget:
+        case .overTarget:
+            FormaTokens.Color.destructive.opacity(0.9)
+        case .missingTarget:
             FormaTokens.Color.textTertiary
         case .nearTarget, .belowTarget:
             FormaTokens.Color.textSecondary
@@ -127,6 +147,27 @@ struct TodayNutritionProgressCard: View {
         macros: TodayPreviewData.state.macroHydration.macroSummary,
         water: TodayPreviewData.state.macroHydration.waterSummary,
         calorieSummary: TodayPreviewData.state.mission.calorieSummary
+    )
+    .padding(.horizontal, TodayLayout.horizontalPadding)
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Over target") {
+    TodayNutritionProgressCard(
+        macros: MacroSummary(
+            protein: MacroProgress(consumed: 185, target: 170, remaining: 0, progress: 1.09),
+            carbs: MacroProgress(consumed: 220, target: 160, remaining: 0, progress: 1.38),
+            fat: MacroProgress(consumed: 72, target: 60, remaining: 0, progress: 1.2)
+        ),
+        water: WaterSummary(consumedMl: 3_800, targetMl: 3_500, remainingMl: 0, progress: 1.09),
+        calorieSummary: CalorieSummary(
+            consumed: 2_050,
+            target: 1_800,
+            remaining: 0,
+            progress: 1.14,
+            isOverTarget: true
+        )
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)

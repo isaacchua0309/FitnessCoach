@@ -10,185 +10,15 @@ import Foundation
 enum TodayPreviewData {
     static let date = Date()
 
-    static let state = partialDay
-
-    static let emptyDay = TodayMissionControlStateBuilder.build(
-        from: TodayMissionControlInputs(
-            date: date,
-            calorieSummary: CalorieSummary(
-                consumed: 0,
-                target: 1_800,
-                remaining: 1_800,
-                progress: 0,
-                isOverTarget: false
-            ),
-            macroSummary: MacroSummary(
-                protein: MacroProgress(consumed: 0, target: 170, remaining: 170, progress: 0),
-                carbs: MacroProgress(consumed: 0, target: 160, remaining: 160, progress: 0),
-                fat: MacroProgress(consumed: 0, target: 60, remaining: 60, progress: 0)
-            ),
-            waterSummary: WaterSummary(
-                consumedMl: 0,
-                targetMl: 3_500,
-                remainingMl: 3_500,
-                progress: 0
-            ),
-            weightSummary: TodayWeightSummary(
-                weightKg: nil,
-                displayText: "Not logged today"
-            ),
-            weightLoggedToday: false,
-            hasRecentWeight: true,
-            workoutSummary: TodayWorkoutSummary(
-                workoutCaloriesBurned: 0,
-                workoutCount: 0,
-                hasWorkout: false
-            ),
-            foodEntries: [],
-            hasPriorFoodLogs: false,
-            dailyReview: nil,
-            goalWeightKg: 75,
-            profileWeightKg: 90.15,
-            activityContext: .default,
-            trainingFrequencyPerWeek: 0
-        )
-    )
-
-    static let partialDay = TodayMissionControlStateBuilder.build(
-        from: TodayMissionControlInputs(
-            date: date,
-            calorieSummary: CalorieSummary(
-                consumed: 710,
-                target: 1_800,
-                remaining: 1_090,
-                progress: 0.39,
-                isOverTarget: false
-            ),
-            macroSummary: MacroSummary(
-                protein: MacroProgress(consumed: 79, target: 170, remaining: 91, progress: 0.46),
-                carbs: MacroProgress(consumed: 55, target: 160, remaining: 105, progress: 0.34),
-                fat: MacroProgress(consumed: 19.5, target: 60, remaining: 40.5, progress: 0.33)
-            ),
-            waterSummary: WaterSummary(
-                consumedMl: 1_200,
-                targetMl: 3_500,
-                remainingMl: 2_300,
-                progress: 0.34
-            ),
-            weightSummary: TodayWeightSummary(
-                weightKg: 90.15,
-                displayText: "90.15 kg"
-            ),
-            weightLoggedToday: true,
-            hasRecentWeight: true,
-            workoutSummary: TodayWorkoutSummary(
-                workoutCaloriesBurned: 320,
-                workoutCount: 1,
-                hasWorkout: true
-            ),
-            foodEntries: foodEntries,
-            hasPriorFoodLogs: true,
-            dailyReview: nil,
-            goalWeightKg: 75,
-            profileWeightKg: 90.15,
-            activityContext: TodayActivityContext(
-                trainingIntegration: .connected,
-                trainingDataSource: .appleHealth,
-                appleHealthWorkoutCount: 1,
-                stepsToday: 8_432
-            ),
-            stepGoalAssumption: 7_500,
-            trainingFrequencyPerWeek: 3
-        )
-    )
-
-    static let completeDay = TodayMissionControlStateBuilder.build(
-        from: TodayMissionControlInputs(
-            date: date,
-            calorieSummary: CalorieSummary(
-                consumed: 1_400,
-                target: 1_800,
-                remaining: 400,
-                progress: 0.78,
-                isOverTarget: false
-            ),
-            macroSummary: MacroSummary(
-                protein: MacroProgress(consumed: 165, target: 170, remaining: 5, progress: 0.97),
-                carbs: MacroProgress(consumed: 150, target: 160, remaining: 10, progress: 0.94),
-                fat: MacroProgress(consumed: 55, target: 60, remaining: 5, progress: 0.92)
-            ),
-            waterSummary: WaterSummary(
-                consumedMl: 3_400,
-                targetMl: 3_500,
-                remainingMl: 100,
-                progress: 0.97
-            ),
-            weightSummary: TodayWeightSummary(
-                weightKg: 89.8,
-                displayText: "89.80 kg"
-            ),
-            weightLoggedToday: true,
-            hasRecentWeight: true,
-            workoutSummary: TodayWorkoutSummary(
-                workoutCaloriesBurned: 420,
-                workoutCount: 1,
-                hasWorkout: true
-            ),
-            foodEntries: foodEntries,
-            hasPriorFoodLogs: true,
-            dailyReview: nil,
-            goalWeightKg: 75,
-            profileWeightKg: 89.8,
-            activityContext: TodayActivityContext(
-                trainingIntegration: .connected,
-                trainingDataSource: .appleHealth,
-                appleHealthWorkoutCount: 1
-            ),
-            trainingFrequencyPerWeek: 3
-        )
-    )
-
-    static let overTargetDay = TodayMissionControlStateBuilder.build(
-        from: TodayMissionControlInputs(
-            date: date,
-            calorieSummary: CalorieSummary(
-                consumed: 2_050,
-                target: 1_800,
-                remaining: 0,
-                progress: 1.14,
-                isOverTarget: true
-            ),
-            macroSummary: MacroSummary(
-                protein: MacroProgress(consumed: 140, target: 170, remaining: 30, progress: 0.82),
-                carbs: MacroProgress(consumed: 210, target: 160, remaining: 0, progress: 1.31),
-                fat: MacroProgress(consumed: 72, target: 60, remaining: 0, progress: 1.2)
-            ),
-            waterSummary: WaterSummary(
-                consumedMl: 2_800,
-                targetMl: 3_500,
-                remainingMl: 700,
-                progress: 0.8
-            ),
-            weightSummary: TodayWeightSummary(
-                weightKg: 90.15,
-                displayText: "90.15 kg"
-            ),
-            weightLoggedToday: true,
-            hasRecentWeight: true,
-            workoutSummary: TodayWorkoutSummary(
-                workoutCaloriesBurned: 0,
-                workoutCount: 0,
-                hasWorkout: false
-            ),
-            foodEntries: foodEntries,
-            hasPriorFoodLogs: true,
-            dailyReview: nil,
-            goalWeightKg: 75,
-            profileWeightKg: 90.15,
-            activityContext: .default,
-            trainingFrequencyPerWeek: 0
-        )
-    )
+    static let eveningDate: Date = {
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 7
+        components.day = 3
+        components.hour = 20
+        components.minute = 30
+        return Calendar.current.date(from: components) ?? Date()
+    }()
 
     static let foodEntries: [FoodEntry] = [
         FoodEntry(
@@ -232,4 +62,227 @@ enum TodayPreviewData {
             updatedAt: date
         )
     ]
+
+    static let emptyDay = TodayMissionControlStateBuilder.build(
+        from: TodayMissionControlInputs(
+            date: date,
+            calorieSummary: CalorieSummary(
+                consumed: 0,
+                target: 1_800,
+                remaining: 1_800,
+                progress: 0,
+                isOverTarget: false
+            ),
+            macroSummary: MacroSummary(
+                protein: MacroProgress(consumed: 0, target: 170, remaining: 170, progress: 0),
+                carbs: MacroProgress(consumed: 0, target: 160, remaining: 160, progress: 0),
+                fat: MacroProgress(consumed: 0, target: 60, remaining: 60, progress: 0)
+            ),
+            waterSummary: WaterSummary(
+                consumedMl: 0,
+                targetMl: 3_500,
+                remainingMl: 3_500,
+                progress: 0
+            ),
+            weightSummary: TodayWeightSummary(
+                weightKg: nil,
+                displayText: "Not logged today"
+            ),
+            weightLoggedToday: false,
+            hasRecentWeight: true,
+            workoutSummary: TodayWorkoutSummary(
+                workoutCaloriesBurned: 0,
+                workoutCount: 0,
+                hasWorkout: false
+            ),
+            foodEntries: [],
+            hasPriorFoodLogs: false,
+            dailyReview: nil,
+            goalWeightKg: 75,
+            profileWeightKg: 90.15,
+            activityContext: .default,
+            trainingFrequencyPerWeek: 0
+        )
+    )
+
+    static let brandNewDay = emptyDay
+
+    static let breakfastLogged = build(
+        foodEntries: [foodEntries[0]],
+        calorieConsumed: 360,
+        calorieRemaining: 1_440,
+        calorieProgress: 0.2,
+        proteinConsumed: 72,
+        waterConsumedMl: 500
+    )
+
+    static let proteinBehind = build(
+        foodEntries: foodEntries,
+        calorieConsumed: 710,
+        calorieRemaining: 1_090,
+        calorieProgress: 0.39,
+        proteinConsumed: 40,
+        waterConsumedMl: 2_800
+    )
+
+    static let waterBehind = build(
+        foodEntries: foodEntries,
+        calorieConsumed: 710,
+        calorieRemaining: 1_090,
+        calorieProgress: 0.39,
+        proteinConsumed: 160,
+        waterConsumedMl: 500
+    )
+
+    static let caloriesExceeded = build(
+        foodEntries: foodEntries,
+        calorieConsumed: 2_050,
+        calorieRemaining: 0,
+        calorieProgress: 1.14,
+        isOverTarget: true,
+        proteinConsumed: 140,
+        waterConsumedMl: 2_800
+    )
+
+    static let overTargetDay = caloriesExceeded
+
+    static let workoutCompleted = build(
+        foodEntries: foodEntries,
+        calorieConsumed: 1_400,
+        calorieRemaining: 400,
+        calorieProgress: 0.78,
+        proteinConsumed: 165,
+        waterConsumedMl: 3_400,
+        hasWorkout: true,
+        appleHealthWorkoutCount: 1,
+        stepsToday: 8_432
+    )
+
+    static let endOfDay = build(
+        date: eveningDate,
+        foodEntries: foodEntries,
+        calorieConsumed: 710,
+        calorieRemaining: 1_090,
+        calorieProgress: 0.39,
+        proteinConsumed: 79,
+        waterConsumedMl: 1_200,
+        hasWorkout: false,
+        stepsToday: 4_200
+    )
+
+    static let healthDisconnected = build(
+        foodEntries: foodEntries,
+        calorieConsumed: 710,
+        calorieRemaining: 1_090,
+        calorieProgress: 0.39,
+        proteinConsumed: 79,
+        waterConsumedMl: 1_200,
+        activityContext: TodayActivityContext(
+            trainingIntegration: .notConnected,
+            trainingDataSource: .appleHealth,
+            appleHealthWorkoutCount: nil,
+            stepsToday: nil
+        )
+    )
+
+    static let partialDay = build(
+        foodEntries: foodEntries,
+        calorieConsumed: 710,
+        calorieRemaining: 1_090,
+        calorieProgress: 0.39,
+        proteinConsumed: 79,
+        waterConsumedMl: 1_200,
+        hasWorkout: true,
+        appleHealthWorkoutCount: 1,
+        stepsToday: 8_432
+    )
+
+    static let completeDay = build(
+        foodEntries: foodEntries,
+        calorieConsumed: 1_400,
+        calorieRemaining: 400,
+        calorieProgress: 0.78,
+        proteinConsumed: 165,
+        waterConsumedMl: 3_400,
+        hasWorkout: true,
+        appleHealthWorkoutCount: 1,
+        stepsToday: 8_432
+    )
+
+    static let state = partialDay
+
+    private static func build(
+        date: Date = TodayPreviewData.date,
+        foodEntries: [FoodEntry],
+        calorieConsumed: Int,
+        calorieRemaining: Int,
+        calorieProgress: Double,
+        calorieTarget: Int = 1_800,
+        isOverTarget: Bool = false,
+        proteinConsumed: Double,
+        proteinTarget: Double = 170,
+        waterConsumedMl: Int,
+        waterTargetMl: Int = 3_500,
+        hasWorkout: Bool = false,
+        appleHealthWorkoutCount: Int? = nil,
+        stepsToday: Int? = nil,
+        hasPriorFoodLogs: Bool = true,
+        activityContext: TodayActivityContext? = nil
+    ) -> TodayDashboardState {
+        let proteinRemaining = max(proteinTarget - proteinConsumed, 0)
+        let waterRemaining = max(waterTargetMl - waterConsumedMl, 0)
+
+        return TodayMissionControlStateBuilder.build(
+            from: TodayMissionControlInputs(
+                date: date,
+                calorieSummary: CalorieSummary(
+                    consumed: calorieConsumed,
+                    target: calorieTarget,
+                    remaining: calorieRemaining,
+                    progress: calorieProgress,
+                    isOverTarget: isOverTarget
+                ),
+                macroSummary: MacroSummary(
+                    protein: MacroProgress(
+                        consumed: proteinConsumed,
+                        target: proteinTarget,
+                        remaining: proteinRemaining,
+                        progress: proteinTarget > 0 ? proteinConsumed / proteinTarget : 0
+                    ),
+                    carbs: MacroProgress(consumed: 55, target: 160, remaining: 105, progress: 0.34),
+                    fat: MacroProgress(consumed: 19.5, target: 60, remaining: 40.5, progress: 0.33)
+                ),
+                waterSummary: WaterSummary(
+                    consumedMl: waterConsumedMl,
+                    targetMl: waterTargetMl,
+                    remainingMl: waterRemaining,
+                    progress: waterTargetMl > 0 ? Double(waterConsumedMl) / Double(waterTargetMl) : 0
+                ),
+                weightSummary: TodayWeightSummary(
+                    weightKg: 90.15,
+                    displayText: "90.15 kg"
+                ),
+                weightLoggedToday: true,
+                hasRecentWeight: true,
+                workoutSummary: TodayWorkoutSummary(
+                    workoutCaloriesBurned: hasWorkout ? 320 : 0,
+                    workoutCount: hasWorkout ? 1 : 0,
+                    hasWorkout: hasWorkout
+                ),
+                foodEntries: foodEntries,
+                hasPriorFoodLogs: hasPriorFoodLogs,
+                dailyReview: nil,
+                goalWeightKg: 75,
+                profileWeightKg: 90.15,
+                activityContext: activityContext ?? TodayActivityContext(
+                    trainingIntegration: .connected,
+                    trainingDataSource: .appleHealth,
+                    appleHealthWorkoutCount: appleHealthWorkoutCount,
+                    stepsToday: stepsToday
+                ),
+                stepGoalAssumption: 7_500,
+                trainingFrequencyPerWeek: hasWorkout ? 3 : 0
+            )
+        )
+    }
 }

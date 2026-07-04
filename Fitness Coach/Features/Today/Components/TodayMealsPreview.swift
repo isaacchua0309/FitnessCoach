@@ -50,9 +50,9 @@ struct TodayMealsPreview: View {
 
     private func emptyMealRow(group: TodayMealGroupState, display: TodayMealRowDisplayModel) -> some View {
         HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
-            mealTitleBlock(display: display)
+            mealTitleBlock(display: display, isLogged: false)
 
-            Spacer(minLength: 8)
+            Spacer(minLength: FormaTokens.Spacing.xs)
 
             Button {
                 onAddMeal(group.mealType)
@@ -67,7 +67,7 @@ struct TodayMealsPreview: View {
             .accessibilityHint(display.accessibilityHint ?? "")
         }
         .padding(.horizontal, FormaTokens.Spacing.md)
-        .padding(.vertical, FormaTokens.Spacing.sm)
+        .padding(.vertical, TodayLayout.cardRowVerticalPadding)
     }
 
     private func loggedMealRow(group: TodayMealGroupState, display: TodayMealRowDisplayModel) -> some View {
@@ -77,13 +77,14 @@ struct TodayMealsPreview: View {
             }
         } label: {
             HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
-                mealTitleBlock(display: display)
+                mealTitleBlock(display: display, isLogged: true)
 
-                Spacer(minLength: 8)
+                Spacer(minLength: FormaTokens.Spacing.xs)
 
                 Image(systemName: "checkmark.circle.fill")
                     .font(.body)
                     .foregroundStyle(FormaTokens.Theme.primary)
+                    .symbolRenderingMode(.hierarchical)
                     .accessibilityHidden(true)
             }
             .contentShape(Rectangle())
@@ -91,9 +92,15 @@ struct TodayMealsPreview: View {
         .buttonStyle(.plain)
         .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         .padding(.horizontal, FormaTokens.Spacing.md)
-        .padding(.vertical, FormaTokens.Spacing.sm)
+        .padding(.vertical, TodayLayout.cardRowVerticalPadding)
+        .background(
+            FormaTokens.Theme.softBackground.opacity(0.45),
+            in: RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+        )
+        .accessibilityElement(children: .combine)
         .accessibilityLabel(display.accessibilityLabel)
         .accessibilityHint(display.accessibilityHint ?? "")
+        .accessibilityAddTraits(.isButton)
         .contextMenu {
             ForEach(group.entries) { entry in
                 Button {
@@ -117,8 +124,8 @@ struct TodayMealsPreview: View {
         }
     }
 
-    private func mealTitleBlock(display: TodayMealRowDisplayModel) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+    private func mealTitleBlock(display: TodayMealRowDisplayModel, isLogged: Bool) -> some View {
+        VStack(alignment: .leading, spacing: TodayLayout.compactSpacing) {
             HStack(spacing: FormaTokens.Spacing.xs) {
                 Text(display.title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
@@ -126,18 +133,14 @@ struct TodayMealsPreview: View {
 
                 if display.isOptional {
                     Text(FormaProductCopy.Today.Meals.optionalLabel)
-                        .font(FormaTokens.Typography.caption)
+                        .font(FormaTokens.Typography.caption2)
                         .foregroundStyle(FormaTokens.Color.textTertiary)
                 }
             }
 
             Text(display.statusLine)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(
-                    display.showsAddAction
-                        ? FormaTokens.Color.textTertiary
-                        : FormaTokens.Color.textSecondary
-                )
+                .foregroundStyle(isLogged ? FormaTokens.Color.textSecondary : FormaTokens.Color.textTertiary)
 
             if let detailLine = display.detailLine {
                 Text(detailLine)
@@ -172,6 +175,22 @@ struct TodayMealsPreview: View {
         onDeleteEntry: { _ in }
     )
     .padding()
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Large text") {
+    TodayMealsPreview(
+        entries: TodayPreviewData.foodEntries,
+        date: Date(),
+        mealsEmptyKind: .hasMeals,
+        onAddMeal: { _ in },
+        onEditEntry: { _ in },
+        onDeleteEntry: { _ in },
+        onLogFirstMeal: {}
+    )
+    .padding()
+    .dynamicTypeSize(.accessibility2)
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }

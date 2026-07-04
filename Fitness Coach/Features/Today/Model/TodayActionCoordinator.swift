@@ -62,11 +62,31 @@ final class TodayActionCoordinator: ObservableObject {
         log(.viewed)
     }
 
+    func logMissionViewed() {
+        log(.missionViewed)
+    }
+
+    func logPrimaryCTATapped() {
+        log(.primaryCTATapped, actionType: "log_meal")
+    }
+
     func logNextActionViewed(for action: NextBestActionState) {
         log(
-            .nextActionViewed,
-            reason: TodayNextActionFormatting.analyticsReason(action.reason)
+            .nextBestActionViewed,
+            actionType: TodayNextActionFormatting.analyticsReason(action.reason)
         )
+    }
+
+    func logDailyVictoryViewed() {
+        log(.dailyVictoryViewed)
+    }
+
+    func logSmartCoachViewed() {
+        log(.smartCoachViewed)
+    }
+
+    func logEndOfDayWrapViewed() {
+        log(.endOfDayWrapViewed)
     }
 
     func logGoalConnectionTapped(destination: TodayGoalConnectionDestination) {
@@ -82,11 +102,11 @@ final class TodayActionCoordinator: ObservableObject {
     func handleCTA(_ cta: NextBestActionCTA, from action: NextBestActionState) {
         let route = TodayNextActionFormatting.route(for: cta)
         log(
-            .nextActionTapped,
+            .nextBestActionTapped,
             actionType: "next_best_action",
-            reason: TodayNextActionFormatting.analyticsReason(action.reason),
             cta: TodayNextActionFormatting.analyticsCTA(cta),
-            route: TodayNextActionFormatting.analyticsRoute(route)
+            route: TodayNextActionFormatting.analyticsRoute(route),
+            action: TodayNextActionFormatting.analyticsReason(action.reason)
         )
         perform(route)
     }
@@ -129,6 +149,11 @@ final class TodayActionCoordinator: ObservableObject {
     }
 
     func logMeal(for mealType: MealType) {
+        log(
+            .mealAddTapped,
+            actionType: "add_meal",
+            mealType: TodayAnalyticsContextBuilder.mealTypeAction(mealType)
+        )
         perform(.openCoach(.logMeal(mealType: mealType)))
     }
 
@@ -136,7 +161,7 @@ final class TodayActionCoordinator: ObservableObject {
         foodEditErrorMessage = nil
         editFoodPresentation = EditFoodPresentation(entry: entry)
         log(
-            .mealEditStarted,
+            .mealEditTapped,
             actionType: "edit_meal",
             mealType: TodayAnalyticsContextBuilder.mealTypeAction(entry.mealType)
         )
@@ -337,7 +362,6 @@ final class TodayActionCoordinator: ObservableObject {
     private func log(
         _ event: TodayAnalyticsEvent,
         actionType: String? = nil,
-        reason: String? = nil,
         cta: String? = nil,
         route: String? = nil,
         action: String? = nil,
@@ -349,8 +373,7 @@ final class TodayActionCoordinator: ObservableObject {
             event,
             properties: .from(
                 snapshot: analyticsSnapshot,
-                actionType: actionType,
-                reason: reason,
+                actionType: actionType ?? action,
                 cta: cta,
                 route: route,
                 action: action,

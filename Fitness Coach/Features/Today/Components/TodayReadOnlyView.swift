@@ -4,8 +4,7 @@
 //
 //  FitPilot AI — Read-only Today dashboard. Mutations route through TodayActionCoordinator.
 //
-//  Section order: Mission → [Health Intelligence] → Next Best Action → Quick Actions
-//  → Meals → Activity → Nutrition
+//  Section order: see `TodayDashboardSectionOrder`.
 //
 
 import SwiftUI
@@ -72,7 +71,7 @@ struct TodayReadOnlyView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: sectionSpacing) {
-            missionBlock
+            TodayDashboardHeader(date: state.date)
 
             if showsHealthIntelligence, let healthIntelligenceSection {
                 TodayHealthIntelligenceSection(
@@ -82,8 +81,10 @@ struct TodayReadOnlyView: View {
                 )
             }
 
-            if showsLegacyNextBestAction {
-                // Legacy next best action card — pending removal after Health Intelligence rollout.
+            VStack(alignment: .leading, spacing: TodayLayout.primaryActionZoneSpacing) {
+                missionBlock
+
+                if showsLegacyNextBestAction {
                 TodayNextActionSection(
                     action: state.nextBestAction,
                     onPrimaryCTA: {
@@ -99,17 +100,8 @@ struct TodayReadOnlyView: View {
                         actionCoordinator.logNextActionViewed(for: state.nextBestAction)
                     }
                 )
-            }
-
-            TodayQuickActionsSection(
-                showsScanMeal: state.quickActions.showsScanMeal,
-                onLogMeal: {
-                    actionCoordinator.performQuickAction(.logMeal)
-                },
-                onScanMeal: {
-                    actionCoordinator.performQuickAction(.scanFood)
                 }
-            )
+            }
 
             TodayWaterQuickLogSection(
                 water: state.macroHydration.waterSummary,
@@ -134,8 +126,13 @@ struct TodayReadOnlyView: View {
                 }
             )
 
+            TodayReadOnlyProgressSection(
+                macros: state.macroHydration.macroSummary,
+                water: state.macroHydration.waterSummary,
+                calorieSummary: state.mission.calorieSummary
+            )
+
             if showsActivitySection {
-                // Legacy activity/workout card — pending removal after Health Intelligence rollout.
                 TodayActivitySection(
                     activity: state.activity,
                     onConnectAppleHealth: {
@@ -144,11 +141,7 @@ struct TodayReadOnlyView: View {
                 )
             }
 
-            TodayReadOnlyProgressSection(
-                macros: state.macroHydration.macroSummary,
-                water: state.macroHydration.waterSummary,
-                calorieSummary: state.mission.calorieSummary
-            )
+            reinforcementBlock
         }
     }
 
@@ -156,8 +149,13 @@ struct TodayReadOnlyView: View {
         VStack(alignment: .leading, spacing: TodayLayout.statusZoneSpacing) {
             TodayMissionHero(
                 mission: state.mission,
+                suppressLogMealCTA: Self.suppressesHeroLogMealCTA(for: state.nextBestAction),
                 onLogMeal: {
+                    actionCoordinator.logPrimaryCTATapped()
                     actionCoordinator.performQuickAction(.logMeal)
+                },
+                onViewed: {
+                    actionCoordinator.logMissionViewed()
                 }
             )
 
@@ -182,51 +180,70 @@ struct TodayReadOnlyView: View {
             }
         }
     }
+
+    private var reinforcementBlock: some View {
+        VStack(alignment: .leading, spacing: TodayLayout.reinforcementSpacing) {
+            TodayVictorySection(
+                victory: state.victory,
+                onViewed: {
+                    actionCoordinator.logDailyVictoryViewed()
+                }
+            )
+
+            TodaySmartCoachBanner(
+                smartCoach: state.smartCoach,
+                onOpenCoach: { intent in
+                    actionCoordinator.onOpenCoach?(intent)
+                },
+                onViewed: {
+                    actionCoordinator.logSmartCoachViewed()
+                }
+            )
+
+            TodayEndOfDayWrapUpSection(
+                wrapUp: state.endOfDay,
+                onOpenJourney: onOpenJourney,
+                onViewed: {
+                    actionCoordinator.logEndOfDayWrapViewed()
+                }
+            )
+        }
+    }
+
+    /// Hides the hero log-meal chip when Next Best Action already offers a meal-logging primary CTA.
+    private static func suppressesHeroLogMealCTA(for action: TodayNextBestActionState) -> Bool {
+        switch action.primaryCTA {
+        case .logMeal, .scanFood:
+            return true
+        case .addWater, .logWorkout, .logWeight, .openHealth, .reviewToday, .none:
+            return false
+        }
+    }
 }
 
-#Preview("Partial day") {
-    ScrollView {
-        TodayReadOnlyView(
-            state: TodayPreviewData.state,
-            actionCoordinator: TodayActionCoordinator(
-                actionCenter: try! AppContainer(inMemory: true).actionCenter
-            )
+#if DEBUG
+enum TodayReadOnlyPreviewSupport {
+    static func coordinator() -> TodayActionCoordinator {
+        TodayActionCoordinator(
+            actionCenter: try! AppContainer(inMemory: true).actionCenter
         )
-        .padding(.horizontal, TodayLayout.horizontalPadding)
-        .padding(.vertical, FormaTokens.Spacing.md)
     }
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
-}
 
-#Preview("New day") {
-    ScrollView {
-        TodayReadOnlyView(
-            state: TodayPreviewData.emptyDay,
-            actionCoordinator: TodayActionCoordinator(
-                actionCenter: try! AppContainer(inMemory: true).actionCenter
+    @ViewBuilder
+    static func screen(_ state: TodayDashboardState) -> some View {
+        ScrollView {
+            TodayReadOnlyView(
+                state: state,
+                actionCoordinator: coordinator()
             )
-        )
-        .padding(.horizontal, TodayLayout.horizontalPadding)
-        .padding(.vertical, FormaTokens.Spacing.md)
+            .padding(.horizontal, TodayLayout.horizontalPadding)
+            .padding(.top, FormaTokens.Spacing.md)
+            .padding(.bottom, TodayLayout.bottomScrollPadding)
+        }
+        .formaMainTabScrollInsets()
+        .background(FormaTokens.Color.canvas)
+        .formaThemePreview()
     }
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
-}
-
-#Preview("Complete day") {
-    ScrollView {
-        TodayReadOnlyView(
-            state: TodayPreviewData.completeDay,
-            actionCoordinator: TodayActionCoordinator(
-                actionCenter: try! AppContainer(inMemory: true).actionCenter
-            )
-        )
-        .padding(.horizontal, TodayLayout.horizontalPadding)
-        .padding(.vertical, FormaTokens.Spacing.md)
-    }
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
 }
 
 #Preview("Health Intelligence enabled") {
@@ -246,3 +263,4 @@ struct TodayReadOnlyView: View {
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }
+#endif

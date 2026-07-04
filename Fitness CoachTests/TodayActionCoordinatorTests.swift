@@ -138,8 +138,8 @@ final class TodayActionCoordinatorTests: XCTestCase {
         coordinator.handleCTA(.addWater(amountMl: 500), from: action)
 
         XCTAssertEqual(analytics.events.count, 1)
-        XCTAssertEqual(analytics.events.first?.event, .nextActionTapped)
-        XCTAssertEqual(analytics.events.first?.properties.reason, "add_water")
+        XCTAssertEqual(analytics.events.first?.event, .nextBestActionTapped)
+        XCTAssertEqual(analytics.events.first?.properties.action, "add_water")
         XCTAssertEqual(analytics.events.first?.properties.cta, "add_water")
         XCTAssertEqual(analytics.events.first?.properties.route, "native_log_water")
         XCTAssertEqual(analytics.events.first?.properties.actionType, "next_best_action")
@@ -259,8 +259,8 @@ final class TodayActionCoordinatorTests: XCTestCase {
 
         coordinator.logNextActionViewed(for: action)
 
-        XCTAssertEqual(analytics.events.last?.event, .nextActionViewed)
-        XCTAssertEqual(analytics.events.last?.properties.reason, "all_targets_met")
+        XCTAssertEqual(analytics.events.last?.event, .nextBestActionViewed)
+        XCTAssertEqual(analytics.events.last?.properties.actionType, "all_targets_met")
     }
 
     func testTodayViewedEvent() {
@@ -287,7 +287,7 @@ final class TodayActionCoordinatorTests: XCTestCase {
         )
 
         coordinator.openEditFood(entry)
-        XCTAssertEqual(analytics.events.last?.event, .mealEditStarted)
+        XCTAssertEqual(analytics.events.last?.event, .mealEditTapped)
         XCTAssertEqual(analytics.events.last?.properties.mealType, "dinner")
 
         var editForm = FoodEntryFormState(foodEntry: entry)
@@ -317,10 +317,10 @@ final class TodayActionCoordinatorTests: XCTestCase {
         coordinator.logTodayViewed()
 
         let viewed = analytics.events.last
-        XCTAssertEqual(viewed?.properties.hasMeals, true)
+        XCTAssertEqual(viewed?.properties.hasMealLogged, true)
         XCTAssertEqual(viewed?.properties.healthConnected, true)
-        XCTAssertNotNil(viewed?.properties.calorieProgressBucket)
-        XCTAssertNotNil(viewed?.properties.proteinProgressBucket)
+        XCTAssertNotNil(viewed?.properties.proteinStatus)
+        XCTAssertNotNil(viewed?.properties.calorieStatus)
     }
 
     func testHandleHealthNextBestActionRoutesConnectHealthToTrainingInsights() {
