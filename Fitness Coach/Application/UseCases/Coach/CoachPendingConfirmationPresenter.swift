@@ -19,7 +19,8 @@ enum CoachPendingConfirmationPresenter {
         mealDraft: FoodLogDraft,
         confidence: AIConfidence,
         sanityWarning: String? = nil,
-        fromPhotoAnalysis: Bool = false
+        fromPhotoAnalysis: Bool = false,
+        sourceAttribution: CoachTimelineEventSourceAttribution? = nil
     ) -> CoachActionResult {
         let draft = AIFoodConfirmationDraft(
             originalText: originalText,
@@ -27,7 +28,8 @@ enum CoachPendingConfirmationPresenter {
             mealDraft: mealDraft,
             confidence: confidence,
             requiresConfirmation: true,
-            sanityWarning: sanityWarning
+            sanityWarning: sanityWarning,
+            sourceAttribution: sourceAttribution
         )
         let message = CoachResponseBuilder.aiFoodEstimatePending(
             mealDraft: mealDraft,
@@ -60,7 +62,8 @@ enum CoachPendingConfirmationPresenter {
     }
 
     static func presentLocalFoodEstimatePending(
-        _ request: LocalFoodEstimateRequest
+        _ request: LocalFoodEstimateRequest,
+        sourceAttribution: CoachTimelineEventSourceAttribution = .localParser
     ) -> CoachActionResult {
         let confidence: AIConfidence = request.estimate.confidence == .high ? .high : .medium
         let mealDraft = FoodLogDraftMapper.fromLegacyDraft(request.estimate.draft)
@@ -75,7 +78,8 @@ enum CoachPendingConfirmationPresenter {
             mealDraft: sanity.mealDraft,
             confidence: sanity.confidence,
             requiresConfirmation: true,
-            sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
+            sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage,
+            sourceAttribution: sourceAttribution
         )
         return .pending(
             .food(draft),

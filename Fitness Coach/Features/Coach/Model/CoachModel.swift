@@ -850,7 +850,11 @@ timelineRecorder: (any CoachTimelineRecording)? = nil,
         if result.message == CoachResponseBuilder.pendingRejected {
             timelineRecordPendingRejected(confirmation: confirmation, userInputMethod: "typed")
         } else if CoachPendingConfirmationPresenter.confirmWords.contains(normalized) {
-            timelineRecordPendingConfirmed(confirmation: confirmation, userInputMethod: "typed")
+            timelineRecordPendingConfirmed(
+                confirmation: confirmation,
+                userInputMethod: "typed",
+                entryId: mutationExecutor.lastAffectedEntryId
+            )
         }
 
         if result.pendingConfirmation == nil {
@@ -998,7 +1002,11 @@ timelineRecorder: (any CoachTimelineRecording)? = nil,
             confirmation,
             timelineContext: mutationTimelineContext(for: confirmation)
         )
-        timelineRecordPendingConfirmed(confirmation: confirmation, userInputMethod: "bar")
+        timelineRecordPendingConfirmed(
+            confirmation: confirmation,
+            userInputMethod: "bar",
+            entryId: mutationExecutor.lastAffectedEntryId
+        )
         if nutritionEstimateLogPending {
             logCoachAnalytics(.nutritionEstimateLogConfirmed, properties: CoachAnalyticsProperties())
             nutritionEstimateLogPending = false
@@ -1222,9 +1230,18 @@ timelineRecorder: (any CoachTimelineRecording)? = nil,
             sourceAttribution: lastTimelineAttribution,
             userEditedBeforeConfirm: userEditedPendingBeforeConfirm
         )
-        if case .food(let draft) = confirmation {
+        switch confirmation {
+        case .food(let draft):
             context.pendingConfirmationId = draft.id
             context.relatedPhotoSessionId = draft.imageAnalysisSessionID
+            if let sourceAttribution = draft.sourceAttribution {
+                context.sourceAttribution = sourceAttribution
+            }
+        case .edit(let action, _, _), .delete(let action, _, _):
+            context.linkedEntryId = action.linkedEntryId
+            context.relatedTimelineEventId = action.linkedTimelineEventId
+        case .water, .weight, .undo:
+            break
         }
         return context
     }
@@ -1468,15 +1485,23 @@ timelineRecorder: (any CoachTimelineRecording)? = nil,
 
     private func timelineRecordPendingConfirmed(
         confirmation: CoachPendingConfirmation,
-        userInputMethod: String
+        userInputMethod: String,
+        entryId: UUID? = nil
     ) {
         let payload = CoachModelTimelineSupport.confirmationPayload(
             from: confirmation,
             userInputMethod: userInputMethod
         )
+        let resolvedEntryId: UUID? = {
+            if let entryId { return entryId }
+            if case .edit(let action, _, _), .delete(let action, _, _) = confirmation {
+                return action.linkedEntryId
+            }
+            return nil
+        }()
         timelineRecorder.recordPendingConfirmationConfirmed(
             payload: payload,
-            entryId: nil,
+            entryId: resolvedEntryId,
             occurredAt: Date()
         )
     }

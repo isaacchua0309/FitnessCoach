@@ -51,7 +51,8 @@ final class CoachAIRouteHandler {
             case .executeImmediately:
                 let response = await mutationExecutor.execute(
                     command,
-                    healthIntelligence: resolvedHealthIntelligence(from: context)
+                    healthIntelligence: resolvedHealthIntelligence(from: context),
+                    contextHints: CoachResponseContextHints.from(context)
                 )
                 return .message(response)
             case .requiresConfirmation(let message):
@@ -100,7 +101,8 @@ final class CoachAIRouteHandler {
             return presentEstimateFoodResponse(
                 response,
                 prompt: prompt,
-                routed: routed
+                routed: routed,
+                context: context
             )
 
         case .photoFoodAnalysis(let imageData, let prompt, let recommission):
@@ -125,13 +127,15 @@ final class CoachAIRouteHandler {
                 intentResult: routed.intentResult,
                 tier: routed.tier
             )
+            let hints = CoachResponseContextHints.from(context)
             let message = CoachResponseBuilder.mealAdvice(
                 log: try? dailyLogReader.getTodayLog(),
                 profile: try? userProfileReader?.getCurrentProfile(),
                 hasWorkoutToday: hasWorkoutToday(from: context),
                 healthIntelligence: resolvedHealthIntelligence(from: context),
                 intent: routed.intentResult.intent,
-                assistantMessage: advice.message
+                assistantMessage: advice.message,
+                contextHints: hints
             )
             return .message(message)
 
@@ -228,6 +232,7 @@ final class CoachAIRouteHandler {
             originalText: prompt,
             assistantMessage: response.summary,
             confidence: sanity.confidence,
+            context: context,
             debugContext: FoodEstimateDebugContext(
                 source: .aiPhoto,
                 llmMealDraft: sessionResult.mealDraft,
@@ -297,7 +302,10 @@ final class CoachAIRouteHandler {
         case .executeImmediately:
             return .message(mutationExecutor.executeLogFood(request.estimate.draft))
         case .requiresConfirmation:
-            return CoachPendingConfirmationPresenter.presentLocalFoodEstimatePending(request)
+            return CoachPendingConfirmationPresenter.presentLocalFoodEstimatePending(
+                request,
+                sourceAttribution: .localParser
+            )
         case .reject(let message):
             return .message(message)
         }
@@ -307,6 +315,7 @@ final class CoachAIRouteHandler {
         _ response: AIFoodEstimateResponse,
         prompt: String,
         routed: RoutedAITask,
+        context: CoachContextPacketV2,
         photoAnalysis: Bool = false
     ) -> CoachActionResult {
         let classifierDraft: FoodDraft? = {
@@ -351,19 +360,26 @@ final class CoachAIRouteHandler {
         }
 
         let usedClassifierMerge = meal != llmMeal
+        let matchedCommonFood = CoachAIResponseContextAdapter.matchesCommonFoodReference(
+            prompt: prompt,
+            commonFoods: context.commonFoods
+        )
 
         return presentAIFoodEstimate(
             mealDraft: meal,
             originalText: prompt,
             assistantMessage: response.assistantMessage,
             confidence: response.confidence,
+            context: context,
             debugContext: FoodEstimateDebugContext(
                 source: photoAnalysis ? .aiPhoto : .aiText,
                 llmMealDraft: llmMeal,
                 fallbackMealDraft: usedClassifierMerge ? meal : nil,
                 fallbackLabel: usedClassifierMerge ? "classifier_merge" : nil
             ),
-            fromPhotoAnalysis: photoAnalysis
+            fromPhotoAnalysis: photoAnalysis,
+            usedClassifierMerge: usedClassifierMerge,
+            matchedCommonFood: matchedCommonFood
         )
     }
 
@@ -376,7 +392,15 @@ final class CoachAIRouteHandler {
             return .message(message)
         case .requiresConfirmation(let message):
             if let action = parsed.actions.first {
-                return try await presentAIActionConfirmation(action, parsed: parsed, fallback: message)
+                let enriched = CoachEntryReferenceResolver.enrichAction(action, context: context)
+                var enrichedParsed = parsed
+                enrichedParsed.actions = [enriched] + parsed.actions.dropFirst()
+                return try await presentAIActionConfirmation(
+                    enriched,
+                    parsed: enrichedParsed,
+                    fallback: message,
+                    context: context
+                )
             }
             return .message(parsed.assistantMessage ?? message)
         case .executeImmediately:
@@ -391,7 +415,8 @@ final class CoachAIRouteHandler {
     private func presentAIActionConfirmation(
         _ action: AICommandAction,
         parsed: AIParsedCommand,
-        fallback: String
+        fallback: String,
+        context: CoachContextPacketV2
     ) async throws -> CoachActionResult {
         switch action.type {
         case .logFood:
@@ -401,6 +426,7 @@ final class CoachAIRouteHandler {
                 originalText: parsed.originalText,
                 assistantMessage: parsed.assistantMessage,
                 confidence: parsed.confidence,
+                context: context,
                 debugContext: FoodEstimateDebugContext(
                     source: .parsedCommand,
                     llmMealDraft: nil,
@@ -486,9 +512,12 @@ final class CoachAIRouteHandler {
         originalText: String,
         assistantMessage: String?,
         confidence: AIConfidence,
+        context: CoachContextPacketV2? = nil,
         debugContext: FoodEstimateDebugContext? = nil,
         sanityWarning: String? = nil,
-        fromPhotoAnalysis: Bool = false
+        fromPhotoAnalysis: Bool = false,
+        usedClassifierMerge: Bool = false,
+        matchedCommonFood: Bool = false
     ) -> CoachActionResult {
         let sanitized = FoodLogDraftNutritionCompleter.sanitize(mealDraft, hintText: originalText)
         let sanity = NutritionSanityValidator.validate(
@@ -517,13 +546,23 @@ final class CoachAIRouteHandler {
 
         switch ConfirmationPolicy.decision(for: sanity.mealDraft) {
         case .requiresConfirmation, .executeImmediately:
+            let sourceAttribution = CoachAIResponseContextAdapter.resolveFoodEstimateAttribution(
+                fromPhotoAnalysis: fromPhotoAnalysis,
+                usedClassifierMerge: usedClassifierMerge,
+                matchedCommonFood: matchedCommonFood || CoachAIResponseContextAdapter.matchesCommonFoodReference(
+                    prompt: originalText,
+                    commonFoods: context?.commonFoods ?? []
+                ),
+                isLocalEstimate: false
+            )
             return CoachPendingConfirmationPresenter.presentFoodPending(
                 originalText: originalText,
                 assistantMessage: assistantMessage,
                 mealDraft: sanity.mealDraft,
                 confidence: sanity.confidence,
                 sanityWarning: resolvedSanityWarning,
-                fromPhotoAnalysis: fromPhotoAnalysis
+                fromPhotoAnalysis: fromPhotoAnalysis,
+                sourceAttribution: sourceAttribution
             )
         case .reject(let message):
             return .message(message)

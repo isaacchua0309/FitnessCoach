@@ -17,6 +17,7 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
     var sanityWarning: String?
     var imageAnalysisSessionID: UUID?
     var relatedPhotoUserMessageID: UUID?
+    var sourceAttribution: CoachTimelineEventSourceAttribution?
     var createdAt: Date
 
     init(
@@ -29,6 +30,7 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         sanityWarning: String? = nil,
         imageAnalysisSessionID: UUID? = nil,
         relatedPhotoUserMessageID: UUID? = nil,
+        sourceAttribution: CoachTimelineEventSourceAttribution? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -40,6 +42,7 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         self.sanityWarning = sanityWarning
         self.imageAnalysisSessionID = imageAnalysisSessionID
         self.relatedPhotoUserMessageID = relatedPhotoUserMessageID
+        self.sourceAttribution = sourceAttribution
         self.createdAt = createdAt
     }
 
