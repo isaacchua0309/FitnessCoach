@@ -922,7 +922,11 @@ final class CoachModel: ObservableObject {
                 config: coachModelConfig
             )
             lastTimelineAttribution = CoachModelTimelineSupport.timelineAttribution(for: decision)
-            let result = try await routeHandler.handle(decision.route, context: context)
+            let result = try await routeHandler.handle(
+                decision.route,
+                context: context,
+                pendingConfirmation: pendingConfirmation
+            )
             traceOutcome = "routed:\(decision.chosenHandler)"
             return result
         } catch let error as AIServiceError {
