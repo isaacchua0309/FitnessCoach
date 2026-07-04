@@ -32,6 +32,42 @@ enum AccountSyncLogger {
         return "unknown"
     }
 
+    nonisolated static func realtimeListenerStarted(uid: String, listenerCount: Int) {
+        emit(
+            levelName: "info",
+            osLogType: .info,
+            message: "realtime_listener_started",
+            fields: [
+                "uidHash": hashedUID(uid),
+                "listenerCount": String(listenerCount)
+            ]
+        )
+    }
+
+    nonisolated static func realtimeListenerStopped(uid: String, reason: String) {
+        emit(
+            levelName: "info",
+            osLogType: .info,
+            message: "realtime_listener_stopped",
+            fields: [
+                "uidHash": hashedUID(uid),
+                "reason": reason
+            ]
+        )
+    }
+
+    nonisolated static func realtimeChangeHintEmitted(uid: String, source: String) {
+        emit(
+            levelName: "info",
+            osLogType: .info,
+            message: "realtime_change_hint_emitted",
+            fields: [
+                "uidHash": hashedUID(uid),
+                "source": source
+            ]
+        )
+    }
+
     nonisolated static func crossDeviceSyncStarted(
         traceId: String,
         mode: CrossDeviceSyncMode,
