@@ -34,50 +34,50 @@ struct CoachView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                CoachDesignTokens.Color.background
-                    .ignoresSafeArea()
+            VStack(spacing: 0) {
+                if showEmptyChrome {
+                    CoachHeader()
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
 
-                VStack(spacing: 0) {
-                    if showEmptyChrome {
-                        CoachHeader()
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+                CoachConversationView(
+                    messages: model.messages,
+                    isSending: model.isSending,
+                    todayContext: model.todayContext,
+                    starterPrompts: model.starterPromptSpecs,
+                    pendingConfirmation: model.pendingConfirmation,
+                    isInputFocused: isInputFocused,
+                    onDismissKeyboard: {
+                        dismissKeyboard()
+                    },
+                    onStarterTap: { prompt in
+                        handleStarterTap(prompt)
+                    },
+                    onRetryMealPhotoAnalysis: { userMessageID in
+                        Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
+                    },
+                    onNutritionAction: { action in
+                        Task { await model.handleNutritionEstimateAction(action) }
+                    },
+                    bottomAccessory: {
+                        VStack(spacing: 0) {
+                            coachErrorBanner
+                            bottomAccessoryStack
+                        }
                     }
-
-                    CoachConversationView(
-                        messages: model.messages,
-                        isSending: model.isSending,
-                        todayContext: model.todayContext,
-                        starterPrompts: model.starterPromptSpecs,
-                        pendingConfirmation: model.pendingConfirmation,
-                        isInputFocused: isInputFocused,
-                        onDismissKeyboard: {
-                            dismissKeyboard()
-                        },
-                        onStarterTap: { prompt in
-                            handleStarterTap(prompt)
-                        },
-                        onRetryMealPhotoAnalysis: { userMessageID in
-                            Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
-                        },
-                        onNutritionAction: { action in
-                            Task { await model.handleNutritionEstimateAction(action) }
-                        },
-                        bottomAccessory: {
-                            VStack(spacing: 0) {
-                                coachErrorBanner
-                                bottomAccessoryStack
-                            }
-                        }
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .onChange(of: model.shouldFocusComposer) { _, shouldFocus in
-                        if shouldFocus {
-                            isInputFocused = true
-                            model.shouldFocusComposer = false
-                        }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onChange(of: model.shouldFocusComposer) { _, shouldFocus in
+                    if shouldFocus {
+                        isInputFocused = true
+                        model.shouldFocusComposer = false
                     }
                 }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background {
+                CoachDesignTokens.Color.background
+                    .ignoresSafeArea()
             }
             .toolbar(.hidden, for: .navigationBar)
             .task {
