@@ -50,6 +50,7 @@ protocol CoachTimelineRecording: Sendable {
         entry: FoodEntry,
         sourceAttribution: CoachTimelineEventSourceAttribution,
         userEditedBeforeConfirm: Bool,
+        linkedPhotoSessionId: UUID?,
         occurredAt: Date?
     )
 
@@ -238,6 +239,7 @@ struct NoOpCoachTimelineRecorder: CoachTimelineRecording {
         entry: FoodEntry,
         sourceAttribution: CoachTimelineEventSourceAttribution,
         userEditedBeforeConfirm: Bool,
+        linkedPhotoSessionId: UUID?,
         occurredAt: Date?
     ) {}
 
@@ -455,6 +457,7 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
         entry: FoodEntry,
         sourceAttribution: CoachTimelineEventSourceAttribution = .userConfirmation,
         userEditedBeforeConfirm: Bool = false,
+        linkedPhotoSessionId: UUID? = nil,
         occurredAt: Date? = nil
     ) {
         append(
@@ -469,7 +472,8 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
             occurredAt: occurredAt ?? entry.createdAt,
             link: CoachTimelineEventLink(
                 linkedEntryId: entry.id,
-                linkedDailyLogId: entry.dailyLogId
+                linkedDailyLogId: entry.dailyLogId,
+                linkedPhotoSessionId: linkedPhotoSessionId
             )
         )
     }

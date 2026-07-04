@@ -170,7 +170,8 @@ final class CoachMutationExecutor {
             timelineRecordFoodLoggedIfNeeded(
                 entry: entry,
                 sourceAttribution: timelineContext.sourceAttribution,
-                userEditedBeforeConfirm: timelineContext.userEditedBeforeConfirm
+                userEditedBeforeConfirm: timelineContext.userEditedBeforeConfirm,
+                linkedPhotoSessionId: timelineContext.relatedPhotoSessionId
             )
             if let pendingId = timelineContext.pendingConfirmationId {
                 completedPendingConfirmationIDs.insert(pendingId)
@@ -407,13 +408,15 @@ final class CoachMutationExecutor {
     private func timelineRecordFoodLoggedIfNeeded(
         entry: FoodEntry,
         sourceAttribution: CoachTimelineEventSourceAttribution,
-        userEditedBeforeConfirm: Bool
+        userEditedBeforeConfirm: Bool,
+        linkedPhotoSessionId: UUID?
     ) {
         guard recordedFoodLogEntryIDs.insert(entry.id).inserted else { return }
         timelineRecorder.recordFoodLogged(
             entry: entry,
             sourceAttribution: sourceAttribution,
             userEditedBeforeConfirm: userEditedBeforeConfirm,
+            linkedPhotoSessionId: linkedPhotoSessionId,
             occurredAt: entry.createdAt
         )
     }

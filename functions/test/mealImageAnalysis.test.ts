@@ -45,6 +45,7 @@ describe("mealImageAnalysis validation", () => {
   it("accepts a valid JPEG payload and normalizes base64", () => {
     const body = {
       message: "Lunch bowl",
+      context: {meta: {schemaVersion: 2}},
       image: {
         mimeType: "image/jpeg",
         base64: "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==",
@@ -60,6 +61,7 @@ describe("mealImageAnalysis validation", () => {
 
   it("accepts PNG with matching magic bytes", () => {
     const body = {
+      context: {meta: {schemaVersion: 2}},
       image: {
         mimeType: "image/png",
         base64: tinyPngBase64,
@@ -71,24 +73,34 @@ describe("mealImageAnalysis validation", () => {
 
   it("rejects empty image base64", () => {
     expect(() => validateAnalyzeMealImagePayload({
+      context: {meta: {schemaVersion: 2}},
       image: {mimeType: "image/jpeg", base64: "   "},
     })).toThrow("Missing or invalid image.base64.");
   });
 
+  it("rejects missing context", () => {
+    expect(() => validateAnalyzeMealImagePayload({
+      image: {mimeType: "image/png", base64: tinyPngBase64},
+    })).toThrow("Missing or invalid context.");
+  });
+
   it("rejects unsupported HEIC mime type", () => {
     expect(() => validateAnalyzeMealImagePayload({
+      context: {meta: {schemaVersion: 2}},
       image: {mimeType: "image/heic", base64: tinyPngBase64},
     })).toThrow("image/heic is not supported");
   });
 
   it("rejects unsupported mime types", () => {
     expect(() => validateAnalyzeMealImagePayload({
+      context: {meta: {schemaVersion: 2}},
       image: {mimeType: "image/webp", base64: tinyPngBase64},
     })).toThrow('Unsupported image.mimeType "image/webp"');
   });
 
   it("rejects base64 that does not match declared mime type", () => {
     expect(() => validateAnalyzeMealImagePayload({
+      context: {meta: {schemaVersion: 2}},
       image: {mimeType: "image/jpeg", base64: tinyPngBase64},
     })).toThrow("image.base64 does not match image.mimeType.");
   });
@@ -96,6 +108,7 @@ describe("mealImageAnalysis validation", () => {
   it("rejects oversized base64 payloads with 413", () => {
     process.env.FORMA_AI_MAX_IMAGE_B64_CHARS = "16";
     expect(() => validateAnalyzeMealImagePayload({
+      context: {meta: {schemaVersion: 2}},
       image: {mimeType: "image/png", base64: tinyPngBase64},
     })).toThrow("image.base64 exceeds maximum length.");
     delete process.env.FORMA_AI_MAX_IMAGE_B64_CHARS;
@@ -103,6 +116,7 @@ describe("mealImageAnalysis validation", () => {
 
   it("rejects invalid width and height", () => {
     expect(() => validateAnalyzeMealImagePayload({
+      context: {meta: {schemaVersion: 2}},
       image: {
         mimeType: "image/png",
         base64: tinyPngBase64,
@@ -113,6 +127,7 @@ describe("mealImageAnalysis validation", () => {
 
   it("accepts recommission clarification and previousAnalysis", () => {
     const body = {
+      context: {meta: {schemaVersion: 2}},
       image: {mimeType: "image/png", base64: tinyPngBase64},
       clarification: "It was barley.",
       previousAnalysis: {

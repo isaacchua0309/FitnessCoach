@@ -73,6 +73,10 @@ const AI_GATEWAY_ROUTES = [
     path: "/v1/ai/analyze-meal-image",
     body: {
       message: "Lunch",
+      context: {
+        meta: {schemaVersion: 2, localDate: "2026-07-03"},
+        training: {workoutsToday: 1},
+      },
       image: {
         mimeType: "image/png",
         base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -300,6 +304,11 @@ describe("aiGateway contract", () => {
         headers: {Authorization: "Bearer test-token"},
         body: {
           message: "Lunch",
+          context: {
+            meta: {schemaVersion: 2},
+            training: {workoutsToday: 1},
+            today: {steps: {value: 8000}},
+          },
           image: {mimeType: "image/png", base64: pngBase64},
         },
       });
@@ -321,6 +330,10 @@ describe("aiGateway contract", () => {
           }),
         ])
       );
+      const textPayload = JSON.parse(content.find((item: {type: string}) => item.type === "input_text").text);
+      expect(textPayload.context.training.workoutsToday).toBe(1);
+      expect(textPayload.context).toBeDefined();
+      expect(textPayload.context.today.steps.value).toBe(8000);
     });
   });
 
