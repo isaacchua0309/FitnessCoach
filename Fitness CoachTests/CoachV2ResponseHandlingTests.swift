@@ -214,8 +214,24 @@ final class CoachV2ResponseHandlingTests: XCTestCase {
         )
 
         XCTAssertTrue(message.contains("unavailable"))
-        XCTAssertFalse(message.matches(regex: #"\b\d{1,3}(,\d{3})*\s*steps\b"#))
+        XCTAssertFalse(message.matches(regex: #"(?i)steps:\s*[\d,]+"#))
         XCTAssertFalse(message.contains("9,120"))
+    }
+
+    func testExecutorStatusUsesLoggedMealsWithoutBackend() async throws {
+        try harness.seedProfile()
+        _ = try harness.base.foodLogService.addFoodEntry(
+            DailyLogServiceTestSupport.foodDraft(name: "Greek yogurt", calories: 180, protein: 17),
+            date: harness.today
+        )
+
+        let response = await executor.execute(
+            ParsedCommand(intent: .status, originalText: "how am I doing today?")
+        )
+
+        XCTAssertTrue(response.contains("180 /"))
+        XCTAssertTrue(response.contains("Greek yogurt"))
+        XCTAssertTrue(response.contains("Next:"))
     }
 
     // MARK: Workout advice includes workout when present

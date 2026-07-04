@@ -11,20 +11,40 @@ import Foundation
 struct CoachResponseContextHints: Equatable, Sendable {
     var missingData: CoachMissingDataContext?
     var timelineEvents: [CoachTimelineContextEvent]
+    var recentMeals: [CoachRecentMealContext]
+    var steps: Int?
+    var workoutsToday: Int?
+    var primaryWorkoutTitle: String?
+    var healthIntelligence: CoachHealthIntelligenceContext?
 
     init(
         missingData: CoachMissingDataContext? = nil,
-        timelineEvents: [CoachTimelineContextEvent] = []
+        timelineEvents: [CoachTimelineContextEvent] = [],
+        recentMeals: [CoachRecentMealContext] = [],
+        steps: Int? = nil,
+        workoutsToday: Int? = nil,
+        primaryWorkoutTitle: String? = nil,
+        healthIntelligence: CoachHealthIntelligenceContext? = nil
     ) {
         self.missingData = missingData
         self.timelineEvents = timelineEvents
+        self.recentMeals = recentMeals
+        self.steps = steps
+        self.workoutsToday = workoutsToday
+        self.primaryWorkoutTitle = primaryWorkoutTitle
+        self.healthIntelligence = healthIntelligence
     }
 
     static func from(_ context: CoachContextPacketV2?) -> CoachResponseContextHints {
         guard let context else { return CoachResponseContextHints() }
         return CoachResponseContextHints(
             missingData: context.missingData,
-            timelineEvents: context.timeline.recentEvents
+            timelineEvents: context.timeline.recentEvents,
+            recentMeals: context.recentMealsStructured,
+            steps: context.today?.steps?.value,
+            workoutsToday: context.training?.workoutsToday,
+            primaryWorkoutTitle: context.training?.workouts.last?.title,
+            healthIntelligence: context.healthIntelligence
         )
     }
 }
