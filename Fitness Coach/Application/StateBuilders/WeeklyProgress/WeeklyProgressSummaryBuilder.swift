@@ -127,8 +127,17 @@ struct WeeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding {
             startDate: weekRange.startDate,
             endDate: weekRange.endDate,
             averageDailyCalories: averageDailyCalories,
-            foodLoggedDays: foodLoggedDays,
+            foodLoggedDays: Self.foodLoggedDaysForConfidence(
+                in: input.dailyLogs,
+                through: input.referenceDate,
+                calendar: input.calendar
+            ),
             totalDays: weekRange.totalDays,
+            calendarSpanDays: Self.loggingHistorySpanDays(
+                dailyLogs: input.dailyLogs,
+                referenceDate: input.referenceDate,
+                calendar: input.calendar
+            ),
             startingWeightKg: startingWeightKg,
             endingWeightKg: endingWeightKg,
             currentSevenDayAverageKg: weightTrend.sevenDayAverageKg,
@@ -687,6 +696,32 @@ extension WeeklyProgressSummaryBuilder {
         guard !foodLogs.isEmpty else { return nil }
         let total = foodLogs.reduce(0.0) { $0 + $1.totals.protein }
         return total / Double(foodLogs.count)
+    }
+
+    static func loggingHistorySpanDays(
+        dailyLogs: [DailyLog],
+        referenceDate: Date,
+        calendar: Calendar
+    ) -> Int? {
+        guard let firstFoodDate = JourneyLogMetrics.firstFoodLogDate(in: dailyLogs) else {
+            return nil
+        }
+
+        let start = calendar.startOfDay(for: firstFoodDate)
+        let end = calendar.startOfDay(for: referenceDate)
+        let dayCount = calendar.dateComponents([.day], from: start, to: end).day ?? 0
+        let span = max(dayCount + 1, 0)
+        return span > 0 ? span : nil
+    }
+
+    static func foodLoggedDaysForConfidence(
+        in logs: [DailyLog],
+        through referenceDate: Date,
+        calendar: Calendar
+    ) -> Int {
+        let endDay = calendar.startOfDay(for: referenceDate)
+        let spanLogs = logs.filter { calendar.startOfDay(for: $0.date) <= endDay }
+        return JourneyLogMetrics.uniqueFoodLoggedDays(in: spanLogs, calendar: calendar)
     }
 
     static func summaryID(

@@ -31,6 +31,8 @@ struct MaintenanceEstimateInput: Equatable {
     let averageDailyCalories: Double?
     let foodLoggedDays: Int
     let totalDays: Int
+    /// Logging-history span used for confidence tiers. Defaults to `totalDays` when nil.
+    let calendarSpanDays: Int?
     let startingWeightKg: Double?
     let endingWeightKg: Double?
     let currentSevenDayAverageKg: Double?
@@ -97,8 +99,9 @@ enum MaintenanceEstimateCalculator {
 
     static func estimate(_ input: MaintenanceEstimateInput) -> MaintenanceEstimate {
         let calendarSpanDays = resolvedCalendarSpanDays(for: input)
-        let totalDays = max(input.totalDays, calendarSpanDays, 1)
-        let loggingConsistencyRatio = Double(max(input.foodLoggedDays, 0)) / Double(totalDays)
+        let windowDays = max(input.totalDays, 1)
+        let consistencySpanDays = max(calendarSpanDays, windowDays)
+        let loggingConsistencyRatio = Double(max(input.foodLoggedDays, 0)) / Double(consistencySpanDays)
 
         let sufficiency = WeeklyProgressConfidencePolicy.evaluate(
             foodLoggedDays: input.foodLoggedDays,
@@ -126,7 +129,7 @@ enum MaintenanceEstimateCalculator {
         let weeklyWeightChangeKg = resolvedWeeklyWeightChange(
             for: input,
             weightChangeKg: resolvedWeights.changeKg,
-            totalDays: totalDays
+            totalDays: windowDays
         )
         let goalDirection = resolvedGoalDirection(for: input)
         let trendDirection = resolveTrendDirection(
@@ -138,7 +141,7 @@ enum MaintenanceEstimateCalculator {
 
         let energyBalance = estimatedDailyEnergyBalanceKcal(
             weightChangeKg: resolvedWeights.changeKg,
-            totalDays: totalDays
+            totalDays: windowDays
         )
 
         if sufficiency.confidence == .low
@@ -602,6 +605,10 @@ enum MaintenanceEstimateCalculator {
     // MARK: Helpers
 
     private static func resolvedCalendarSpanDays(for input: MaintenanceEstimateInput) -> Int {
+        if let calendarSpanDays = input.calendarSpanDays, calendarSpanDays > 0 {
+            return calendarSpanDays
+        }
+
         if input.totalDays > 0 {
             return input.totalDays
         }

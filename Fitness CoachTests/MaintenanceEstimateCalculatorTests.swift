@@ -350,6 +350,7 @@ private enum Fixtures {
             averageDailyCalories: averageDailyCalories,
             foodLoggedDays: foodLoggedDays,
             totalDays: totalDays,
+            calendarSpanDays: nil,
             startingWeightKg: startingWeightKg,
             endingWeightKg: endingWeightKg,
             currentSevenDayAverageKg: currentSevenDayAverageKg,
