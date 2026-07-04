@@ -151,11 +151,13 @@ struct CoachContextPacketV2Builder {
             todayLocalDate: todayLocalDate,
             readFailures: &readFailures
         )
-        let timelineContextEvents = CoachContextPacketV2TimelineSelector.makeContextEvents(
-            from: timelineEvents,
+        let timelineCompaction = CoachContextPacketV2TimelineCompactionPolicy.compact(
+            events: timelineEvents,
             todayLocalDate: todayLocalDate,
             limit: Self.defaultTimelineEventLimit
         )
+        let timelineContextEvents = timelineCompaction.events
+        var compactionMetadata = timelineCompaction.metadata
 
         let chatContext = makeChatContext(
             from: recentMessages,
@@ -232,7 +234,15 @@ struct CoachContextPacketV2Builder {
             )
         )
 
-        packet = CoachContextPacketV2SizeCompactor.compact(packet)
+        packet = CoachContextPacketV2SizeCompactor.compact(
+            packet,
+            compaction: &compactionMetadata
+        )
+
+        if var attribution = packet.sourceAttribution {
+            attribution.compaction = compactionMetadata
+            packet.sourceAttribution = attribution
+        }
 
         recordHealthTimelineEvents(
             workoutsResult: workoutsResult,
@@ -558,7 +568,7 @@ struct CoachContextPacketV2Builder {
                 todayEvents = merged.values.sorted { $0.utcTimestamp < $1.utcTimestamp }
             }
 
-            return todayEvents.filter { CoachContextPacketV2TimelineSelector.isContextEligible($0) }
+            return todayEvents.filter { CoachContextPacketV2TimelineCompactionPolicy.isContextEligible($0) }
         } catch {
             logReadFailure("timeline", error: error, readFailures: &readFailures)
             return []
@@ -1017,45 +1027,8 @@ struct CoachContextPacketV2Builder {
 
 enum CoachContextPacketV2TimelineSelector {
 
-    private static let photoEventTypes: Set<CoachTimelineEventType> = [
-        .photoAttached,
-        .photoAnalysisStarted,
-        .photoAnalysisCompleted,
-        .photoAnalysisFailed,
-        .clarificationAsked,
-        .clarificationAnswered
-    ]
-
-    private static let todayMutationTypes: Set<CoachTimelineEventType> = [
-        .foodLogged,
-        .waterLogged,
-        .weightLogged
-    ]
-
-    private static let excludedContextTypes: Set<CoachTimelineEventType> = [
-        .unknown,
-        .foodEstimateCreated,
-        .foodRejected,
-        .pendingConfirmationRejected,
-        .backendError,
-        .authError,
-        .systemRefresh,
-        .contextGenerated,
-        .healthDataUnavailable
-    ]
-
-    /// Whether an event may appear in AI context timeline (audit-only or speculative events excluded).
     static func isContextEligible(_ event: CoachTimelineEvent) -> Bool {
-        if event.status == .superseded || event.status == .rejected || event.status == .failed {
-            return false
-        }
-        if excludedContextTypes.contains(event.type) {
-            return false
-        }
-        if event.status == .pending, event.type != .pendingConfirmationCreated {
-            return false
-        }
-        return true
+        CoachContextPacketV2TimelineCompactionPolicy.isContextEligible(event)
     }
 
     static func selectEvents(
@@ -1063,53 +1036,11 @@ enum CoachContextPacketV2TimelineSelector {
         todayLocalDate: String,
         limit: Int
     ) -> [CoachTimelineEvent] {
-        let sorted = events
-            .filter(isContextEligible)
-            .sorted { $0.utcTimestamp > $1.utcTimestamp }
-
-        var selected: [UUID: CoachTimelineEvent] = [:]
-
-        func include(_ event: CoachTimelineEvent) {
-            selected[event.id] = event
-        }
-
-        for event in sorted where event.localDate == todayLocalDate {
-            if todayMutationTypes.contains(event.type), event.status == .confirmed {
-                include(event)
-            }
-        }
-
-        for event in sorted where event.localDate == todayLocalDate {
-            if event.type == .pendingConfirmationCreated, event.status == .pending {
-                include(event)
-            }
-        }
-
-        for event in sorted where event.localDate == todayLocalDate && photoEventTypes.contains(event.type) {
-            include(event)
-        }
-
-        if let workout = sorted.first(where: { $0.type == .workoutDetected }) {
-            include(workout)
-        }
-        if let steps = sorted.first(where: { $0.type == .stepsUpdated }) {
-            include(steps)
-        }
-
-        let todayCount = sorted.filter { $0.localDate == todayLocalDate }.count
-        if todayCount < CoachContextPacketV2Builder.sparseTodayEventThreshold {
-            for event in sorted where event.localDate != todayLocalDate {
-                include(event)
-                if selected.count >= limit { break }
-            }
-        }
-
-        for event in sorted where isContextEligible(event) {
-            include(event)
-            if selected.count >= limit { break }
-        }
-
-        return selected.values.sorted { $0.utcTimestamp < $1.utcTimestamp }
+        CoachContextPacketV2TimelineCompactionPolicy.compact(
+            events: events,
+            todayLocalDate: todayLocalDate,
+            limit: limit
+        ).domainEvents
     }
 
     static func makeContextEvents(
@@ -1117,12 +1048,11 @@ enum CoachContextPacketV2TimelineSelector {
         todayLocalDate: String,
         limit: Int
     ) -> [CoachTimelineContextEvent] {
-        selectEvents(from: events, todayLocalDate: todayLocalDate, limit: limit).map { event in
-            CoachTimelineContextEvent.from(
-                event: event,
-                summary: CoachTimelineEventSummaryBuilder.summary(for: event)
-            )
-        }
+        CoachContextPacketV2TimelineCompactionPolicy.compact(
+            events: events,
+            todayLocalDate: todayLocalDate,
+            limit: limit
+        ).events
     }
 }
 
@@ -1132,12 +1062,26 @@ enum CoachContextPacketV2SizeCompactor {
 
     static func compact(
         _ packet: CoachContextPacketV2,
-        byteLimit: Int = CoachContextPacketV2Limits.defaultMaxEncodedBytes
+        byteLimit: Int = CoachContextPacketV2Limits.defaultMaxEncodedBytes,
+        compaction: inout CoachContextCompactionMetadata? = nil
     ) -> CoachContextPacketV2 {
+        var metadata = compaction ?? CoachContextCompactionMetadata(
+            originalEventCount: packet.timeline.recentEvents.count,
+            exportedEventCount: packet.timeline.recentEvents.count
+        )
+        if metadata.originalEventCount == 0 {
+            metadata.originalEventCount = packet.timeline.recentEvents.count
+        }
+
         var result = packet.clampedForTransport()
         var bytes = result.estimatedEncodedByteCount()
-        guard bytes > byteLimit else { return result }
+        guard bytes > byteLimit else {
+            metadata.exportedEventCount = result.timeline.recentEvents.count
+            compaction = metadata
+            return result
+        }
 
+        let beforeChat = result.timeline.recentEvents.count
         result.recentChatMessages = result.recentChatMessages.map { message in
             guard message.role == ChatMessageRole.assistant.rawValue else { return message }
             var compact = message
@@ -1145,19 +1089,38 @@ enum CoachContextPacketV2SizeCompactor {
             return compact
         }
         bytes = result.estimatedEncodedByteCount()
-        guard bytes > byteLimit else { return result }
+        if bytes <= byteLimit {
+            metadata.recordSizeCompaction(
+                previousExportedCount: beforeChat,
+                newExportedCount: result.timeline.recentEvents.count,
+                reason: "truncated_assistant_chat"
+            )
+            compaction = metadata
+            return result
+        }
 
         let protectedIDs = protectedTimelineEventIDs(in: result)
         var events = result.timeline.recentEvents
+        var droppedTimeline = 0
+
         while bytes > byteLimit {
             guard let removalIndex = events.firstIndex(where: { event in
-                !protectedIDs.contains(event.id) && isLowValueSystemEvent(event)
+                !protectedIDs.contains(event.id) && isRemovableTimelineEvent(event, protectedIDs: protectedIDs)
             }) else {
                 break
             }
             events.remove(at: removalIndex)
+            droppedTimeline += 1
             result.timeline.recentEvents = events
             bytes = result.estimatedEncodedByteCount()
+        }
+
+        if droppedTimeline > 0 {
+            metadata.recordSizeCompaction(
+                previousExportedCount: metadata.exportedEventCount,
+                newExportedCount: events.count,
+                reason: "dropped_\(droppedTimeline)_timeline_events_for_byte_limit"
+            )
         }
 
         if bytes > byteLimit {
@@ -1169,43 +1132,45 @@ enum CoachContextPacketV2SizeCompactor {
                 return compact
             }
             result.timeline.recentEvents = events
+            bytes = result.estimatedEncodedByteCount()
+            metadata.recordSizeCompaction(
+                previousExportedCount: metadata.exportedEventCount,
+                newExportedCount: events.count,
+                reason: "truncated_assistant_timeline_summaries"
+            )
         }
 
-        return result.clampedForTransport()
-    }
+        if bytes > byteLimit, result.commonFoods.count > 4 {
+            result.commonFoods = Array(result.commonFoods.prefix(4))
+            bytes = result.estimatedEncodedByteCount()
+            metadata.recordSizeCompaction(
+                previousExportedCount: metadata.exportedEventCount,
+                newExportedCount: result.timeline.recentEvents.count,
+                reason: "trimmed_common_foods"
+            )
+        }
 
-    private static func protectedTimelineEventIDs(in packet: CoachContextPacketV2) -> Set<UUID> {
-        let today = packet.meta.localDate
-        let protectedTypes: Set<String> = [
-            CoachTimelineEventType.foodLogged.rawValue,
-            CoachTimelineEventType.waterLogged.rawValue,
-            CoachTimelineEventType.weightLogged.rawValue,
-            CoachTimelineEventType.pendingConfirmationCreated.rawValue,
-            CoachTimelineEventType.photoAttached.rawValue,
-            CoachTimelineEventType.photoAnalysisStarted.rawValue,
-            CoachTimelineEventType.photoAnalysisCompleted.rawValue,
-            CoachTimelineEventType.photoAnalysisFailed.rawValue,
-            CoachTimelineEventType.workoutDetected.rawValue,
-            CoachTimelineEventType.stepsUpdated.rawValue
-        ]
-
-        return Set(
-            packet.timeline.recentEvents.compactMap { event in
-                guard protectedTypes.contains(event.type) else { return nil }
-                if [
-                    CoachTimelineEventType.foodLogged.rawValue,
-                    CoachTimelineEventType.waterLogged.rawValue,
-                    CoachTimelineEventType.weightLogged.rawValue
-                ].contains(event.type) {
-                    return event.timestampLocalDateOrMeta(today) == today ? event.id : nil
-                }
-                return event.id
-            }
+        result = result.clampedForTransport()
+        metadata.exportedEventCount = result.timeline.recentEvents.count
+        metadata.compactedEventCount = max(
+            metadata.compactedEventCount,
+            max(0, metadata.originalEventCount - metadata.exportedEventCount)
         )
+        compaction = metadata
+        return result
     }
 
-    private static func isLowValueSystemEvent(_ event: CoachTimelineContextEvent) -> Bool {
+    private static func isRemovableTimelineEvent(
+        _ event: CoachTimelineContextEvent,
+        protectedIDs: Set<UUID>
+    ) -> Bool {
+        if protectedIDs.contains(event.id) { return false }
+        if event.type == CoachContextPacketV2TimelineCompactionPolicy.dailyFoodSummaryType {
+            return false
+        }
         switch event.type {
+        case CoachTimelineEventType.assistantMessage.rawValue:
+            return true
         case CoachTimelineEventType.systemRefresh.rawValue,
              CoachTimelineEventType.contextGenerated.rawValue,
              CoachTimelineEventType.healthDataUnavailable.rawValue,
@@ -1214,7 +1179,60 @@ enum CoachContextPacketV2SizeCompactor {
         default:
             return event.source == CoachTimelineEventSourceAttribution.system.rawValue
                 && event.type != CoachTimelineEventType.foodLogged.rawValue
+                && event.type != CoachTimelineEventType.waterLogged.rawValue
+                && event.type != CoachTimelineEventType.weightLogged.rawValue
+                && event.type != CoachTimelineEventType.foodEdited.rawValue
+                && event.type != CoachTimelineEventType.foodDeleted.rawValue
         }
+    }
+
+    private static func protectedTimelineEventIDs(in packet: CoachContextPacketV2) -> Set<UUID> {
+        let today = packet.meta.localDate
+        let protectedTypes: Set<String> = [
+            CoachTimelineEventType.foodLogged.rawValue,
+            CoachTimelineEventType.waterLogged.rawValue,
+            CoachTimelineEventType.weightLogged.rawValue,
+            CoachTimelineEventType.foodEdited.rawValue,
+            CoachTimelineEventType.foodDeleted.rawValue,
+            CoachTimelineEventType.pendingConfirmationCreated.rawValue,
+            CoachTimelineEventType.photoAttached.rawValue,
+            CoachTimelineEventType.photoAnalysisStarted.rawValue,
+            CoachTimelineEventType.photoAnalysisCompleted.rawValue,
+            CoachTimelineEventType.photoAnalysisFailed.rawValue,
+            CoachTimelineEventType.clarificationAsked.rawValue,
+            CoachTimelineEventType.clarificationAnswered.rawValue,
+            CoachTimelineEventType.workoutDetected.rawValue,
+            CoachTimelineEventType.stepsUpdated.rawValue,
+            CoachContextPacketV2TimelineCompactionPolicy.dailyFoodSummaryType
+        ]
+
+        let todayMutations: Set<String> = [
+            CoachTimelineEventType.foodLogged.rawValue,
+            CoachTimelineEventType.waterLogged.rawValue,
+            CoachTimelineEventType.weightLogged.rawValue,
+            CoachTimelineEventType.foodEdited.rawValue,
+            CoachTimelineEventType.foodDeleted.rawValue
+        ]
+
+        return Set(
+            packet.timeline.recentEvents.compactMap { event in
+                guard protectedTypes.contains(event.type) else { return nil }
+                if todayMutations.contains(event.type) {
+                    return event.timestampLocalDateOrMeta(today) == today ? event.id : nil
+                }
+                if event.type == CoachTimelineEventType.stepsUpdated.rawValue {
+                    return event.id == packet.timeline.recentEvents.last(where: {
+                        $0.type == CoachTimelineEventType.stepsUpdated.rawValue
+                    })?.id ? event.id : nil
+                }
+                if event.type == CoachTimelineEventType.workoutDetected.rawValue {
+                    return event.id == packet.timeline.recentEvents.last(where: {
+                        $0.type == CoachTimelineEventType.workoutDetected.rawValue
+                    })?.id ? event.id : nil
+                }
+                return event.id
+            }
+        )
     }
 
     private static func truncate(_ value: String, maxLength: Int) -> String {

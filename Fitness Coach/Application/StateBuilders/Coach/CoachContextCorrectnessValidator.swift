@@ -457,7 +457,16 @@ enum CoachContextCorrectnessValidator {
 
         if issues.contains(where: { $0.rule == .contextSizeBelowThreshold })
             || corrected.estimatedEncodedByteCount() > byteLimit {
-            corrected = CoachContextPacketV2SizeCompactor.compact(corrected, byteLimit: byteLimit)
+            var compaction = corrected.sourceAttribution?.compaction
+            corrected = CoachContextPacketV2SizeCompactor.compact(
+                corrected,
+                byteLimit: byteLimit,
+                compaction: &compaction
+            )
+            if var attribution = corrected.sourceAttribution {
+                attribution.compaction = compaction
+                corrected.sourceAttribution = attribution
+            }
         }
 
         return corrected.clampedForTransport()
