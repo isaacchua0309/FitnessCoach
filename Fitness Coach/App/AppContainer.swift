@@ -11,6 +11,12 @@ import SwiftData
 @MainActor
 final class AppContainer {
 
+    // MARK: - App shell
+
+    let refreshCenter: AppRefreshCenter
+
+    // MARK: - Persistence & sync core
+
     let modelContainer: ModelContainer
     let store: SwiftDataStore
 
@@ -26,6 +32,8 @@ final class AppContainer {
     let crossDeviceSyncCoordinator: CrossDeviceSyncCoordinator
     let accountDataRefreshEventBus: AccountDataRefreshEventBus
     let accountRealtimeChangeListener: AccountRealtimeChangeListening
+
+    // MARK: - Account lifecycle (restore / cross-device / deletion / export)
 
     let accountRestoreStateStore: AccountRestoreStateStore
     let accountLocalDataInspector: AccountLocalDataInspector
@@ -43,6 +51,8 @@ final class AppContainer {
     let accountDeletionCoordinator: AccountDeletionCoordinator
     let accountDataExportService: AccountDataExportService
 
+    // MARK: - Domain services (profile, logs, reviews, actions)
+
     let userProfileService: UserProfileService
     let targetService: TargetService
     let dailyLogService: DailyLogService
@@ -52,6 +62,8 @@ final class AppContainer {
     let reviewService: ReviewService
     let actionCenter: FitnessActionCenter
 
+    // MARK: - Auth & profile bootstrap
+
     let authManager: AuthManager
     let cloudUserProfileStore: CloudUserProfileStoring
     /// Phase 2 cloud log store — constructed and injectable; not wired to log mutations yet.
@@ -60,10 +72,16 @@ final class AppContainer {
     let profileCloudSyncStore: ProfileCloudSyncStore
     let profileBootstrapCoordinatorService: ProfileBootstrapCoordinatorService
     let cloudUploadFailureNotifier: ProfileCloudUploadFailureNotifier
+    private let authUIDCache: AuthUIDCache
+
+    // MARK: - AI
+
     let llmClient: LLMClient
     let aiService: AIService
     let aiCommandParsingEnabled: Bool
-    let refreshCenter: AppRefreshCenter
+
+    // MARK: - Health & training
+
     let healthTrainingService: HealthTrainingService
     let trainingInsightsStore: TrainingInsightsStore
     let trainingInsightsModel: TrainingInsightsModel
@@ -79,26 +97,37 @@ final class AppContainer {
     let adaptiveNutritionEngine: AdaptiveNutritionEngine
     let nextBestActionEngine: HealthNextBestActionEngine
     let weeklyReviewEngine: WeeklyReviewEngine
-    let healthIntelligenceContextBuilder: HealthIntelligenceContextBuilder
-    let healthIntelligenceEngine: any HealthIntelligenceEngineing
-    let healthIntelligenceSnapshotService: any HealthIntelligenceSnapshotServing
-    let weeklyReviewService: any WeeklyReviewServing
     let healthSyncService: HealthSyncService
     let healthSyncStateStore: HealthSyncStateStore
     let healthSummaryRemoteSyncClient: any HealthSummaryRemoteSyncing
     let healthSummarySyncService: HealthSummarySyncService
     let healthSummarySyncConsentStore: HealthSummarySyncConsentStore
     private let healthSummarySyncConsentStorage: any HealthSummarySyncConsentStoring
+
+    // MARK: - Health Intelligence
+
+    let healthIntelligenceContextBuilder: HealthIntelligenceContextBuilder
+    let healthIntelligenceEngine: any HealthIntelligenceEngineing
+    let healthIntelligenceSnapshotService: any HealthIntelligenceSnapshotServing
+    let weeklyReviewService: any WeeklyReviewServing
+
+    // MARK: - Coach platform
+
     let coachTimelineStore: SwiftDataCoachTimelineStore
     let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
     let coachTimelineBackfillService: CoachTimelineBackfillService
     let coachTimelineRecorder: DefaultCoachTimelineRecorder
-    private let authUIDCache: AuthUIDCache
+
+    // MARK: - Onboarding & session preferences
 
     let onboardingUserDefaults: UserDefaults
     let onboardingDraftStore: OnboardingDraftStore
     let publicEntrySessionStore: PublicEntrySessionStore
     let onboardingCoachingContextStore: OnboardingCoachingContextStore
+    let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
+
+    // MARK: - Analytics
+
     let onboardingAnalyticsLogger: any OnboardingAnalyticsLogging
     let todayAnalyticsLogger: any TodayAnalyticsLogging
     let planAnalyticsLogger: any PlanAnalyticsLogging
@@ -107,7 +136,8 @@ final class AppContainer {
     let themeAnalyticsLogger: any ThemeAnalyticsLogging
     let settingsAnalyticsLogger: any SettingsAnalyticsLogging
     let healthIntelligenceAnalyticsLogger: any HealthIntelligenceAnalyticsLogging
-    let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
+
+    // MARK: - Settings / theme
 
     let themeStore: ThemeStore
 
@@ -125,305 +155,156 @@ final class AppContainer {
         onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil,
         accountDataRemoteStore: (any AccountDataRemoteStore)? = nil
     ) throws {
-        let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
-        refreshCenter = AppRefreshCenter()
-        accountRestoreSessionState = AccountRestoreSessionState()
-        let authManager = AuthManager()
-        self.authManager = authManager
-        self.authUIDCache = AuthUIDCache()
-        authUIDCache.update(uid: authManager.currentUID)
-
-        self.onboardingUserDefaults = Self.makeOnboardingUserDefaults(
+        let session = Self.buildSession(
             inMemory: inMemory,
-            override: onboardingUserDefaults
+            onboardingUserDefaults: onboardingUserDefaults,
+            onboardingRoutingConfiguration: onboardingRoutingConfiguration
         )
-        onboardingDraftStore = OnboardingDraftStore(userDefaults: self.onboardingUserDefaults)
-        publicEntrySessionStore = PublicEntrySessionStore(userDefaults: self.onboardingUserDefaults)
-        onboardingCoachingContextStore = OnboardingCoachingContextStore(
-            userDefaults: self.onboardingUserDefaults
+        let analytics = Self.buildAnalytics(
+            onboardingAnalyticsLogger: onboardingAnalyticsLogger,
+            todayAnalyticsLogger: todayAnalyticsLogger,
+            planAnalyticsLogger: planAnalyticsLogger,
+            journeyAnalyticsLogger: journeyAnalyticsLogger,
+            publicEntryAnalyticsLogger: publicEntryAnalyticsLogger,
+            themeAnalyticsLogger: themeAnalyticsLogger,
+            settingsAnalyticsLogger: settingsAnalyticsLogger,
+            healthIntelligenceAnalyticsLogger: healthIntelligenceAnalyticsLogger
         )
-        #if DEBUG
-        self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? OSLogOnboardingAnalyticsLogger()
-        self.todayAnalyticsLogger = todayAnalyticsLogger ?? OSLogTodayAnalyticsLogger()
-        self.planAnalyticsLogger = planAnalyticsLogger ?? OSLogPlanAnalyticsLogger()
-        self.journeyAnalyticsLogger = journeyAnalyticsLogger ?? OSLogJourneyAnalyticsLogger()
-        self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? OSLogPublicEntryAnalyticsLogger()
-        self.themeAnalyticsLogger = themeAnalyticsLogger ?? OSLogThemeAnalyticsLogger()
-        self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? OSLogSettingsAnalyticsLogger()
-        self.healthIntelligenceAnalyticsLogger = healthIntelligenceAnalyticsLogger
-            ?? OSLogHealthIntelligenceAnalyticsLogger()
-        #else
-        self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger()
-        self.todayAnalyticsLogger = todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger()
-        self.planAnalyticsLogger = planAnalyticsLogger ?? NoOpPlanAnalyticsLogger()
-        self.journeyAnalyticsLogger = journeyAnalyticsLogger ?? NoOpJourneyAnalyticsLogger()
-        self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? NoOpPublicEntryAnalyticsLogger()
-        self.themeAnalyticsLogger = themeAnalyticsLogger ?? NoOpThemeAnalyticsLogger()
-        self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? NoOpSettingsAnalyticsLogger()
-        self.healthIntelligenceAnalyticsLogger = healthIntelligenceAnalyticsLogger
-            ?? NoOpHealthIntelligenceAnalyticsLogger()
-        #endif
-        self.onboardingRoutingConfiguration = resolvedOnboardingRoutingConfiguration
-
-        themeStore = ThemeStore(analyticsLogger: self.themeAnalyticsLogger)
-
-        healthTrainingService = HealthTrainingService()
-        let sharedHealthKitManager = HealthKitManager()
-        let workoutReader = HealthTrainingReaderFactory.makeWorkoutReader(
-            healthKitManager: sharedHealthKitManager
+        let health = Self.buildHealth(session: session, inMemory: inMemory)
+        let persistence = try Self.buildPersistence(
+            session: session,
+            inMemory: inMemory,
+            accountDataRemoteStore: accountDataRemoteStore
         )
-        let stepReader = HealthTrainingReaderFactory.makeStepReader(
-            healthKitManager: sharedHealthKitManager
+        let healthIntelligence = Self.buildHealthIntelligence(
+            health: health,
+            persistence: persistence
         )
-        healthKitWorkoutReader = workoutReader
-        healthKitStepReader = stepReader
-        healthCacheStore = LocalHealthCacheStore(userProvider: authUIDCache)
-        healthDataRepository = HealthDataRepository(
-            healthKitManager: sharedHealthKitManager,
-            cacheStore: healthCacheStore
+        let coach = Self.buildCoachPlatform(
+            session: session,
+            persistence: persistence,
+            health: health
         )
-        healthBaselineService = HealthBaselineService(repository: healthDataRepository)
-        trainingLoadEngine = TrainingLoadEngine()
-        workoutIntelligenceEngine = WorkoutIntelligenceEngine()
-        recoveryEngine = RecoveryEngine()
-        adaptiveNutritionEngine = AdaptiveNutritionEngine()
-        nextBestActionEngine = HealthNextBestActionEngine()
-        weeklyReviewEngine = WeeklyReviewEngine()
-        healthActivityQueryService = HealthActivityQueryService(
-            workoutReader: workoutReader,
-            stepReader: stepReader,
-            healthDataRepository: healthDataRepository
-        )
-        healthSyncService = HealthSyncService(
-            repository: healthDataRepository,
-            cacheStore: healthCacheStore
-        )
-        let remoteSummarySyncCapable = HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled
-        healthSummarySyncConsentStorage = inMemory
-            ? LockedHealthSummarySyncConsentStore()
-            : UserDefaultsHealthSummarySyncConsentStore()
-        healthSummarySyncConsentStore = HealthSummarySyncConsentStore(
-            storage: healthSummarySyncConsentStorage,
-            userProvider: authUIDCache
-        )
-        let remoteSyncActiveProvider: @Sendable () -> Bool = { [authUIDCache, healthSummarySyncConsentStorage] in
-            HealthSummarySyncConsentResolver.isRemoteSyncActive(
-                storage: healthSummarySyncConsentStorage,
-                userProvider: authUIDCache,
-                featureFlagEnabled: remoteSummarySyncCapable
-            )
-        }
-        healthSummaryRemoteSyncClient = (inMemory || !remoteSummarySyncCapable)
-            ? NoopHealthSummaryRemoteSyncClient()
-            : FirestoreHealthSummaryRemoteSyncClient(userProvider: authUIDCache)
-        healthSummarySyncService = HealthSummarySyncService(
-            remoteSyncClient: healthSummaryRemoteSyncClient,
-            cacheStore: healthCacheStore,
-            repository: healthDataRepository,
-            userProvider: authUIDCache,
-            localHealthSyncService: healthSyncService,
-            remoteSyncEnabled: remoteSyncActiveProvider
-        )
-        healthSyncStateStore = HealthSyncStateStore(
-            syncService: healthSyncService,
-            remoteSummarySyncService: remoteSummarySyncCapable ? healthSummarySyncService : nil,
-            syncEnabled: HealthIntelligenceFeatureFlags.isSyncEnabled,
-            remoteSummarySyncEnabled: remoteSyncActiveProvider
-        )
-        if HealthIntelligenceFeatureFlags.isSyncEnabled {
-            refreshCenter.healthDayChangeHandler = { [healthSyncStateStore] in
-                healthSyncStateStore.refreshOnDayChange()
-            }
-        }
-        trainingInsightsStore = TrainingInsightsStore(
-            integration: healthTrainingService,
-            healthSyncStateStore: HealthIntelligenceFeatureFlags.isSyncEnabled
-                ? healthSyncStateStore
-                : nil
-        )
-        trainingInsightsModel = TrainingInsightsModel(workoutReader: workoutReader)
-        HealthTrainingDebugLogger.event(
-            "Training integration wired",
-            fields: [
-                "bundleId": Bundle.main.bundleIdentifier ?? "unknown",
-                "initialDataSource": trainingInsightsStore.dataSource.rawValue
-            ]
+        let ai = Self.buildAI(session: session, inMemory: inMemory)
+        let accountLifecycle = Self.buildAccountLifecycle(
+            session: session,
+            persistence: persistence,
+            health: health,
+            inMemory: inMemory
         )
 
-        modelContainer = try FormaModelContainer.makeContainer(inMemory: inMemory)
-        store = SwiftDataStore(container: modelContainer)
+        // App shell
+        refreshCenter = session.refreshCenter
 
-        accountSyncOutboxStore = SwiftDataAccountSyncOutboxStore(store: store)
-        accountLocalMutationTracker = AccountLocalMutationTracker(
-            outbox: accountSyncOutboxStore,
-            ownerUIDProvider: { [weak authManager] in authManager?.currentUID }
-        )
+        // Persistence & sync core
+        modelContainer = persistence.modelContainer
+        store = persistence.store
+        accountSyncOutboxStore = persistence.accountSyncOutboxStore
+        accountLocalMutationTracker = persistence.accountLocalMutationTracker
+        accountSyncUploader = persistence.accountSyncUploader
+        accountSyncPuller = persistence.accountSyncPuller
+        accountSyncCoordinator = persistence.accountSyncCoordinator
+        accountSyncDiagnostics = persistence.accountSyncDiagnostics
+        accountSyncCursorStore = accountLifecycle.accountSyncCursorStore
+        accountIncrementalPuller = accountLifecycle.accountIncrementalPuller
+        crossDeviceSyncCoordinator = accountLifecycle.crossDeviceSyncCoordinator
+        accountDataRefreshEventBus = accountLifecycle.accountDataRefreshEventBus
+        accountRealtimeChangeListener = accountLifecycle.accountRealtimeChangeListener
 
-        userProfileService = UserProfileService(store: store)
-        cloudUserProfileStore = inMemory
-            ? NoOpCloudUserProfileStore()
-            : FirestoreCloudUserProfileStore()
-        if let accountDataRemoteStore {
-            self.accountDataRemoteStore = accountDataRemoteStore
-        } else if inMemory || !AccountPersistenceFeatureFlags.cloudSchemaEnabled {
-            self.accountDataRemoteStore = InMemoryAccountDataRemoteStore()
-        } else {
-            self.accountDataRemoteStore = FirestoreAccountDataRemoteStore()
-        }
-        accountSyncUploader = AccountSyncUploader(
-            outbox: accountSyncOutboxStore,
-            payloadBuilder: SwiftDataAccountSyncPayloadBuilder(store: store),
-            remoteStore: self.accountDataRemoteStore,
-            store: store
-        )
-        accountSyncPuller = AccountSyncPuller(
-            remoteStore: self.accountDataRemoteStore,
-            store: store
-        )
-        accountSyncDiagnostics = AccountSyncDiagnostics()
-        accountDeletionGuard = AccountDeletionGuard()
-        accountSyncCoordinator = AccountSyncCoordinator(
-            uploader: accountSyncUploader,
-            puller: accountSyncPuller,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID },
-            diagnostics: accountSyncDiagnostics,
-            deletionGuard: accountDeletionGuard
-        )
-        profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
-        dailyLogService = DailyLogService(
-            store: store,
-            userProfileService: userProfileService,
-            mutationTracker: accountLocalMutationTracker
-        )
-        profileBootstrapService = ProfileBootstrapService(
-            userProfileService: userProfileService,
-            cloudStore: cloudUserProfileStore,
-            cloudSyncStore: profileCloudSyncStore,
-            dailyLogService: dailyLogService
-        )
-        profileBootstrapCoordinatorService = ProfileBootstrapCoordinatorService(
-            profileBootstrapService: profileBootstrapService,
-            cloudSyncStore: profileCloudSyncStore
-        )
-        cloudUploadFailureNotifier = ProfileCloudUploadFailureNotifier(
-            syncStore: profileCloudSyncStore
-        )
-        targetService = TargetService(
-            userProfileService: userProfileService,
-            dailyLogService: dailyLogService
-        )
-        foodLogService = FoodLogService(
-            store: store,
-            dailyLogService: dailyLogService,
-            mutationTracker: accountLocalMutationTracker
-        )
-        waterLogService = WaterLogService(
-            store: store,
-            dailyLogService: dailyLogService,
-            mutationTracker: accountLocalMutationTracker
-        )
-        weightLogService = WeightLogService(
-            store: store,
-            dailyLogService: dailyLogService,
-            mutationTracker: accountLocalMutationTracker
-        )
+        // Account lifecycle
+        accountRestoreStateStore = accountLifecycle.accountRestoreStateStore
+        accountLocalDataInspector = accountLifecycle.accountLocalDataInspector
+        accountRemoteDataInspector = accountLifecycle.accountRemoteDataInspector
+        accountDataNamespaceService = accountLifecycle.accountDataNamespaceService
+        accountMigrationService = accountLifecycle.accountMigrationService
+        accountInitialRestoreService = accountLifecycle.accountInitialRestoreService
+        accountRestoreCoordinator = accountLifecycle.accountRestoreCoordinator
+        accountRestoreDiagnostics = accountLifecycle.accountRestoreDiagnostics
+        accountRestoreSessionState = session.accountRestoreSessionState
+        accountDeletionGuard = persistence.accountDeletionGuard
+        accountDeletionRemoteClient = accountLifecycle.accountDeletionRemoteClient
+        localAccountDataWipeService = accountLifecycle.localAccountDataWipeService
+        accountDeletionRouter = accountLifecycle.accountDeletionRouter
+        accountDeletionCoordinator = accountLifecycle.accountDeletionCoordinator
+        accountDataExportService = accountLifecycle.accountDataExportService
 
-        let healthIntelligenceContextBuilder = HealthIntelligenceContextBuilder(
-            repository: healthDataRepository,
-            nutritionProvider: DailyLogNutritionProvider(reader: dailyLogService),
-            weightProvider: WeightLogWeightProvider(reader: weightLogService),
-            userPlanProvider: UserProfilePlanProvider(profileService: userProfileService)
-        )
-        self.healthIntelligenceContextBuilder = healthIntelligenceContextBuilder
-        healthIntelligenceEngine = HealthIntelligenceEngine(
-            contextBuilder: healthIntelligenceContextBuilder,
-            dependencies: HealthIntelligenceEngineDependencies(
-                trainingLoad: trainingLoadEngine,
-                workout: workoutIntelligenceEngine,
-                recovery: recoveryEngine,
-                adaptiveNutrition: adaptiveNutritionEngine,
-                nextBestAction: nextBestActionEngine,
-                weeklyReview: weeklyReviewEngine
-            )
-        )
-        healthIntelligenceSnapshotService = HealthIntelligenceSnapshotService(
-            engine: healthIntelligenceEngine,
-            cacheStore: healthCacheStore,
-            enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
-        )
-        healthSyncStateStore.setSnapshotService(healthIntelligenceSnapshotService)
-        weeklyReviewService = WeeklyReviewService(
-            contextBuilder: healthIntelligenceContextBuilder,
-            weeklyReviewEngine: weeklyReviewEngine,
-            recoveryEngine: recoveryEngine,
-            trainingLoadEngine: trainingLoadEngine,
-            cacheStore: healthCacheStore,
-            enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled,
-            weeklyReviewEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled
-        )
+        // Domain services
+        userProfileService = persistence.userProfileService
+        targetService = persistence.targetService
+        dailyLogService = persistence.dailyLogService
+        foodLogService = persistence.foodLogService
+        waterLogService = persistence.waterLogService
+        weightLogService = persistence.weightLogService
 
-        coachTimelineStore = SwiftDataCoachTimelineStore(
-            store: store,
-            userIdProvider: { [weak authManager] in authManager?.currentUID }
-        )
-        coachChatTranscriptStore = SwiftDataCoachChatTranscriptStore(
-            store: store,
-            userIdProvider: { [weak authManager] in authManager?.currentUID }
-        )
-        coachTimelineBackfillService = CoachTimelineBackfillService(
-            timelineStore: coachTimelineStore,
-            foodLogService: foodLogService,
-            waterLogService: waterLogService,
-            weightLogService: weightLogService,
-            healthActivityQuery: healthActivityQueryService
-        )
-        coachTimelineRecorder = DefaultCoachTimelineRecorder(store: coachTimelineStore)
+        // Auth & profile bootstrap
+        authManager = session.authManager
+        cloudUserProfileStore = persistence.cloudUserProfileStore
+        self.accountDataRemoteStore = persistence.accountDataRemoteStore
+        profileBootstrapService = persistence.profileBootstrapService
+        profileCloudSyncStore = persistence.profileCloudSyncStore
+        profileBootstrapCoordinatorService = persistence.profileBootstrapCoordinatorService
+        cloudUploadFailureNotifier = persistence.cloudUploadFailureNotifier
+        authUIDCache = session.authUIDCache
 
-        Task { @MainActor [coachTimelineBackfillService] in
-            await coachTimelineBackfillService.runBackfill()
-        }
+        // AI
+        llmClient = ai.llmClient
+        aiService = ai.aiService
+        aiCommandParsingEnabled = ai.aiCommandParsingEnabled
 
-        #if DEBUG
-        HealthIntelligenceEngineLogger.wiringRegistered(
-            fields: [
-                "enginesEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled),
-                "uiEnabled": String(HealthIntelligenceFeatureFlags.isUIEnabled),
-                "repository": "HealthDataRepository",
-                "contextBuilder": "HealthIntelligenceContextBuilder"
-            ]
-        )
-        #endif
+        // Health & training
+        healthTrainingService = health.healthTrainingService
+        trainingInsightsStore = health.trainingInsightsStore
+        trainingInsightsModel = health.trainingInsightsModel
+        healthKitWorkoutReader = health.healthKitWorkoutReader
+        healthKitStepReader = health.healthKitStepReader
+        healthActivityQueryService = health.healthActivityQueryService
+        healthCacheStore = health.healthCacheStore
+        healthDataRepository = health.healthDataRepository
+        healthBaselineService = health.healthBaselineService
+        trainingLoadEngine = health.trainingLoadEngine
+        workoutIntelligenceEngine = health.workoutIntelligenceEngine
+        recoveryEngine = health.recoveryEngine
+        adaptiveNutritionEngine = health.adaptiveNutritionEngine
+        nextBestActionEngine = health.nextBestActionEngine
+        weeklyReviewEngine = health.weeklyReviewEngine
+        healthSyncService = health.healthSyncService
+        healthSyncStateStore = health.healthSyncStateStore
+        healthSummaryRemoteSyncClient = health.healthSummaryRemoteSyncClient
+        healthSummarySyncService = health.healthSummarySyncService
+        healthSummarySyncConsentStore = health.healthSummarySyncConsentStore
+        healthSummarySyncConsentStorage = health.healthSummarySyncConsentStorage
 
-        // All builds call the hosted Firebase aiGateway. Provider keys stay in Secret Manager.
-        // Previews and in-memory containers use MockLLMClient; production wiring requires auth.
-        #if DEBUG
-        let wiring: (clientType: String, baseURL: URL?, authAttached: Bool)
-        #endif
-        if inMemory {
-            llmClient = MockLLMClient()
-            #if DEBUG
-            wiring = ("MockLLMClient", nil, false)
-            #endif
-        } else if let backendURL = AIBackendConfiguration.backendURL() {
-            llmClient = FallbackLLMClient(
-                primary: FormaAIBackendClient(
-                    baseURL: backendURL,
-                    authTokenProvider: { try await authManager.idToken() }
-                )
-            )
-            #if DEBUG
-            wiring = ("FallbackLLMClient+FormaAIBackendClient", backendURL, true)
-            #endif
-        } else {
-            llmClient = UnavailableLLMClient(
-                reason: AIBackendConfiguration.unavailableReason()
-            )
-            #if DEBUG
-            wiring = ("UnavailableLLMClient", nil, false)
-            #endif
-        }
-        aiService = AIService(llmClient: llmClient)
-        aiCommandParsingEnabled = FormaAbTest.Coach.aiCommandParsingEnabled
+        // Health Intelligence
+        healthIntelligenceContextBuilder = healthIntelligence.healthIntelligenceContextBuilder
+        healthIntelligenceEngine = healthIntelligence.healthIntelligenceEngine
+        healthIntelligenceSnapshotService = healthIntelligence.healthIntelligenceSnapshotService
+        weeklyReviewService = healthIntelligence.weeklyReviewService
+
+        // Coach platform
+        coachTimelineStore = coach.coachTimelineStore
+        coachChatTranscriptStore = coach.coachChatTranscriptStore
+        coachTimelineBackfillService = coach.coachTimelineBackfillService
+        coachTimelineRecorder = coach.coachTimelineRecorder
+
+        // Onboarding & session preferences
+        onboardingUserDefaults = session.onboardingUserDefaults
+        onboardingDraftStore = session.onboardingDraftStore
+        publicEntrySessionStore = session.publicEntrySessionStore
+        onboardingCoachingContextStore = session.onboardingCoachingContextStore
+        self.onboardingRoutingConfiguration = session.onboardingRoutingConfiguration
+
+        // Analytics
+        onboardingAnalyticsLogger = analytics.onboardingAnalyticsLogger
+        todayAnalyticsLogger = analytics.todayAnalyticsLogger
+        planAnalyticsLogger = analytics.planAnalyticsLogger
+        journeyAnalyticsLogger = analytics.journeyAnalyticsLogger
+        publicEntryAnalyticsLogger = analytics.publicEntryAnalyticsLogger
+        themeAnalyticsLogger = analytics.themeAnalyticsLogger
+        settingsAnalyticsLogger = analytics.settingsAnalyticsLogger
+        healthIntelligenceAnalyticsLogger = analytics.healthIntelligenceAnalyticsLogger
+
+        // Settings / theme
+        themeStore = ThemeStore(analyticsLogger: analytics.themeAnalyticsLogger)
 
         reviewService = ReviewService(
             store: store,
@@ -437,132 +318,6 @@ final class AppContainer {
             mutationTracker: accountLocalMutationTracker
         )
 
-        accountRestoreStateStore = AccountRestoreStateStore(userDefaults: self.onboardingUserDefaults)
-        accountLocalDataInspector = AccountLocalDataInspector(
-            store: store,
-            userProfileService: userProfileService,
-            outboxStore: accountSyncOutboxStore
-        )
-        accountSyncCursorStore = AccountSyncCursorStore(userDefaults: self.onboardingUserDefaults)
-        accountIncrementalPuller = AccountIncrementalPuller(
-            remoteStore: self.accountDataRemoteStore,
-            mergePuller: accountSyncPuller,
-            cursorStore: accountSyncCursorStore,
-            profileBootstrapService: profileBootstrapService,
-            userProfileService: userProfileService,
-            profileCloudSyncStore: profileCloudSyncStore,
-            localInspector: accountLocalDataInspector,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
-        )
-        accountDataRefreshEventBus = AccountDataRefreshEventBus()
-        crossDeviceSyncCoordinator = CrossDeviceSyncCoordinator(
-            syncCoordinator: accountSyncCoordinator,
-            incrementalPuller: accountIncrementalPuller,
-            cursorStore: accountSyncCursorStore,
-            uidProvider: ClosureAccountUIDProvider { [weak authManager] in authManager?.currentUID },
-            refreshCenter: refreshCenter,
-            refreshEventBus: accountDataRefreshEventBus,
-            deletionGuard: accountDeletionGuard
-        )
-        if inMemory {
-            accountRealtimeChangeListener = NoOpAccountRealtimeChangeListener()
-        } else {
-            accountRealtimeChangeListener = FirestoreAccountRealtimeChangeListener(
-                deletionGuard: accountDeletionGuard
-            )
-        }
-        AccountRealtimeChangeListenerLifecycle.connect(
-            listener: accountRealtimeChangeListener,
-            crossDeviceCoordinator: crossDeviceSyncCoordinator,
-            deletionGuard: accountDeletionGuard
-        )
-        accountRemoteDataInspector = AccountRemoteDataInspector(
-            cloudProfileStore: cloudUserProfileStore,
-            remoteStore: self.accountDataRemoteStore
-        )
-        accountDataNamespaceService = AccountDataNamespaceService(
-            store: store,
-            healthCacheStore: healthCacheStore,
-            userDefaults: self.onboardingUserDefaults,
-            syncCoordinator: accountSyncCoordinator
-        )
-        accountMigrationService = AccountMigrationService(
-            store: store,
-            userProfileService: userProfileService,
-            uidProvider: AuthAccountUIDProvider(authManager: authManager)
-        )
-        accountInitialRestoreService = AccountInitialRestoreService(
-            profileBootstrapService: profileBootstrapService,
-            puller: accountSyncPuller,
-            localInspector: accountLocalDataInspector,
-            remoteInspector: accountRemoteDataInspector,
-            stateStore: accountRestoreStateStore,
-            syncCoordinator: accountSyncCoordinator,
-            dailyLogService: dailyLogService,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
-        )
-        accountRestoreDiagnostics = AccountRestoreDiagnostics()
-        accountRestoreCoordinator = AccountRestoreCoordinator(
-            namespaceService: accountDataNamespaceService,
-            migrationService: accountMigrationService,
-            localInspector: accountLocalDataInspector,
-            remoteInspector: accountRemoteDataInspector,
-            initialRestoreService: accountInitialRestoreService,
-            stateStore: accountRestoreStateStore,
-            syncCoordinator: accountSyncCoordinator,
-            deletionGuard: accountDeletionGuard,
-            diagnostics: accountRestoreDiagnostics,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID },
-            onBackgroundBackfillFinished: { [refreshCenter] _ in
-                refreshCenter.notifyBackgroundBackfillDidComplete()
-            }
-        )
-        let accountDeletionBackendURL =
-            AccountDeletionBackendConfiguration.backendURL()
-            ?? URL(string: AccountDeletionBackendConfiguration.productionURLString)!
-        accountDeletionRemoteClient = AccountDeletionRemoteClient(
-            baseURL: accountDeletionBackendURL,
-            authTokenProvider: { [weak authManager] in
-                guard let authManager else { throw AuthManagerError.notSignedIn }
-                return try await authManager.idToken()
-            }
-        )
-        localAccountDataWipeService = LocalAccountDataWipeService(
-            store: store,
-            healthCacheStore: healthCacheStore,
-            userDefaults: self.onboardingUserDefaults,
-            restoreStateStore: accountRestoreStateStore,
-            syncCursorStore: accountSyncCursorStore,
-            healthConsentStore: healthSummarySyncConsentStorage,
-            healthSyncStateStore: UserDefaultsHealthSummaryRemoteSyncStateStore(
-                userDefaults: self.onboardingUserDefaults
-            ),
-            profileCloudSyncStore: profileCloudSyncStore,
-            currentSessionUIDProvider: { [weak authManager] in authManager?.currentUID }
-        )
-        accountDeletionRouter = DeferredAccountDeletionRouter()
-        accountDeletionCoordinator = AccountDeletionCoordinator(
-            uidProvider: AuthAccountUIDProvider(authManager: authManager),
-            crossDeviceCoordinator: crossDeviceSyncCoordinator,
-            realtimeListener: accountRealtimeChangeListener,
-            accountSyncCoordinator: accountSyncCoordinator,
-            restoreCoordinator: accountRestoreCoordinator,
-            remoteDeletionClient: accountDeletionRemoteClient,
-            authDeleting: authManager,
-            localWiper: localAccountDataWipeService,
-            deletionGuard: accountDeletionGuard,
-            router: accountDeletionRouter,
-            signOutCurrentSession: { [weak authManager] in authManager?.signOut() }
-        )
-        accountDataExportService = AccountDataExportService(
-            store: store,
-            accountSyncOutboxStore: accountSyncOutboxStore,
-            profileCloudSyncStore: profileCloudSyncStore,
-            accountSyncCursorStore: accountSyncCursorStore,
-            accountRestoreStateStore: accountRestoreStateStore,
-            currentSessionUIDProvider: { [weak authManager] in authManager?.currentUID }
-        )
-
         actionCenter = FitnessActionCenter(
             foodLogService: foodLogService,
             waterLogService: waterLogService,
@@ -574,8 +329,8 @@ final class AppContainer {
             refreshCenter: refreshCenter,
             profileBootstrapService: profileBootstrapService,
             cloudUploadFailureNotifier: cloudUploadFailureNotifier,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID },
-            scheduleAccountSyncAfterMutation: { [authManager, accountSyncCoordinator] in
+            currentUIDProvider: { [authManager = session.authManager] in authManager.currentUID },
+            scheduleAccountSyncAfterMutation: { [authManager = session.authManager, accountSyncCoordinator] in
                 AccountSyncLifecycle.scheduleAfterLocalMutation(
                     coordinator: accountSyncCoordinator,
                     uidProvider: { authManager.currentUID }
@@ -586,12 +341,14 @@ final class AppContainer {
         #if DEBUG
         Self.logAIBackendURLDetection()
         Self.logLLMClientWiring(
-            clientType: wiring.clientType,
-            baseURL: wiring.baseURL,
-            authAttached: wiring.authAttached
+            clientType: ai.wiring.clientType,
+            baseURL: ai.wiring.baseURL,
+            authAttached: ai.wiring.authAttached
         )
         #endif
     }
+
+    // MARK: - Session lifecycle
 
     func syncHealthCacheUserID() {
         let uidChanged = authUIDCache.updateIfChanged(uid: authManager.currentUID)
@@ -686,380 +443,5 @@ final class AppContainer {
 
     func handleAccountDataSyncAfterSignIn(uid: String) {
         handleAccountRestoreAfterSignIn(uid: uid)
-    }
-
-    #if DEBUG
-    func makeAccountRestoreDebugActions() -> AccountRestoreDebugActions {
-        AccountRestoreDebugActions(
-            lastSnapshot: { [accountRestoreDiagnostics] in
-                accountRestoreDiagnostics.lastSnapshot
-            },
-            restoreStateDescription: { [authManager, accountRestoreDiagnostics, accountRestoreStateStore] in
-                guard let uid = authManager.currentUID else {
-                    return "No signed-in UID."
-                }
-                let state = accountRestoreDiagnostics.restoreState(
-                    for: uid,
-                    stateStore: accountRestoreStateStore
-                )
-                return AccountRestoreLoggerDebugSupport.redactedRestoreStateDescription(state)
-            },
-            triggerManualRetry: { [accountRestoreCoordinator, authManager, accountRestoreDiagnostics] in
-                guard let uid = authManager.currentUID else { return nil }
-                return await accountRestoreDiagnostics.triggerManualRetry(
-                    coordinator: accountRestoreCoordinator,
-                    uid: uid
-                )
-            },
-            resetRestoreMetadata: { [authManager, accountRestoreDiagnostics, accountRestoreStateStore] in
-                guard let uid = authManager.currentUID else { return }
-                accountRestoreDiagnostics.resetRestoreMetadata(
-                    stateStore: accountRestoreStateStore,
-                    uid: uid
-                )
-            }
-        )
-    }
-
-    func makeAccountSyncDebugActions() -> AccountSyncDebugActions {
-        AccountSyncDebugActions(
-            pendingMutationCount: { [accountSyncOutboxStore, authManager, accountSyncDiagnostics] in
-                await accountSyncDiagnostics.pendingMutationCount(
-                    outbox: accountSyncOutboxStore,
-                    ownerUID: authManager.currentUID ?? ""
-                )
-            },
-            lastSnapshot: { [accountSyncDiagnostics] in
-                accountSyncDiagnostics.lastSnapshot
-            },
-            triggerManualSync: { [accountSyncCoordinator, authManager, accountSyncDiagnostics] in
-                guard let uid = authManager.currentUID else { return nil }
-                return await accountSyncDiagnostics.triggerManualSync(
-                    coordinator: accountSyncCoordinator,
-                    ownerUID: uid
-                )
-            },
-            triggerManualCrossDeviceRefresh: { [weak self] in
-                await self?.performManualCrossDeviceRefresh()
-            }
-        )
-    }
-    #endif
-
-    func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {
-        healthIntelligenceEngine
-    }
-
-    func refreshHealthIntelligenceSnapshotIfNeeded() async {
-        guard HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled else { return }
-        await healthIntelligenceSnapshotService.refreshTodaySnapshot(calendar: .current)
-    }
-
-    func makeTodayActionCoordinator(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> TodayActionCoordinator {
-        TodayActionCoordinator(
-            actionCenter: actionCenter,
-            analyticsLogger: todayAnalyticsLogger,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
-        )
-    }
-
-    func makeTodayModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> TodayModel {
-        TodayModel(
-            dailyLogReader: dailyLogService,
-            foodLogReader: foodLogService,
-            weightLogReader: weightLogService,
-            dailyReviewReader: reviewService,
-            userProfileReader: userProfileService,
-            healthActivityQuery: healthActivityQueryService,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            hydrationContextProvider: { [weak self] in
-                guard let self else { return nil }
-                return TodayHydrationGate.resolve(
-                    authState: self.authManager.authState,
-                    profile: try? self.userProfileService.getCurrentProfile()
-                )
-            },
-            authStateProvider: { [weak self] in
-                self?.authManager.authState ?? .unknown
-            },
-            restoreSessionState: accountRestoreSessionState,
-            localDataInspector: accountLocalDataInspector,
-            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            accountDataRefreshEventBus: accountDataRefreshEventBus,
-            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
-        )
-    }
-
-    func makeCoachModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> CoachModel {
-        let contextPacketBuilder = CoachContextPacketV2Builder(
-            dailyLogService: dailyLogService,
-            foodLogService: foodLogService,
-            waterLogService: waterLogService,
-            weightLogService: weightLogService,
-            userProfileService: userProfileService,
-            healthActivityQuery: healthActivityQueryService,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            healthIntelligenceContextBuilder: healthIntelligenceContextBuilder,
-            trainingLoadEngine: trainingLoadEngine,
-            timelineStore: coachTimelineStore,
-            timelineBackfillService: coachTimelineBackfillService,
-            timelineRecorder: coachTimelineRecorder
-        )
-
-        return CoachModel(
-            actionCenter: actionCenter,
-            dailyLogReader: dailyLogService,
-            healthActivityQuery: healthActivityQueryService,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            healthDataRepository: healthDataRepository,
-            healthIntelligenceLoadEnabled: { HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence },
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            },
-            weightLogReader: weightLogService,
-            aiService: aiService,
-            contextPacketBuilder: contextPacketBuilder,
-            userProfileReader: userProfileService,
-            aiCommandParsingEnabled: aiCommandParsingEnabled,
-            trainingInsightsStore: trainingInsightsStore,
-            transcriptStore: coachChatTranscriptStore,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            timelineRecorder: coachTimelineRecorder,
-            timelineStore: coachTimelineStore
-        )
-    }
-
-    func makeJourneyAnalyticsCoordinator() -> JourneyAnalyticsCoordinator {
-        JourneyAnalyticsCoordinator(analyticsLogger: journeyAnalyticsLogger)
-    }
-
-    func makeSettingsPrivacyDataEnvironment() -> SettingsPrivacyDataEnvironment {
-        let provider = SettingsPrivacyDataStatusProvider(
-            authManager: authManager,
-            accountRestoreStateStore: accountRestoreStateStore,
-            accountRestoreSessionState: accountRestoreSessionState,
-            accountSyncDiagnostics: accountSyncDiagnostics,
-            accountSyncOutboxStore: accountSyncOutboxStore,
-            profileCloudSyncStore: profileCloudSyncStore,
-            accountSyncCursorStore: accountSyncCursorStore
-        )
-        return SettingsPrivacyDataEnvironment {
-            await provider.snapshot()
-        }
-    }
-
-    func makeSettingsAnalyticsCoordinator() -> SettingsAnalyticsCoordinator {
-        SettingsAnalyticsCoordinator(analyticsLogger: settingsAnalyticsLogger)
-    }
-
-    func makeHealthIntelligenceAnalyticsCoordinator() -> HealthIntelligenceAnalyticsCoordinator {
-        HealthIntelligenceAnalyticsCoordinator(analyticsLogger: healthIntelligenceAnalyticsLogger)
-    }
-
-    func makeJourneyModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> JourneyModel {
-        JourneyModel(
-            dailyLogReader: dailyLogService,
-            weightLogReader: weightLogService,
-            userProfileReader: userProfileService,
-            trainingInsightsStore: trainingInsightsStore,
-            workoutReader: healthKitWorkoutReader,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            weeklyReviewService: weeklyReviewService,
-            healthIntelligenceEngine: healthIntelligenceEngine,
-            healthCacheStore: healthCacheStore,
-            healthActivityQuery: healthActivityQueryService,
-            healthDataRepository: healthDataRepository,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            },
-            restoreSessionState: accountRestoreSessionState,
-            localDataInspector: accountLocalDataInspector,
-            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
-            accountDataRefreshEventBus: accountDataRefreshEventBus,
-            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
-        )
-    }
-
-    func makePlanModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> PlanModel {
-        PlanModel(
-            actionCenter: actionCenter,
-            userProfileReader: userProfileService,
-            planTargetCalculator: targetService,
-            dailyLogReader: dailyLogService,
-            weightLogReader: weightLogService,
-            trainingInsightsStore: trainingInsightsStore,
-            analyticsLogger: planAnalyticsLogger,
-            healthBaselineService: healthBaselineService,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            healthDataRepository: healthDataRepository,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            },
-            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
-            accountDataRefreshEventBus: accountDataRefreshEventBus,
-            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
-        )
-    }
-
-    func makeRootModel() -> RootModel {
-        RootModel(profileBootstrapService: profileBootstrapService)
-    }
-
-    func makeOnboardingModel(
-        entry: OnboardingAnalyticsEntry = .preAuth,
-        onCompletion: @escaping () -> Void
-    ) -> OnboardingModel {
-        return OnboardingModel(
-            actionCenter: actionCenter,
-            userProfileReader: userProfileService,
-            planTargetCalculator: targetService,
-            onCompletion: onCompletion,
-            draftStore: onboardingDraftStore,
-            coachingContextStore: onboardingCoachingContextStore,
-            analyticsLogger: onboardingAnalyticsLogger,
-            analyticsEntry: entry,
-            healthTrainingIntegration: healthTrainingService,
-            trainingInsightsStore: trainingInsightsStore,
-            healthSyncStateStore: HealthIntelligenceFeatureFlags.isSyncEnabled
-                ? healthSyncStateStore
-                : nil
-        )
-    }
-
-    func resolveAppShellRoute(
-        authState: AuthState,
-        rootState: RootViewState = .loading,
-        isOnboardingModelReady: Bool = false,
-        awaitingCloudSync: Bool = false,
-        pendingOnboardingCompletion: Bool = false,
-        publicEntryDestination: PublicEntryRoute = .welcome
-    ) -> AppShellRoute {
-        if awaitingCloudSync,
-           AppRouteResolver.isSignedIn(authState),
-           rootState == .main {
-            return .signedInProfileLoading
-        }
-
-        return AppRouteResolver.resolve(
-            authState: authState,
-            rootState: rootState,
-            isOnboardingModelReady: isOnboardingModelReady,
-            hasLocalProfile: profileBootstrapService.hasLocalProfile(),
-            signedOutWithProfilePolicy: .requireSignIn,
-            localProfileAwaitingSignIn: profileBootstrapService.localProfileAwaitingSignIn(),
-            pendingOnboardingCompletion: pendingOnboardingCompletion,
-            publicEntryDestination: publicEntryDestination,
-            hasPersistedOnboardingDraft: onboardingDraftStore.hasDraft,
-            suppressAutomaticPublicEntryResume: publicEntrySessionStore.suppressAutomaticPublicEntryResume
-        )
-    }
-
-    private static func makeOnboardingUserDefaults(
-        inMemory: Bool,
-        override: UserDefaults?
-    ) -> UserDefaults {
-        if let override {
-            return override
-        }
-        if inMemory {
-            let suiteName = "FitnessCoach.onboarding.inMemory.\(UUID().uuidString)"
-            return UserDefaults(suiteName: suiteName) ?? .standard
-        }
-        return .standard
-    }
-
-    #if DEBUG
-    private static func logAIBackendURLDetection() {
-        if let backendURL = AIBackendConfiguration.backendURL() {
-            FormaPipelineTracer.event(
-                stage: .appWiring,
-                level: .info,
-                message: "AI gateway URL configured",
-                fields: [
-                    "detected": "true",
-                    "gatewayURL": backendURL.absoluteString
-                ]
-            )
-            return
-        }
-
-        switch FormaEnvironment.aiBackendURLDetection() {
-        case .notDetected:
-            FormaPipelineTracer.event(
-                stage: .appWiring,
-                level: .info,
-                message: "FORMA_AI_BACKEND_URL not detected",
-                fields: ["detected": "false"]
-            )
-        case .detected(let source):
-            FormaPipelineTracer.event(
-                stage: .appWiring,
-                level: .info,
-                message: "FORMA_AI_BACKEND_URL rejected or invalid",
-                fields: [
-                    "detected": "false",
-                    "source": source.rawValue
-                ]
-            )
-        }
-    }
-    #endif
-
-    private static func logLLMClientWiring(clientType: String, baseURL: URL?, authAttached: Bool) {
-        var fields: [String: String] = [
-            "clientType": clientType,
-            "authAttached": String(authAttached),
-            "traceEnabled": String(FormaPipelineTracer.isEnabled),
-            "traceVerbose": String(FormaPipelineTracer.isVerbose)
-        ]
-        if let baseURL {
-            fields["baseURL"] = baseURL.absoluteString
-        }
-        FormaPipelineTracer.event(
-            stage: .appWiring,
-            level: .info,
-            message: "LLM client wired",
-            fields: fields
-        )
     }
 }

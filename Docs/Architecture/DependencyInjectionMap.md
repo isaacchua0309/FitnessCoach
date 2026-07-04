@@ -1,7 +1,7 @@
 # Dependency Injection Map
 
 **Last updated:** 2026-07-04  
-**Related:** [AppArchitectureOverview.md](./AppArchitectureOverview.md), `Fitness Coach/App/AppContainer.swift`
+**Related:** [AppArchitectureOverview.md](./AppArchitectureOverview.md), `Fitness Coach/App/AppContainer.swift`, `AppContainer+Construction.swift`, `AppContainer+FeatureFactories.swift`
 
 ---
 
@@ -17,13 +17,24 @@ The app uses **manual constructor injection** via a single composition root:
 | `FormaAbTest.testOverride` | Unit test flag injection |
 | No global service locator | Except `UserDefaults.standard` in a few places (`MainTabView`, migration gate) |
 
-**Future (PRDX P1):** Extract `SyncDependencies`, `HealthDependencies`, `AnalyticsDependencies` structs — composition only, no behavior change.
+**Construction layout:** Domain-grouped private bundles and static factories live in `AppContainer+Construction.swift`. Feature `make*Model()` factories live in `AppContainer+FeatureFactories.swift`. Public `AppContainer` properties and init parameters are unchanged.
 
 ---
 
 ## 2. AppContainer Construction Order
 
-`AppContainer.init` runs on `@MainActor`. Order matters for dependencies that reference `authManager` weakly or need `store` first.
+`AppContainer.init` runs on `@MainActor` and delegates to private `build*` factories. Order matters for dependencies that reference `authManager` weakly or need `store` first.
+
+| Factory | Domain bundle | File |
+|---------|---------------|------|
+| `buildSession` | Auth, onboarding prefs, refresh bus | `AppContainer+Construction.swift` |
+| `buildAnalytics` | Analytics loggers | `AppContainer+Construction.swift` |
+| `buildHealth` | HealthKit, sync, training insights | `AppContainer+Construction.swift` |
+| `buildPersistence` | SwiftData, account sync core, log services | `AppContainer+Construction.swift` |
+| `buildHealthIntelligence` | HI engine, snapshot, weekly review | `AppContainer+Construction.swift` |
+| `buildCoachPlatform` | Coach timeline stores, backfill | `AppContainer+Construction.swift` |
+| `buildAI` | LLM client, AIService | `AppContainer+Construction.swift` |
+| `buildAccountLifecycle` | Restore, cross-device, deletion, export | `AppContainer+Construction.swift` |
 
 ### Phase A — Session and preferences
 
