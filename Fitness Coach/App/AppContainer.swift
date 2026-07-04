@@ -262,8 +262,8 @@ final class AppContainer {
             userProfileService: userProfileService
         )
         accountDataNamespaceService = AccountDataNamespaceService(
-            store: store,
-            migrationService: accountMigrationService
+            userDefaults: onboardingUserDefaults,
+            uidProvider: AuthAccountUIDProvider(authManager: authManager)
         )
 
         let healthIntelligenceContextBuilder = HealthIntelligenceContextBuilder(
@@ -407,20 +407,25 @@ final class AppContainer {
         }
     }
 
-    func prepareLocalUserDataNamespace(uid: String, isFreshSignIn: Bool) {
-        do {
-            try accountDataNamespaceService.prepareForUID(uid, isFreshSignIn: isFreshSignIn)
-        } catch {
-            ProfileBootstrapDebugLogger.error(
-                "Local user-data namespace preparation failed",
-                fields: ["uid": uid],
-                underlying: error
-            )
+    func prepareLocalUserDataNamespace(uid: String) {
+        Task {
+            await accountDataNamespaceService.prepareForSignedInUID(uid)
+            do {
+                try accountMigrationService.backfillUnownedRows(sessionUID: uid)
+            } catch {
+                ProfileBootstrapDebugLogger.error(
+                    "Local user-data legacy backfill failed",
+                    fields: ["uid": uid],
+                    underlying: error
+                )
+            }
         }
     }
 
     func recordSignedOutLocalUserDataNamespace() {
-        accountDataNamespaceService.recordSignedOut()
+        Task {
+            await accountDataNamespaceService.prepareForSignOut()
+        }
     }
 
     func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {

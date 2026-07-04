@@ -19,7 +19,7 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
         super.tearDown()
     }
 
-    func testUserBDoesNotSeeUserAFoodAfterAccountSwitch() throws {
+    func testUserBDoesNotSeeUserAFoodAfterAccountSwitch() async throws {
         let harness = try makeHarness()
         _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
@@ -33,13 +33,13 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
         )
 
         sessionUID.uid = "user-b"
-        try harness.namespaceService.prepareForUID("user-b", isFreshSignIn: true)
+        await harness.namespaceService.prepareForSignedInUID("user-b")
 
         let entriesForB = try harness.foodLogService.getFoodEntries(for: harness.today)
         XCTAssertTrue(entriesForB.isEmpty)
     }
 
-    func testSameUserReLoginPreservesOwnedFood() throws {
+    func testSameUserReLoginPreservesOwnedFood() async throws {
         let harness = try makeHarness()
         _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
@@ -51,18 +51,18 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
             DailyLogServiceTestSupport.foodDraft(name: "User A Salad", calories: 450),
             date: harness.today
         )
-        try harness.namespaceService.prepareForUID("user-a", isFreshSignIn: true)
+        await harness.namespaceService.prepareForSignedInUID("user-a")
 
-        harness.namespaceService.recordSignedOut()
+        await harness.namespaceService.prepareForSignOut()
         sessionUID.uid = "user-a"
-        try harness.namespaceService.prepareForUID("user-a", isFreshSignIn: true)
+        await harness.namespaceService.prepareForSignedInUID("user-a")
 
         let entriesForA = try harness.foodLogService.getFoodEntries(for: harness.today)
         XCTAssertEqual(entriesForA.count, 1)
         XCTAssertEqual(entriesForA.first?.name, "User A Salad")
     }
 
-    func testForeignAccountSwitchQuarantinesPriorUserFood() throws {
+    func testForeignAccountSwitchHidesPriorUserFoodViaFiltering() async throws {
         let harness = try makeHarness()
         _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
@@ -74,15 +74,17 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
             DailyLogServiceTestSupport.foodDraft(name: "User A Salad", calories: 450),
             date: harness.today
         )
-        try harness.namespaceService.prepareForUID("user-a", isFreshSignIn: true)
+        await harness.namespaceService.prepareForSignedInUID("user-a")
 
         sessionUID.uid = "user-b"
-        try harness.namespaceService.prepareForUID("user-b", isFreshSignIn: true)
+        await harness.namespaceService.prepareForSignedInUID("user-b")
         XCTAssertTrue(try harness.foodLogService.getFoodEntries(for: harness.today).isEmpty)
 
         sessionUID.uid = "user-a"
-        try harness.namespaceService.prepareForUID("user-a", isFreshSignIn: true)
-        XCTAssertTrue(try harness.foodLogService.getFoodEntries(for: harness.today).isEmpty)
+        await harness.namespaceService.prepareForSignedInUID("user-a")
+        let entriesForA = try harness.foodLogService.getFoodEntries(for: harness.today)
+        XCTAssertEqual(entriesForA.count, 1)
+        XCTAssertEqual(entriesForA.first?.name, "User A Salad")
     }
 
     func testNewWritesStampCurrentFirebaseUID() throws {
@@ -173,12 +175,12 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
             store: store,
             userProfileService: profileService
         )
+        let namespaceDefaults = UserDefaults(
+            suiteName: "MultiUserNutritionIsolationTests.\(UUID().uuidString)"
+        )!
         let namespaceService = AccountDataNamespaceService(
-            store: store,
-            migrationService: migrationService,
-            lastActiveUIDStore: LastActiveAccountUIDStore(
-                userDefaults: UserDefaults(suiteName: "MultiUserNutritionIsolationTests.\(UUID().uuidString)")!
-            )
+            userDefaults: namespaceDefaults,
+            uidProvider: StubNamespaceUIDProvider(uidProvider: uidProvider)
         )
 
         return Harness(
@@ -196,4 +198,13 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
 @MainActor
 private final class TestSessionUIDHolder {
     var uid: String?
+}
+
+@MainActor
+private struct StubNamespaceUIDProvider: AccountUIDProviding {
+    let uidProvider: () -> String?
+
+    var currentUID: String? {
+        uidProvider()
+    }
 }

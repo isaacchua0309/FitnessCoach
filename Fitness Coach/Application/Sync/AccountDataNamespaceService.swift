@@ -2,115 +2,103 @@
 //  AccountDataNamespaceService.swift
 //  Fitness Coach
 //
-//  Forma — Prepares the local SwiftData namespace when the active Firebase UID changes.
+//  Forma — Tracks the active local data namespace UID for multi-user safety (Phase 1).
+//
+//  Phase 1 relies on strict read filtering — this service does not delete SwiftData rows.
 //
 
 import Foundation
-import SwiftData
+import OSLog
 
 @MainActor
 final class AccountDataNamespaceService {
 
-    private let store: SwiftDataStore
-    private let migrationService: AccountMigrationService
-    private let lastActiveUIDStore: LastActiveAccountUIDStore
+    static let lastActiveUIDKey = "forma.accountDataNamespace.lastActiveUID"
+
+    private let userDefaults: UserDefaults
+    private let uidProvider: any AccountUIDProviding
+    private let logger = Logger(subsystem: "FitPilot", category: "AccountDataNamespace")
 
     init(
-        store: SwiftDataStore,
-        migrationService: AccountMigrationService,
-        lastActiveUIDStore: LastActiveAccountUIDStore = LastActiveAccountUIDStore()
+        userDefaults: UserDefaults = .standard,
+        uidProvider: any AccountUIDProviding
     ) {
-        self.store = store
-        self.migrationService = migrationService
-        self.lastActiveUIDStore = lastActiveUIDStore
-    }
-
-    /// Ensures reads for `newUID` never include another account's local rows.
-    func prepareForUID(_ newUID: String, isFreshSignIn: Bool) throws {
-        let previousUID = lastActiveUIDStore.lastActiveUID
-
-        if FormaAbTest.Auth.quarantinesForeignUserDataOnAccountSwitch,
-           isFreshSignIn,
-           let previousUID,
-           previousUID != newUID {
-            try quarantineRowsNotOwnedBy(newUID)
-        }
-
-        try migrationService.backfillUnownedRows(sessionUID: newUID)
-        lastActiveUIDStore.lastActiveUID = newUID
-    }
-
-    func recordSignedOut() {
-        lastActiveUIDStore.lastActiveUID = nil
-    }
-
-    private func quarantineRowsNotOwnedBy(_ uid: String) throws {
-        var didChange = false
-
-        for entity in try store.fetch(FetchDescriptor<DailyLogEntity>()) {
-            guard entity.ownerUID != uid else { continue }
-            try store.delete(entity)
-            didChange = true
-        }
-        for entity in try store.fetch(FetchDescriptor<FoodEntryEntity>()) {
-            guard entity.ownerUID != uid else { continue }
-            try store.delete(entity)
-            didChange = true
-        }
-        for entity in try store.fetch(FetchDescriptor<WaterEntryEntity>()) {
-            guard entity.ownerUID != uid else { continue }
-            try store.delete(entity)
-            didChange = true
-        }
-        for entity in try store.fetch(FetchDescriptor<WeightEntryEntity>()) {
-            guard entity.ownerUID != uid else { continue }
-            try store.delete(entity)
-            didChange = true
-        }
-        for entity in try store.fetch(FetchDescriptor<DailyReviewEntity>()) {
-            guard entity.ownerUID != uid else { continue }
-            try store.delete(entity)
-            didChange = true
-        }
-        for entity in try store.fetch(FetchDescriptor<CoachTimelineEventEntity>()) {
-            guard entity.userId == uid else {
-                try store.delete(entity)
-                didChange = true
-                continue
-            }
-        }
-        for entity in try store.fetch(FetchDescriptor<CoachChatTranscriptMessageEntity>()) {
-            guard entity.userId == uid else {
-                try store.delete(entity)
-                didChange = true
-                continue
-            }
-        }
-
-        if didChange {
-            try store.save()
-        }
-    }
-}
-
-// MARK: - Last active UID
-
-struct LastActiveAccountUIDStore {
-    private let userDefaults: UserDefaults
-    private let key = "forma.accountPersistence.lastActiveUID"
-
-    init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
+        self.uidProvider = uidProvider
     }
 
-    var lastActiveUID: String? {
-        get { userDefaults.string(forKey: key) }
-        nonmutating set {
-            if let newValue {
-                userDefaults.set(newValue, forKey: key)
-            } else {
-                userDefaults.removeObject(forKey: key)
-            }
+    /// Records the signed-in account as the active local data namespace.
+    func prepareForSignedInUID(_ uid: String) async {
+        let trimmed = uid.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let previousUID = currentDataNamespaceUID()
+        if isAccountSwitch(from: previousUID, to: trimmed) {
+            logEvent(
+                "account_data_namespace_switch",
+                fields: [
+                    "fromUID": redactedUID(previousUID),
+                    "toUID": redactedUID(trimmed)
+                ]
+            )
+        } else {
+            logEvent(
+                "account_data_namespace_prepared",
+                fields: ["uid": redactedUID(trimmed)]
+            )
         }
+
+        userDefaults.set(trimmed, forKey: Self.lastActiveUIDKey)
+
+        if uidProvider.currentUID != trimmed {
+            logEvent(
+                "account_data_namespace_uid_provider_mismatch",
+                fields: [
+                    "namespaceUID": redactedUID(trimmed),
+                    "providerUID": redactedUID(uidProvider.currentUID)
+                ]
+            )
+        }
+    }
+
+    /// Clears the active namespace when the session ends.
+    func prepareForSignOut() async {
+        logEvent("account_data_namespace_sign_out", fields: [:])
+        userDefaults.removeObject(forKey: Self.lastActiveUIDKey)
+    }
+
+    /// Last UID recorded as the active local data namespace, if any.
+    func currentDataNamespaceUID() -> String? {
+        userDefaults.string(forKey: Self.lastActiveUIDKey)
+    }
+
+    /// True when switching from one signed-in account to another on the same device.
+    func isAccountSwitch(from oldUID: String?, to newUID: String) -> Bool {
+        guard let oldUID else { return false }
+        return oldUID != newUID
+    }
+
+    // MARK: - Logging
+
+    private func logEvent(_ message: String, fields: [String: String]) {
+        #if DEBUG
+        guard FormaAbTest.Diagnostics.profileBootstrapTrace else { return }
+        #endif
+
+        let fieldLine = fields
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key)=\($0.value)" }
+            .joined(separator: " ")
+
+        let line = fieldLine.isEmpty
+            ? "[AccountDataNamespace] \(message)"
+            : "[AccountDataNamespace] \(message) \(fieldLine)"
+
+        logger.info("\(line, privacy: .public)")
+    }
+
+    private func redactedUID(_ uid: String?) -> String {
+        guard let uid else { return "none" }
+        return ProfileBootstrapDebugLogger.redactedUID(uid)
     }
 }

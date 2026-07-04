@@ -2,7 +2,7 @@
 //  UserDataOwnerScope.swift
 //  Fitness Coach
 //
-//  Forma — Local user-data ownership rules for SwiftData reads and writes.
+//  Forma — Repository-facing shim over `UserDataOwnership` (Phase 1).
 //
 
 import Foundation
@@ -16,15 +16,7 @@ enum UserDataOwnerScope {
     }
 
     /// Whether a persisted row is visible to the current session.
-    ///
-    /// - Signed in: only rows owned by the current Firebase UID.
-    /// - Signed out: only unowned rows (pre-auth local data).
     static func isVisible(entityOwnerUID: String?, sessionUID: String?) -> Bool {
-        switch sessionUID {
-        case let uid?:
-            return entityOwnerUID == uid
-        case nil:
-            return entityOwnerUID == nil
-        }
+        UserDataOwnership.canRead(ownerUID: entityOwnerUID, currentUID: sessionUID)
     }
 }

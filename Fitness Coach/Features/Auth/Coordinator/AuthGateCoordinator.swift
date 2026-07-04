@@ -800,7 +800,7 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func reconcileSignedInProfile(uid: String, isFreshSignIn: Bool) {
-        container.prepareLocalUserDataNamespace(uid: uid, isFreshSignIn: isFreshSignIn)
+        container.prepareLocalUserDataNamespace(uid: uid)
 
         if existingUserSignInSessionActive, !pendingSignInForOnboardingCompletion {
             Task { await runExistingUserSignInResolution(uid: uid, isFreshSignIn: isFreshSignIn) }

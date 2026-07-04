@@ -128,9 +128,6 @@ enum FormaAbTest {
         static var requiresSignInBeforeOnboarding: Bool { resolved.requiresSignInBeforeOnboarding }
         static var deletesLocalProfileOnSignOut: Bool { resolved.deletesLocalProfileOnSignOut }
         static var clearsCloudSyncMetadataOnSignOut: Bool { resolved.clearsCloudSyncMetadataOnSignOut }
-        static var quarantinesForeignUserDataOnAccountSwitch: Bool {
-            resolved.quarantinesForeignUserDataOnAccountSwitch
-        }
     }
 
     // MARK: Build
@@ -205,7 +202,6 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
     var requiresSignInBeforeOnboarding: Bool
     var deletesLocalProfileOnSignOut: Bool
     var clearsCloudSyncMetadataOnSignOut: Bool
-    var quarantinesForeignUserDataOnAccountSwitch: Bool
 
     var internalBuildEnabled: Bool
     var includesDeveloperTools: Bool
@@ -253,7 +249,6 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
         requiresSignInBeforeOnboarding: true,
         deletesLocalProfileOnSignOut: true,
         clearsCloudSyncMetadataOnSignOut: true,
-        quarantinesForeignUserDataOnAccountSwitch: true,
         internalBuildEnabled: true,
         includesDeveloperTools: true,
         todayAnalyticsTrace: true,
