@@ -13,7 +13,6 @@ final class SettingsPrivacyDataTests: XCTestCase {
     // MARK: - Production visibility
 
     func testProductionShowsExportAndDeleteWhenEnabled() {
-        XCTAssertTrue(SettingsFeatureAvailability.production.isDataExportEnabled)
         XCTAssertTrue(SettingsFeatureAvailability.production.isDeleteAccountEnabled)
         XCTAssertTrue(SettingsFeatureAvailability.production.isDeleteLocalDeviceDataEnabled)
 
@@ -30,9 +29,12 @@ final class SettingsPrivacyDataTests: XCTestCase {
             )
         )
 
-        XCTAssertTrue(state.visibleRowIDs.contains(.exportData))
+        XCTAssertTrue(state.visibleRowIDs.contains(.accountDataStatus))
+        XCTAssertTrue(state.visibleRowIDs.contains(.syncStatus))
         XCTAssertTrue(state.visibleRowIDs.contains(.deleteAccount))
         XCTAssertTrue(state.visibleRowIDs.contains(.deleteLocalDeviceData))
+        XCTAssertTrue(state.visibleRowIDs.contains(.healthDataNote))
+        XCTAssertTrue(state.visibleRowIDs.contains(.exportData))
     }
 
     func testFunctionalFlagsShowExportAndDeleteRows() {
@@ -56,6 +58,8 @@ final class SettingsPrivacyDataTests: XCTestCase {
         XCTAssertTrue(state.visibleRowIDs.contains(.exportData))
         XCTAssertTrue(state.visibleRowIDs.contains(.deleteAccount))
         XCTAssertTrue(state.visibleRowIDs.contains(.deleteLocalDeviceData))
+        XCTAssertTrue(state.visibleRowIDs.contains(.accountDataStatus))
+        XCTAssertTrue(state.visibleRowIDs.contains(.syncStatus))
         XCTAssertEqual(
             state.privacyData.rows.first(where: { $0.id == .deleteAccount })?.destination,
             .deleteAccount
@@ -191,8 +195,9 @@ final class SettingsPrivacyDataTests: XCTestCase {
         XCTAssertEqual(SettingsDeleteDataActionHandler.perform(scope: .localDeviceOnly), .opensDeletionFlow)
     }
 
-    func testExportActionRunsWhenEnabled() {
-        XCTAssertTrue(SettingsDataExportCapability.isImplemented)
+    func testExportCapabilityDisabledByDefault() {
+        XCTAssertFalse(AccountDataExportPolicy.isEnabled)
+        XCTAssertFalse(SettingsDataExportCapability.isImplemented)
         XCTAssertFalse(SettingsExportDataActionHandler.perform())
     }
 
@@ -213,6 +218,12 @@ final class SettingsPrivacyDataTests: XCTestCase {
         XCTAssertEqual(
             state.privacyData.footer,
             FormaProductCopy.Settings.PrivacyData.sectionFooter
+        )
+    }
+
+    func testPrivacySectionFooterDoesNotClaimSensitiveValues() {
+        XCTAssertTrue(
+            FormaProductCopy.Settings.PrivacyData.sectionFooter.localizedCaseInsensitiveContains("counts")
         )
     }
 }

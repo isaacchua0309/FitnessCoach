@@ -21,6 +21,7 @@ struct AuthGateView: View {
             .environment(\.publicEntrySessionStore, coordinator.container.publicEntrySessionStore)
             .environment(\.performAppSignOut, coordinator.signOutFromAccount)
             .environment(\.accountDeletionCoordinator, coordinator.container.accountDeletionCoordinator)
+            .environment(\.settingsPrivacyDataEnvironment, coordinator.container.makeSettingsPrivacyDataEnvironment())
             .task {
                 coordinator.authManager.startListening()
                 coordinator.wireAccountDeletionRouter()

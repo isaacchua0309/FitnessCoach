@@ -18,6 +18,7 @@ struct PlanView: View {
     @EnvironmentObject private var healthSyncStateStore: HealthSyncStateStore
     @Environment(\.appleHealthSettingsEnvironment) private var appleHealthSettingsEnvironment
     @Environment(\.accountDeletionCoordinator) private var accountDeletionCoordinator
+    @Environment(\.settingsPrivacyDataEnvironment) private var settingsPrivacyDataEnvironment
     @EnvironmentObject private var consentStore: HealthSummarySyncConsentStore
 
     @State private var isShowingTrainingInsights = false
@@ -148,6 +149,7 @@ struct PlanView: View {
                         .environmentObject(themeStore)
                         .environment(\.appleHealthSettingsEnvironment, appleHealthSettingsEnvironment)
                         .environment(\.accountDeletionCoordinator, accountDeletionCoordinator)
+                        .environment(\.settingsPrivacyDataEnvironment, settingsPrivacyDataEnvironment)
                     }
                 }
                 .sheet(isPresented: $model.isShowingTargetRegenerationSheet) {

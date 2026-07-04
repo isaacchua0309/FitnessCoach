@@ -17,9 +17,12 @@ enum SettingsPresentationBuilder {
                 themePalette: input.themePalette
             ),
             integrations: integrationsSection(integrationState: input.integrationState),
-            privacyData: privacyDataSection(
-                featureAvailability: input.featureAvailability,
-                legalAvailability: input.legalAvailability
+            privacyData: SettingsPrivacyDataPresentationBuilder.buildSection(
+                input: SettingsPrivacyDataPresentationInput(
+                    status: input.privacyDataStatus,
+                    featureAvailability: input.featureAvailability,
+                    legalAvailability: input.legalAvailability
+                )
             ),
             support: SettingsSupportPresentationBuilder.buildSection(
                 configuration: input.supportConfiguration
@@ -95,59 +98,6 @@ enum SettingsPresentationBuilder {
                     destination: .appleHealthIntegration
                 )
             ]
-        )
-    }
-
-    private static func privacyDataSection(
-        featureAvailability: SettingsFeatureAvailability,
-        legalAvailability: SettingsLegalAvailability
-    ) -> SettingsPrivacyDataSectionState {
-        var rows: [SettingsRowPresentation] = []
-
-        if legalAvailability.isPrivacyPolicyAvailable {
-            rows.append(
-                row(
-                    id: .privacyPolicy,
-                    title: FormaProductCopy.Settings.Rows.privacyPolicy,
-                    destination: .legalDocument(.privacyPolicy)
-                )
-            )
-        }
-
-        if featureAvailability.isDataExportEnabled {
-            rows.append(
-                row(
-                    id: .exportData,
-                    title: FormaProductCopy.Settings.Rows.exportData,
-                    destination: .exportData
-                )
-            )
-        }
-
-        if featureAvailability.isDeleteAccountEnabled {
-            rows.append(
-                row(
-                    id: .deleteAccount,
-                    title: FormaProductCopy.Settings.Rows.deleteAccount,
-                    destination: .deleteAccount
-                )
-            )
-        }
-
-        if featureAvailability.isDeleteLocalDeviceDataEnabled {
-            rows.append(
-                row(
-                    id: .deleteLocalDeviceData,
-                    title: FormaProductCopy.Settings.Rows.deleteLocalDeviceData,
-                    destination: .deleteLocalDeviceData
-                )
-            )
-        }
-
-        return SettingsPrivacyDataSectionState(
-            title: FormaProductCopy.Settings.Hub.privacyDataSectionTitle,
-            rows: rows,
-            footer: FormaProductCopy.Settings.PrivacyData.sectionFooter
         )
     }
 

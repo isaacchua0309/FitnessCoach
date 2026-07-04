@@ -251,9 +251,12 @@ final class SettingsProductionQATests: XCTestCase {
         let titles = allRowTitles(in: state)
 
         XCTAssertFalse(SettingsProductionVisibility.containsProhibitedPlaceholderCopy(titles))
-        XCTAssertFalse(state.visibleRowIDs.contains(.exportData))
+        XCTAssertTrue(state.visibleRowIDs.contains(.exportData))
+        XCTAssertTrue(state.visibleRowIDs.contains(.accountDataStatus))
+        XCTAssertTrue(state.visibleRowIDs.contains(.syncStatus))
         XCTAssertTrue(state.visibleRowIDs.contains(.deleteAccount))
         XCTAssertTrue(state.visibleRowIDs.contains(.deleteLocalDeviceData))
+        XCTAssertTrue(state.visibleRowIDs.contains(.healthDataNote))
     }
 
     // MARK: - 14. No sensitive data logged in analytics

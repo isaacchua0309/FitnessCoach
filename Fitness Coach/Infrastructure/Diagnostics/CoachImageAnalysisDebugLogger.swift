@@ -246,18 +246,6 @@ enum CoachImageAnalysisDebugLogger {
         processed: CoachProcessedImage,
         originalEstimatedBytes: Int?
     ) {
-        CoachImageProcessingLogger.logPipelineSuccess(
-            source: source,
-            processed: processed,
-            processingDurationMs: 0
-        )
-    }
-
-    static func logPipelineProcessed(
-        source: CoachInputAttachmentSource,
-        processed: CoachProcessedImage,
-        originalEstimatedBytes: Int?
-    ) {
         emit(
             message: "Coach image pipeline processed photo library selection",
             context: CoachImageAnalysisDebugContext(

@@ -18,5 +18,5 @@ enum SettingsDataDeletionCapability {
 
 enum SettingsDataExportCapability {
 
-    static var isImplemented: Bool { FormaAbTest.Settings.dataExportEnabled }
+    static var isImplemented: Bool { AccountDataExportPolicy.isEnabled }
 }

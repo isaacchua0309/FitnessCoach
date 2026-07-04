@@ -30,6 +30,8 @@ struct SettingsRootView: View {
     @State private var showsDeletionUnavailableAlert = false
     @StateObject private var accountDeletionViewModel = AccountDeletionViewModel()
     @Environment(\.accountDeletionCoordinator) private var accountDeletionCoordinator
+    @State private var privacyDataStatus: SettingsPrivacyDataStatusSnapshot = .empty
+    @Environment(\.settingsPrivacyDataEnvironment) private var privacyDataEnvironment
     @State private var supportMailTopic: SettingsSupportMailTopic?
 
     private var resolvedBodyDetailsInput: BodyDetailsSettingsPresentationInput {
@@ -46,7 +48,8 @@ struct SettingsRootView: View {
                 featureAvailability: featureAvailability,
                 legalAvailability: .production,
                 supportConfiguration: supportConfiguration,
-                isDebugOrInternalBuild: isDebugOrInternalBuild
+                isDebugOrInternalBuild: isDebugOrInternalBuild,
+                privacyDataStatus: privacyDataStatus
             )
         )
     }
@@ -61,6 +64,9 @@ struct SettingsRootView: View {
                         await insightsStore.refresh()
                     }
                 section(presentationState.privacyData)
+                    .task {
+                        await refreshPrivacyDataStatus()
+                    }
                 if let support = presentationState.support {
                     section(support)
                 }
@@ -140,6 +146,10 @@ struct SettingsRootView: View {
                 #endif
             }
         }
+    }
+
+    private func refreshPrivacyDataStatus() async {
+        privacyDataStatus = await privacyDataEnvironment.loadStatus()
     }
 
     private func openAccountDeletion(scope: AccountDeletionScope) {
@@ -349,6 +359,12 @@ struct SettingsRootView: View {
                 }
         case .supportMail:
             EmptyView()
+        case .accountDataStatus:
+            SettingsPrivacyDataAccountStatusView(status: privacyDataStatus)
+        case .syncStatus:
+            SettingsPrivacyDataSyncStatusView(status: privacyDataStatus)
+        case .healthDataNote:
+            SettingsPrivacyDataHealthNoteView()
         case .exportData, .deleteAccount, .deleteLocalDeviceData:
             EmptyView()
         case .authDiagnostics, .pipelineTraces:

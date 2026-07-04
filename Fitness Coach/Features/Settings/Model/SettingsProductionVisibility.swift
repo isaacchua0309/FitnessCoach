@@ -10,7 +10,6 @@ import Foundation
 enum SettingsProductionVisibility {
 
     static let hiddenRowIDs: Set<SettingsRowID> = [
-        .exportData,
         .authDiagnostics,
         .pipelineTraces,
         .coachContextInspector

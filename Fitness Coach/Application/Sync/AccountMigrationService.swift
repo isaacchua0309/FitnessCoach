@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 
 protocol AccountMigrationRunning: AnyObject {
-    @MainActor func runSafeBackfill(for uid: String) async throws
+    @MainActor func runSafeBackfill(for uid: String) async throws -> AccountMigrationBackfillReport
 }
 
 @MainActor

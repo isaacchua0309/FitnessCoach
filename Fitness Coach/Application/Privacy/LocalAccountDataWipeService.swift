@@ -29,13 +29,6 @@ protocol LocalAccountDataWipeSessionPreparing: AnyObject {
     func prepareForLocalWipe(uid: String) async
 }
 
-extension AccountDeletionCoordinator: LocalAccountDataWipeSessionPreparing {
-
-    func prepareForLocalWipe(uid: String) async {
-        await prepareForDeletion(uid: uid)
-    }
-}
-
 enum LocalAccountDataWipeSupport {
 
     static func normalizedUID(_ uid: String) throws -> String {
@@ -136,7 +129,7 @@ final class LocalAccountDataWipeService: LocalAccountDataWiping {
         sessionPreparer: LocalAccountDataWipeSessionPreparing? = nil,
         currentSessionUIDProvider: @escaping () -> String? = { nil },
         fileManager: FileManager = .default,
-        clearPipelineTracer: @escaping () -> Void = { FormaPipelineTracer.clear() },
+        clearPipelineTracer: (() -> Void)? = nil,
         clearInMemoryCoachState: @escaping () -> Void = {},
         clearSyncDiagnostics: @escaping () -> Void = {},
         clearRestoreDiagnostics: @escaping () -> Void = {},
@@ -154,7 +147,7 @@ final class LocalAccountDataWipeService: LocalAccountDataWiping {
         self.sessionPreparer = sessionPreparer
         self.currentSessionUIDProvider = currentSessionUIDProvider
         self.fileManager = fileManager
-        self.clearPipelineTracer = clearPipelineTracer
+        self.clearPipelineTracer = clearPipelineTracer ?? { FormaPipelineTracer.clear() }
         self.clearInMemoryCoachState = clearInMemoryCoachState
         self.clearSyncDiagnostics = clearSyncDiagnostics
         self.clearRestoreDiagnostics = clearRestoreDiagnostics

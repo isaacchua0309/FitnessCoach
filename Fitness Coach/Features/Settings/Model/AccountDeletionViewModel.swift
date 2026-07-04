@@ -5,6 +5,7 @@
 //  Forma — Drives account deletion confirmation, progress, and recovery UI.
 //
 
+import Combine
 import Foundation
 
 @MainActor

@@ -16,6 +16,9 @@ enum SettingsRowID: String, Hashable, CaseIterable, Sendable {
     case theme
     case appleHealth
     case privacyPolicy
+    case accountDataStatus
+    case syncStatus
+    case healthDataNote
     case exportData
     case deleteAccount
     case deleteLocalDeviceData
@@ -39,6 +42,9 @@ enum SettingsRowDestination: Equatable, Sendable {
     case theme
     case appleHealthIntegration
     case legalDocument(FormaLegalDocument)
+    case accountDataStatus
+    case syncStatus
+    case healthDataNote
     case exportData
     case deleteAccount
     case deleteLocalDeviceData
@@ -122,6 +128,29 @@ struct SettingsPresentationInput: Equatable, Sendable {
     let legalAvailability: SettingsLegalAvailability
     let supportConfiguration: SettingsSupportConfiguration
     let isDebugOrInternalBuild: Bool
+    let privacyDataStatus: SettingsPrivacyDataStatusSnapshot
+
+    init(
+        integrationState: TrainingIntegrationState,
+        unitSystem: UnitSystem,
+        themePalette: AppThemePalette,
+        appVersion: String,
+        featureAvailability: SettingsFeatureAvailability,
+        legalAvailability: SettingsLegalAvailability,
+        supportConfiguration: SettingsSupportConfiguration,
+        isDebugOrInternalBuild: Bool,
+        privacyDataStatus: SettingsPrivacyDataStatusSnapshot = .empty
+    ) {
+        self.integrationState = integrationState
+        self.unitSystem = unitSystem
+        self.themePalette = themePalette
+        self.appVersion = appVersion
+        self.featureAvailability = featureAvailability
+        self.legalAvailability = legalAvailability
+        self.supportConfiguration = supportConfiguration
+        self.isDebugOrInternalBuild = isDebugOrInternalBuild
+        self.privacyDataStatus = privacyDataStatus
+    }
 }
 
 struct SettingsPresentationState: Equatable, Sendable {

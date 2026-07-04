@@ -18,4 +18,8 @@ struct SettingsFeatureAvailability: Equatable, Sendable {
         isDeleteAccountEnabled: SettingsDataDeletionCapability.isImplemented,
         isDeleteLocalDeviceDataEnabled: SettingsDataDeletionCapability.isLocalDeviceOnlyEnabled
     )
+
+    var showsExportPlaceholder: Bool {
+        !isDataExportEnabled
+    }
 }

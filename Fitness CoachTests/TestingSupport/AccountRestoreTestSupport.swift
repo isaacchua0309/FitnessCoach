@@ -67,9 +67,10 @@ final class RecordingAccountMigrationService: AccountMigrationRunning {
     private(set) var callCount = 0
     var lastUID: String?
 
-    func runSafeBackfill(for uid: String) async throws {
+    func runSafeBackfill(for uid: String) async throws -> AccountMigrationBackfillReport {
         callCount += 1
         lastUID = uid
+        return .refused(uid: uid, reason: "test_stub")
     }
 }
 

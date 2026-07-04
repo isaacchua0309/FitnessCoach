@@ -41,6 +41,7 @@ final class AppContainer {
     let localAccountDataWipeService: LocalAccountDataWipeService
     let accountDeletionRouter: DeferredAccountDeletionRouter
     let accountDeletionCoordinator: AccountDeletionCoordinator
+    let accountDataExportService: AccountDataExportService
 
     let userProfileService: UserProfileService
     let targetService: TargetService
@@ -547,6 +548,14 @@ final class AppContainer {
             router: accountDeletionRouter,
             signOutCurrentSession: { [weak authManager] in authManager?.signOut() }
         )
+        accountDataExportService = AccountDataExportService(
+            store: store,
+            accountSyncOutboxStore: accountSyncOutboxStore,
+            profileCloudSyncStore: profileCloudSyncStore,
+            accountSyncCursorStore: accountSyncCursorStore,
+            accountRestoreStateStore: accountRestoreStateStore,
+            currentSessionUIDProvider: { [weak authManager] in authManager?.currentUID }
+        )
 
         actionCenter = FitnessActionCenter(
             foodLogService: foodLogService,
@@ -832,6 +841,21 @@ final class AppContainer {
 
     func makeJourneyAnalyticsCoordinator() -> JourneyAnalyticsCoordinator {
         JourneyAnalyticsCoordinator(analyticsLogger: journeyAnalyticsLogger)
+    }
+
+    func makeSettingsPrivacyDataEnvironment() -> SettingsPrivacyDataEnvironment {
+        let provider = SettingsPrivacyDataStatusProvider(
+            authManager: authManager,
+            accountRestoreStateStore: accountRestoreStateStore,
+            accountRestoreSessionState: accountRestoreSessionState,
+            accountSyncDiagnostics: accountSyncDiagnostics,
+            accountSyncOutboxStore: accountSyncOutboxStore,
+            profileCloudSyncStore: profileCloudSyncStore,
+            accountSyncCursorStore: accountSyncCursorStore
+        )
+        return SettingsPrivacyDataEnvironment {
+            await provider.snapshot()
+        }
     }
 
     func makeSettingsAnalyticsCoordinator() -> SettingsAnalyticsCoordinator {

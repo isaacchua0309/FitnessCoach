@@ -3137,9 +3137,13 @@ enum FormaProductCopy {
             static let units = "Units"
             static let appleHealth = "Apple Health"
             static let privacyPolicy = "Privacy Policy"
+            static let accountDataStatus = "Account data status"
+            static let syncStatus = "Sync status"
+            static let healthDataNote = "Health data note"
+            static let exportAccountData = "Export account data"
             static let exportData = "Export Data"
             static let deleteAccount = "Delete Account"
-            static let deleteLocalDeviceData = "Delete Local Data"
+            static let deleteLocalDeviceData = "Delete local data from this device"
             static let sendFeedback = "Send Feedback"
             static let contactSupport = "Contact Support"
             static let reportProblem = "Report a Problem"
@@ -3404,7 +3408,43 @@ enum FormaProductCopy {
         /// Privacy & Data settings section copy.
         enum PrivacyData {
             static let sectionFooter =
-                "Your fitness data stays on this device unless you choose to sign in or use connected services."
+                "Counts and timestamps only — no food names, weights, or calories appear here."
+
+            static let accountStatusScreenTitle = "Account data status"
+            static let accountStatusAccountLabel = "Account"
+            static let accountStatusSignInMethodLabel = "Sign-in method"
+            static let accountStatusLastRestoreLabel = "Last restore"
+            static let accountStatusSignedIn = "Signed in"
+            static let accountStatusSignedOut = "Not signed in"
+
+            static let syncStatusScreenTitle = "Sync status"
+            static let syncStatusPendingUploadsLabel = "Pending uploads"
+            static let syncStatusLastSyncLabel = "Last sync"
+            static let syncStatusLastRestoreLabel = "Last restore"
+            static let syncStatusRestoreInProgressLabel = "Restore in progress"
+            static let syncStatusYesValue = "Yes"
+            static let syncStatusNoValue = "No"
+            static let syncStatusNotYetSynced = "Not yet synced"
+            static let timestampUnavailable = "Not available"
+
+            static func syncStatusPendingCount(_ count: Int) -> String {
+                count == 1 ? "1 pending" : "\(count) pending"
+            }
+
+            static func countLabel(_ count: Int) -> String {
+                "\(count)"
+            }
+
+            static let exportUnavailableStatus = "Not available"
+            static let exportUnavailableMessage =
+                "Export account data is not available in this version of Forma yet."
+
+            static let healthDataNoteScreenTitle = "Health data note"
+            static let healthDataNoteBodyParagraphs: [String] = [
+                "Forma can remove locally cached health summaries and uploaded app health summaries tied to your account.",
+                "Forma cannot delete the original samples stored in Apple Health on your device.",
+                "Deleting account or local data does not remove Apple Health source data."
+            ]
 
             static let deleteAccountConfirmationTitle = "Delete your account?"
             static let deleteAccountConsequenceBullets: [String] = [

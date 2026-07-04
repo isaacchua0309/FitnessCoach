@@ -22,7 +22,7 @@ struct CloudAccountDataEnvelope: Codable, Equatable, Sendable {
 }
 
 /// Minimum fields required for owner validation before Firestore writes.
-protocol CloudAccountDataDocument: Codable, Equatable, Sendable {
+protocol CloudAccountDataDocument: Equatable, Sendable {
     var userId: String { get }
     var schemaVersion: Int { get }
     var updatedAt: Date { get }

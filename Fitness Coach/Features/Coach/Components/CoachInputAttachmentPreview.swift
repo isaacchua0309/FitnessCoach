@@ -14,7 +14,7 @@ struct CoachInputAttachmentPreview: View {
     let onRetry: () -> Void
 
     private var thumbnailSize: CGFloat {
-        CoachDesignTokens.Layout.attachmentThumbnailSize
+        CoachDesignTokens.Layout.composerAttachmentSize
     }
 
     private var showsThumbnail: Bool {

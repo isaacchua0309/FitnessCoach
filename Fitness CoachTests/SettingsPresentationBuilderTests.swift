@@ -209,7 +209,15 @@ final class SettingsPresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(
             state.privacyData.rows.map(\.id),
-            [.privacyPolicy, .exportData, .deleteAccount, .deleteLocalDeviceData]
+            [
+                .accountDataStatus,
+                .syncStatus,
+                .deleteLocalDeviceData,
+                .deleteAccount,
+                .healthDataNote,
+                .exportData,
+                .privacyPolicy
+            ]
         )
         XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .exportData })?.destination, .exportData)
         XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .deleteAccount })?.destination, .deleteAccount)
