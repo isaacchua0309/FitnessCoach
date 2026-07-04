@@ -15,6 +15,9 @@ export const COACH_CONTEXT_LIMITS = {
   maxChatPreviewLength: 180,
   maxCurrentUserMessageLength: 500,
   maxStringFieldLength: 240,
+  maxAssumptionDetailLength: 240,
+  maxEncodedBytes: 24_576,
+  minSuspiciousBase64Length: 256,
 } as const;
 
 const PROTECTED_TIMELINE_EVENT_TYPES = new Set([
@@ -57,6 +60,29 @@ const EXCLUDED_TIMELINE_STATUSES = new Set([
   "superseded",
 ]);
 
+const CONSUMED_FACT_EVENT_TYPES = new Set([
+  "foodLogged",
+  "waterLogged",
+  "weightLogged",
+  "workoutDetected",
+  "stepsUpdated",
+]);
+
+const CONTEXT_FORBIDDEN_IMAGE_KEYS = new Set([
+  "imageJPEGBase64",
+  "imageBase64",
+  "jpegBase64",
+  "pngBase64",
+  "rawImageBytes",
+]);
+
+const IMAGE_DATA_URL_PATTERN = /^data:image\//i;
+const JPEG_B64_PREFIX = "/9j/";
+const PNG_B64_PREFIX = "iVBORw0KGgo";
+const SUSPICIOUS_BASE64_PATTERN = /^[A-Za-z0-9+/]{256,}={0,2}$/;
+const LINKED_ENTRY_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function isPromptEligibleTimelineEvent(event: Record<string, unknown>): boolean {
   const status = String(event.status ?? "");
   if (EXCLUDED_TIMELINE_STATUSES.has(status)) {
@@ -67,6 +93,9 @@ function isPromptEligibleTimelineEvent(event: Record<string, unknown>): boolean 
   }
   const type = String(event.type ?? "");
   if (EXCLUDED_TIMELINE_EVENT_TYPES.has(type)) {
+    return false;
+  }
+  if (CONSUMED_FACT_EVENT_TYPES.has(type) && status !== "confirmed") {
     return false;
   }
   return true;
@@ -103,31 +132,159 @@ function clampString(value: unknown, maxLength: number): string | undefined {
 function optionalString(value: unknown, field: string, maxLength: number): void {
   if (value === undefined || value === null) return;
   if (typeof value !== "string") {
-    throw new GatewayError(400, `Invalid context.${field}.`);
+    throw new GatewayError(400, "Invalid context.");
   }
   if (value.length > maxLength) {
-    throw new GatewayError(400, `context.${field} exceeds maximum length.`);
+    throw new GatewayError(400, "Invalid context.");
   }
 }
 
 function optionalNumber(value: unknown, field: string): void {
   if (value === undefined || value === null) return;
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new GatewayError(400, `Invalid context.${field}.`);
+    throw new GatewayError(400, "Invalid context.");
   }
 }
 
 function optionalBoolean(value: unknown, field: string): void {
   if (value === undefined || value === null) return;
   if (typeof value !== "boolean") {
-    throw new GatewayError(400, `Invalid context.${field}.`);
+    throw new GatewayError(400, "Invalid context.");
   }
 }
 
 function optionalArray(value: unknown, field: string): void {
   if (value === undefined || value === null) return;
   if (!Array.isArray(value)) {
-    throw new GatewayError(400, `Invalid context.${field}.`);
+    throw new GatewayError(400, "Invalid context.");
+  }
+}
+
+function isValidLinkedEntryId(value: unknown): value is string {
+  return typeof value === "string" && LINKED_ENTRY_ID_PATTERN.test(value);
+}
+
+function validateLinkedEntryId(value: unknown, field: string): void {
+  if (value === undefined || value === null) return;
+  if (!isValidLinkedEntryId(value)) {
+    throw new GatewayError(400, "Invalid context.");
+  }
+}
+
+function looksLikeEmbeddedImageData(value: string): boolean {
+  const trimmed = value.trim();
+  if (IMAGE_DATA_URL_PATTERN.test(trimmed)) {
+    return true;
+  }
+  if (trimmed.length < COACH_CONTEXT_LIMITS.minSuspiciousBase64Length) {
+    return false;
+  }
+  if (trimmed.startsWith(JPEG_B64_PREFIX) || trimmed.startsWith(PNG_B64_PREFIX)) {
+    return true;
+  }
+  if (!SUSPICIOUS_BASE64_PATTERN.test(trimmed)) {
+    return false;
+  }
+  if (/^(.)\1{255,}$/.test(trimmed)) {
+    return false;
+  }
+  return trimmed.includes("+") || trimmed.includes("/") || trimmed.endsWith("=");
+}
+
+/** Rejects raw image bytes embedded anywhere inside Coach context. */
+export function assertNoImageDataInCoachContext(
+  value: unknown,
+  path = "context"
+): void {
+  if (value === null || value === undefined) {
+    return;
+  }
+
+  if (typeof value === "string") {
+    if (looksLikeEmbeddedImageData(value)) {
+      throw new GatewayError(400, "Invalid context.");
+    }
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      assertNoImageDataInCoachContext(item, `${path}[${index}]`);
+    });
+    return;
+  }
+
+  if (!isPlainObject(value)) {
+    return;
+  }
+
+  for (const [key, child] of Object.entries(value)) {
+    if (CONTEXT_FORBIDDEN_IMAGE_KEYS.has(key)) {
+      throw new GatewayError(400, "Invalid context.");
+    }
+    if (key === "image" && isPlainObject(child) && typeof child.base64 === "string") {
+      throw new GatewayError(400, "Invalid context.");
+    }
+    if (key === "base64" && typeof child === "string" && child.length > 0) {
+      throw new GatewayError(400, "Invalid context.");
+    }
+    assertNoImageDataInCoachContext(child, `${path}.${key}`);
+  }
+}
+
+function validateTimelineEvents(events: unknown): void {
+  if (!Array.isArray(events)) return;
+
+  for (const event of events) {
+    if (!isPlainObject(event)) {
+      throw new GatewayError(400, "Invalid context.");
+    }
+    if (event.summary !== undefined && typeof event.summary !== "string") {
+      throw new GatewayError(400, "Invalid context.");
+    }
+    validateLinkedEntryId(event.linkedEntryId, "timeline.recentEvents.linkedEntryId");
+  }
+}
+
+function validateRecentChatMessages(messages: unknown): void {
+  if (!Array.isArray(messages)) return;
+
+  for (const message of messages) {
+    if (!isPlainObject(message)) {
+      throw new GatewayError(400, "Invalid context.");
+    }
+    const text = message.text ?? message.textPreview;
+    if (text !== undefined && typeof text !== "string") {
+      throw new GatewayError(400, "Invalid context.");
+    }
+  }
+}
+
+function validateAssumptions(assumptions: unknown): void {
+  if (!Array.isArray(assumptions)) return;
+
+  for (const assumption of assumptions) {
+    if (!isPlainObject(assumption)) {
+      throw new GatewayError(400, "Invalid context.");
+    }
+    if (assumption.detail !== undefined && typeof assumption.detail !== "string") {
+      throw new GatewayError(400, "Invalid context.");
+    }
+    if (typeof assumption.detail === "string" &&
+      assumption.detail.length > COACH_CONTEXT_LIMITS.maxAssumptionDetailLength) {
+      throw new GatewayError(400, "Invalid context.");
+    }
+  }
+}
+
+function validateRecentMeals(meals: unknown): void {
+  if (!Array.isArray(meals)) return;
+
+  for (const meal of meals) {
+    if (!isPlainObject(meal)) {
+      throw new GatewayError(400, "Invalid context.");
+    }
+    validateLinkedEntryId(meal.linkedEntryId, "recentMealsStructured.linkedEntryId");
   }
 }
 
@@ -151,19 +308,16 @@ export function validateCoachContextPacketV2(
   }
 
   if (Object.keys(value).length === 0) {
-    throw new GatewayError(400, "Missing or invalid context.meta.");
+    throw new GatewayError(400, "Missing or invalid context.");
   }
 
   const meta = value.meta;
   if (!isPlainObject(meta)) {
-    throw new GatewayError(400, "Missing or invalid context.meta.");
+    throw new GatewayError(400, "Missing or invalid context.");
   }
 
   if (meta.schemaVersion !== COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION) {
-    throw new GatewayError(
-      400,
-      `Invalid context.meta.schemaVersion. Expected ${COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION}.`
-    );
+    throw new GatewayError(400, "Invalid context.");
   }
 
   optionalString(meta.generatedAt, "meta.generatedAt", 64);
@@ -177,42 +331,55 @@ export function validateCoachContextPacketV2(
   optionalArray(value.commonFoods, "commonFoods");
   optionalArray(value.assumptions, "assumptions");
 
+  validateRecentChatMessages(value.recentChatMessages);
+  validateRecentMeals(value.recentMealsStructured);
+  validateAssumptions(value.assumptions);
+
+  if (value.currentUserMessage !== undefined && value.currentUserMessage !== null) {
+    optionalString(
+      value.currentUserMessage,
+      "currentUserMessage",
+      COACH_CONTEXT_LIMITS.maxCurrentUserMessageLength
+    );
+  }
+
   if (value.timeline !== undefined) {
     if (!isPlainObject(value.timeline)) {
-      throw new GatewayError(400, "Invalid context.timeline.");
+      throw new GatewayError(400, "Invalid context.");
     }
     const timeline = value.timeline as Record<string, unknown>;
     if (timeline.recentEvents !== undefined) {
       optionalArray(timeline.recentEvents, "timeline.recentEvents");
+      validateTimelineEvents(timeline.recentEvents);
     }
   }
 
   if (value.today !== undefined && !isPlainObject(value.today)) {
-    throw new GatewayError(400, "Invalid context.today.");
+    throw new GatewayError(400, "Invalid context.");
   }
   if (value.training !== undefined && !isPlainObject(value.training)) {
-    throw new GatewayError(400, "Invalid context.training.");
+    throw new GatewayError(400, "Invalid context.");
   }
   if (value.healthIntelligence !== undefined && !isPlainObject(value.healthIntelligence)) {
-    throw new GatewayError(400, "Invalid context.healthIntelligence.");
+    throw new GatewayError(400, "Invalid context.");
   }
   if (value.missingData !== undefined && !isPlainObject(value.missingData)) {
-    throw new GatewayError(400, "Invalid context.missingData.");
+    throw new GatewayError(400, "Invalid context.");
   }
   if (value.profile !== undefined && !isPlainObject(value.profile)) {
-    throw new GatewayError(400, "Invalid context.profile.");
+    throw new GatewayError(400, "Invalid context.");
   }
 
   if (isPlainObject(value.today)) {
     if (value.today.steps !== undefined && !isPlainObject(value.today.steps)) {
-      throw new GatewayError(400, "Invalid context.today.steps.");
+      throw new GatewayError(400, "Invalid context.");
     }
     if (isPlainObject(value.today.steps)) {
       optionalNumber(value.today.steps.value, "today.steps.value");
     }
     if (value.today.workoutCaloriesBurned !== undefined &&
       !isPlainObject(value.today.workoutCaloriesBurned)) {
-      throw new GatewayError(400, "Invalid context.today.workoutCaloriesBurned.");
+      throw new GatewayError(400, "Invalid context.");
     }
   }
 
@@ -229,7 +396,46 @@ export function validateCoachContextPacketV2(
     }
   }
 
+  assertNoImageDataInCoachContext(value);
+  assertCoachContextEncodedSizeWithinLimit(value);
+
   return value as CoachContextPacketV2Input;
+}
+
+/** Rejects encoded Coach context payloads that exceed the transport ceiling. */
+export function assertCoachContextEncodedSizeWithinLimit(value: unknown): void {
+  const bytes = Buffer.byteLength(JSON.stringify(value), "utf8");
+  if (bytes > COACH_CONTEXT_LIMITS.maxEncodedBytes) {
+    throw new GatewayError(413, "Context payload too large.");
+  }
+}
+
+function sanitizeCompactPayload(value: unknown): Record<string, string> | undefined {
+  if (!isPlainObject(value)) {
+    return undefined;
+  }
+
+  const entries = Object.entries(value)
+    .slice(0, COACH_CONTEXT_LIMITS.maxCompactPayloadEntries)
+    .map(([key, entryValue]) => {
+      const normalizedValue = entryValue === null || entryValue === undefined ?
+        "" :
+        typeof entryValue === "string" ?
+          entryValue :
+          typeof entryValue === "number" || typeof entryValue === "boolean" ?
+            String(entryValue) :
+            "[sanitized]";
+      return [
+        clampString(key, 40) ?? "key",
+        clampString(normalizedValue, 80) ?? "",
+      ] as const;
+    });
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(entries);
 }
 
 function sanitizeTimelineEvent(event: Record<string, unknown>): Record<string, unknown> {
@@ -243,16 +449,13 @@ function sanitizeTimelineEvent(event: Record<string, unknown>): Record<string, u
   };
 
   if (event.confidence !== undefined) copy.confidence = event.confidence;
-  if (event.linkedEntryId !== undefined) copy.linkedEntryId = event.linkedEntryId;
+  if (isValidLinkedEntryId(event.linkedEntryId)) {
+    copy.linkedEntryId = event.linkedEntryId;
+  }
 
-  if (isPlainObject(event.compactPayload)) {
-    const entries = Object.entries(event.compactPayload)
-      .slice(0, COACH_CONTEXT_LIMITS.maxCompactPayloadEntries)
-      .map(([key, value]) => [
-        clampString(key, 40) ?? key,
-        clampString(String(value), 80) ?? String(value),
-      ]);
-    copy.compactPayload = Object.fromEntries(entries);
+  const compactPayload = sanitizeCompactPayload(event.compactPayload);
+  if (compactPayload !== undefined) {
+    copy.compactPayload = compactPayload;
   }
 
   return copy;
@@ -289,20 +492,25 @@ function sanitizeRecentMeals(value: unknown): Record<string, unknown>[] {
   return value
     .filter(isPlainObject)
     .slice(0, COACH_CONTEXT_LIMITS.maxRecentMeals)
-    .map((meal) => ({
-      name: clampString(meal.name, COACH_CONTEXT_LIMITS.maxStringFieldLength) ?? "Meal",
-      quantity: typeof meal.quantity === "number" ? meal.quantity : undefined,
-      unit: clampString(meal.unit, 32),
-      calories: typeof meal.calories === "number" ? Math.round(meal.calories) : undefined,
-      proteinGrams: typeof meal.proteinGrams === "number" ? meal.proteinGrams : undefined,
-      carbsGrams: typeof meal.carbsGrams === "number" ? meal.carbsGrams : undefined,
-      fatGrams: typeof meal.fatGrams === "number" ? meal.fatGrams : undefined,
-      loggedAt: meal.loggedAt,
-      localDate: clampString(meal.localDate, 32),
-      source: clampString(meal.source, 64),
-      confidence: meal.confidence,
-      linkedEntryId: meal.linkedEntryId,
-    }));
+    .map((meal) => {
+      const sanitized: Record<string, unknown> = {
+        name: clampString(meal.name, COACH_CONTEXT_LIMITS.maxStringFieldLength) ?? "Meal",
+        quantity: typeof meal.quantity === "number" ? meal.quantity : undefined,
+        unit: clampString(meal.unit, 32),
+        calories: typeof meal.calories === "number" ? Math.round(meal.calories) : undefined,
+        proteinGrams: typeof meal.proteinGrams === "number" ? meal.proteinGrams : undefined,
+        carbsGrams: typeof meal.carbsGrams === "number" ? meal.carbsGrams : undefined,
+        fatGrams: typeof meal.fatGrams === "number" ? meal.fatGrams : undefined,
+        loggedAt: meal.loggedAt,
+        localDate: clampString(meal.localDate, 32),
+        source: clampString(meal.source, 64),
+        confidence: meal.confidence,
+      };
+      if (isValidLinkedEntryId(meal.linkedEntryId)) {
+        sanitized.linkedEntryId = meal.linkedEntryId;
+      }
+      return sanitized;
+    });
 }
 
 function sanitizeCommonFoods(value: unknown): Record<string, unknown>[] {
@@ -363,7 +571,10 @@ function sanitizeAssumptions(value: unknown): Record<string, unknown>[] {
     .slice(0, COACH_CONTEXT_LIMITS.maxAssumptions)
     .map((assumption) => ({
       key: clampString(assumption.key, 64) ?? "assumption",
-      detail: clampString(assumption.detail, COACH_CONTEXT_LIMITS.maxStringFieldLength) ?? "",
+      detail: clampString(
+        assumption.detail,
+        COACH_CONTEXT_LIMITS.maxAssumptionDetailLength
+      ) ?? "",
       confidence: assumption.confidence,
     }));
 }
@@ -473,7 +684,15 @@ export function parseCoachContextForPrompt(
   return known;
 }
 
-/** Privacy-safe logging fields — never includes raw health/nutrition payloads. */
+function missingDataTrueFlags(value: unknown): string[] {
+  if (!isPlainObject(value)) return [];
+  return Object.entries(value)
+    .filter(([, flagValue]) => flagValue === true)
+    .map(([key]) => key)
+    .sort();
+}
+
+/** Privacy-safe logging fields — counts and flags only, never raw nutrition/chat text. */
 export function coachContextLogFields(
   value: unknown
 ): Record<string, string | number | boolean | null> {
@@ -481,6 +700,7 @@ export function coachContextLogFields(
     return {
       contextSchemaVersion: null,
       contextPresent: false,
+      contextMissingDataFlags: null,
     };
   }
 
@@ -489,6 +709,7 @@ export function coachContextLogFields(
   const timelineEvents = Array.isArray(timeline?.recentEvents) ?
     timeline.recentEvents.length :
     0;
+  const missingFlags = missingDataTrueFlags(value.missingData);
 
   return {
     contextPresent: true,
@@ -501,7 +722,13 @@ export function coachContextLogFields(
       value.recentMealsStructured.length :
       0,
     contextCommonFoods: Array.isArray(value.commonFoods) ? value.commonFoods.length : 0,
+    contextChatMessages: Array.isArray(value.recentChatMessages) ?
+      value.recentChatMessages.length :
+      0,
+    contextAssumptions: Array.isArray(value.assumptions) ? value.assumptions.length : 0,
+    contextMissingDataFlags: missingFlags.length > 0 ? missingFlags.join(",") : null,
     contextHasHealthIntelligence: isPlainObject(value.healthIntelligence),
     contextHasTraining: isPlainObject(value.training),
+    contextGenerationFailed: missingFlags.includes("contextGenerationFailed"),
   };
 }
