@@ -63,7 +63,10 @@ struct WeeklyWeightTrendBlockState: Equatable {
     let changeLabel: String?
     let weeklyChangeLabel: String?
     let hasSuddenSpike: Bool
-    let spikeWarning: String?
+    let spikeTitle: String?
+    let spikeShortBody: String?
+    let spikeDetailBody: String?
+    let spikeAccessibilityLabel: String?
     let isLimited: Bool
     let accessibilityLabel: String
 }
@@ -283,7 +286,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         case .likelyTooSlow:
             return "Progress looks slower than expected"
         case .noisyButLikelyOkay:
-            return "Noisy scale week"
+            return FormaProductCopy.WeightSpikeEducation.shortTitle
         case .needsConsistencyFirst:
             return "Consistency comes first"
         case .maintaining:
@@ -584,9 +587,10 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             accessibilityParts.append(copy.weightUnavailable)
         }
         if hasSpike {
-            accessibilityParts.append(WeeklyProgressConfidencePolicy.waterWeightNoiseWarningCopy())
+            accessibilityParts.append(FormaProductCopy.WeightSpikeEducation.accessibilityLabel)
         }
 
+        let spikeCopy = FormaProductCopy.WeightSpikeEducation.self
         return WeeklyWeightTrendBlockState(
             title: copy.weightTitle,
             startingWeightLabel: weightLabel(summary.startingWeightKg),
@@ -594,9 +598,10 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             changeLabel: changeLabel,
             weeklyChangeLabel: weeklyChangeLabel,
             hasSuddenSpike: hasSpike,
-            spikeWarning: hasSpike
-                ? WeeklyProgressConfidencePolicy.waterWeightNoiseWarningCopy()
-                : nil,
+            spikeTitle: hasSpike ? spikeCopy.shortTitle : nil,
+            spikeShortBody: hasSpike ? spikeCopy.shortBody : nil,
+            spikeDetailBody: hasSpike ? spikeCopy.detailBody : nil,
+            spikeAccessibilityLabel: hasSpike ? spikeCopy.accessibilityLabel : nil,
             isLimited: isLimited,
             accessibilityLabel: accessibilityParts.joined(separator: ". ")
         )

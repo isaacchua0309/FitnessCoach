@@ -574,7 +574,7 @@ enum MaintenanceEstimateCalculator {
         var caveats: [String] = []
 
         if shouldShowWaterWeightDisclaimer {
-            caveats.append(WeeklyProgressConfidencePolicy.waterWeightNoiseWarningCopy())
+            caveats.append(FormaProductCopy.WeightSpikeEducation.holdSteadyNote)
         }
 
         if sufficiency.reasons.contains(.inconsistentLogging) {
@@ -591,7 +591,7 @@ enum MaintenanceEstimateCalculator {
 
         if method == .trendBucketOnly {
             caveats.append(
-                "Short windows and limited weigh-ins can hide water-weight swings — weekly averages matter more than one reading."
+                "Short windows and limited weigh-ins can hide day-to-day scale swings — weekly averages matter more than one reading."
             )
         }
 

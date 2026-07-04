@@ -91,7 +91,7 @@ struct PlanDashboardContent: View {
             .id(Self.weeklyRecommendationScrollID)
             .overlay {
                 if highlightWeeklyRecommendation {
-                    RoundedRectangle(cornerRadius: FormaTokens.Radius.md, style: .continuous)
+                    RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
                         .strokeBorder(FormaPlanTokens.Color.planAccent, lineWidth: 2)
                         .padding(-FormaTokens.Spacing.xs)
                         .accessibilityHidden(true)

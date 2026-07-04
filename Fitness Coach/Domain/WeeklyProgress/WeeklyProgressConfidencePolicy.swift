@@ -250,7 +250,7 @@ enum WeeklyProgressConfidencePolicy {
         }
 
         if hasSuddenSpike, confidence != .unavailable {
-            return "\(base) The scale looks noisy this week, so we should avoid changing calories from one spike."
+            return base + FormaProductCopy.WeightSpikeEducation.confidenceSuffix
         }
 
         return base
@@ -274,7 +274,7 @@ enum WeeklyProgressConfidencePolicy {
         case .inconsistentLogging:
             return "Logging has been uneven this week. A steadier week will make your estimate clearer."
         case .weightTrendTooNoisy:
-            return "The scale looks noisy this week, so we should avoid changing calories from one spike."
+            return FormaProductCopy.WeightSpikeEducation.shortBody
         case .missingProfile:
             return "Finish setting up your plan before we estimate maintenance."
         case .missingTargets:
@@ -283,11 +283,11 @@ enum WeeklyProgressConfidencePolicy {
     }
 
     static func waterWeightNoiseWarningCopy() -> String {
-        "The scale looks noisy this week, so we should avoid changing calories from one spike."
+        FormaProductCopy.WeightSpikeEducation.shortBody
     }
 
     static func holdSteadyDespiteNoiseCopy() -> String {
-        "Hold steady for now and keep logging. One noisy weigh-in is not enough to change your plan."
+        FormaProductCopy.WeightSpikeEducation.holdSteadyNote
     }
 
     // MARK: Private

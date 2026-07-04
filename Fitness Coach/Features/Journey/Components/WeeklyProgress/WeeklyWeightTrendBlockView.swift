@@ -8,7 +8,13 @@
 import SwiftUI
 
 struct WeeklyWeightTrendBlockView: View {
+    enum SpikeCopyStyle: Equatable {
+        case short
+        case detail
+    }
+
     let state: WeeklyWeightTrendBlockState
+    var spikeCopyStyle: SpikeCopyStyle = .short
 
     var body: some View {
         VStack(alignment: .leading, spacing: WeeklyProgressCardSupport.blockSpacing) {
@@ -25,15 +31,28 @@ struct WeeklyWeightTrendBlockView: View {
                 weightSummary
             }
 
-            if let spikeWarning = state.spikeWarning, state.hasSuddenSpike {
-                WeeklyReviewPhaseMessage(message: spikeWarning, tone: .caution)
+            if state.hasSuddenSpike {
+                spikeEducationBlock
             }
         }
         .padding(WeeklyProgressCardSupport.blockPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(FormaCardChrome.background(.surfaceSubtle))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    @ViewBuilder
+    private var spikeEducationBlock: some View {
+        if let title = state.spikeTitle {
+            Text(title)
+                .font(WeeklyProgressCardSupport.supportingFont.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
+        }
+
+        if let body = resolvedSpikeBody {
+            WeeklyReviewPhaseMessage(message: body, tone: .caution)
+        }
     }
 
     @ViewBuilder
@@ -49,6 +68,22 @@ struct WeeklyWeightTrendBlockView: View {
                 .font(WeeklyProgressCardSupport.supportingFont)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
         }
+    }
+
+    private var resolvedSpikeBody: String? {
+        switch spikeCopyStyle {
+        case .short:
+            return state.spikeShortBody
+        case .detail:
+            return state.spikeDetailBody ?? state.spikeShortBody
+        }
+    }
+
+    private var accessibilityLabel: String {
+        if state.hasSuddenSpike, let spikeAccessibilityLabel = state.spikeAccessibilityLabel {
+            return spikeAccessibilityLabel
+        }
+        return state.accessibilityLabel
     }
 }
 

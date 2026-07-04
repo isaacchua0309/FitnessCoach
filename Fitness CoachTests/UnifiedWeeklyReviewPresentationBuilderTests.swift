@@ -123,7 +123,15 @@ final class UnifiedWeeklyReviewPresentationBuilderTests: XCTestCase {
 
         XCTAssertNotNil(state.weightTrendBlock)
         XCTAssertTrue(state.weightTrendBlock?.hasSuddenSpike == true)
-        XCTAssertNotNil(state.weightTrendBlock?.spikeWarning)
+        XCTAssertNotNil(state.weightTrendBlock?.spikeShortBody)
+        XCTAssertEqual(
+            state.weightTrendBlock?.spikeShortBody,
+            FormaProductCopy.WeightSpikeEducation.shortBody
+        )
+        XCTAssertEqual(
+            state.weightTrendBlock?.spikeDetailBody,
+            FormaProductCopy.WeightSpikeEducation.detailBody
+        )
     }
 
     func testBuildDetailIncludesCanonicalSections() {

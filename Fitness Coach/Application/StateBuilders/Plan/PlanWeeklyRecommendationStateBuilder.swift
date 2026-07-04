@@ -215,7 +215,7 @@ enum PlanWeeklyRecommendationStateBuilder {
         parts.append(state.safetyCopy)
 
         if summary.hasSuddenSpike {
-            parts.append(WeeklyProgressConfidencePolicy.waterWeightNoiseWarningCopy())
+            parts.append(FormaProductCopy.WeightSpikeEducation.accessibilityLabel)
         }
 
         return parts.joined(separator: ". ")

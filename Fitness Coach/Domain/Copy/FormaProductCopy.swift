@@ -3666,6 +3666,41 @@ enum FormaProductCopy {
         }
     }
 
+    // MARK: - Weight spike education
+
+    enum WeightSpikeEducation {
+        static let shortTitle = "Noisy scale week"
+
+        static let shortBody =
+            "One weigh-in can jump without meaning your plan stopped working. "
+            + "Look at your weekly trend before changing calories."
+
+        static let detailBody =
+            "Your latest weigh-in jumped, but one spike does not mean your plan stopped working. "
+            + "Sodium, carbs, soreness, sleep, and hydration can all move the scale. "
+            + "Look at your weekly trend before changing calories."
+
+        static let accessibilityLabel =
+            "Noisy scale week. Your latest weigh-in jumped, but one spike does not mean your plan stopped working. "
+            + "Sodium, carbs, soreness, sleep, and hydration can all move the scale. "
+            + "Look at your weekly trend before changing calories."
+
+        static let waitRecommendationTitle = "Wait before changing calories"
+
+        static let waitRecommendationMessage = shortBody
+
+        static let waitRecommendationReason =
+            "A sudden jump can reflect sodium, carbs, soreness, sleep, or hydration — not a full week of progress."
+
+        static let holdSteadyNote =
+            "Hold steady for now and keep logging. One weigh-in is not enough to change your plan."
+
+        static let confidenceSuffix =
+            " The scale looks noisy this week, so look at the weekly trend before changing calories."
+
+        static let noisyWeekHeadline = shortTitle
+    }
+
     // MARK: - Plan Health Intelligence presentation
 
     enum PlanHealthIntelligencePresentation {

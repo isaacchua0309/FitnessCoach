@@ -535,7 +535,7 @@ extension WeeklyProgressSummaryBuilder {
         case .likelyTooSlow:
             return "Progress looks slower than expected this week."
         case .noisyButLikelyOkay:
-            return "The scale looks noisy, so hold steady before changing your target."
+            return FormaProductCopy.WeightSpikeEducation.noisyWeekHeadline
         case .needsConsistencyFirst:
             return "Your logging was inconsistent, so this review is about consistency first."
         case .maintaining:

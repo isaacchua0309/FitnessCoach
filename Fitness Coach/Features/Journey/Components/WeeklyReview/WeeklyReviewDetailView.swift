@@ -189,7 +189,10 @@ struct WeeklyReviewDetailView: View {
             if let weightBlock = unified.weightTrendBlock {
                 sectionDivider
                 WeeklyReviewDetailSection(title: "Weight trend") {
-                    WeeklyWeightTrendBlockView(state: weightBlock)
+                    WeeklyWeightTrendBlockView(
+                        state: weightBlock,
+                        spikeCopyStyle: .detail
+                    )
                 }
             }
 

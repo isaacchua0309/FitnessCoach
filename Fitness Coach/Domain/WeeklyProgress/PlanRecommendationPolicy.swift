@@ -318,17 +318,17 @@ enum PlanRecommendationPolicy {
         WeeklyPlanRecommendation(
             kind: .waitBecauseScaleIsNoisy,
             confidence: summary.confidence,
-            title: "Wait before changing calories",
-            message: "The scale looks noisy this week, so avoid changing the plan from one weigh-in.",
+            title: FormaProductCopy.WeightSpikeEducation.waitRecommendationTitle,
+            message: FormaProductCopy.WeightSpikeEducation.waitRecommendationMessage,
             suggestedCalorieDelta: nil,
             shouldShowPlanCTA: false,
             ctaTitle: nil,
             reasons: [
-                "A sudden weigh-in change can reflect water weight, sodium, or recovery — not true fat trend."
+                FormaProductCopy.WeightSpikeEducation.waitRecommendationReason
             ],
             safetyNotes: [
                 automaticChangeDisclaimer,
-                WeeklyProgressConfidencePolicy.holdSteadyDespiteNoiseCopy()
+                FormaProductCopy.WeightSpikeEducation.holdSteadyNote
             ]
         )
     }
