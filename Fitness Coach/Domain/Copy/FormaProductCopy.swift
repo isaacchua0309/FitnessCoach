@@ -2357,6 +2357,41 @@ enum FormaProductCopy {
         static let pendingReviewBeforeLogging = "Please review before logging."
         static let pendingSourceMealPhoto = "Source: meal photo"
         static let pendingSourceCommonFood = "Source: usual food"
+        static let logEstimatePending = "Log estimate"
+        static let adjustPortionsPending = "Adjust portions"
+        static let pendingEditBeforeLoggingHint = "Edit before logging"
+        static let pendingLowConfidenceWarning =
+            "This is a rough estimate. Portion size or sauce may change the total meaningfully."
+        static let pendingEstimatedCaloriesUnknown = "Estimated: calories unavailable"
+        static let pendingTellCoachGenericHint = "Tell Coach if a portion or ingredient was different"
+        static let pendingMoreAssumptions = "+%d more assumptions"
+        static let pendingMoreComponents = "+%d more components"
+        static let pendingAssumptionsTitle = "Assumptions"
+        static let pendingComponentsTitle = "Component breakdown"
+
+        static func pendingEstimatedCalories(about calories: Int) -> String {
+            "Estimated: about \(calories) kcal"
+        }
+
+        static func pendingLikelyRange(lower: Int, upper: Int) -> String {
+            "Likely range: \(lower)–\(upper) kcal"
+        }
+
+        static func pendingConfidence(label: String) -> String {
+            "Confidence: \(label)"
+        }
+
+        static func pendingMainUncertainty(_ text: String) -> String {
+            "Main uncertainty: \(text)"
+        }
+
+        static func pendingComponentCalories(name: String, calories: Int) -> String {
+            "\(name): ~\(calories) kcal"
+        }
+
+        static func pendingTellCoachHint(_ detail: String) -> String {
+            "Tell Coach: \(detail)"
+        }
 
         static func latestMealLine(name: String, calories: Int) -> String {
             "Latest: \(name) · \(calories) kcal"

@@ -29,33 +29,24 @@ enum CoachPendingConfirmation: Equatable {
     var summaryLine: String {
         switch self {
         case .food(let draft):
-            let meal = draft.primaryMealDraft
-            var lines: [String] = []
-            if meal.hasUsableNutritionEstimate {
-                lines.append(
-                    "\(meal.displayName) · \(meal.totalCalories) kcal · \(AIFoodConfirmationFormatter.macroSummary(for: meal))"
-                )
-            } else {
-                lines.append(meal.displayName)
+            let presentation = CoachPendingFoodEstimatePresentationBuilder.presentation(for: draft)
+            var lines: [String] = [presentation.mealName, presentation.estimatedCaloriesLine]
+            if let rangeLine = presentation.likelyRangeLine {
+                lines.append(rangeLine)
             }
-            if let sourceLine = AIFoodConfirmationFormatter.pendingSourceLabel(
-                sourceAttribution: draft.sourceAttribution,
-                foodSource: meal.source
-            ) {
-                lines.append(sourceLine)
+            lines.append(presentation.confidenceLine)
+            if let mainUncertainty = presentation.mainUncertaintyLine {
+                lines.append(mainUncertainty)
             }
-            lines.append(AIFoodConfirmationFormatter.confidenceLabel(draft.confidence))
-            if let reviewWarning = AIFoodConfirmationFormatter.pendingReviewWarning(
-                confidence: draft.confidence
-            ) {
-                lines.append(reviewWarning)
+            if let lowWarning = presentation.lowConfidenceWarning {
+                lines.append(lowWarning)
             }
-            let assumptions = AIFoodConfirmationFormatter.assumptionLines(for: meal)
-            if !assumptions.isEmpty {
-                lines.append(contentsOf: assumptions)
-            }
-            if let sanityWarning = draft.sanityWarning, !sanityWarning.isEmpty {
+            lines.append(contentsOf: presentation.assumptionLines)
+            if let sanityWarning = presentation.sanityWarning, !sanityWarning.isEmpty {
                 lines.append(sanityWarning)
+            }
+            if let sourceLine = presentation.sourceLine {
+                lines.append(sourceLine)
             }
             return lines.joined(separator: "\n")
         case .water(let draft, _):
@@ -100,12 +91,8 @@ enum CoachPendingConfirmation: Equatable {
     var compactDetailLine: String? {
         switch self {
         case .food(let draft):
-            let meal = draft.primaryMealDraft
-            if meal.hasUsableNutritionEstimate {
-                return "~\(meal.totalCalories) kcal"
-            }
-            let name = meal.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-            return name.isEmpty ? nil : name
+            return CoachPendingFoodEstimatePresentationBuilder.compactDetailLine(for: draft)
+                ?? draft.primaryMealDraft.displayName
         case .water(let draft, _):
             return "\(draft.amountMl) ml"
         case .weight(let draft, _):

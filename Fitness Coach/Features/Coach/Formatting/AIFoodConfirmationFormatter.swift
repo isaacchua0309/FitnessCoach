@@ -20,6 +20,14 @@ enum AIFoodConfirmationFormatter {
         }
     }
 
+    static func shortConfidenceLabel(_ confidence: AIConfidence) -> String {
+        switch confidence {
+        case .high: return "High"
+        case .medium: return "Medium"
+        case .low: return "Low"
+        }
+    }
+
     static func sourceLabel(_ source: FoodEntrySource) -> String {
         switch source {
         case .manual:
@@ -64,7 +72,7 @@ enum AIFoodConfirmationFormatter {
         case .medium:
             return "This is a medium-confidence estimate. Please review before logging."
         case .low:
-            return FormaProductCopy.Coach.pendingReviewBeforeLogging
+            return FormaProductCopy.Coach.pendingLowConfidenceWarning
         }
     }
 
@@ -83,7 +91,7 @@ enum AIFoodConfirmationFormatter {
 
     static func pendingReviewWarning(confidence: AIConfidence) -> String? {
         guard confidence == .low else { return nil }
-        return FormaProductCopy.Coach.pendingReviewBeforeLogging
+        return FormaProductCopy.Coach.pendingLowConfidenceWarning
     }
 
     static func assumptionLines(for meal: FoodLogDraft) -> [String] {

@@ -38,6 +38,10 @@ struct AIFoodConfirmationSheet: View {
         return nil
     }
 
+    private var trustPresentation: CoachPendingFoodEstimatePresentation {
+        CoachPendingFoodEstimatePresentationBuilder.presentation(for: draft)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -46,7 +50,11 @@ struct AIFoodConfirmationSheet: View {
                         FormaEstimateContextBanner(
                             confidence: draft.confidence,
                             context: estimateContext,
-                            sanityWarning: draft.sanityWarning
+                            sanityWarning: draft.sanityWarning,
+                            estimatedCaloriesLine: trustPresentation.estimatedCaloriesLine,
+                            likelyRangeLine: trustPresentation.likelyRangeLine,
+                            mainUncertaintyLine: trustPresentation.mainUncertaintyLine,
+                            assumptionLines: trustPresentation.assumptionLines
                         )
                     }
 

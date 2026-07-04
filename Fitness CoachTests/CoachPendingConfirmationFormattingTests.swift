@@ -10,12 +10,12 @@ import XCTest
 
 final class CoachPendingConfirmationFormattingTests: XCTestCase {
 
-    func testFoodSummaryIncludesMacrosAndConfidence() {
+    func testFoodSummaryIncludesTrustEstimateLines() {
         let pending = CoachPendingConfirmation.food(CoachMutationTestFixtures.chickenConfirmationDraft)
 
         XCTAssertEqual(pending.kindLabel, "Food")
-        XCTAssertTrue(pending.summaryLine.contains("Chicken breast · 330 kcal · P 62g / C 0g / F 7g"))
-        XCTAssertTrue(pending.summaryLine.contains(AIFoodConfirmationFormatter.confidenceLabel(.high)))
+        XCTAssertTrue(pending.summaryLine.contains("Estimated: about 330 kcal"))
+        XCTAssertTrue(pending.summaryLine.contains("Confidence: High"))
         XCTAssertTrue(pending.supportsEdit)
     }
 
@@ -26,7 +26,7 @@ final class CoachPendingConfirmationFormattingTests: XCTestCase {
 
         let pending = CoachPendingConfirmation.food(draft)
 
-        XCTAssertTrue(pending.summaryLine.contains(FormaProductCopy.Coach.pendingReviewBeforeLogging))
+        XCTAssertTrue(pending.summaryLine.contains(FormaProductCopy.Coach.pendingLowConfidenceWarning))
     }
 
     func testPhotoFoodPendingShowsSourceLabel() {
@@ -79,7 +79,7 @@ final class CoachPendingConfirmationFormattingTests: XCTestCase {
         let pending = CoachPendingConfirmation.food(CoachMutationTestFixtures.chickenConfirmationDraft)
 
         XCTAssertEqual(pending.compactTitle, FormaProductCopy.Coach.foodEstimatePending)
-        XCTAssertEqual(pending.compactDetailLine, "~330 kcal")
+        XCTAssertEqual(pending.compactDetailLine, "Estimated: about 330 kcal")
     }
 
     func testFoodCompactPresentationWithoutCaloriesUsesDisplayName() {

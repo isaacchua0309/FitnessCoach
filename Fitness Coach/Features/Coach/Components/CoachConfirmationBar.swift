@@ -41,7 +41,14 @@ struct CoachConfirmationBar: View {
         .animation(CoachDesignTokens.Motion.standard, value: usesCompactPresentation)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCard)
-        .accessibilityLabel(compactAccessibilityLabel)
+        .accessibilityLabel(foodAccessibilityLabel)
+    }
+
+    private var foodAccessibilityLabel: String {
+        if let foodDraft = confirmation.foodDraft {
+            return CoachPendingFoodEstimatePresentationBuilder.presentation(for: foodDraft).accessibilityLabel
+        }
+        return compactAccessibilityLabel
     }
 
     // MARK: - Expanded
@@ -57,11 +64,7 @@ struct CoachConfirmationBar: View {
                         .font(CoachDesignTokens.Typography.confirmationMetric)
                         .foregroundStyle(CoachDesignTokens.Color.confirmationLabel)
 
-                    Text(confirmation.summaryLine)
-                        .font(CoachDesignTokens.Typography.messageBody)
-                        .foregroundStyle(CoachDesignTokens.Color.primaryText)
-                        .lineLimit(6)
-                        .fixedSize(horizontal: false, vertical: true)
+                    expandedSummaryContent
                 }
 
                 Spacer(minLength: 0)
@@ -74,10 +77,25 @@ struct CoachConfirmationBar: View {
         .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardExpanded)
     }
 
+    @ViewBuilder
+    private var expandedSummaryContent: some View {
+        if let foodDraft = confirmation.foodDraft {
+            CoachPendingFoodTrustSummaryView(
+                presentation: CoachPendingFoodEstimatePresentationBuilder.presentation(for: foodDraft)
+            )
+        } else {
+            Text(confirmation.summaryLine)
+                .font(CoachDesignTokens.Typography.messageBody)
+                .foregroundStyle(CoachDesignTokens.Color.primaryText)
+                .lineLimit(8)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private var expandedActions: some View {
         HStack(spacing: CoachDesignTokens.Spacing.sm) {
             if let onEdit {
-                Button(FormaProductCopy.Coach.editPending, action: onEdit)
+                Button(foodEditLabel, action: onEdit)
                     .buttonStyle(CoachConfirmationSecondaryButtonStyle())
                     .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardEditButton)
             }
@@ -136,7 +154,7 @@ struct CoachConfirmationBar: View {
     private var compactActions: some View {
         HStack(spacing: CoachDesignTokens.Spacing.xs) {
             if showsCompactEditAction, let onEdit {
-                Button(FormaProductCopy.Coach.editPending, action: onEdit)
+                Button(foodEditLabel, action: onEdit)
                     .buttonStyle(CoachConfirmationCompactSecondaryButtonStyle())
                     .lineLimit(1)
                     .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardEditButton)
@@ -207,8 +225,17 @@ struct CoachConfirmationBar: View {
         }
     }
 
+    private var foodEditLabel: String {
+        if case .food = confirmation {
+            return FormaProductCopy.Coach.adjustPortionsPending
+        }
+        return FormaProductCopy.Coach.editPending
+    }
+
     private var confirmLabel: String {
         switch confirmation {
+        case .food:
+            return FormaProductCopy.Coach.logEstimatePending
         case .edit, .delete, .undo:
             return FormaProductCopy.Coach.confirmPending
         default:
@@ -278,9 +305,15 @@ private struct CoachConfirmationCompactSecondaryButtonStyle: ButtonStyle {
                                 confidence: .medium
                             )
                         ],
-                        confidence: .medium,
-                        source: .aiTextEstimate
-                    ),
+                    confidence: .medium,
+                    source: .aiTextEstimate,
+                    calorieRangeLower: 580,
+                    calorieRangeUpper: 720,
+                    assumptions: ["Standard hawker portion"],
+                    uncertaintyReasons: ["Rice amount unclear"],
+                    primaryUncertainty: "Rice amount",
+                    requiresClarificationBeforeLogging: true
+                ),
                     confidence: .medium,
                     requiresConfirmation: true
                 )
@@ -319,9 +352,15 @@ private struct CoachConfirmationCompactSecondaryButtonStyle: ButtonStyle {
                                 confidence: .medium
                             )
                         ],
-                        confidence: .medium,
-                        source: .aiTextEstimate
-                    ),
+                    confidence: .medium,
+                    source: .aiTextEstimate,
+                    calorieRangeLower: 580,
+                    calorieRangeUpper: 720,
+                    assumptions: ["Standard hawker portion"],
+                    uncertaintyReasons: ["Rice amount unclear"],
+                    primaryUncertainty: "Rice amount",
+                    requiresClarificationBeforeLogging: true
+                ),
                     confidence: .medium,
                     requiresConfirmation: true
                 )
