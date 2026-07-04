@@ -6,6 +6,15 @@
 //
 //  Not wired into AppContainer or log services. Phase 3 sync engine will inject this store.
 //
+//  Phase 5 incremental fetch composite indexes (deploy in Firebase console or firestore.indexes.json):
+//  - Collection `users/{uid}/dailyLogs`:        userId ASC, updatedAt ASC
+//  - Collection `users/{uid}/weightEntries`:      userId ASC, updatedAt ASC
+//  - Collection `users/{uid}/dailyReviews`:     userId ASC, updatedAt ASC
+//  - Subcollection `.../dailyLogs/{date}/foodEntries`:  userId ASC, updatedAt ASC
+//  - Subcollection `.../dailyLogs/{date}/waterEntries`: userId ASC, updatedAt ASC
+//
+//  Food/water incremental fetch uses bounded per-day subcollection queries (no collection group).
+//
 
 import FirebaseFirestore
 import Foundation
@@ -172,6 +181,165 @@ final class FirestoreAccountDataRemoteStore: AccountDataRemoteStore, @unchecked 
             .setData(try encode(document), merge: true)
     }
 
+    // MARK: - Phase 5 incremental fetch
+
+    func fetchDailyLogsUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudDailyLogDocument] {
+        let sessionUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let safeLimit = AccountDataRemoteStoreIncrementalSupport.clampLimit(limit)
+        let query = incrementalQuery(
+            on: userCollection(uid: sessionUID, name: AccountDataCloudPaths.Segment.dailyLogs),
+            sessionUID: sessionUID,
+            since: since,
+            limit: safeLimit
+        )
+        let snapshot = try await query.getDocuments()
+        let documents = try validatedDocuments(from: snapshot.documents, as: CloudDailyLogDocument.self, sessionUID: sessionUID)
+        return AccountDataRemoteStoreIncrementalSupport.sortAndLimit(
+            documents,
+            limit: safeLimit,
+            updatedAt: \.updatedAt
+        )
+    }
+
+    func fetchFoodEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        from startDate: String,
+        to endDate: String,
+        limit: Int
+    ) async throws -> [CloudFoodEntryDocument] {
+        let sessionUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let range = try AccountDataRemoteStoreSupport.validateDateRange(from: startDate, to: endDate)
+        let safeLimit = AccountDataRemoteStoreIncrementalSupport.clampLimit(limit)
+        let localDates = AccountDataRemoteStoreSupport.localDates(from: range.0, to: range.1)
+        var collected: [CloudFoodEntryDocument] = []
+        for localDate in localDates {
+            let query = incrementalQuery(
+                on: dailyLogReference(uid: sessionUID, localDate: localDate)
+                    .collection(AccountDataCloudPaths.Segment.foodEntries),
+                sessionUID: sessionUID,
+                since: since,
+                limit: safeLimit
+            )
+            let snapshot = try await query.getDocuments()
+            collected.append(
+                contentsOf: try validatedDocuments(
+                    from: snapshot.documents,
+                    as: CloudFoodEntryDocument.self,
+                    sessionUID: sessionUID
+                )
+            )
+        }
+        return AccountDataRemoteStoreIncrementalSupport.sortAndLimit(
+            collected,
+            limit: safeLimit,
+            updatedAt: \.updatedAt
+        )
+    }
+
+    func fetchWaterEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        from startDate: String,
+        to endDate: String,
+        limit: Int
+    ) async throws -> [CloudWaterEntryDocument] {
+        let sessionUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let range = try AccountDataRemoteStoreSupport.validateDateRange(from: startDate, to: endDate)
+        let safeLimit = AccountDataRemoteStoreIncrementalSupport.clampLimit(limit)
+        let localDates = AccountDataRemoteStoreSupport.localDates(from: range.0, to: range.1)
+        var collected: [CloudWaterEntryDocument] = []
+        for localDate in localDates {
+            let query = incrementalQuery(
+                on: dailyLogReference(uid: sessionUID, localDate: localDate)
+                    .collection(AccountDataCloudPaths.Segment.waterEntries),
+                sessionUID: sessionUID,
+                since: since,
+                limit: safeLimit
+            )
+            let snapshot = try await query.getDocuments()
+            collected.append(
+                contentsOf: try validatedDocuments(
+                    from: snapshot.documents,
+                    as: CloudWaterEntryDocument.self,
+                    sessionUID: sessionUID
+                )
+            )
+        }
+        return AccountDataRemoteStoreIncrementalSupport.sortAndLimit(
+            collected,
+            limit: safeLimit,
+            updatedAt: \.updatedAt
+        )
+    }
+
+    func fetchWeightEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudWeightEntryDocument] {
+        let sessionUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let safeLimit = AccountDataRemoteStoreIncrementalSupport.clampLimit(limit)
+        let query = incrementalQuery(
+            on: userCollection(uid: sessionUID, name: AccountDataCloudPaths.Segment.weightEntries),
+            sessionUID: sessionUID,
+            since: since,
+            limit: safeLimit
+        )
+        let snapshot = try await query.getDocuments()
+        let documents = try validatedDocuments(
+            from: snapshot.documents,
+            as: CloudWeightEntryDocument.self,
+            sessionUID: sessionUID
+        )
+        return AccountDataRemoteStoreIncrementalSupport.sortAndLimit(
+            documents,
+            limit: safeLimit,
+            updatedAt: \.updatedAt
+        )
+    }
+
+    func fetchDailyReviewsUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudDailyReviewDocument] {
+        let sessionUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let safeLimit = AccountDataRemoteStoreIncrementalSupport.clampLimit(limit)
+        let query = incrementalQuery(
+            on: userCollection(uid: sessionUID, name: AccountDataCloudPaths.Segment.dailyReviews),
+            sessionUID: sessionUID,
+            since: since,
+            limit: safeLimit
+        )
+        let snapshot = try await query.getDocuments()
+        let documents = try validatedDocuments(
+            from: snapshot.documents,
+            as: CloudDailyReviewDocument.self,
+            sessionUID: sessionUID
+        )
+        return AccountDataRemoteStoreIncrementalSupport.sortAndLimit(
+            documents,
+            limit: safeLimit,
+            updatedAt: \.updatedAt
+        )
+    }
+
+    func fetchCloudProfileUpdatedSince(uid: String, since: Date?) async throws -> CloudUserProfileDocument? {
+        let sessionUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let snapshot = try await profileDocumentReference(uid: sessionUID).getDocument()
+        guard snapshot.exists else { return nil }
+        let document = try decode(snapshot, as: CloudUserProfileDocument.self)
+        guard AccountDataRemoteStoreIncrementalSupport.matchesUpdatedSince(document.updatedAt, since: since) else {
+            return nil
+        }
+        return document
+    }
+
     // MARK: - Firestore references
 
     private func usersDocument(uid: String) -> DocumentReference {
@@ -214,6 +382,46 @@ final class FirestoreAccountDataRemoteStore: AccountDataRemoteStore, @unchecked 
     private func dailyReviewReference(uid: String, localDate: String) -> DocumentReference {
         userCollection(uid: uid, name: AccountDataCloudPaths.Segment.dailyReviews)
             .document(localDate)
+    }
+
+    private func profileDocumentReference(uid: String) -> DocumentReference {
+        usersDocument(uid: uid)
+            .collection(AccountDataCloudPaths.Segment.profile)
+            .document(AccountDataCloudPaths.Segment.currentDocumentID)
+    }
+
+    // MARK: - Incremental query helpers
+
+    private func incrementalQuery(
+        on collection: Query,
+        sessionUID: String,
+        since: Date?,
+        limit: Int
+    ) -> Query {
+        var query = collection.whereField(AccountDataCloudSchema.userId, isEqualTo: sessionUID)
+        if let since {
+            query = query
+                .whereField(AccountDataCloudSchema.updatedAt, isGreaterThan: since)
+                .order(by: AccountDataCloudSchema.updatedAt)
+        } else {
+            query = query.order(by: AccountDataCloudSchema.updatedAt)
+        }
+        return query.limit(to: limit)
+    }
+
+    private func validatedDocuments<T: CloudAccountDataDocument>(
+        from snapshots: [QueryDocumentSnapshot],
+        as type: T.Type,
+        sessionUID: String
+    ) throws -> [T] {
+        var results: [T] = []
+        for snapshot in snapshots {
+            let document = try decode(snapshot, as: type)
+            let normalizedDocumentUserId = document.userId.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard normalizedDocumentUserId == sessionUID else { continue }
+            results.append(document)
+        }
+        return results
     }
 
     // MARK: - Codable helpers

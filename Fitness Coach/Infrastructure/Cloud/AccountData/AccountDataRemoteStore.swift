@@ -55,6 +55,45 @@ protocol AccountDataRemoteStore: Sendable {
 
     func fetchSyncMetadata(uid: String) async throws -> CloudSyncMetadataDocument?
     func saveSyncMetadata(_ document: CloudSyncMetadataDocument, uid: String) async throws
+
+    // MARK: - Phase 5 incremental fetch (updatedAt cursors)
+
+    func fetchDailyLogsUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudDailyLogDocument]
+
+    func fetchFoodEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        from startDate: String,
+        to endDate: String,
+        limit: Int
+    ) async throws -> [CloudFoodEntryDocument]
+
+    func fetchWaterEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        from startDate: String,
+        to endDate: String,
+        limit: Int
+    ) async throws -> [CloudWaterEntryDocument]
+
+    func fetchWeightEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudWeightEntryDocument]
+
+    func fetchDailyReviewsUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudDailyReviewDocument]
+
+    /// Returns the cloud profile when `updatedAt` is newer than `since` (path-scoped to `uid`).
+    func fetchCloudProfileUpdatedSince(uid: String, since: Date?) async throws -> CloudUserProfileDocument?
 }
 
 enum AccountDataRemoteStoreSupport {
@@ -102,6 +141,76 @@ enum AccountDataRemoteStoreSupport {
         }
         return (start, end)
     }
+
+    static func localDates(
+        from startDate: String,
+        to endDate: String,
+        calendar: Calendar = incrementalFetchCalendar
+    ) -> [String] {
+        guard let start = CloudAccountDataDateCodec.date(fromLocalDateString: startDate, calendar: calendar),
+              let end = CloudAccountDataDateCodec.date(fromLocalDateString: endDate, calendar: calendar) else {
+            return []
+        }
+        var dates: [String] = []
+        var cursor = calendar.startOfDay(for: start)
+        let endDay = calendar.startOfDay(for: end)
+        while cursor <= endDay {
+            dates.append(CloudAccountDataDateCodec.localDateString(from: cursor, calendar: calendar))
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
+            cursor = next
+        }
+        return dates
+    }
+
+    private static var incrementalFetchCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
+    }
+}
+
+// MARK: - Incremental fetch helpers
+
+enum AccountDataRemoteStoreIncrementalSupport {
+
+    static let defaultFetchLimit = 200
+    static let maximumFetchLimit = 500
+
+    static func clampLimit(_ limit: Int) -> Int {
+        min(max(limit, 1), maximumFetchLimit)
+    }
+
+    /// Documents exactly at `since` were included in the prior pull.
+    static func matchesUpdatedSince(_ updatedAt: Date, since: Date?) -> Bool {
+        guard let since else { return true }
+        return updatedAt > since
+    }
+
+    static func filterDocuments<T: CloudAccountDataDocument>(
+        _ documents: [T],
+        sessionUID: String,
+        since: Date?
+    ) -> [T] {
+        documents.filter { document in
+            guard document.userId.trimmingCharacters(in: .whitespacesAndNewlines) == sessionUID else {
+                return false
+            }
+            return matchesUpdatedSince(document.updatedAt, since: since)
+        }
+    }
+
+    static func sortByUpdatedAtAsc<T>(_ documents: [T], updatedAt: (T) -> Date) -> [T] {
+        documents.sorted { updatedAt($0) < updatedAt($1) }
+    }
+
+    static func sortAndLimit<T>(
+        _ documents: [T],
+        limit: Int,
+        updatedAt: (T) -> Date
+    ) -> [T] {
+        let sorted = sortByUpdatedAtAsc(documents, updatedAt: updatedAt)
+        return Array(sorted.prefix(clampLimit(limit)))
+    }
 }
 
 // MARK: - In-memory test double
@@ -114,6 +223,7 @@ actor InMemoryAccountDataRemoteStore: AccountDataRemoteStore {
     private var weightEntries: [String: [String: CloudWeightEntryDocument]] = [:]
     private var dailyReviews: [String: [String: CloudDailyReviewDocument]] = [:]
     private var syncMetadata: [String: CloudSyncMetadataDocument] = [:]
+    private var cloudProfiles: [String: CloudUserProfileDocument] = [:]
 
     func fetchDailyLog(uid: String, localDate: String) async throws -> CloudDailyLogDocument? {
         let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
@@ -236,5 +346,135 @@ actor InMemoryAccountDataRemoteStore: AccountDataRemoteStore {
         let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
         try AccountDataRemoteStoreSupport.validateWrite(document, uid: normalizedUID)
         syncMetadata[normalizedUID] = document
+    }
+
+    // MARK: - Phase 5 incremental fetch
+
+    func fetchDailyLogsUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudDailyLogDocument] {
+        let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let documents = (dailyLogs[normalizedUID] ?? [:]).values
+        let filtered = AccountDataRemoteStoreIncrementalSupport.filterDocuments(
+            Array(documents),
+            sessionUID: normalizedUID,
+            since: since
+        )
+        return AccountDataRemoteStoreIncrementalSupport.sortAndLimit(
+            filtered,
+            limit: limit,
+            updatedAt: \.updatedAt
+        )
+    }
+
+    func fetchFoodEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        from startDate: String,
+        to endDate: String,
+        limit: Int
+    ) async throws -> [CloudFoodEntryDocument] {
+        let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let range = try AccountDataRemoteStoreSupport.validateDateRange(from: startDate, to: endDate)
+        let localDates = AccountDataRemoteStoreSupport.localDates(from: range.0, to: range.1)
+        var collected: [CloudFoodEntryDocument] = []
+        for localDate in localDates {
+            let dayEntries = Array((foodEntries[normalizedUID]?[localDate] ?? [:]).values)
+            collected.append(
+                contentsOf: AccountDataRemoteStoreIncrementalSupport.filterDocuments(
+                    dayEntries,
+                    sessionUID: normalizedUID,
+                    since: since
+                )
+            )
+        }
+        return AccountDataRemoteStoreIncrementalSupport.sortAndLimit(
+            collected,
+            limit: limit,
+            updatedAt: \.updatedAt
+        )
+    }
+
+    func fetchWaterEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        from startDate: String,
+        to endDate: String,
+        limit: Int
+    ) async throws -> [CloudWaterEntryDocument] {
+        let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let range = try AccountDataRemoteStoreSupport.validateDateRange(from: startDate, to: endDate)
+        let localDates = AccountDataRemoteStoreSupport.localDates(from: range.0, to: range.1)
+        var collected: [CloudWaterEntryDocument] = []
+        for localDate in localDates {
+            let dayEntries = Array((waterEntries[normalizedUID]?[localDate] ?? [:]).values)
+            collected.append(
+                contentsOf: AccountDataRemoteStoreIncrementalSupport.filterDocuments(
+                    dayEntries,
+                    sessionUID: normalizedUID,
+                    since: since
+                )
+            )
+        }
+        return AccountDataRemoteStoreIncrementalSupport.sortAndLimit(
+            collected,
+            limit: limit,
+            updatedAt: \.updatedAt
+        )
+    }
+
+    func fetchWeightEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudWeightEntryDocument] {
+        let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let documents = Array((weightEntries[normalizedUID] ?? [:]).values)
+        let filtered = AccountDataRemoteStoreIncrementalSupport.filterDocuments(
+            documents,
+            sessionUID: normalizedUID,
+            since: since
+        )
+        return AccountDataRemoteStoreIncrementalSupport.sortAndLimit(
+            filtered,
+            limit: limit,
+            updatedAt: \.updatedAt
+        )
+    }
+
+    func fetchDailyReviewsUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudDailyReviewDocument] {
+        let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        let documents = Array((dailyReviews[normalizedUID] ?? [:]).values)
+        let filtered = AccountDataRemoteStoreIncrementalSupport.filterDocuments(
+            documents,
+            sessionUID: normalizedUID,
+            since: since
+        )
+        return AccountDataRemoteStoreIncrementalSupport.sortAndLimit(
+            filtered,
+            limit: limit,
+            updatedAt: \.updatedAt
+        )
+    }
+
+    func fetchCloudProfileUpdatedSince(uid: String, since: Date?) async throws -> CloudUserProfileDocument? {
+        let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        guard let document = cloudProfiles[normalizedUID] else { return nil }
+        guard AccountDataRemoteStoreIncrementalSupport.matchesUpdatedSince(document.updatedAt, since: since) else {
+            return nil
+        }
+        return document
+    }
+
+    /// Seeds cloud profile snapshots for in-memory incremental fetch tests.
+    func seedCloudProfile(_ document: CloudUserProfileDocument, uid: String) async throws {
+        let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
+        cloudProfiles[normalizedUID] = document
     }
 }

@@ -182,6 +182,66 @@ actor SelectiveFailingAccountDataRemoteStore: AccountDataRemoteStore {
     func saveSyncMetadata(_ document: CloudSyncMetadataDocument, uid: String) async throws {
         try await backing.saveSyncMetadata(document, uid: uid)
     }
+
+    func fetchDailyLogsUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudDailyLogDocument] {
+        try await backing.fetchDailyLogsUpdatedSince(uid: uid, since: since, limit: limit)
+    }
+
+    func fetchFoodEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        from startDate: String,
+        to endDate: String,
+        limit: Int
+    ) async throws -> [CloudFoodEntryDocument] {
+        try await backing.fetchFoodEntriesUpdatedSince(
+            uid: uid,
+            since: since,
+            from: startDate,
+            to: endDate,
+            limit: limit
+        )
+    }
+
+    func fetchWaterEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        from startDate: String,
+        to endDate: String,
+        limit: Int
+    ) async throws -> [CloudWaterEntryDocument] {
+        try await backing.fetchWaterEntriesUpdatedSince(
+            uid: uid,
+            since: since,
+            from: startDate,
+            to: endDate,
+            limit: limit
+        )
+    }
+
+    func fetchWeightEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudWeightEntryDocument] {
+        try await backing.fetchWeightEntriesUpdatedSince(uid: uid, since: since, limit: limit)
+    }
+
+    func fetchDailyReviewsUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudDailyReviewDocument] {
+        try await backing.fetchDailyReviewsUpdatedSince(uid: uid, since: since, limit: limit)
+    }
+
+    func fetchCloudProfileUpdatedSince(uid: String, since: Date?) async throws -> CloudUserProfileDocument? {
+        try await backing.fetchCloudProfileUpdatedSince(uid: uid, since: since)
+    }
 }
 
 struct RestoreTestCloudProfileStore: CloudUserProfileStoring, @unchecked Sendable {

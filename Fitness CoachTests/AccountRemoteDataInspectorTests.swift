@@ -450,4 +450,52 @@ private actor ThrowingAccountDataRemoteStore: AccountDataRemoteStore {
     func saveSyncMetadata(_ document: CloudSyncMetadataDocument, uid: String) async throws {
         throw error
     }
+
+    func fetchDailyLogsUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudDailyLogDocument] {
+        throw error
+    }
+
+    func fetchFoodEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        from startDate: String,
+        to endDate: String,
+        limit: Int
+    ) async throws -> [CloudFoodEntryDocument] {
+        throw error
+    }
+
+    func fetchWaterEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        from startDate: String,
+        to endDate: String,
+        limit: Int
+    ) async throws -> [CloudWaterEntryDocument] {
+        throw error
+    }
+
+    func fetchWeightEntriesUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudWeightEntryDocument] {
+        throw error
+    }
+
+    func fetchDailyReviewsUpdatedSince(
+        uid: String,
+        since: Date?,
+        limit: Int
+    ) async throws -> [CloudDailyReviewDocument] {
+        throw error
+    }
+
+    func fetchCloudProfileUpdatedSince(uid: String, since: Date?) async throws -> CloudUserProfileDocument? {
+        throw error
+    }
 }
