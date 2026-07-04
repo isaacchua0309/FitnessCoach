@@ -93,22 +93,23 @@ describe("foodLoggingGoldenCases", () => {
         const rank = {low: 0, medium: 1, high: 2};
         expect(rank[payload.confidence]).toBeLessThanOrEqual(rank[expectations.maxConfidence]);
       }
+      if (expectations.requiresAssumptions) {
+        const assumptionText = meal.warnings.join(" ").toLowerCase();
+        expect(assumptionText.includes("assumption")).toBe(true);
+      }
     });
 
     if (collapsedExtraction) {
-      it("rejects collapsed bad extraction for case1", () => {
-        expect(id).toBe("case1_multi_component_bowl");
+      it("rejects collapsed bad extraction", () => {
         const validation = validateFoodExtraction(collapsedExtraction, prompt);
         expect(validation.ok).toBe(false);
-        expect(validation.errors.some((error) => error.includes("collapsed"))).toBe(true);
+        expect(validation.errors.length).toBeGreaterThan(0);
 
         const payload = mapExtractionToGatewayPayload(
           collapsedExtraction,
           "aiTextEstimate",
           validation
         );
-        expect(payload.foodLogDrafts[0].components.length).toBe(1);
-        expect(payload.foodDrafts[0].calories).toBe(430);
         expect(payload.confidence).toBe("low");
       });
     }

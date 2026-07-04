@@ -63,6 +63,9 @@ export function estimateFoodPromptRules(): string {
     "- If the user says \"same as breakfast\", use a confirmed breakfast foodLogged event when present.",
     "- Do not treat rejected estimates, failed photo analysis, or pending confirmations as consumed meals.",
     "- Do not copy prior assistant estimate prose as fact; re-estimate unless the user gives explicit numbers.",
+    "- For compound/local dishes, decompose into components instead of one collapsed meal item.",
+    "- When serving size is ambiguous, estimate a reasonable medium portion with medium/low confidence",
+    "  and note assumptions; ask one concise clarification only if uncertainty is very large.",
   ].join("\n");
 }
 
