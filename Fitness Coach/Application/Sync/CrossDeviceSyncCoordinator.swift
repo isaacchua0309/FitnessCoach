@@ -152,7 +152,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
             )
         }
 
-        AccountSyncLogger.crossDeviceSyncStarted(
+        CrossDeviceSyncLogger.syncStarted(
             traceId: traceId,
             mode: mode,
             reason: reason,
@@ -374,7 +374,12 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
     // MARK: - Helpers
 
     private func recordAndReturn(traceId: String, summary: CrossDeviceSyncSummary) -> CrossDeviceSyncSummary {
-        AccountSyncLogger.crossDeviceSyncCompleted(traceId: traceId, summary: summary)
+        let errorCategory = summary.status == .failed ? "cross_device_sync_failed" : nil
+        CrossDeviceSyncLogger.syncCompleted(
+            traceId: traceId,
+            summary: summary,
+            errorCategory: errorCategory
+        )
         return summary
     }
 

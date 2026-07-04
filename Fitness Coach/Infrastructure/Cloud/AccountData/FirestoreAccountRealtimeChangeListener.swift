@@ -85,7 +85,7 @@ final class FirestoreAccountRealtimeChangeListener: AccountRealtimeChangeListeni
         sessions[normalizedUID] = session
         lock.unlock()
 
-        AccountSyncLogger.realtimeListenerStarted(uid: normalizedUID, listenerCount: session.registrations.count)
+        CrossDeviceSyncLogger.listenerStarted(uid: normalizedUID, listenerCount: session.registrations.count)
     }
 
     func stopListening(uid: String) async {
@@ -94,7 +94,7 @@ final class FirestoreAccountRealtimeChangeListener: AccountRealtimeChangeListeni
         session?.registrations.forEach { $0.remove() }
         if session != nil {
             cancelDebounceIfNoSessions()
-            AccountSyncLogger.realtimeListenerStopped(uid: normalizedUID, reason: "stopListening")
+            CrossDeviceSyncLogger.listenerStopped(uid: normalizedUID, reason: "stopListening")
         }
     }
 
@@ -102,7 +102,7 @@ final class FirestoreAccountRealtimeChangeListener: AccountRealtimeChangeListeni
         let activeSessions = drainSessions()
         activeSessions.forEach { session in
             session.registrations.forEach { $0.remove() }
-            AccountSyncLogger.realtimeListenerStopped(uid: session.uid, reason: "stopAll")
+            CrossDeviceSyncLogger.listenerStopped(uid: session.uid, reason: "stopAll")
         }
         debouncer.cancel()
     }
@@ -177,7 +177,7 @@ final class FirestoreAccountRealtimeChangeListener: AccountRealtimeChangeListeni
 
     private func scheduleHint(for uid: String, source: String) {
         debouncer.schedule(uid: uid) { [weak self] hintedUID in
-            AccountSyncLogger.realtimeChangeHintEmitted(uid: hintedUID, source: source)
+            CrossDeviceSyncLogger.changeHintEmitted(uid: hintedUID, source: source)
             self?.onRemoteChangeHint?(hintedUID)
         }
     }

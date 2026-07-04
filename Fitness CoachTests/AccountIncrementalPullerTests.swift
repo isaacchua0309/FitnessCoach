@@ -320,6 +320,7 @@ final class AccountIncrementalPullerTests: XCTestCase {
 
         XCTAssertFalse(summary.pulledProfile)
         XCTAssertEqual(summary.conflicts, 1)
+        XCTAssertEqual(summary.status, .partial)
         XCTAssertEqual(try profileService.getCurrentProfile()?.targets.calorieTarget, 2_200)
     }
 

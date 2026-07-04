@@ -709,7 +709,8 @@ final class AccountSyncPuller: AccountSyncPulling {
         cloudId: String,
         reason: AccountSyncMergeConflictReason
     ) {
-        AccountSyncLogger.mergeConflictDetected(
+        CrossDeviceSyncLogger.mergeConflictDetected(
+            traceId: nil,
             entityType: entityType,
             cloudIdSuffix: String(cloudId.suffix(6)),
             reason: reason

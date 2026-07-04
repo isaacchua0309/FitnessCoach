@@ -153,7 +153,7 @@ final class AccountIncrementalPuller: AccountIncrementalPulling {
             break
         case .conflict:
             profileConflicts = 1
-            AccountSyncLogger.profileMergeConflictDetected(uid: uid)
+            CrossDeviceSyncLogger.profileMergeConflictDetected(traceId: traceId, uid: uid)
         case .failed:
             profileFailed = 1
         }
@@ -383,7 +383,7 @@ final class AccountIncrementalPuller: AccountIncrementalPulling {
             didRefreshUI: false,
             userFacingMessage: nil
         )
-        AccountSyncLogger.incrementalPullCompleted(traceId: traceId, summary: summary)
+        CrossDeviceSyncLogger.incrementalPullCompleted(traceId: traceId, summary: summary)
         return summary
     }
 
@@ -547,7 +547,7 @@ final class AccountIncrementalPuller: AccountIncrementalPulling {
             didRefreshUI: false,
             userFacingMessage: nil
         )
-        AccountSyncLogger.incrementalPullCompleted(traceId: traceId, summary: summary)
+        CrossDeviceSyncLogger.incrementalPullCompleted(traceId: traceId, summary: summary)
         return summary
     }
 
@@ -582,7 +582,7 @@ final class AccountIncrementalPuller: AccountIncrementalPulling {
             didRefreshUI: false,
             userFacingMessage: nil
         )
-        AccountSyncLogger.incrementalPullCompleted(traceId: traceId, summary: summary)
+        CrossDeviceSyncLogger.incrementalPullCompleted(traceId: traceId, summary: summary)
         return summary
     }
 
