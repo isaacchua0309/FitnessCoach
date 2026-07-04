@@ -383,25 +383,19 @@ User B **cannot** upload User A mutations. User B pull **does not** read User A 
 
 ---
 
-## 16. Remaining work for Phase 4
+## 16. Phase 4 complete — see Phase 4 doc
 
-Phase 4 should build on this engine — **not** replace it.
+Phase 4 fresh-install restore, bootstrap UX, and tab awareness are **implemented**. Full documentation:
 
-| Item | Notes |
-|------|-------|
-| `AccountRestoreCoordinator` | Orchestrate bounded/full pull after `ProfileBootstrapService.resolve` |
-| `restoreOnLoginEnabled` flag | Gate blocking restore |
-| Restore progress UI | `RestoreProgressView` — show pull state, allow retry |
-| Block main UI until minimum window restored | e.g. last 30 days before Today is usable |
-| Migration backfill prompt | Offer upload of pre-sync local history |
-| `syncMetadata` cursor updates | `lastFullPullAt`, `lastSuccessfulPushAt` drive incremental restore |
-| Enable `pullRecentDataEnabled` selectively | After restore UX is ready |
-| Firestore emulator iOS integration tests | Optional hardening — Phase 3 uses `InMemoryAccountDataRemoteStore` for round-trips |
+**[PHASE_4_FRESH_INSTALL_RESTORE.md](./PHASE_4_FRESH_INSTALL_RESTORE.md)**
 
-### Phase 5 preview (out of Phase 4 scope)
+Rollout remains gated by `restoreOnLoginEnabled = false` until CI and manual QA pass.
 
-- Turn on foreground pull by default
+### Phase 5 preview (next)
+
+- Turn on foreground pull by default (`pullRecentDataEnabled`)
 - Realtime listeners (`realtimeCrossDeviceSyncEnabled`)
+- Cross-device refresh within foreground session
 - Conflict resolution UI
 - Optional coach chat / timeline sync (separate namespace)
 - Settings sync status for end users
