@@ -310,6 +310,13 @@ final class AIService: AIServiceProtocol {
         do {
             let result = try await work()
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
+            CoachAccuracyObservabilityLogger.logEndpoint(
+                CoachEndpointObservabilitySnapshot(
+                    endpoint: method,
+                    validationSuccess: true,
+                    durationMs: durationMs
+                )
+            )
             FormaPipelineTracer.event(
                 stage: .aiTask,
                 level: .info,
@@ -322,6 +329,15 @@ final class AIService: AIServiceProtocol {
             return result
         } catch let error as LLMClientError {
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
+            let mapped = mapError(error)
+            CoachAccuracyObservabilityLogger.logEndpoint(
+                CoachEndpointObservabilitySnapshot(
+                    endpoint: method,
+                    validationSuccess: false,
+                    backendErrorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: mapped),
+                    durationMs: durationMs
+                )
+            )
             FormaPipelineTracer.logError(
                 stage: .aiTask,
                 message: "AIService LLM client error",
@@ -332,16 +348,23 @@ final class AIService: AIServiceProtocol {
                 ]
             )
             #if DEBUG
-            let mapped = mapError(error)
             Self.debugLogger.error(
-                "Coach AI backend failure [\(method, privacy: .public)]: llm=\(String(describing: error), privacy: .public) mapped=\(String(describing: mapped), privacy: .public)"
+                "Coach AI backend failure [\(method, privacy: .public)]: category=\(CoachImageAnalysisDebugLogFormatter.errorCategory(for: mapped), privacy: .public)"
             )
             throw mapped
             #else
-            throw mapError(error)
+            throw mapped
             #endif
         } catch let error as AIServiceError {
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
+            CoachAccuracyObservabilityLogger.logEndpoint(
+                CoachEndpointObservabilitySnapshot(
+                    endpoint: method,
+                    validationSuccess: false,
+                    backendErrorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: error),
+                    durationMs: durationMs
+                )
+            )
             FormaPipelineTracer.logError(
                 stage: .aiTask,
                 message: "AIService validation error",

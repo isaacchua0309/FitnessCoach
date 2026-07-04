@@ -158,8 +158,7 @@ enum CoachIntentConfidenceGate {
                 "branch": branch,
                 "confidence": String(format: "%.2f", result.confidence),
                 "intent": result.intent.rawValue,
-                "hasAction": String(result.action != nil),
-                "userMessage": message
+                "hasAction": String(result.action != nil)
             ]
         )
     }

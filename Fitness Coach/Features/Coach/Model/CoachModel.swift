@@ -921,7 +921,6 @@ final class CoachModel: ObservableObject {
                 aiService: aiService,
                 config: coachModelConfig
             )
-            CoachRouteDebugLogger.log(decision)
             lastTimelineAttribution = CoachModelTimelineSupport.timelineAttribution(for: decision)
             let result = try await routeHandler.handle(
                 decision.route,
@@ -1275,6 +1274,7 @@ final class CoachModel: ObservableObject {
         pendingConfirmationTimelineKey = UUID()
         foodEditErrorMessage = nil
         isShowingFoodEditSheet = false
+        CoachAccuracyObservabilityLogger.logPendingConfirmationCreated(kind: confirmation.kindLabel)
         timelineRecordPendingCreatedIfNeeded(confirmation)
         return confirmation
     }

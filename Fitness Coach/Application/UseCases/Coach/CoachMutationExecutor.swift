@@ -77,6 +77,7 @@ final class CoachMutationExecutor {
     ) async -> String {
         if let pendingId = timelineContext.pendingConfirmationId,
            completedPendingConfirmationIDs.contains(pendingId) {
+            logMutationOutcome(kind: confirmation.kindLabel, success: true)
             return alreadyLoggedResponse(for: confirmation)
         }
 
@@ -103,6 +104,11 @@ final class CoachMutationExecutor {
            isSuccessfulMutationResponse(response, for: confirmation) {
             completedPendingConfirmationIDs.insert(pendingId)
         }
+
+        logMutationOutcome(
+            kind: confirmation.kindLabel,
+            success: isSuccessfulMutationResponse(response, for: confirmation)
+        )
 
         return response
     }
@@ -481,6 +487,20 @@ final class CoachMutationExecutor {
             userEditedBeforeConfirm: userEditedBeforeConfirm,
             linkedPhotoSessionId: linkedPhotoSessionId,
             occurredAt: entry.createdAt
+        )
+    }
+
+    private func logMutationOutcome(
+        kind: String,
+        success: Bool,
+        backendErrorCategory: String? = nil
+    ) {
+        CoachAccuracyObservabilityLogger.logMutation(
+            CoachMutationObservabilitySnapshot(
+                mutationKind: kind,
+                success: success,
+                backendErrorCategory: backendErrorCategory
+            )
         )
     }
 

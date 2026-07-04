@@ -693,6 +693,27 @@ function missingDataTrueFlags(value: unknown): string[] {
     .sort();
 }
 
+function contextSizeBucket(byteCount: number): string {
+  if (byteCount < 4_096) return "<4k";
+  if (byteCount < 8_192) return "4k-8k";
+  if (byteCount < 16_384) return "8k-16k";
+  if (byteCount < 24_576) return "16k-24k";
+  return ">24k";
+}
+
+function estimateContextByteCount(value: Record<string, unknown>): number {
+  try {
+    return Buffer.byteLength(JSON.stringify(value), "utf8");
+  } catch {
+    return 0;
+  }
+}
+
+function countMissingDataFlags(missingData: unknown): number {
+  if (!isPlainObject(missingData)) return 0;
+  return Object.values(missingData).filter((field) => field === true).length;
+}
+
 /** Privacy-safe logging fields — counts and flags only, never raw nutrition/chat text. */
 export function coachContextLogFields(
   value: unknown
@@ -711,12 +732,18 @@ export function coachContextLogFields(
     timeline.recentEvents.length :
     0;
   const missingFlags = missingDataTrueFlags(value.missingData);
+  const encodedBytes = estimateContextByteCount(value);
 
   return {
     contextPresent: true,
     contextSchemaVersion: typeof meta?.schemaVersion === "number" ?
       meta.schemaVersion :
       null,
+    contextGenerationMode: typeof value.generationMode === "string" ?
+      value.generationMode :
+      null,
+    contextSizeBucket: contextSizeBucket(encodedBytes),
+    contextEncodedBytes: encodedBytes,
     contextLocalDate: typeof meta?.localDate === "string" ? meta.localDate : null,
     contextTimelineEvents: timelineEvents,
     contextRecentMeals: Array.isArray(value.recentMealsStructured) ?
@@ -728,6 +755,7 @@ export function coachContextLogFields(
       0,
     contextAssumptions: Array.isArray(value.assumptions) ? value.assumptions.length : 0,
     contextMissingDataFlags: missingFlags.length > 0 ? missingFlags.join(",") : null,
+    contextMissingDataFlagsCount: countMissingDataFlags(value.missingData),
     contextHasHealthIntelligence: isPlainObject(value.healthIntelligence),
     contextHasTraining: isPlainObject(value.training),
     contextGenerationFailed: missingFlags.includes("contextGenerationFailed"),
