@@ -217,6 +217,213 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         )
     }
 
+    static func buildDetail(
+        dashboard: JourneyDashboardState,
+        healthIntelligence: JourneyHealthIntelligenceSectionState? = nil,
+        profile: UserProfile? = nil,
+        calendar: Calendar = .current
+    ) -> WeeklyProgressDetailState {
+        let input = UnifiedWeeklyReviewInput(
+            summary: dashboard.weeklyProgressSummary,
+            weeklyHabit: dashboard.weeklyHabit,
+            healthReviewCard: healthIntelligence?.weeklyReviewCard,
+            healthReviewDetail: healthIntelligence?.weeklyReviewDetail,
+            profile: profile,
+            goalDirection: dashboard.baseline.goalDirection,
+            calendar: calendar
+        )
+        return buildDetail(input)
+    }
+
+    static func buildDetail(_ input: UnifiedWeeklyReviewInput) -> WeeklyProgressDetailState {
+        let unified = build(input)
+        let summary = input.summary
+        let maintenance = summary.maintenanceEstimate
+
+        return WeeklyProgressDetailState(
+            unified: unified,
+            verdictTitle: verdictTitle(for: summary.verdict),
+            primaryInsight: summary.primaryInsight,
+            consistency: consistencySection(from: summary),
+            staticTDEEComparison: staticTDEEComparison(from: summary),
+            nextWeekFocus: nextWeekFocus(
+                unified: unified,
+                healthReviewDetail: input.healthReviewDetail,
+                summary: summary
+            ),
+            generatedAtLabel: FormaProductCopy.WeeklyReviewPresentation.generatedAtLabel(
+                for: summary.generatedAt,
+                calendar: input.calendar
+            ),
+            healthKitLimitedNotice: healthKitLimitedNotice(from: input.healthReviewDetail),
+            uncertaintyTitle: uncertaintyTitle,
+            accessibilityLabel: detailAccessibilityLabel(
+                unified: unified,
+                summary: summary,
+                generatedAtLabel: FormaProductCopy.WeeklyReviewPresentation.generatedAtLabel(
+                    for: summary.generatedAt,
+                    calendar: input.calendar
+                )
+            )
+        )
+    }
+
+    // MARK: Detail assembly
+
+    private static let uncertaintyTitle = "Why this may be uncertain"
+
+    private static func verdictTitle(for verdict: WeeklyProgressVerdict) -> String {
+        switch verdict {
+        case .notEnoughData:
+            return FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+        case .onTrack:
+            return "On track this week"
+        case .likelyTooAggressive:
+            return "Plan may be aggressive"
+        case .likelyTooSlow:
+            return "Progress looks slower than expected"
+        case .noisyButLikelyOkay:
+            return "Noisy scale week"
+        case .needsConsistencyFirst:
+            return "Consistency comes first"
+        case .maintaining:
+            return "Holding steady"
+        case .unclear:
+            return "Your week is still taking shape"
+        }
+    }
+
+    private static func consistencySection(
+        from summary: WeeklyProgressSummary
+    ) -> WeeklyProgressConsistencySectionState {
+        let copy = FormaProductCopy.WeeklyReviewPresentation.self
+        let total = max(summary.totalDays, JourneyLogMetrics.weekDayCount)
+
+        return WeeklyProgressConsistencySectionState(
+            foodLoggedLabel: summary.foodLoggedDays > 0
+                ? copy.dayCountValue(summary.foodLoggedDays, total: total)
+                : nil,
+            averageCaloriesLabel: summary.averageDailyCalories.map {
+                "Average intake: \($0) kcal / day"
+            },
+            proteinLabel: summary.proteinHitDays > 0
+                ? "\(copy.proteinTitle): \(copy.dayCountValue(summary.proteinHitDays, total: total))"
+                : nil,
+            waterLabel: summary.waterTargetHitDays > 0
+                ? "\(copy.waterTitle): \(copy.dayCountValue(summary.waterTargetHitDays, total: total))"
+                : nil,
+            calorieAdherenceLabel: summary.calorieTargetHitDays > 0
+                ? "\(copy.caloriesTitle): \(copy.dayCountValue(summary.calorieTargetHitDays, total: total))"
+                : nil,
+            trainingLabel: summary.trainingDays.map { days in
+                "\(FormaProductCopy.Journey.WeeklyReview.trainingTitle): \(FormaProductCopy.Journey.WeeklyReview.trainingDays(days))"
+            }
+        )
+    }
+
+    private static func staticTDEEComparison(
+        from summary: WeeklyProgressSummary
+    ) -> WeeklyProgressTDEEComparisonState? {
+        let maintenance = summary.maintenanceEstimate
+        guard maintenance.sufficiency.isEligibleForKcalMaintenanceDisplay,
+              let learned = maintenance.estimatedMaintenanceKcal,
+              let staticTDEE = maintenance.staticTDEEKcal else {
+            return nil
+        }
+
+        let comparisonCopy =
+            "Your formula-based estimate is about \(staticTDEE) kcal per day. "
+            + "Learned maintenance from this week's logging is about \(learned) kcal per day."
+
+        return WeeklyProgressTDEEComparisonState(
+            learnedMaintenanceKcal: learned,
+            staticTDEEKcal: staticTDEE,
+            comparisonCopy: comparisonCopy,
+            accessibilityLabel: comparisonCopy
+        )
+    }
+
+    private static func nextWeekFocus(
+        unified: UnifiedWeeklyReviewState,
+        healthReviewDetail: WeeklyReviewDetailState?,
+        summary: WeeklyProgressSummary
+    ) -> [WeeklyReviewFocusItemState] {
+        var items: [WeeklyReviewFocusItemState] = []
+        var seen = Set<String>()
+
+        func appendFocus(id: String, message: String) {
+            let key = message.lowercased()
+            guard seen.insert(key).inserted else { return }
+            items.append(
+                WeeklyReviewFocusItemState(
+                    id: id,
+                    message: message,
+                    accessibilityLabel: "\(FormaProductCopy.WeeklyReviewPresentation.focusHeader). \(message)"
+                )
+            )
+        }
+
+        if let healthReviewDetail {
+            for item in healthReviewDetail.nextWeekFocus {
+                appendFocus(id: "hi-\(item.id)", message: item.message)
+            }
+        }
+
+        for insight in unified.healthInsights where insight.kind == .focus {
+            appendFocus(id: "unified-\(insight.id)", message: insight.message)
+        }
+
+        if items.isEmpty {
+            appendFocus(
+                id: "next-action",
+                message: "\(summary.nextActionTitle). \(summary.nextActionSubtitle)"
+            )
+        }
+
+        return items
+    }
+
+    private static func healthKitLimitedNotice(
+        from healthReviewDetail: WeeklyReviewDetailState?
+    ) -> String? {
+        guard let notice = healthReviewDetail?.missingDataNotice?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+              !notice.isEmpty else {
+            return nil
+        }
+
+        return "Apple Health signals were limited this week. "
+            + "This review still uses the meals and weight you logged in Forma. \(notice)"
+    }
+
+    private static func detailAccessibilityLabel(
+        unified: UnifiedWeeklyReviewState,
+        summary: WeeklyProgressSummary,
+        generatedAtLabel: String
+    ) -> String {
+        var parts = [
+            unified.weekTitle,
+            unified.dateRangeText,
+            unified.headline,
+            unified.summary,
+            unified.confidenceAccessibilityLabel,
+            generatedAtLabel
+        ]
+        if let maintenance = unified.maintenanceBlock {
+            parts.append(maintenance.accessibilityLabel)
+        }
+        if let plan = unified.planRecommendationBlock {
+            parts.append(plan.accessibilityLabel)
+        }
+        if let weight = unified.weightTrendBlock {
+            parts.append(weight.accessibilityLabel)
+        }
+        if let primary = unified.primaryCTA {
+            parts.append(primary.accessibilityLabel)
+        }
+        return parts.filter { !$0.isEmpty }.joined(separator: ". ")
+    }
+
     // MARK: Readiness
 
     private static func insufficientData(summary: WeeklyProgressSummary) -> Bool {

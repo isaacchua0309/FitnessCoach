@@ -17,7 +17,7 @@ struct JourneyDashboardContent: View {
     var onWeeklyProgressCTA: (WeeklyProgressCTA) -> Void = { _ in }
     var onGoToToday: () -> Void = {}
     var onConnectHealth: (() -> Void)?
-    var onWeeklyReviewSelected: ((WeeklyReviewDetailState) -> Void)?
+    var onOpenWeeklyProgressDetail: (() -> Void)?
 
     var body: some View {
         LazyVStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
@@ -127,7 +127,7 @@ struct JourneyDashboardContent: View {
                     state: healthIntelligenceSectionState,
                     healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                     onConnectHealth: onConnectHealth,
-                    onWeeklyReviewSelected: onWeeklyReviewSelected
+                    onWeeklyReviewSelected: { _ in onOpenWeeklyProgressDetail?() }
                 )
                 .accessibilityIdentifier("journey-health-intelligence-section")
             }
@@ -184,10 +184,7 @@ struct JourneyDashboardContent: View {
     }
 
     private var weeklyReviewDetailAction: (() -> Void)? {
-        guard let detail = healthIntelligenceSectionState?.weeklyReviewDetail else {
-            return nil
-        }
-        return { onWeeklyReviewSelected?(detail) }
+        onOpenWeeklyProgressDetail
     }
 }
 
@@ -216,5 +213,17 @@ struct JourneyDashboardContent: View {
     .formaMainTabScrollInsets()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
+}
+
+#Preview("Weekly progress hero") {
+    ScrollView {
+        JourneyDashboardContent(
+            state: JourneyPreviewData.strongMomentum,
+            healthIntelligenceUIEnabled: false
+        )
+    }
+    .formaMainTabScrollInsets()
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview(palette: .blossomPink)
 }
 #endif

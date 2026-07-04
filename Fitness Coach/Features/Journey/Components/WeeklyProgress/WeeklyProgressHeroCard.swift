@@ -255,7 +255,7 @@ struct WeeklyProgressHeroCard: View {
 
 // MARK: - Habit row
 
-private struct WeeklyProgressHabitRowView: View {
+struct WeeklyProgressHabitRowView: View {
     let habit: JourneyWeeklyHabitRowState
 
     var body: some View {

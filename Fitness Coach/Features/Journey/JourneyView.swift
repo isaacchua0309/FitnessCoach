@@ -62,16 +62,20 @@ struct JourneyView: View {
                 .background(FormaTokens.Color.canvas)
                 .sheet(item: $presentedWeeklyReviewDetail) { presentation in
                     NavigationStack {
-                        WeeklyReviewDetailView(state: presentation.state)
-                            .navigationTitle(FormaProductCopy.WeeklyReviewPresentation.sectionTitle)
-                            .navigationBarTitleDisplayMode(.inline)
-                            .toolbar {
-                                ToolbarItem(placement: .cancellationAction) {
-                                    Button(FormaProductCopy.Common.done) {
-                                        presentedWeeklyReviewDetail = nil
-                                    }
+                        WeeklyReviewDetailView(
+                            detail: presentation.detail,
+                            onPrimaryCTA: handleWeeklyProgressCTA,
+                            onSecondaryCTA: handleWeeklyProgressCTA
+                        )
+                        .navigationTitle(FormaProductCopy.WeeklyReviewPresentation.sectionTitle)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button(FormaProductCopy.Common.done) {
+                                    presentedWeeklyReviewDetail = nil
                                 }
                             }
+                        }
                     }
                     .background(FormaTokens.Color.canvas)
                     .formaThemeReactive()
@@ -133,8 +137,15 @@ struct JourneyView: View {
                     healthIntelligenceAnalyticsCoordinator?.logHealthPermissionCTATapped(surface: .journey)
                     onOpenPlan?()
                 } : nil,
-                onWeeklyReviewSelected: { detail in
-                    presentedWeeklyReviewDetail = WeeklyReviewDetailPresentation(state: detail)
+                onOpenWeeklyProgressDetail: {
+                    presentedWeeklyReviewDetail = WeeklyReviewDetailPresentation(
+                        detail: UnifiedWeeklyReviewPresentationBuilder.buildDetail(
+                            dashboard: state,
+                            healthIntelligence: healthIntelligenceUIEnabled
+                                ? model.journeyHealthIntelligenceSectionState
+                                : nil
+                        )
+                    )
                 }
             )
         }

@@ -126,6 +126,57 @@ final class UnifiedWeeklyReviewPresentationBuilderTests: XCTestCase {
         XCTAssertNotNil(state.weightTrendBlock?.spikeWarning)
     }
 
+    func testBuildDetailIncludesCanonicalSections() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let detail = UnifiedWeeklyReviewPresentationBuilder.buildDetail(dashboard: dashboard)
+
+        XCTAssertFalse(detail.unified.headline.isEmpty)
+        XCTAssertFalse(detail.verdictTitle.isEmpty)
+        XCTAssertTrue(detail.consistency.hasContent)
+        XCTAssertFalse(detail.generatedAtLabel.isEmpty)
+        XCTAssertFalse(detail.nextWeekFocus.isEmpty)
+        XCTAssertFalse(detail.accessibilityLabel.isEmpty)
+    }
+
+    func testBuildDetailMergesHealthIntelligenceFocusItems() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let review = makeHealthReview()
+        let healthDetail = WeeklyReviewPresentationBuilder.buildDetail(from: review)
+        let healthSection = JourneyHealthIntelligenceSectionState(
+            weeklyReviewCard: WeeklyReviewPresentationBuilder.buildCard(from: review),
+            weeklyReviewDetail: healthDetail,
+            recoveryTimeline: .loading,
+            workoutHistory: .loading,
+            milestones: .loading,
+            progress: .loading,
+            connectHealthCTA: nil,
+            isLoading: false,
+            errorMessage: nil,
+            fallbackMessage: nil,
+            staleDataLabel: nil,
+            partialSignalsNote: nil,
+            uiState: nil
+        )
+
+        let detail = UnifiedWeeklyReviewPresentationBuilder.buildDetail(
+            dashboard: dashboard,
+            healthIntelligence: healthSection
+        )
+
+        XCTAssertGreaterThanOrEqual(detail.nextWeekFocus.count, 1)
+        XCTAssertFalse(detail.unified.healthInsights.isEmpty)
+    }
+
+    func testSparseDashboardDetailStaysInsufficientWithoutFakeMaintenance() {
+        let detail = UnifiedWeeklyReviewPresentationBuilder.buildDetail(
+            dashboard: JourneyPreviewData.sparseData
+        )
+
+        XCTAssertTrue(detail.unified.isInsufficientData)
+        XCTAssertNil(detail.unified.maintenanceBlock?.estimatedMaintenanceKcal)
+        XCTAssertNil(detail.staticTDEEComparison)
+    }
+
     // MARK: - Fixtures
 
     private func makeHealthReview() -> WeeklyHealthReview {
