@@ -9,16 +9,19 @@ import Foundation
 
 enum FoodLogDraftNutritionCompleter {
 
+    static let lowConfidenceReviewWarning = FoodCompoundDishDetector.lowConfidenceReviewMessage
+
     static func sanitize(_ meal: FoodLogDraft, hintText: String) -> FoodLogDraft {
         var result = meal
         result.components = meal.components.map {
-            sanitizeComponent($0, hintText: hintText)
+            clampComponentMacros(sanitizeComponent($0, hintText: hintText))
         }
         result.displayName = FoodMealDisplayNameFormatter.readableDisplayName(
             proposed: result.displayName,
             components: result.components
         )
         result = clearMixedMealPortionFields(result)
+        result = appendReviewWarnings(result, hintText: hintText)
         return FoodLogDraftMapper.reconcileTotals(result)
     }
 
@@ -77,5 +80,32 @@ enum FoodLogDraftNutritionCompleter {
     private static func clearMixedMealPortionFields(_ meal: FoodLogDraft) -> FoodLogDraft {
         guard meal.isMultiComponent else { return meal }
         return meal
+    }
+
+    private static func clampComponentMacros(_ component: FoodComponent) -> FoodComponent {
+        var result = component
+        result.calories = max(0, component.calories)
+        result.protein = max(0, component.protein)
+        result.carbs = max(0, component.carbs)
+        result.fat = max(0, component.fat)
+        return result
+    }
+
+    private static func appendReviewWarnings(_ meal: FoodLogDraft, hintText: String) -> FoodLogDraft {
+        var result = meal
+        var warnings = Set(result.warnings)
+        let analysis = FoodCompoundDishDetector.analyze(prompt: hintText)
+
+        if analysis.isAmbiguousServing || result.confidence == .low {
+            warnings.insert(lowConfidenceReviewWarning)
+        }
+
+        if !analysis.matchedDishes.isEmpty,
+           result.components.count < analysis.minRequiredComponents {
+            warnings.insert(NutritionSanityResult.collapsedCompoundDishUserMessage)
+        }
+
+        result.warnings = Array(warnings).sorted()
+        return result
     }
 }

@@ -75,6 +75,39 @@ final class CoachFoodLoggingRegressionTests: XCTestCase {
         XCTAssertEqual(model.messages.last?.text, CoachResponseBuilder.aiNotUnderstood)
     }
 
+    func testCollapsedChickenRiceIsRejected() async throws {
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
+        guard let collapsed = FoodLoggingCompoundGoldenFixtures.chickenRice.collapsedResponse else {
+            return XCTFail("Missing collapsed chicken rice fixture")
+        }
+        let model = harness.makeCoach(aiService: makeFoodEstimateService(response: collapsed))
+
+        await model.send(FoodLoggingCompoundGoldenFixtures.chickenRice.prompt)
+
+        XCTAssertNil(model.pendingConfirmation)
+        XCTAssertEqual(model.messages.last?.text, CoachResponseBuilder.aiNotUnderstood)
+    }
+
+    func testDecomposedChickenRiceAcceptance() async throws {
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
+        let model = harness.makeCoach(aiService: makeFoodEstimateService(
+            response: FoodLoggingCompoundGoldenFixtures.chickenRice.gatewayResponse
+        ))
+
+        await model.send(FoodLoggingCompoundGoldenFixtures.chickenRice.prompt)
+
+        guard case .food(let pendingDraft) = model.pendingConfirmation else {
+            return XCTFail("Expected food pending confirmation for chicken rice")
+        }
+
+        let meal = pendingDraft.primaryMealDraft
+        XCTAssertGreaterThanOrEqual(meal.components.count, 3)
+        XCTAssertTrue(meal.components.contains(where: { $0.name.lowercased().contains("rice") }))
+        XCTAssertTrue(meal.components.contains(where: { $0.name.lowercased().contains("chicken") }))
+    }
+
     // MARK: - Single food (item 1)
 
     func testSingleFoodStillWorks() async throws {

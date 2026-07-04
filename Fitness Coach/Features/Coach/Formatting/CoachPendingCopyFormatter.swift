@@ -188,6 +188,11 @@ enum CoachPendingCopyFormatter {
         originalText: String
     ) -> Bool {
         if confidence == .low { return true }
+        let analysis = FoodCompoundDishDetector.analyze(prompt: originalText)
+        if analysis.isAmbiguousServing { return true }
+        if !analysis.matchedDishes.isEmpty, mealDraft.components.count < analysis.minRequiredComponents {
+            return true
+        }
         let combined = "\(originalText) \(mealDraft.displayName)".lowercased()
         let vagueMarkers = [
             "mysterious", "generic", "unknown",

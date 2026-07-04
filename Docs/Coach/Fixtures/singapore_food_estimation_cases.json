@@ -1,0 +1,1634 @@
+{
+  "version": 1,
+  "description": "Singapore/local food estimation QA fixtures for Coach regression. Ranges are test/QA bounds — not production nutrition catalog values.",
+  "caseCount": 50,
+  "cases": [
+    {
+      "id": "sg_01_chicken_rice",
+      "inputText": "log chicken rice",
+      "expectedComponents": [
+        "rice",
+        "chicken",
+        "sauce"
+      ],
+      "expectedCaloriesRange": [
+        450,
+        750
+      ],
+      "expectedProteinRange": [
+        22,
+        45
+      ],
+      "expectedCarbsRange": [
+        55,
+        95
+      ],
+      "expectedFatRange": [
+        8,
+        28
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "portion",
+        "oil",
+        "sauce"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Classic decomposed plate; include chili/oil when relevant."
+    },
+    {
+      "id": "sg_02_roasted_chicken_rice",
+      "inputText": "log roasted chicken rice",
+      "expectedComponents": [
+        "rice",
+        "chicken",
+        "sauce"
+      ],
+      "expectedCaloriesRange": [
+        480,
+        820
+      ],
+      "expectedProteinRange": [
+        24,
+        48
+      ],
+      "expectedCarbsRange": [
+        55,
+        95
+      ],
+      "expectedFatRange": [
+        12,
+        35
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "roasted",
+        "skin",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Roasted/skin-on chicken typically adds fat vs poached."
+    },
+    {
+      "id": "sg_03_steamed_chicken_rice",
+      "inputText": "log steamed chicken rice",
+      "expectedComponents": [
+        "rice",
+        "chicken",
+        "sauce"
+      ],
+      "expectedCaloriesRange": [
+        430,
+        700
+      ],
+      "expectedProteinRange": [
+        25,
+        46
+      ],
+      "expectedCarbsRange": [
+        55,
+        95
+      ],
+      "expectedFatRange": [
+        6,
+        22
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "steamed",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Steamed Hainanese style; lower fat than roasted."
+    },
+    {
+      "id": "sg_04_char_siew_rice",
+      "inputText": "log char siew rice",
+      "expectedComponents": [
+        "rice",
+        "char siew",
+        "sauce"
+      ],
+      "expectedCaloriesRange": [
+        520,
+        850
+      ],
+      "expectedProteinRange": [
+        18,
+        38
+      ],
+      "expectedCarbsRange": [
+        60,
+        100
+      ],
+      "expectedFatRange": [
+        14,
+        35
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "char siew",
+        "portion",
+        "gravy"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "BBQ pork plus rice; include glaze/oil."
+    },
+    {
+      "id": "sg_05_cai_fan_chicken_veg",
+      "inputText": "log cai fan with chicken and vegetables",
+      "expectedComponents": [
+        "rice",
+        "chicken",
+        "vegetable"
+      ],
+      "expectedCaloriesRange": [
+        420,
+        700
+      ],
+      "expectedProteinRange": [
+        20,
+        40
+      ],
+      "expectedCarbsRange": [
+        50,
+        90
+      ],
+      "expectedFatRange": [
+        8,
+        25
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "cai fan",
+        "portion",
+        "oil"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Economy rice with two dishes plus rice scoop."
+    },
+    {
+      "id": "sg_06_cai_fan_no_rice",
+      "inputText": "log cai fan chicken and vegetables no rice",
+      "expectedComponents": [
+        "chicken",
+        "vegetable"
+      ],
+      "expectedCaloriesRange": [
+        220,
+        450
+      ],
+      "expectedProteinRange": [
+        18,
+        35
+      ],
+      "expectedCarbsRange": [
+        8,
+        25
+      ],
+      "expectedFatRange": [
+        8,
+        22
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "no rice",
+        "portion",
+        "oil"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Two dishes only; do not invent rice."
+    },
+    {
+      "id": "sg_07_nasi_lemak_chicken_wing",
+      "inputText": "log nasi lemak with chicken wing",
+      "expectedComponents": [
+        "rice",
+        "sambal",
+        "egg",
+        "chicken"
+      ],
+      "expectedCaloriesRange": [
+        550,
+        900
+      ],
+      "expectedProteinRange": [
+        18,
+        38
+      ],
+      "expectedCarbsRange": [
+        55,
+        95
+      ],
+      "expectedFatRange": [
+        22,
+        45
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "nasi lemak",
+        "wing",
+        "coconut"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Full set plus fried wing add-on."
+    },
+    {
+      "id": "sg_08_nasi_lemak_egg_only",
+      "inputText": "log nasi lemak egg only",
+      "expectedComponents": [
+        "rice",
+        "sambal",
+        "egg",
+        "ikan bilis"
+      ],
+      "expectedCaloriesRange": [
+        420,
+        650
+      ],
+      "expectedProteinRange": [
+        10,
+        20
+      ],
+      "expectedCarbsRange": [
+        50,
+        85
+      ],
+      "expectedFatRange": [
+        18,
+        35
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "egg only",
+        "coconut",
+        "ikan bilis"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Basic nasi lemak without meat add-on."
+    },
+    {
+      "id": "sg_09_fish_soup_with_rice",
+      "inputText": "log fish soup with rice",
+      "expectedComponents": [
+        "fish",
+        "soup",
+        "rice"
+      ],
+      "expectedCaloriesRange": [
+        350,
+        600
+      ],
+      "expectedProteinRange": [
+        18,
+        35
+      ],
+      "expectedCarbsRange": [
+        40,
+        75
+      ],
+      "expectedFatRange": [
+        4,
+        15
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "fish soup",
+        "rice",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Teochew/sliced fish soup set."
+    },
+    {
+      "id": "sg_10_fish_soup_no_rice",
+      "inputText": "log fish soup no rice",
+      "expectedComponents": [
+        "fish",
+        "soup"
+      ],
+      "expectedCaloriesRange": [
+        120,
+        280
+      ],
+      "expectedProteinRange": [
+        15,
+        30
+      ],
+      "expectedCarbsRange": [
+        2,
+        12
+      ],
+      "expectedFatRange": [
+        3,
+        12
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "no rice",
+        "soup",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Soup and fish only."
+    },
+    {
+      "id": "sg_11_ban_mian_soup",
+      "inputText": "log ban mian soup",
+      "expectedComponents": [
+        "noodle",
+        "broth",
+        "egg"
+      ],
+      "expectedCaloriesRange": [
+        420,
+        680
+      ],
+      "expectedProteinRange": [
+        14,
+        28
+      ],
+      "expectedCarbsRange": [
+        55,
+        90
+      ],
+      "expectedFatRange": [
+        10,
+        25
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "ban mian",
+        "soup",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Soup version with noodles and toppings."
+    },
+    {
+      "id": "sg_12_dry_ban_mian",
+      "inputText": "log dry ban mian",
+      "expectedComponents": [
+        "noodle",
+        "sauce",
+        "egg"
+      ],
+      "expectedCaloriesRange": [
+        450,
+        720
+      ],
+      "expectedProteinRange": [
+        14,
+        28
+      ],
+      "expectedCarbsRange": [
+        58,
+        95
+      ],
+      "expectedFatRange": [
+        12,
+        28
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "dry",
+        "ban mian",
+        "oil"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Dry tossed ban mian; include oil/sauce."
+    },
+    {
+      "id": "sg_13_yong_tau_foo_soup_no_noodles",
+      "inputText": "log yong tau foo soup tofu and fishball no noodles",
+      "expectedComponents": [
+        "tofu",
+        "fishball",
+        "soup"
+      ],
+      "expectedCaloriesRange": [
+        180,
+        380
+      ],
+      "expectedProteinRange": [
+        12,
+        28
+      ],
+      "expectedCarbsRange": [
+        8,
+        25
+      ],
+      "expectedFatRange": [
+        6,
+        18
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "no noodles",
+        "items",
+        "soup"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Soup version without noodle add-on."
+    },
+    {
+      "id": "sg_14_yong_tau_foo_with_noodles",
+      "inputText": "log yong tau foo with noodles",
+      "expectedComponents": [
+        "tofu",
+        "noodle",
+        "soup"
+      ],
+      "expectedCaloriesRange": [
+        320,
+        580
+      ],
+      "expectedProteinRange": [
+        14,
+        30
+      ],
+      "expectedCarbsRange": [
+        45,
+        80
+      ],
+      "expectedFatRange": [
+        8,
+        22
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "noodles",
+        "items",
+        "soup"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Include selected items plus noodles."
+    },
+    {
+      "id": "sg_15_mala_xiang_guo",
+      "inputText": "log mala xiang guo",
+      "expectedComponents": [
+        "meat",
+        "vegetable",
+        "oil",
+        "sauce"
+      ],
+      "expectedCaloriesRange": [
+        550,
+        950
+      ],
+      "expectedProteinRange": [
+        20,
+        45
+      ],
+      "expectedCarbsRange": [
+        25,
+        60
+      ],
+      "expectedFatRange": [
+        30,
+        65
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "mala",
+        "oil",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Dry stir mala; heavy oil/spice assumption."
+    },
+    {
+      "id": "sg_16_mala_soup",
+      "inputText": "log mala soup",
+      "expectedComponents": [
+        "meat",
+        "vegetable",
+        "soup",
+        "oil"
+      ],
+      "expectedCaloriesRange": [
+        450,
+        800
+      ],
+      "expectedProteinRange": [
+        18,
+        40
+      ],
+      "expectedCarbsRange": [
+        20,
+        55
+      ],
+      "expectedFatRange": [
+        22,
+        50
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "mala soup",
+        "oil",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Soup/base plus proteins and veg."
+    },
+    {
+      "id": "sg_17_economic_bee_hoon",
+      "inputText": "log economic bee hoon",
+      "expectedComponents": [
+        "bee hoon",
+        "egg",
+        "vegetable"
+      ],
+      "expectedCaloriesRange": [
+        350,
+        600
+      ],
+      "expectedProteinRange": [
+        8,
+        18
+      ],
+      "expectedCarbsRange": [
+        55,
+        90
+      ],
+      "expectedFatRange": [
+        10,
+        25
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "bee hoon",
+        "portion",
+        "oil"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Fried bee hoon breakfast plate."
+    },
+    {
+      "id": "sg_18_prata_kosong",
+      "inputText": "log prata kosong",
+      "expectedComponents": [
+        "prata"
+      ],
+      "expectedCaloriesRange": [
+        180,
+        320
+      ],
+      "expectedProteinRange": [
+        4,
+        8
+      ],
+      "expectedCarbsRange": [
+        28,
+        45
+      ],
+      "expectedFatRange": [
+        8,
+        18
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "prata",
+        "kosong",
+        "piece"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Plain prata without curry unless stated."
+    },
+    {
+      "id": "sg_19_prata_egg",
+      "inputText": "log egg prata",
+      "expectedComponents": [
+        "prata",
+        "egg"
+      ],
+      "expectedCaloriesRange": [
+        280,
+        450
+      ],
+      "expectedProteinRange": [
+        10,
+        16
+      ],
+      "expectedCarbsRange": [
+        30,
+        48
+      ],
+      "expectedFatRange": [
+        14,
+        26
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "egg prata",
+        "piece"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Egg prata single piece typical."
+    },
+    {
+      "id": "sg_20_prata_cheese",
+      "inputText": "log cheese prata",
+      "expectedComponents": [
+        "prata",
+        "cheese"
+      ],
+      "expectedCaloriesRange": [
+        320,
+        520
+      ],
+      "expectedProteinRange": [
+        10,
+        18
+      ],
+      "expectedCarbsRange": [
+        32,
+        50
+      ],
+      "expectedFatRange": [
+        18,
+        32
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "cheese prata",
+        "piece"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Cheese filling adds fat."
+    },
+    {
+      "id": "sg_21_kaya_toast_set",
+      "inputText": "log kaya toast set",
+      "expectedComponents": [
+        "toast",
+        "kaya",
+        "butter",
+        "egg",
+        "coffee"
+      ],
+      "expectedCaloriesRange": [
+        380,
+        650
+      ],
+      "expectedProteinRange": [
+        12,
+        22
+      ],
+      "expectedCarbsRange": [
+        45,
+        75
+      ],
+      "expectedFatRange": [
+        15,
+        30
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "kaya set",
+        "drink",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Typical set with eggs and kopi/teh."
+    },
+    {
+      "id": "sg_22_kopi_c_kosong",
+      "inputText": "log kopi c kosong",
+      "expectedComponents": [
+        "coffee",
+        "evaporated milk"
+      ],
+      "expectedCaloriesRange": [
+        25,
+        80
+      ],
+      "expectedProteinRange": [
+        1,
+        4
+      ],
+      "expectedCarbsRange": [
+        2,
+        8
+      ],
+      "expectedFatRange": [
+        1,
+        5
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "kosong",
+        "no sugar",
+        "cup"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Coffee with evaporated milk, no sugar."
+    },
+    {
+      "id": "sg_23_kopi",
+      "inputText": "log kopi",
+      "expectedComponents": [
+        "coffee",
+        "condensed milk"
+      ],
+      "expectedCaloriesRange": [
+        60,
+        150
+      ],
+      "expectedProteinRange": [
+        1,
+        4
+      ],
+      "expectedCarbsRange": [
+        10,
+        22
+      ],
+      "expectedFatRange": [
+        2,
+        6
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "kopi",
+        "sugar",
+        "condensed milk"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Default local kopi with condensed milk and sugar."
+    },
+    {
+      "id": "sg_24_teh",
+      "inputText": "log teh",
+      "expectedComponents": [
+        "tea",
+        "condensed milk"
+      ],
+      "expectedCaloriesRange": [
+        60,
+        160
+      ],
+      "expectedProteinRange": [
+        1,
+        4
+      ],
+      "expectedCarbsRange": [
+        12,
+        26
+      ],
+      "expectedFatRange": [
+        2,
+        6
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "teh",
+        "sugar",
+        "condensed milk"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Default sweet milk tea."
+    },
+    {
+      "id": "sg_25_bubble_tea_zero_sugar_pearls",
+      "inputText": "log bubble tea 0 sugar with pearls",
+      "expectedComponents": [
+        "tea",
+        "pearls",
+        "milk"
+      ],
+      "expectedCaloriesRange": [
+        180,
+        350
+      ],
+      "expectedProteinRange": [
+        2,
+        8
+      ],
+      "expectedCarbsRange": [
+        30,
+        55
+      ],
+      "expectedFatRange": [
+        4,
+        12
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "0 sugar",
+        "pearls",
+        "size"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Zero sugar still has pearls and milk calories."
+    },
+    {
+      "id": "sg_26_bubble_tea_full_sugar_pearls",
+      "inputText": "log bubble tea full sugar with pearls",
+      "expectedComponents": [
+        "tea",
+        "pearls",
+        "milk",
+        "sugar"
+      ],
+      "expectedCaloriesRange": [
+        280,
+        520
+      ],
+      "expectedProteinRange": [
+        2,
+        8
+      ],
+      "expectedCarbsRange": [
+        55,
+        90
+      ],
+      "expectedFatRange": [
+        4,
+        14
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "full sugar",
+        "pearls",
+        "size"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Regular sweetness with pearls."
+    },
+    {
+      "id": "sg_27_sushi_roll",
+      "inputText": "log salmon avocado sushi roll",
+      "expectedComponents": [
+        "rice",
+        "salmon",
+        "avocado"
+      ],
+      "expectedCaloriesRange": [
+        250,
+        450
+      ],
+      "expectedProteinRange": [
+        10,
+        22
+      ],
+      "expectedCarbsRange": [
+        35,
+        60
+      ],
+      "expectedFatRange": [
+        6,
+        16
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "roll",
+        "pieces",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Maki roll; count pieces if possible."
+    },
+    {
+      "id": "sg_28_salmon_sashimi",
+      "inputText": "log salmon sashimi 8 pieces",
+      "expectedComponents": [
+        "salmon"
+      ],
+      "expectedCaloriesRange": [
+        180,
+        320
+      ],
+      "expectedProteinRange": [
+        28,
+        45
+      ],
+      "expectedCarbsRange": [
+        0,
+        4
+      ],
+      "expectedFatRange": [
+        8,
+        20
+      ],
+      "expectedConfidence": "high",
+      "expectedConfidenceMode": "exact",
+      "expectedAssumptions": [
+        "8 pieces",
+        "salmon"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit piece count enables higher confidence."
+    },
+    {
+      "id": "sg_29_ramen",
+      "inputText": "log tonkotsu ramen",
+      "expectedComponents": [
+        "noodle",
+        "broth",
+        "pork",
+        "egg"
+      ],
+      "expectedCaloriesRange": [
+        550,
+        900
+      ],
+      "expectedProteinRange": [
+        22,
+        40
+      ],
+      "expectedCarbsRange": [
+        65,
+        100
+      ],
+      "expectedFatRange": [
+        20,
+        45
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "ramen",
+        "broth fat",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Rich broth adds fat."
+    },
+    {
+      "id": "sg_30_udon",
+      "inputText": "log udon soup",
+      "expectedComponents": [
+        "udon",
+        "broth",
+        "topping"
+      ],
+      "expectedCaloriesRange": [
+        350,
+        600
+      ],
+      "expectedProteinRange": [
+        10,
+        22
+      ],
+      "expectedCarbsRange": [
+        60,
+        95
+      ],
+      "expectedFatRange": [
+        4,
+        15
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "udon",
+        "soup",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Udon soup bowl with light toppings."
+    },
+    {
+      "id": "sg_31_mcspicy",
+      "inputText": "log McSpicy",
+      "expectedComponents": [
+        "bun",
+        "chicken patty",
+        "sauce"
+      ],
+      "expectedCaloriesRange": [
+        420,
+        580
+      ],
+      "expectedProteinRange": [
+        20,
+        30
+      ],
+      "expectedCarbsRange": [
+        38,
+        52
+      ],
+      "expectedFatRange": [
+        18,
+        28
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "McSpicy",
+        "burger",
+        "standard"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Branded burger; use typical published range not exact label."
+    },
+    {
+      "id": "sg_32_mcdonalds_fries",
+      "inputText": "log McDonald's medium fries",
+      "expectedComponents": [
+        "fries"
+      ],
+      "expectedCaloriesRange": [
+        300,
+        400
+      ],
+      "expectedProteinRange": [
+        3,
+        6
+      ],
+      "expectedCarbsRange": [
+        38,
+        52
+      ],
+      "expectedFatRange": [
+        14,
+        22
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "medium fries",
+        "McDonald"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Branded side; medium size assumed."
+    },
+    {
+      "id": "sg_33_subway_chicken_teriyaki",
+      "inputText": "log Subway 6 inch chicken teriyaki",
+      "expectedComponents": [
+        "bread",
+        "chicken",
+        "sauce",
+        "vegetable"
+      ],
+      "expectedCaloriesRange": [
+        320,
+        480
+      ],
+      "expectedProteinRange": [
+        22,
+        34
+      ],
+      "expectedCarbsRange": [
+        42,
+        58
+      ],
+      "expectedFatRange": [
+        4,
+        12
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "6 inch",
+        "Subway",
+        "teriyaki"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "6-inch sub default veggies and sauce."
+    },
+    {
+      "id": "sg_34_protein_shake",
+      "inputText": "log protein shake",
+      "expectedComponents": [
+        "protein shake"
+      ],
+      "expectedCaloriesRange": [
+        120,
+        350
+      ],
+      "expectedProteinRange": [
+        20,
+        45
+      ],
+      "expectedCarbsRange": [
+        3,
+        20
+      ],
+      "expectedFatRange": [
+        2,
+        10
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "scoop",
+        "milk",
+        "brand"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Single component acceptable."
+    },
+    {
+      "id": "sg_35_greek_yogurt",
+      "inputText": "log Greek yogurt 150g",
+      "expectedComponents": [
+        "Greek yogurt"
+      ],
+      "expectedCaloriesRange": [
+        90,
+        180
+      ],
+      "expectedProteinRange": [
+        12,
+        20
+      ],
+      "expectedCarbsRange": [
+        4,
+        12
+      ],
+      "expectedFatRange": [
+        0,
+        8
+      ],
+      "expectedConfidence": "high",
+      "expectedConfidenceMode": "exact",
+      "expectedAssumptions": [
+        "150g"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit grams enable high confidence."
+    },
+    {
+      "id": "sg_36_chicken_breast_200g",
+      "inputText": "log 200g cooked chicken breast",
+      "expectedComponents": [
+        "chicken breast"
+      ],
+      "expectedCaloriesRange": [
+        300,
+        360
+      ],
+      "expectedProteinRange": [
+        58,
+        66
+      ],
+      "expectedCarbsRange": [
+        0,
+        2
+      ],
+      "expectedFatRange": [
+        6,
+        10
+      ],
+      "expectedConfidence": "high",
+      "expectedConfidenceMode": "exact",
+      "expectedAssumptions": [
+        "200g",
+        "cooked"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit gram portion."
+    },
+    {
+      "id": "sg_37_chicken_breast_300g",
+      "inputText": "log 300g cooked chicken breast",
+      "expectedComponents": [
+        "chicken breast"
+      ],
+      "expectedCaloriesRange": [
+        450,
+        540
+      ],
+      "expectedProteinRange": [
+        88,
+        99
+      ],
+      "expectedCarbsRange": [
+        0,
+        2
+      ],
+      "expectedFatRange": [
+        9,
+        15
+      ],
+      "expectedConfidence": "high",
+      "expectedConfidenceMode": "exact",
+      "expectedAssumptions": [
+        "300g",
+        "cooked"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Large explicit protein portion."
+    },
+    {
+      "id": "sg_38_rice_half_bowl",
+      "inputText": "log half bowl rice",
+      "expectedComponents": [
+        "rice"
+      ],
+      "expectedCaloriesRange": [
+        100,
+        200
+      ],
+      "expectedProteinRange": [
+        2,
+        5
+      ],
+      "expectedCarbsRange": [
+        22,
+        45
+      ],
+      "expectedFatRange": [
+        0,
+        2
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "half bowl",
+        "cooked rice"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Vague bowl size; medium confidence."
+    },
+    {
+      "id": "sg_39_rice_one_bowl",
+      "inputText": "log one bowl rice",
+      "expectedComponents": [
+        "rice"
+      ],
+      "expectedCaloriesRange": [
+        200,
+        320
+      ],
+      "expectedProteinRange": [
+        4,
+        7
+      ],
+      "expectedCarbsRange": [
+        42,
+        70
+      ],
+      "expectedFatRange": [
+        0,
+        3
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "one bowl",
+        "cooked rice"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Standard bowl assumption ~200g cooked."
+    },
+    {
+      "id": "sg_40_mixed_rice_curry_sauce",
+      "inputText": "log mixed rice with curry sauce",
+      "expectedComponents": [
+        "rice",
+        "curry",
+        "sauce"
+      ],
+      "expectedCaloriesRange": [
+        450,
+        750
+      ],
+      "expectedProteinRange": [
+        10,
+        25
+      ],
+      "expectedCarbsRange": [
+        65,
+        100
+      ],
+      "expectedFatRange": [
+        12,
+        30
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "mixed rice",
+        "curry",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Economy rice with curry gravy."
+    },
+    {
+      "id": "sg_41_korean_bibimbap",
+      "inputText": "log bibimbap",
+      "expectedComponents": [
+        "rice",
+        "vegetable",
+        "egg",
+        "meat",
+        "sauce"
+      ],
+      "expectedCaloriesRange": [
+        500,
+        800
+      ],
+      "expectedProteinRange": [
+        18,
+        35
+      ],
+      "expectedCarbsRange": [
+        70,
+        105
+      ],
+      "expectedFatRange": [
+        12,
+        28
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "bibimbap",
+        "gochujang",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Mixed bowl with rice base and toppings."
+    },
+    {
+      "id": "sg_42_japanese_curry_rice",
+      "inputText": "log Japanese curry rice",
+      "expectedComponents": [
+        "rice",
+        "curry",
+        "protein"
+      ],
+      "expectedCaloriesRange": [
+        550,
+        850
+      ],
+      "expectedProteinRange": [
+        18,
+        35
+      ],
+      "expectedCarbsRange": [
+        75,
+        110
+      ],
+      "expectedFatRange": [
+        15,
+        32
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "curry rice",
+        "katsu",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Assume protein in curry unless specified veg only."
+    },
+    {
+      "id": "sg_43_beef_bowl",
+      "inputText": "log gyudon beef bowl",
+      "expectedComponents": [
+        "rice",
+        "beef",
+        "onion",
+        "sauce"
+      ],
+      "expectedCaloriesRange": [
+        550,
+        800
+      ],
+      "expectedProteinRange": [
+        22,
+        38
+      ],
+      "expectedCarbsRange": [
+        70,
+        100
+      ],
+      "expectedFatRange": [
+        12,
+        28
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "gyudon",
+        "beef bowl",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Japanese beef bowl over rice."
+    },
+    {
+      "id": "sg_44_poke_bowl",
+      "inputText": "log salmon poke bowl",
+      "expectedComponents": [
+        "rice",
+        "salmon",
+        "vegetable",
+        "sauce"
+      ],
+      "expectedCaloriesRange": [
+        450,
+        700
+      ],
+      "expectedProteinRange": [
+        22,
+        38
+      ],
+      "expectedCarbsRange": [
+        50,
+        80
+      ],
+      "expectedFatRange": [
+        12,
+        28
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "poke",
+        "salmon",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Include rice, fish, veg, and dressing."
+    },
+    {
+      "id": "sg_45_salad_with_dressing",
+      "inputText": "log salad with dressing",
+      "expectedComponents": [
+        "salad",
+        "dressing"
+      ],
+      "expectedCaloriesRange": [
+        120,
+        350
+      ],
+      "expectedProteinRange": [
+        3,
+        12
+      ],
+      "expectedCarbsRange": [
+        8,
+        25
+      ],
+      "expectedFatRange": [
+        8,
+        28
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "dressing",
+        "portion",
+        "oil"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Dressing separate component."
+    },
+    {
+      "id": "sg_46_caesar_salad",
+      "inputText": "log caesar salad",
+      "expectedComponents": [
+        "lettuce",
+        "dressing",
+        "crouton",
+        "parmesan"
+      ],
+      "expectedCaloriesRange": [
+        250,
+        450
+      ],
+      "expectedProteinRange": [
+        6,
+        14
+      ],
+      "expectedCarbsRange": [
+        12,
+        28
+      ],
+      "expectedFatRange": [
+        18,
+        35
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "caesar",
+        "dressing",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Creamy dressing drives fat."
+    },
+    {
+      "id": "sg_47_eggs_yolks_whites",
+      "inputText": "log 2 egg yolks and 4 egg whites",
+      "expectedComponents": [
+        "egg yolk",
+        "egg white"
+      ],
+      "expectedCaloriesRange": [
+        110,
+        170
+      ],
+      "expectedProteinRange": [
+        18,
+        26
+      ],
+      "expectedCarbsRange": [
+        1,
+        4
+      ],
+      "expectedFatRange": [
+        4,
+        14
+      ],
+      "expectedConfidence": "high",
+      "expectedConfidenceMode": "exact",
+      "expectedAssumptions": [
+        "2 yolks",
+        "4 whites"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit counts; split yolks and whites."
+    },
+    {
+      "id": "sg_48_tiramisu_slice",
+      "inputText": "log tiramisu slice",
+      "expectedComponents": [
+        "tiramisu"
+      ],
+      "expectedCaloriesRange": [
+        220,
+        420
+      ],
+      "expectedProteinRange": [
+        4,
+        8
+      ],
+      "expectedCarbsRange": [
+        28,
+        45
+      ],
+      "expectedFatRange": [
+        12,
+        24
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "slice",
+        "dessert",
+        "portion"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Single dessert slice."
+    },
+    {
+      "id": "sg_49_breadtalk_bun",
+      "inputText": "log BreadTalk floss bun",
+      "expectedComponents": [
+        "bun",
+        "floss"
+      ],
+      "expectedCaloriesRange": [
+        280,
+        420
+      ],
+      "expectedProteinRange": [
+        8,
+        14
+      ],
+      "expectedCarbsRange": [
+        45,
+        65
+      ],
+      "expectedFatRange": [
+        8,
+        18
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "BreadTalk",
+        "floss bun",
+        "piece"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Local bakery branded bun."
+    },
+    {
+      "id": "sg_50_luckin_grape_fizz_americano",
+      "inputText": "log Luckin grape fizz americano",
+      "expectedComponents": [
+        "coffee",
+        "grape",
+        "soda"
+      ],
+      "expectedCaloriesRange": [
+        5,
+        80
+      ],
+      "expectedProteinRange": [
+        0,
+        2
+      ],
+      "expectedCarbsRange": [
+        0,
+        18
+      ],
+      "expectedFatRange": [
+        0,
+        1
+      ],
+      "expectedConfidence": "medium",
+      "expectedAssumptions": [
+        "Luckin",
+        "grape fizz",
+        "sugar"
+      ],
+      "shouldRequireConfirmation": true,
+      "notes": "Sparkling americano; low calorie unless sweetened."
+    }
+  ]
+}
