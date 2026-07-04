@@ -361,13 +361,16 @@ struct CoachContextSourceAttribution: Codable, Equatable, Sendable {
     var healthIntelligenceIncluded: Bool
     var sources: [String]
 
+    var compaction: CoachContextCompactionMetadata?
+
     init(
         generationMode: CoachContextGenerationMode,
         timelineEventCount: Int? = nil,
         recentMealCount: Int? = nil,
         commonFoodCount: Int? = nil,
         healthIntelligenceIncluded: Bool = false,
-        sources: [String] = []
+        sources: [String] = [],
+        compaction: CoachContextCompactionMetadata? = nil
     ) {
         self.generationMode = generationMode
         self.timelineEventCount = timelineEventCount
@@ -375,6 +378,7 @@ struct CoachContextSourceAttribution: Codable, Equatable, Sendable {
         self.commonFoodCount = commonFoodCount
         self.healthIntelligenceIncluded = healthIntelligenceIncluded
         self.sources = sources
+        self.compaction = compaction
     }
 }
 
@@ -399,7 +403,7 @@ enum CoachContextPacketV2Limits {
     /// Default encoded JSON ceiling for outbound Coach context packets.
     static let defaultMaxEncodedBytes = 24_576
 
-    static let maxTimelineEvents = 40
+    static let maxTimelineEvents = 20
     static let maxChatMessages = 12
     static let maxChatTextLength = 180
     static let maxRecentMeals = 10

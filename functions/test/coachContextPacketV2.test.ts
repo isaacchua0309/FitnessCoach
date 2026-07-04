@@ -246,6 +246,82 @@ describe("coachContextPacketV2", () => {
       .toBe(true);
   });
 
+  it("preserves foodEdited and foodDeleted timeline events under limit pressure", () => {
+    const sanitized = parseCoachContextForPrompt({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      timeline: {
+        recentEvents: [
+          {
+            id: "edited-1",
+            type: "foodEdited",
+            status: "confirmed",
+            source: "coachUI",
+            summary: "Edited salad",
+            timestamp: "2026-07-03T10:00:00.000Z",
+            linkedEntryId: "entry-salad",
+          },
+          {
+            id: "deleted-1",
+            type: "foodDeleted",
+            status: "confirmed",
+            source: "coachUI",
+            summary: "Deleted snack",
+            timestamp: "2026-07-03T10:05:00.000Z",
+            linkedEntryId: "entry-snack",
+          },
+          ...Array.from({length: 25}, (_, index) => ({
+            id: `assistant-${index}`,
+            type: "assistantMessage",
+            status: "confirmed",
+            source: "aiBackend",
+            summary: `Assistant ${index}`,
+            timestamp: `2026-07-03T11:${String(index).padStart(2, "0")}:00.000Z`,
+          })),
+        ],
+      },
+    });
+
+    const events = (sanitized?.timeline as {
+      recentEvents: Array<{type: string; linkedEntryId?: string}>;
+    }).recentEvents;
+    expect(events.some((event) => event.type === "foodEdited" && event.linkedEntryId === "entry-salad"))
+      .toBe(true);
+    expect(events.some((event) => event.type === "foodDeleted" && event.linkedEntryId === "entry-snack"))
+      .toBe(true);
+    expect(events.length).toBeLessThanOrEqual(20);
+  });
+
+  it("retains dailyFoodSummary timeline events", () => {
+    const sanitized = parseCoachContextForPrompt({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      timeline: {
+        recentEvents: [
+          {
+            id: "summary-1",
+            type: "dailyFoodSummary",
+            status: "confirmed",
+            source: "system",
+            summary: "Earlier food logs today: 8 meals, 3200 kcal total.",
+            timestamp: "2026-07-03T09:00:00.000Z",
+            compactPayload: {mealCount: "8", totalKcal: "3200"},
+          },
+          ...Array.from({length: 25}, (_, index) => ({
+            id: `assistant-${index}`,
+            type: "assistantMessage",
+            status: "confirmed",
+            source: "aiBackend",
+            summary: `Assistant ${index}`,
+            timestamp: `2026-07-03T11:${String(index).padStart(2, "0")}:00.000Z`,
+          })),
+        ],
+      },
+    });
+
+    const events = (sanitized?.timeline as {recentEvents: Array<{type: string}>}).recentEvents;
+    expect(events.some((event) => event.type === "dailyFoodSummary")).toBe(true);
+    expect(events.length).toBeLessThanOrEqual(20);
+  });
+
   it("rejects malformed timeline recentEvents type", () => {
     expect(() => validateCoachContextPacketV2({
       meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},

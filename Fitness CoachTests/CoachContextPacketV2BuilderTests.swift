@@ -507,11 +507,11 @@ final class CoachContextPacketV2BuilderTests: XCTestCase {
                     && $0.status == CoachTimelineEventStatus.confirmed.rawValue
             }
         )
-        XCTAssertTrue(
+        XCTAssertFalse(
             packet.timeline.recentEvents.contains {
                 $0.type == CoachTimelineEventType.foodRejected.rawValue
-                    && $0.status == CoachTimelineEventStatus.rejected.rawValue
-            }
+            },
+            "Rejected estimates must not be exported as consumed timeline facts"
         )
     }
 

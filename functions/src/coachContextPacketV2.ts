@@ -21,11 +21,18 @@ const PROTECTED_TIMELINE_EVENT_TYPES = new Set([
   "foodLogged",
   "waterLogged",
   "weightLogged",
+  "foodEdited",
+  "foodDeleted",
   "workoutDetected",
   "stepsUpdated",
   "pendingConfirmationCreated",
   "photoAttached",
+  "photoAnalysisStarted",
   "photoAnalysisCompleted",
+  "photoAnalysisFailed",
+  "clarificationAsked",
+  "clarificationAnswered",
+  "dailyFoodSummary",
 ]);
 
 const LOW_VALUE_TIMELINE_EVENT_TYPES = new Set([
