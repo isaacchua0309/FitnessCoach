@@ -140,9 +140,27 @@ describe("coachContextPacketV2", () => {
 
     expect(fields.contextPresent).toBe(true);
     expect(fields.contextSchemaVersion).toBe(2);
+    expect(fields.contextGenerationMode).toBe("live");
     expect(fields.contextRecentMeals).toBe(1);
+    expect(fields.contextMissingDataFlagsCount).toBe(0);
+    expect(typeof fields.contextSizeBucket).toBe("string");
+    expect(typeof fields.contextEncodedBytes).toBe("number");
     expect(JSON.stringify(fields)).not.toContain("Salad");
     expect(JSON.stringify(fields)).not.toContain("8000");
+  });
+
+  it("coachContextLogFields counts missingData flags without exposing labels", () => {
+    const fields = coachContextLogFields({
+      ...minimalCoachContextV2,
+      missingData: {
+        stepsUnavailable: true,
+        sleepMissing: true,
+        hrvUnavailable: false,
+      },
+    });
+
+    expect(fields.contextMissingDataFlagsCount).toBe(2);
+    expect(JSON.stringify(fields)).not.toContain("stepsUnavailable");
   });
 
   it("preserves linkedEntryId on recent meals during sanitization", () => {

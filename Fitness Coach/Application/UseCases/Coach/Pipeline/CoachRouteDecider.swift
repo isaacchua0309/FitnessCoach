@@ -208,7 +208,7 @@ final class CoachRouteDecider: Sendable {
 
         switch CoachIntentConfidenceGate.evaluate(intentResult) {
         case .clarify(let message):
-            return CoachRouteDecision(
+            let decision = CoachRouteDecision(
                 route: .clarification(message),
                 rawMessage: input.originalText,
                 normalizedMessage: input.normalizedText,
@@ -219,12 +219,14 @@ final class CoachRouteDecider: Sendable {
                 reason: "Classifier confidence below threshold.",
                 requiresAPI: false
             )
+            CoachRouteDebugLogger.log(decision, intentResult: intentResult)
+            return decision
         case .proceed(let gatedResult):
             let route = intentRouter.route(intentResult: gatedResult, originalText: input.originalText)
             let requiresAPI = routeRequiresAPI(route)
             let tier = routedTier(from: route)
 
-            return CoachRouteDecision(
+            let decision = CoachRouteDecision(
                 route: route,
                 rawMessage: input.originalText,
                 normalizedMessage: input.normalizedText,
@@ -235,6 +237,8 @@ final class CoachRouteDecider: Sendable {
                 reason: gatedResult.reason,
                 requiresAPI: requiresAPI
             )
+            CoachRouteDebugLogger.log(decision, intentResult: gatedResult)
+            return decision
         }
     }
 
@@ -246,7 +250,7 @@ final class CoachRouteDecider: Sendable {
         handler: String,
         reason: String
     ) -> CoachRouteDecision {
-        CoachRouteDecision(
+        let decision = CoachRouteDecision(
             route: route,
             rawMessage: input.originalText,
             normalizedMessage: input.normalizedText,
@@ -257,6 +261,8 @@ final class CoachRouteDecider: Sendable {
             reason: reason,
             requiresAPI: false
         )
+        CoachRouteDebugLogger.log(decision)
+        return decision
     }
 
     // MARK: - Classify dedup

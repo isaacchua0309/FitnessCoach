@@ -19,6 +19,7 @@ import {
   assertBodySizeWithinLimit,
   coachContextLogFields,
   enforceRequestQuota,
+  gatewayErrorCategory,
   validatePayload,
 } from "./gatewayGuardrails";
 import {
@@ -69,6 +70,7 @@ export async function handleAiGatewayRequest(
 ): Promise<void> {
   const requestStarted = Date.now();
   const traceId = readTraceId(request);
+  const path = normalizedPath(request.path || request.url || "");
 
   try {
     if (request.method === "OPTIONS") {
@@ -85,7 +87,6 @@ export async function handleAiGatewayRequest(
     enforceRequestQuota(authUID);
     const body = readRequestBody(request);
     const bodyBytes = assertBodySizeWithinLimit(request, body);
-    const path = normalizedPath(request.path || request.url || "");
     if (path === MEAL_IMAGE_ANALYSIS_PATH) {
       validateAnalyzeMealImagePayload(body);
     } else {
@@ -97,6 +98,7 @@ export async function handleAiGatewayRequest(
       path,
       uid: authUID,
       bodyBytes,
+      endpoint: path,
       ...coachContextLogFields(body.context),
     });
 
@@ -191,20 +193,24 @@ export async function handleAiGatewayRequest(
       path,
       uid: authUID,
       bodyBytes,
+      endpoint: path,
       model: modelUsed,
+      responseValidationSuccess: true,
       durationMs: Date.now() - requestStarted,
+      ...coachContextLogFields(body.context),
     });
     response.setHeader("Cache-Control", "no-store");
     response.status(200).json(payload);
   } catch (error) {
+    const status = error instanceof GatewayError ? error.status : 500;
     const message = error instanceof Error ?
       error.message :
       "AI gateway failed.";
-    const status = error instanceof GatewayError ? error.status : 500;
     logger.error("AI gateway request failed", {
       traceId,
+      path,
       status,
-      message,
+      backendErrorCategory: gatewayErrorCategory(error),
       durationMs: Date.now() - requestStarted,
     });
     response.status(status).json({error: message});

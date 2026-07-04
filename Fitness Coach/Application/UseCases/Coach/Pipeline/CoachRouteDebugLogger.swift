@@ -9,21 +9,26 @@ import Foundation
 
 enum CoachRouteDebugLogger {
 
-    static func log(_ decision: CoachRouteDecision) {
+    static func log(_ decision: CoachRouteDecision, intentResult: CoachIntentResult? = nil) {
+        CoachAccuracyObservabilityLogger.logRoute(
+            decision: decision,
+            intentResult: intentResult
+        )
+
         #if DEBUG
         FormaPipelineTracer.event(
             stage: .routeDecision,
             level: .debug,
             message: "Route decision",
             fields: [
-                "raw": decision.rawMessage,
-                "normalized": decision.normalizedMessage,
+                "normalizedLength": String(decision.normalizedMessage.count),
                 "source": decision.routeSource.rawValue,
                 "intent": decision.intent?.rawValue ?? "none",
                 "tier": decision.modelTier?.rawValue ?? "none",
                 "handler": decision.chosenHandler,
                 "requiresAPI": String(decision.requiresAPI),
-                "reason": decision.reason ?? "none"
+                "reason": decision.reason ?? "none",
+                "classifierConfidence": intentResult.map { String(format: "%.2f", $0.confidence) } ?? "none"
             ]
         )
         #endif
