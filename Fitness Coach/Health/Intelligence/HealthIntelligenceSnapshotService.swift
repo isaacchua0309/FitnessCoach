@@ -52,7 +52,7 @@ actor HealthIntelligenceSnapshotService: HealthIntelligenceSnapshotServing {
     private let engine: any HealthIntelligenceEngineing
     private let cacheStore: any HealthCacheStore
     private let enginesEnabled: Bool
-    private var inFlightLoads: [Date: Task<HealthIntelligenceSnapshot?, Never>] = [:]
+    private var inFlightLoads: [Date: Task<HealthIntelligenceSnapshot, Never>] = [:]
 
     init(
         engine: any HealthIntelligenceEngineing,
@@ -157,19 +157,11 @@ actor HealthIntelligenceSnapshotService: HealthIntelligenceSnapshotServing {
         inFlightLoads.removeValue(forKey: day)
 
         let durationMs = Int(Date().timeIntervalSince(composeStartedAt) * 1_000)
-        if let snapshot {
-            HealthIntelligenceSnapshotLogger.compositionCompleted(
-                dayKey: dayKey,
-                mode: modeLabel,
-                durationMs: durationMs
-            )
-        } else {
-            HealthIntelligenceSnapshotLogger.compositionFailed(
-                dayKey: dayKey,
-                mode: modeLabel,
-                reason: "nil_snapshot"
-            )
-        }
+        HealthIntelligenceSnapshotLogger.compositionCompleted(
+            dayKey: dayKey,
+            mode: modeLabel,
+            durationMs: durationMs
+        )
 
         return snapshot
     }

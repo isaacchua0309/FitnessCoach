@@ -197,8 +197,13 @@ final class CoachModel: ObservableObject {
             let integration = trainingInsightsStore?.integrationState ?? .connected
             let dataSource = trainingInsightsStore?.dataSource ?? .appleHealth
             let latestFoodEntry = try? actionCenter.getFoodEntries(for: dailyLog.date).last
-            let resolvedSteps = activity.stepsOverride ?? dailyLog.steps
-                ?? (try? await healthActivityQuery.stepsToday(on: dailyLog.date))
+            let stepsFromHealth: Int?
+            if activity.stepsOverride == nil, dailyLog.steps == nil {
+                stepsFromHealth = try? await healthActivityQuery.stepsToday(on: dailyLog.date)
+            } else {
+                stepsFromHealth = nil
+            }
+            let resolvedSteps = activity.stepsOverride ?? dailyLog.steps ?? stepsFromHealth
             let healthNote = CoachTodayContextBuilder.healthActivityNote(
                 trainingDataSource: dataSource,
                 trainingIntegration: integration
@@ -1515,10 +1520,14 @@ final class CoachModel: ObservableObject {
         )
         let resolvedEntryId: UUID? = {
             if let entryId { return entryId }
-            if case .edit(let action, _, _), .delete(let action, _, _) = confirmation {
+            switch confirmation {
+            case .edit(let action, _, _):
                 return action.linkedEntryId
+            case .delete(let action, _, _):
+                return action.linkedEntryId
+            default:
+                return nil
             }
-            return nil
         }()
         timelineRecorder.recordPendingConfirmationConfirmed(
             payload: payload,
@@ -1561,7 +1570,7 @@ final class CoachModel: ObservableObject {
                 sessionId: session.sessionId,
                 mimeType: CoachImageUploadConfig.default.mimeType,
                 compressedByteSize: jpegData.count,
-                attachmentSource: source?.rawValue,
+                attachmentSource: source.map(CoachImageAnalysisDebugLogFormatter.sourceLabel),
                 hasCaption: !session.userCaption.isEmpty
             ),
             messageId: messageId,

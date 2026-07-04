@@ -23,7 +23,7 @@ protocol HealthSummaryRemoteSyncing: Sendable {
 
 // MARK: - Document payload marker
 
-protocol HealthSummaryRemoteSyncDocumentPayload: Codable, Sendable {
+protocol HealthSummaryRemoteSyncDocumentPayload: Sendable {
     var id: String { get }
     var userId: String { get }
     var generatedAt: String { get }

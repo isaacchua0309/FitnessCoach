@@ -472,8 +472,8 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
             occurredAt: occurredAt ?? entry.createdAt,
             link: CoachTimelineEventLink(
                 linkedEntryId: entry.id,
-                linkedDailyLogId: entry.dailyLogId,
-                linkedPhotoSessionId: linkedPhotoSessionId
+                linkedPhotoSessionId: linkedPhotoSessionId,
+                linkedDailyLogId: entry.dailyLogId
             )
         )
     }

@@ -254,12 +254,14 @@ final class CoachMutationExecutor {
         case .food:
             do {
                 let entry = try actionCenter.undoLastFoodEntry(date: Date())
-                timelineRecorder.recordUndoPerformed(
-                    entryType: "food",
-                    undoneEntryId: entry.id,
-                    summary: entry.name,
-                    occurredAt: Date()
-                )
+                if let entry {
+                    timelineRecorder.recordUndoPerformed(
+                        entryType: "food",
+                        undoneEntryId: entry.id,
+                        summary: entry.name,
+                        occurredAt: Date()
+                    )
+                }
                 return CoachResponseBuilder.undoFood(entry)
             } catch {
                 timelineRecordMutationFailure(message: error.localizedDescription, category: "undo_food")
@@ -268,12 +270,14 @@ final class CoachMutationExecutor {
         case .water:
             do {
                 let entry = try actionCenter.undoLastWaterEntry(date: Date())
-                timelineRecorder.recordUndoPerformed(
-                    entryType: "water",
-                    undoneEntryId: entry.id,
-                    summary: "\(entry.amountMl) ml",
-                    occurredAt: Date()
-                )
+                if let entry {
+                    timelineRecorder.recordUndoPerformed(
+                        entryType: "water",
+                        undoneEntryId: entry.id,
+                        summary: "\(entry.amountMl) ml",
+                        occurredAt: Date()
+                    )
+                }
                 return CoachResponseBuilder.undoWater(entry)
             } catch {
                 timelineRecordMutationFailure(message: error.localizedDescription, category: "undo_water")
@@ -444,6 +448,7 @@ final class CoachMutationExecutor {
     ) async -> String {
         do {
             let log = try dailyLogReader.getTodayLog()
+            var hints = contextHints ?? CoachResponseContextHints()
             let training: DailyTrainingActivity?
             if hints.missingData?.workoutsUnavailable == true
                 || hints.missingData?.workoutPermissionDeniedOrUnavailable == true {
@@ -452,7 +457,6 @@ final class CoachMutationExecutor {
                 training = await healthActivityQuery.dailyTrainingActivity(on: log.date)
             }
 
-            var hints = contextHints ?? CoachResponseContextHints()
             if hints.recentMeals.isEmpty {
                 let foodEntries = (try? actionCenter.getFoodEntries(for: log.date)) ?? []
                 hints.recentMeals = foodEntries.map { CoachRecentMealContext.from(entry: $0) }

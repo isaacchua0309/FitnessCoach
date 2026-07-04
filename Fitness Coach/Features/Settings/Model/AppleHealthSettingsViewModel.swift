@@ -5,6 +5,7 @@
 //  Forma — Loads Apple Health settings state without auto-requesting permissions.
 //
 
+import Combine
 import Foundation
 
 @MainActor
@@ -148,7 +149,7 @@ final class AppleHealthSettingsViewModel: ObservableObject {
         await environment.remoteSyncService?.cancelActiveSync()
         consentStore.optOut()
         if deleteRemoteSummaries {
-            await deleteRemoteSummaries(environment: environment, consentStore: consentStore)
+            await self.deleteRemoteSummaries(environment: environment, consentStore: consentStore)
         } else {
             remoteSyncState = await loadRemoteSyncState(
                 environment: environment,

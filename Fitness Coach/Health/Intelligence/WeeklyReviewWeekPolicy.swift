@@ -11,18 +11,19 @@ enum WeeklyReviewWeekPolicy {
 
     /// Normalizes any date to the calendar week start used for cache keys.
     static func normalizedWeekStart(_ date: Date, calendar: Calendar) -> Date? {
-        calendar.dateInterval(of: .weekOfYear, for: date)?.start
-            .map { calendar.startOfDay(for: $0) }
+        guard let start = calendar.dateInterval(of: .weekOfYear, for: date)?.start else {
+            return nil
+        }
+        return calendar.startOfDay(for: start)
     }
 
     /// Last day (inclusive) of the calendar week containing `weekStart`.
     static func weekEndDate(forWeekStarting weekStart: Date, calendar: Calendar) -> Date? {
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: weekStart) else {
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: weekStart),
+              let endDay = calendar.date(byAdding: .day, value: -1, to: interval.end) else {
             return nil
         }
-        let endExclusive = interval.end
-        return calendar.date(byAdding: .day, value: -1, to: endExclusive)
-            .map { calendar.startOfDay(for: $0) }
+        return calendar.startOfDay(for: endDay)
     }
 
     /// A week is completed when the reference day is strictly after the week's last day.

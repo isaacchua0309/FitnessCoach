@@ -153,7 +153,7 @@ enum HealthIntelligenceAnalyticsContextBuilder {
         let lifecycle = HealthIntelligencePresentationStateMapper.resolve(context)
         let snapshot = context.snapshot
         let resolvedConfidence = confidenceBucket
-            ?? snapshot.map { confidenceBucket(from: $0.planConfidence) }
+            ?? snapshot.map { Self.confidenceBucket(from: $0.planConfidence) }
 
         return HealthIntelligenceAnalyticsProperties(
             healthDataState: healthDataState(from: lifecycle).rawValue,
@@ -184,7 +184,7 @@ enum HealthIntelligenceAnalyticsContextBuilder {
         return properties(
             from: context,
             surface: surface,
-            confidenceBucket: confidenceBucket ?? snapshot.map { confidenceBucket(from: $0.planConfidence) }
+            confidenceBucket: confidenceBucket ?? snapshot.map { Self.confidenceBucket(from: $0.planConfidence) }
         )
     }
 

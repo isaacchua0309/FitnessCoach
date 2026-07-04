@@ -320,7 +320,8 @@ enum PlanHealthIntelligencePresentationBuilder {
                 )
                 : nil,
             activity: ActivitySummary(
-                steps: input.baselineContext.averageSteps7d ?? input.baselineContext.averageSteps28d,
+                steps: (input.baselineContext.averageSteps7d ?? input.baselineContext.averageSteps28d)
+                    .map { Int($0.rounded()) },
                 activeEnergyKcal: input.baselineContext.averageActiveEnergy7d.map { Int($0.rounded()) },
                 exerciseMinutes: nil
             ),

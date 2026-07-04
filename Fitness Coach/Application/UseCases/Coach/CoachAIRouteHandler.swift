@@ -593,7 +593,12 @@ final class CoachAIRouteHandler {
                     .nutritionEstimate(card),
                     accessibilityText: NutritionEstimateCardFormatter.accessibilitySummary(for: card)
                 )
-            case .comparison, .plainText(let text):
+            case .comparison(let card):
+                return .structured(
+                    .nutritionComparison(card),
+                    accessibilityText: NutritionEstimateCardFormatter.accessibilitySummary(for: card)
+                )
+            case .plainText(let text):
                 return .message(text)
             }
         } catch {
@@ -623,7 +628,12 @@ final class CoachAIRouteHandler {
                     .nutritionComparison(card),
                     accessibilityText: NutritionEstimateCardFormatter.accessibilitySummary(for: card)
                 )
-            case .estimate, .plainText(let text):
+            case .estimate(let card):
+                return .structured(
+                    .nutritionEstimate(card),
+                    accessibilityText: NutritionEstimateCardFormatter.accessibilitySummary(for: card)
+                )
+            case .plainText(let text):
                 return .message(text)
             }
         } catch {

@@ -64,7 +64,7 @@ enum HealthIntelligenceUIStatePolicy {
     static let minimumBaselineDays = 7
 }
 
-struct HealthIntelligenceUIState: Equatable, Sendable {
+struct HealthIntelligenceUIState: Equatable, Sendable, Codable {
     let kind: HealthIntelligenceUIStateKind
     let title: String
     let message: String

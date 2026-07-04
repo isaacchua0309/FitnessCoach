@@ -151,7 +151,7 @@ enum HealthSummarySyncDocumentID {
     }
 
     static func workout(from workout: NormalizedWorkout) -> String {
-        workout(workoutID: workout.id)
+        HealthSummarySyncDocumentID.workout(workoutID: workout.id)
     }
 
     static func weeklyReview(weekStart: Date, calendar: Calendar) -> String {

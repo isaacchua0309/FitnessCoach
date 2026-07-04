@@ -227,12 +227,11 @@ final class MemoryHealthCacheStore: HealthCacheStore, @unchecked Sendable {
     func storeIntelligenceSnapshot(
         _ snapshot: HealthIntelligenceSnapshot,
         for date: Date,
-        calendar: Calendar = .current,
-        cachedAt: Date = Date()
+        calendar: Calendar = .current
     ) {
         let key = calendar.startOfDay(for: date)
         lock.lock()
-        snapshotsByDay[key] = (snapshot, cachedAt)
+        snapshotsByDay[key] = (snapshot, Date())
         lock.unlock()
     }
 

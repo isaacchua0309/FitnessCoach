@@ -240,7 +240,7 @@ final class CoachTimelineBackfillService: CoachTimelineBackfilling {
                 return []
             }
             logger.debug(
-                "Skipping steps backfill for \(Self.localDateString(for: date, calendar: calendar), privacy: .public): \(error.localizedDescription, privacy: .public)"
+                "Skipping steps backfill for \(Self.localDateString(for: date, calendar: self.calendar), privacy: .public): \(error.localizedDescription, privacy: .public)"
             )
             return []
         }

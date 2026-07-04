@@ -48,8 +48,8 @@ struct AppleHealthIntegrationView: View {
         .navigationDestination(isPresented: $viewModel.showsRemoteSyncSettings) {
             AppleHealthRemoteSyncSettingsView(
                 viewModel: viewModel,
-                healthSyncStateStore: healthSyncStateStore,
                 consentStore: consentStore,
+                healthSyncStateStore: healthSyncStateStore,
                 settingsEnvironment: settingsEnvironment
             )
         }

@@ -397,14 +397,19 @@ final class AppContainer {
         await healthIntelligenceSnapshotService.refreshTodaySnapshot(calendar: .current)
     }
 
-    func makeTodayActionCoordinator() -> TodayActionCoordinator {
+    func makeTodayActionCoordinator(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> TodayActionCoordinator {
         TodayActionCoordinator(
             actionCenter: actionCenter,
-            analyticsLogger: todayAnalyticsLogger
+            analyticsLogger: todayAnalyticsLogger,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
         )
     }
 
-    func makeTodayModel() -> TodayModel {
+    func makeTodayModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> TodayModel {
         TodayModel(
             dailyLogReader: dailyLogService,
             foodLogReader: foodLogService,
@@ -422,7 +427,8 @@ final class AppContainer {
             },
             authStateProvider: { [weak self] in
                 self?.authManager.authState ?? .unknown
-            }
+            },
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
         )
     }
 
@@ -482,6 +488,14 @@ final class AppContainer {
 
     func makeSettingsAnalyticsCoordinator() -> SettingsAnalyticsCoordinator {
         SettingsAnalyticsCoordinator(analyticsLogger: settingsAnalyticsLogger)
+    }
+
+    func makeHealthIntelligenceAnalyticsCoordinator() -> HealthIntelligenceAnalyticsCoordinator {
+        #if DEBUG
+        HealthIntelligenceAnalyticsCoordinator(analyticsLogger: OSLogHealthIntelligenceAnalyticsLogger())
+        #else
+        HealthIntelligenceAnalyticsCoordinator(analyticsLogger: NoOpHealthIntelligenceAnalyticsLogger())
+        #endif
     }
 
     func makeJourneyModel(

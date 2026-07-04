@@ -101,7 +101,7 @@ enum CoachContextFoodMemoryBuilder {
                 let reliableSamples = zip(
                     aggregate.confidences.indices,
                     aggregate.confidences
-                ).filter { $0.element != .low }.count
+                ).filter { $0.1 != .low }.count
 
                 let macrosReliable = aggregate.count >= minReliableMacroSamples
                     && reliableSamples >= minReliableMacroSamples

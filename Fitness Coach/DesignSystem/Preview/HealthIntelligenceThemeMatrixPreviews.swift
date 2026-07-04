@@ -23,7 +23,7 @@ enum HealthIntelligenceThemeMatrixPreviews {
             .padding(.vertical, FormaTokens.Spacing.md)
         }
         .background(FormaTokens.Color.canvas)
-        .formaThemePreview(palette: palette, appearance: appearance)
+        .formaThemePreview(appearance: appearance, palette: palette)
     }
 
     static func journeySection(
@@ -39,7 +39,7 @@ enum HealthIntelligenceThemeMatrixPreviews {
             .padding(.vertical, FormaTokens.Spacing.md)
         }
         .background(FormaTokens.Color.canvas)
-        .formaThemePreview(palette: palette, appearance: appearance)
+        .formaThemePreview(appearance: appearance, palette: palette)
     }
 
     static func planSection(
@@ -54,7 +54,7 @@ enum HealthIntelligenceThemeMatrixPreviews {
             .padding(.vertical, FormaTokens.Spacing.md)
         }
         .background(FormaTokens.Color.canvas)
-        .formaThemePreview(palette: palette, appearance: appearance)
+        .formaThemePreview(appearance: appearance, palette: palette)
     }
 }
 

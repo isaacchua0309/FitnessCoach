@@ -307,17 +307,6 @@ struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
         let targetDayBodyMass = healthWeightRecords.filter {
             calendar.isDate($0.date, inSameDayAs: targetDay)
         }
-        let normalizedDayBundle = HealthNormalizedDayBundle(
-            dailyMetrics: todayMetrics,
-            workouts: workoutsToday,
-            sleepRecords: targetDaySleep,
-            heartMetrics: targetDayHeart,
-            bodyMassRecords: targetDayBodyMass
-        )
-        let normalizedSamples = HealthNormalizedSampleDeriver.derive(
-            from: normalizedDayBundle,
-            calendar: calendar
-        )
 
         if todayLog == nil, weekLogs.isEmpty {
             dataGaps.insert(.nutritionUnavailable)
@@ -369,6 +358,18 @@ struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
         let workoutsLast28 = Self.workouts(
             in: Self.inclusiveDayRange(endingOn: targetDay, days: 28, calendar: calendar),
             from: workouts,
+            calendar: calendar
+        )
+
+        let normalizedDayBundle = HealthNormalizedDayBundle(
+            dailyMetrics: todayMetrics,
+            workouts: workoutsToday,
+            sleepRecords: targetDaySleep,
+            heartMetrics: targetDayHeart,
+            bodyMassRecords: targetDayBodyMass
+        )
+        let normalizedSamples = HealthNormalizedSampleDeriver.derive(
+            from: normalizedDayBundle,
             calendar: calendar
         )
 
@@ -444,26 +445,25 @@ struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
             trainingLoadInput: trainingLoadInput,
             weeklyReviewContext: weeklyReviewContext
         )
-        logBuiltContext(builtContext)
-        return builtContext
         let dayKey = HealthIntelligenceSnapshotLogger.dayKey(
-            for: context.targetDate,
-            calendar: context.calendar
+            for: builtContext.targetDate,
+            calendar: builtContext.calendar
         )
-        let gapLabels = context.dataGaps.map(\.rawValue).sorted().joined(separator: ",")
+        let gapLabels = builtContext.dataGaps.map(\.rawValue).sorted().joined(separator: ",")
         HealthIntelligenceEngineLogger.event(
             "Health intelligence context built",
             fields: [
                 "dayKey": dayKey,
-                "dataGapCount": String(context.dataGaps.count),
+                "dataGapCount": String(builtContext.dataGaps.count),
                 "dataGaps": gapLabels.isEmpty ? "none" : gapLabels,
-                "cachedDayCount": String(context.availability.cachedDayCount),
-                "metrics28Count": String(context.metricsLast28Days.count),
-                "workouts28Count": String(context.workoutsLast28Days.count),
-                "sleepRecordCount": String(context.sleepRecords.count),
-                "heartMetricCount": String(context.heartMetrics.count)
+                "cachedDayCount": String(builtContext.availability.cachedDayCount),
+                "metrics28Count": String(builtContext.metricsLast28Days.count),
+                "workouts28Count": String(builtContext.workoutsLast28Days.count),
+                "sleepRecordCount": String(builtContext.sleepRecords.count),
+                "heartMetricCount": String(builtContext.heartMetrics.count)
             ]
         )
+        return builtContext
     }
 
     // MARK: - Weekly review helpers (input assembly lives in engine)

@@ -80,8 +80,8 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
         let query = CoachTimelineQuery(
             fromLocalDate: localDate,
             toLocalDate: localDate,
-            includeSuperseded: false,
-            limit: Self.maxQueryEventLimit
+            limit: Self.maxQueryEventLimit,
+            includeSuperseded: false
         )
         return try repository.fetch(query: query, userId: userIdProvider())
     }
@@ -97,8 +97,8 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
             query: CoachTimelineQuery(
                 fromLocalDate: startLocalDate,
                 toLocalDate: endLocalDate,
-                includeSuperseded: false,
-                limit: Self.maxQueryEventLimit
+                limit: Self.maxQueryEventLimit,
+                includeSuperseded: false
             ),
             userId: userIdProvider()
         )
@@ -113,8 +113,8 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
         let fetchLimit = min(max(limit * 4, limit), Self.maxQueryEventLimit)
         let candidates = try repository.fetch(
             query: CoachTimelineQuery(
-                includeSuperseded: false,
-                limit: fetchLimit
+                limit: fetchLimit,
+                includeSuperseded: false
             ),
             userId: userIdProvider()
         )

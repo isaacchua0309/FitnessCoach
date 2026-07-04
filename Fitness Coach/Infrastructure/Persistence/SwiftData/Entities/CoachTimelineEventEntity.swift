@@ -14,10 +14,12 @@ import SwiftData
 @Model
 final class CoachTimelineEventEntity {
 
-    #Index<CoachTimelineEventEntity>([\.localDate])
-    #Index<CoachTimelineEventEntity>([\.utcCreatedAt])
-    #Index<CoachTimelineEventEntity>([\.eventTypeRaw])
-    #Index<CoachTimelineEventEntity>([\.linkedEntryId])
+    #Index<CoachTimelineEventEntity>(
+        [\.localDate],
+        [\.utcCreatedAt],
+        [\.eventTypeRaw],
+        [\.linkedEntryId]
+    )
 
     // MARK: Identity
 

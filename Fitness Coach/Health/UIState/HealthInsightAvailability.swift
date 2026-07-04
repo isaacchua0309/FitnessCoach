@@ -22,7 +22,7 @@ enum HealthInsightKind: String, Equatable, Sendable, Hashable, Codable, CaseIter
 }
 
 /// Availability of a single Health Intelligence insight channel.
-struct HealthInsightAvailability: Equatable, Sendable, Hashable {
+struct HealthInsightAvailability: Equatable, Sendable, Hashable, Codable {
     let kind: HealthInsightKind
     let isAvailable: Bool
 

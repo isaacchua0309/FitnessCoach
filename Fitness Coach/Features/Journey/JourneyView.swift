@@ -118,6 +118,7 @@ struct JourneyView: View {
                     ? model.journeyHealthIntelligenceSectionState
                     : nil,
                 analyticsCoordinator: analyticsCoordinator,
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                 onCTA: handleCTA,
                 onGoToToday: { onOpenToday?() },
                 onConnectHealth: healthIntelligenceUIEnabled ? {
@@ -126,8 +127,7 @@ struct JourneyView: View {
                 } : nil,
                 onWeeklyReviewSelected: { detail in
                     presentedWeeklyReviewDetail = WeeklyReviewDetailPresentation(state: detail)
-                },
-                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+                }
             )
         }
         .formaMainTabScrollInsets()

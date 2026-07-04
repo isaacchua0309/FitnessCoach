@@ -67,7 +67,7 @@ enum CoachEntryReferenceResolver {
         meals: [CoachRecentMealContext]
     ) -> UUID? {
         if let linkedEntryId { return linkedEntryId }
-        if let fromSelector = linkedEntryId(fromSelector: selector) { return fromSelector }
+        if let fromSelector = Self.linkedEntryId(fromSelector: selector) { return fromSelector }
 
         guard let selector = selector?.trimmingCharacters(in: .whitespacesAndNewlines),
               !selector.isEmpty

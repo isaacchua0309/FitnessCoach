@@ -37,9 +37,9 @@ enum HealthIntelligencePipelineAnalytics {
         log(
             event,
             properties: HealthIntelligenceAnalyticsProperties(
+                featureFlagState: HealthIntelligenceAnalyticsContextBuilder.featureFlagState(),
                 availableSignalCount: status.availableSignals.count,
-                deniedSignalCount: status.deniedSignals.count,
-                featureFlagState: HealthIntelligenceAnalyticsContextBuilder.featureFlagState()
+                deniedSignalCount: status.deniedSignals.count
             )
         )
     }
@@ -58,11 +58,11 @@ enum HealthIntelligencePipelineAnalytics {
         log(
             event,
             properties: HealthIntelligenceAnalyticsProperties(
+                featureFlagState: HealthIntelligenceAnalyticsContextBuilder.featureFlagState(),
+                failureReason: state.lastError?.localizedDescription,
                 syncDurationMs: durationMs,
                 syncTrigger: state.trigger?.rawValue,
-                syncPhase: state.phase.rawValue,
-                failureReason: state.lastError?.localizedDescription,
-                featureFlagState: HealthIntelligenceAnalyticsContextBuilder.featureFlagState()
+                syncPhase: state.phase.rawValue
             )
         )
     }
@@ -76,11 +76,11 @@ enum HealthIntelligencePipelineAnalytics {
         log(
             .healthSnapshotComposed,
             properties: HealthIntelligenceAnalyticsProperties(
-                composeMode: mode.logLabel,
-                dataGapCount: dataGapCount,
                 recoveryStatus: recoveryStatus,
                 hasWorkoutToday: hasWorkout,
-                featureFlagState: HealthIntelligenceAnalyticsContextBuilder.featureFlagState()
+                featureFlagState: HealthIntelligenceAnalyticsContextBuilder.featureFlagState(),
+                composeMode: mode.logLabel,
+                dataGapCount: dataGapCount
             )
         )
     }
@@ -106,13 +106,13 @@ enum HealthIntelligencePipelineAnalytics {
         log(
             event,
             properties: HealthIntelligenceAnalyticsProperties(
+                featureFlagState: HealthIntelligenceAnalyticsContextBuilder.featureFlagState(),
+                failureReason: errorDescription,
                 syncTrigger: trigger,
                 syncPhase: phase.rawValue,
                 payloadDailyCount: dailyCount,
                 payloadWorkoutCount: workoutCount,
-                payloadRecoveryCount: recoveryCount,
-                failureReason: errorDescription,
-                featureFlagState: HealthIntelligenceAnalyticsContextBuilder.featureFlagState()
+                payloadRecoveryCount: recoveryCount
             )
         )
     }

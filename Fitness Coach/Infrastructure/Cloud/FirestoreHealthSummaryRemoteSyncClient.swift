@@ -29,28 +29,32 @@ final class FirestoreHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, 
     func uploadDailySummaries(_ summaries: [HealthDailySummarySyncPayload]) async throws {
         try await uploadDocuments(
             summaries,
-            collection: HealthSummaryRemoteSyncCollection.daily
+            collection: HealthSummaryRemoteSyncCollection.daily,
+            encode: Self.encodeFirestoreFields
         )
     }
 
     func uploadWorkoutSummaries(_ workouts: [HealthWorkoutSummarySyncPayload]) async throws {
         try await uploadDocuments(
             workouts,
-            collection: HealthSummaryRemoteSyncCollection.workouts
+            collection: HealthSummaryRemoteSyncCollection.workouts,
+            encode: Self.encodeFirestoreFields
         )
     }
 
     func uploadRecoverySummaries(_ recovery: [RecoverySummarySyncPayload]) async throws {
         try await uploadDocuments(
             recovery,
-            collection: HealthSummaryRemoteSyncCollection.recovery
+            collection: HealthSummaryRemoteSyncCollection.recovery,
+            encode: Self.encodeFirestoreFields
         )
     }
 
     func uploadWeeklyReviews(_ reviews: [WeeklyHealthReviewSyncPayload]) async throws {
         try await uploadDocuments(
             reviews,
-            collection: HealthSummaryRemoteSyncCollection.weeklyReviews
+            collection: HealthSummaryRemoteSyncCollection.weeklyReviews,
+            encode: Self.encodeFirestoreFields
         )
     }
 
@@ -146,9 +150,10 @@ final class FirestoreHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, 
 
     // MARK: - Upload
 
-    private func uploadDocuments<T: HealthSummaryRemoteSyncDocumentPayload>(
-        _ payloads: [T],
-        collection: String
+    private func uploadDocuments<Payload: HealthSummaryRemoteSyncDocumentPayload>(
+        _ payloads: [Payload],
+        collection: String,
+        encode: (Payload) throws -> [String: Any]
     ) async throws {
         guard !payloads.isEmpty else { return }
 
@@ -164,7 +169,7 @@ final class FirestoreHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, 
         do {
             let chunks = HealthSummaryRemoteSyncSupport.chunked(payloads, size: batchOperationLimit)
             for chunk in chunks {
-                try await commitBatchWrite(chunk, collection: collection, uid: authUid)
+                try await commitBatchWrite(chunk, collection: collection, uid: authUid, encode: encode)
             }
             HealthSummaryRemoteSyncLogger.uploadFinished(
                 collection: collection,
@@ -189,17 +194,18 @@ final class FirestoreHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, 
         }
     }
 
-    private func commitBatchWrite<T: HealthSummaryRemoteSyncDocumentPayload>(
-        _ payloads: [T],
+    private func commitBatchWrite<Payload: HealthSummaryRemoteSyncDocumentPayload>(
+        _ payloads: [Payload],
         collection: String,
-        uid: String
+        uid: String,
+        encode: (Payload) throws -> [String: Any]
     ) async throws {
         let batch = firestore.batch()
         let collectionReference = userCollection(uid: uid, name: collection)
 
         for payload in payloads {
             let reference = collectionReference.document(payload.id)
-            let encoded = try encoder.encode(payload)
+            let encoded = try encode(payload)
             batch.setData(encoded, forDocument: reference, merge: false)
         }
 
@@ -211,6 +217,33 @@ final class FirestoreHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, 
                 reason: firestoreReason(from: error)
             )
         }
+    }
+
+    private static func encodeFirestoreFields(_ payload: HealthDailySummarySyncPayload) throws -> [String: Any] {
+        try encodeJSONPayload(payload)
+    }
+
+    private static func encodeFirestoreFields(_ payload: HealthWorkoutSummarySyncPayload) throws -> [String: Any] {
+        try encodeJSONPayload(payload)
+    }
+
+    private static func encodeFirestoreFields(_ payload: RecoverySummarySyncPayload) throws -> [String: Any] {
+        try encodeJSONPayload(payload)
+    }
+
+    private static func encodeFirestoreFields(_ payload: WeeklyHealthReviewSyncPayload) throws -> [String: Any] {
+        try encodeJSONPayload(payload)
+    }
+
+    private static func encodeJSONPayload<Payload: Encodable>(_ payload: Payload) throws -> [String: Any] {
+        let data = try JSONEncoder().encode(payload)
+        guard let encoded = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw HealthSummarySyncError.batchWriteFailed(
+                collection: "unknown",
+                reason: "payload_encoding_failed"
+            )
+        }
+        return encoded
     }
 
     // MARK: - Delete
