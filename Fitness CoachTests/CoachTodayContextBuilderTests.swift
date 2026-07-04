@@ -16,8 +16,11 @@ final class CoachTodayContextBuilderTests: XCTestCase {
 
         let state = CoachTodayContextBuilder.build(
             dailyLog: log,
+            latestFoodEntry: nil,
             weightLogged: false,
-            hasWorkout: false
+            hasWorkout: false,
+            steps: nil,
+            healthActivityNote: nil
         )
 
         XCTAssertEqual(
@@ -46,8 +49,11 @@ final class CoachTodayContextBuilderTests: XCTestCase {
 
         let state = CoachTodayContextBuilder.build(
             dailyLog: log,
+            latestFoodEntry: nil,
             weightLogged: false,
-            hasWorkout: false
+            hasWorkout: false,
+            steps: nil,
+            healthActivityNote: nil
         )
 
         let expected = TodayFocusBuilder.focus(
@@ -75,8 +81,11 @@ final class CoachTodayContextBuilderTests: XCTestCase {
 
         let state = CoachTodayContextBuilder.build(
             dailyLog: emptyLog,
+            latestFoodEntry: nil,
             weightLogged: false,
-            hasWorkout: false
+            hasWorkout: false,
+            steps: nil,
+            healthActivityNote: nil
         )
 
         XCTAssertEqual(state.caloriesLine, "0 eaten · \(emptyLog.targets.calorieTarget) target")
@@ -86,5 +95,62 @@ final class CoachTodayContextBuilderTests: XCTestCase {
             "Water 0 / \(emptyLog.targets.waterTargetMl) ml"
         )
         XCTAssertEqual(state.suggestedFocus, FormaProductCopy.Today.focusProteinLow)
+        XCTAssertTrue(state.activityLines.contains(FormaProductCopy.Today.Activity.stepsUnavailable))
+    }
+
+    func testActivityLinesIncludeLatestMealStepsAndWorkout() {
+        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let entry = CoachMutationTestFixtures.chickenFoodEntry
+
+        let state = CoachTodayContextBuilder.build(
+            dailyLog: log,
+            latestFoodEntry: entry,
+            weightLogged: false,
+            hasWorkout: true,
+            steps: 8_420,
+            healthActivityNote: nil
+        )
+
+        XCTAssertTrue(
+            state.activityLines.contains(
+                FormaProductCopy.Coach.latestMealLine(name: "Chicken breast", calories: 330)
+            )
+        )
+        XCTAssertTrue(state.activityLines.contains(FormaProductCopy.Today.Activity.stepsToday(8_420)))
+        XCTAssertTrue(state.activityLines.contains(FormaProductCopy.Today.Activity.workoutCompletedLine))
+        XCTAssertNil(state.activityHintLine)
+    }
+
+    func testHealthUnavailableUsesHintInsteadOfStepsUnavailableLine() {
+        let log = DailyNutritionSummaryTestFixtures.baselineLog
+
+        let state = CoachTodayContextBuilder.build(
+            dailyLog: log,
+            latestFoodEntry: nil,
+            weightLogged: false,
+            hasWorkout: false,
+            steps: nil,
+            healthActivityNote: FormaProductCopy.Today.Activity.healthUnavailableNote
+        )
+
+        XCTAssertFalse(state.activityLines.contains(FormaProductCopy.Today.Activity.stepsUnavailable))
+        XCTAssertEqual(state.activityHintLine, FormaProductCopy.Today.Activity.healthUnavailableNote)
+    }
+
+    func testHealthActivityNoteForDisconnectedAppleHealth() {
+        XCTAssertEqual(
+            CoachTodayContextBuilder.healthActivityNote(
+                trainingDataSource: .appleHealth,
+                trainingIntegration: .notConnected
+            ),
+            FormaProductCopy.Today.Activity.healthConnectNote
+        )
+        XCTAssertEqual(
+            CoachTodayContextBuilder.healthActivityNote(
+                trainingDataSource: .unavailable,
+                trainingIntegration: .connected
+            ),
+            FormaProductCopy.Today.Activity.healthUnavailableNote
+        )
     }
 }

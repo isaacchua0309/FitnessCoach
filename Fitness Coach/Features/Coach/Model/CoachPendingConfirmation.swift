@@ -38,7 +38,18 @@ enum CoachPendingConfirmation: Equatable {
             } else {
                 lines.append(meal.displayName)
             }
+            if let sourceLine = AIFoodConfirmationFormatter.pendingSourceLabel(
+                sourceAttribution: draft.sourceAttribution,
+                foodSource: meal.source
+            ) {
+                lines.append(sourceLine)
+            }
             lines.append(AIFoodConfirmationFormatter.confidenceLabel(draft.confidence))
+            if let reviewWarning = AIFoodConfirmationFormatter.pendingReviewWarning(
+                confidence: draft.confidence
+            ) {
+                lines.append(reviewWarning)
+            }
             let assumptions = AIFoodConfirmationFormatter.assumptionLines(for: meal)
             if !assumptions.isEmpty {
                 lines.append(contentsOf: assumptions)

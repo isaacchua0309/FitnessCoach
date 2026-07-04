@@ -40,18 +40,30 @@ enum CoachResponseBuilder {
 
     // MARK: Food
 
-    static func food(_ entry: FoodEntry, log: DailyLog?) -> String {
-        var response = "Logged \(entry.name)."
+    static func food(
+        _ entry: FoodEntry,
+        log: DailyLog?,
+        fromPhotoAnalysis: Bool = false
+    ) -> String {
+        let leadIn = fromPhotoAnalysis
+            ? "Logged \(entry.name) from your meal photo."
+            : "Logged \(entry.name)."
+        var response = leadIn
         response += """
 
 
-        \(entry.calories) kcal · \(FoodEntryFormFormatter.formatMacro(entry.protein))g protein
+        \(entry.calories) kcal · \(FoodEntryFormFormatter.formatMacro(entry.protein))g protein · \(FoodEntryFormFormatter.formatMacro(entry.carbs))g carbs · \(FoodEntryFormFormatter.formatMacro(entry.fat))g fat
         """
         if let log {
             response += CoachNutritionSummaryFormatter.foodLoggedSuffix(
                 nutrition: nutritionSummary(from: log)
             )
         }
+        response += """
+
+
+        \(FormaProductCopy.Coach.foodLoggedTimelineNote)
+        """
         return response
     }
 

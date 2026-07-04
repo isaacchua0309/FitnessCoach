@@ -50,6 +50,7 @@ final class CoachModel: ObservableObject {
     @Published var shouldFocusComposer = false
 
     private let localCommandParser: LocalCommandParser
+    private let actionCenter: FitnessActionCenter
     private let dailyLogReader: any DailyLogReading
     private let healthActivityQuery: HealthActivityQueryService
     private let healthIntelligenceSnapshotProvider: (any HealthIntelligenceSnapshotServing)?
@@ -122,6 +123,7 @@ timelineRecorder: (any CoachTimelineRecording)? = nil,
         timelineStore: (any CoachTimelineStoring)? = nil
     ) {
         self.localCommandParser = localCommandParser ?? .standard
+        self.actionCenter = actionCenter
         self.dailyLogReader = dailyLogReader
         self.healthActivityQuery = healthActivityQuery
         self.healthIntelligenceSnapshotProvider = healthIntelligenceSnapshotProvider
@@ -193,9 +195,17 @@ timelineRecorder: (any CoachTimelineRecording)? = nil,
             let weightLogged = (dailyLog.weightKg ?? latestWeight?.weightKg) != nil
             let integration = trainingInsightsStore?.integrationState ?? .connected
             let dataSource = trainingInsightsStore?.dataSource ?? .appleHealth
+            let latestFoodEntry = try? actionCenter.getFoodEntries(for: dailyLog.date).last
+            let resolvedSteps = activity.stepsOverride ?? dailyLog.steps
+                ?? (try? await healthActivityQuery.stepsToday(on: dailyLog.date))
+            let healthNote = CoachTodayContextBuilder.healthActivityNote(
+                trainingDataSource: dataSource,
+                trainingIntegration: integration
+            )
 
             todayContext = CoachTodayContextBuilder.build(
                 dailyLog: dailyLog,
+                latestFoodEntry: latestFoodEntry,
                 weightLogged: weightLogged,
                 hasWorkout: activity.hasWorkoutToday,
                 healthIntelligence: activity.healthIntelligence,

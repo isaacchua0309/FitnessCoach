@@ -10,26 +10,37 @@ import XCTest
 
 final class CoachMutationFormattingTests: XCTestCase {
 
-    func testFoodLoggedIncludesEntryAndTodaySummary() {
+    func testFoodLoggedIncludesEntryTimelineNoteAndTodaySummary() {
         let entry = CoachMutationTestFixtures.chickenFoodEntry
         let log = CoachMutationTestFixtures.sampleDailyLog
 
         let message = CoachResponseBuilder.food(entry, log: log)
 
         XCTAssertTrue(message.hasPrefix("Logged Chicken breast."))
-        XCTAssertTrue(message.contains("330 kcal · 62g protein"))
+        XCTAssertTrue(message.contains("330 kcal · 62g protein · 0g carbs · 7g fat"))
         XCTAssertTrue(message.contains("900 / 1800 kcal"))
         XCTAssertTrue(message.contains("protein remaining"))
+        XCTAssertTrue(message.contains(FormaProductCopy.Coach.foodLoggedTimelineNote))
     }
 
-    func testWaterLoggedIncludesRemainingWhenLogPresent() {
+    func testPhotoFoodLoggedMentionsPhotoSourceAndMacros() {
+        let entry = CoachMutationTestFixtures.chickenFoodEntry
+        let message = CoachResponseBuilder.food(
+            entry,
+            log: nil,
+            fromPhotoAnalysis: true
+        )
+
+        XCTAssertTrue(message.contains("from your meal photo"))
+        XCTAssertTrue(message.contains("330 kcal · 62g protein · 0g carbs · 7g fat"))
+        XCTAssertTrue(message.contains(FormaProductCopy.Coach.foodLoggedTimelineNote))
+    }
+
+    func testWaterLoggedStaysConciseWhenLogPresent() {
         let log = CoachMutationTestFixtures.sampleDailyLog
         let message = CoachResponseBuilder.water(loggedMl: 500, log: log)
 
-        XCTAssertTrue(message.hasPrefix("Logged 500ml water."))
-        XCTAssertTrue(message.contains("Water today:"))
-        XCTAssertTrue(message.contains("1200") || message.contains("1,200"))
-        XCTAssertTrue(message.contains("2400") || message.contains("2,400"))
+        XCTAssertEqual(message, "Logged 500ml water. 1,200 / 2,400 ml today.")
     }
 
     func testWeightLoggedFormatsTwoDecimals() {

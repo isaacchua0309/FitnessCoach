@@ -10,12 +10,42 @@ import XCTest
 
 final class CoachPendingConfirmationFormattingTests: XCTestCase {
 
-    func testFoodSummaryIncludesMacros() {
+    func testFoodSummaryIncludesMacrosAndConfidence() {
         let pending = CoachPendingConfirmation.food(CoachMutationTestFixtures.chickenConfirmationDraft)
 
         XCTAssertEqual(pending.kindLabel, "Food")
-        XCTAssertEqual(pending.summaryLine, "Chicken breast · 330 kcal · P 62g / C 0g / F 7g")
+        XCTAssertTrue(pending.summaryLine.contains("Chicken breast · 330 kcal · P 62g / C 0g / F 7g"))
+        XCTAssertTrue(pending.summaryLine.contains(AIFoodConfirmationFormatter.confidenceLabel(.high)))
         XCTAssertTrue(pending.supportsEdit)
+    }
+
+    func testLowConfidenceFoodShowsReviewWarning() {
+        var draft = CoachMutationTestFixtures.chickenConfirmationDraft
+        draft.confidence = .low
+        draft.mealDraft.confidence = .low
+
+        let pending = CoachPendingConfirmation.food(draft)
+
+        XCTAssertTrue(pending.summaryLine.contains(FormaProductCopy.Coach.pendingReviewBeforeLogging))
+    }
+
+    func testPhotoFoodPendingShowsSourceLabel() {
+        var draft = CoachMutationTestFixtures.chickenConfirmationDraft
+        draft.sourceAttribution = .mealImage
+        draft.mealDraft.source = .aiPhotoEstimate
+
+        let pending = CoachPendingConfirmation.food(draft)
+
+        XCTAssertTrue(pending.summaryLine.contains(FormaProductCopy.Coach.pendingSourceMealPhoto))
+    }
+
+    func testCommonFoodPendingShowsSourceLabel() {
+        var draft = CoachMutationTestFixtures.chickenConfirmationDraft
+        draft.sourceAttribution = .commonFoodReference
+
+        let pending = CoachPendingConfirmation.food(draft)
+
+        XCTAssertTrue(pending.summaryLine.contains(FormaProductCopy.Coach.pendingSourceCommonFood))
     }
 
     func testWaterAndWeightSummaries() {

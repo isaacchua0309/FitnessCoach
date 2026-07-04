@@ -64,8 +64,26 @@ enum AIFoodConfirmationFormatter {
         case .medium:
             return "This is a medium-confidence estimate. Please review before logging."
         case .low:
-            return "This is a low-confidence estimate. Please review and edit before logging."
+            return FormaProductCopy.Coach.pendingReviewBeforeLogging
         }
+    }
+
+    static func pendingSourceLabel(
+        sourceAttribution: CoachTimelineEventSourceAttribution?,
+        foodSource: FoodEntrySource
+    ) -> String? {
+        if sourceAttribution == .mealImage || foodSource == .aiPhotoEstimate {
+            return FormaProductCopy.Coach.pendingSourceMealPhoto
+        }
+        if sourceAttribution == .commonFoodReference {
+            return FormaProductCopy.Coach.pendingSourceCommonFood
+        }
+        return nil
+    }
+
+    static func pendingReviewWarning(confidence: AIConfidence) -> String? {
+        guard confidence == .low else { return nil }
+        return FormaProductCopy.Coach.pendingReviewBeforeLogging
     }
 
     static func assumptionLines(for meal: FoodLogDraft) -> [String] {

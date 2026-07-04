@@ -18,11 +18,9 @@ enum CoachNutritionSummaryFormatter {
     }
 
     static func waterLoggedMessage(loggedMl: Int, nutrition: DailyNutritionSummary) -> String {
-        """
-        Logged \(loggedMl)ml water.
-
-        \(waterTodaySuffix(from: nutrition))
-        """
+        let consumed = PlanDisplayFormatter.formatGroupedInteger(nutrition.water.consumedMl)
+        let target = PlanDisplayFormatter.formatGroupedInteger(nutrition.water.targetMl)
+        return "Logged \(loggedMl)ml water. \(consumed) / \(target) ml today."
     }
 
     static func foodLoggedSuffix(nutrition: DailyNutritionSummary) -> String {

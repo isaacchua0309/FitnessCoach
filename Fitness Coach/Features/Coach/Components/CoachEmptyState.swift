@@ -65,6 +65,8 @@ struct CoachEmptyState: View {
                 caloriesLine: "0 eaten · 2,249 target",
                 proteinLine: "Protein 0 / 180 g",
                 waterLine: "Water 0 / 3150 ml",
+                activityLines: [],
+                activityHintLine: nil,
                 suggestedFocus: FormaProductCopy.Today.focusProteinLow
             ),
             isDisabled: false
