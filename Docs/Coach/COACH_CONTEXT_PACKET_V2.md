@@ -79,6 +79,8 @@ Each event includes: `id`, `type`, `status`, `source`, `summary`, `timestamp`, o
 2. `parseCoachContextForPrompt` — strips unknown keys, clamps arrays/strings
 3. Prompt rules in `coachContextPromptRules.ts` — instruct model to prefer structured data
 
+**Trust metadata (v1):** Calorie ranges, assumptions, and uncertainty live on **AI estimate responses** (`FoodLogDraft`, `MealImageAnalysisResponse`, `NutritionEstimateResponse`), not on the context packet. See [COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md](./COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md).
+
 Malformed context returns HTTP 400 with a safe error string (no stack traces to client).
 
 ## iOS debug

@@ -95,7 +95,8 @@ only for temporary emulator testing.
 |------|---------|
 | `/v1/ai/classify-coach-intent` | Cheap model Coach intent classification |
 | `/v1/ai/parse-command` | AI command parsing |
-| `/v1/ai/estimate-food` | Text or photo food estimate |
+| `/v1/ai/estimate-food` | Text food estimate (multi-component extraction) |
+| `/v1/ai/analyze-meal-image` | Meal photo analysis with trust metadata (`needsUserReview`, ranges, assumptions) |
 | `/v1/ai/generate-meal-advice` | Meal, calorie, macro, and coaching text (`question` field) |
 | `/v1/ai/generate-nutrition-estimate` | Structured nutrition estimate card (`question` field) |
 | `/v1/ai/generate-nutrition-comparison` | Structured nutrition comparison card (`question` field) |
@@ -125,6 +126,18 @@ After deploy or incident:
 Contract tests (no live OpenAI): `cd functions && npm test`.
 
 Authenticated E2E smoke test: `npm --prefix functions run smoke:auth` (see [ReleaseAI.md](./ReleaseAI.md)).
+
+### Meal image analysis response (v1 trust fields)
+
+`POST /v1/ai/analyze-meal-image` returns `MealImageAnalysisResponse`:
+
+- `items[]` — per-visible-food with `assumptions`, `uncertaintyReasons`, `calorieRangeLower`, `calorieRangeUpper`, `confidence`
+- `total` — summed macros with optional `calorieRangeLower` / `calorieRangeUpper`
+- `needsUserReview: true` — always; iOS never auto-logs photo estimates
+- `primaryUncertainty`, `clarifyingQuestion` — when portion/plate/sauce is ambiguous
+
+Validation and prompt rules: `functions/src/mealImageAnalysis.ts`, `coachContextPromptRules.ts`.  
+Full contract: [COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md](./Coach/COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md).
 
 ---
 

@@ -4,6 +4,8 @@
 **Audience:** QA, release engineering, engineers validating the accuracy hardening sprint  
 **Schema version:** `CoachContextPacketV2.meta.schemaVersion == 2`
 
+**Trust Hardening v1 supplement:** [COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md](./COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md) — trust contract, 13-flow regression matrix, photo/text range behavior.
+
 **Related docs:**
 - [COACH_TIMELINE_CONTEXT_V2_QA.md](./COACH_TIMELINE_CONTEXT_V2_QA.md) — baseline timeline/context matrix (scenarios 1–40)
 - [COACH_CONTEXT_PACKET_V2.md](./COACH_CONTEXT_PACKET_V2.md) — packet contract
