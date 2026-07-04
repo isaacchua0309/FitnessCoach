@@ -1,8 +1,77 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/profile/{docId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function writeUserId() {
+      return request.resource.data.userId;
+    }
+
+    function validUserId(uid) {
+      return writeUserId() == uid;
+    }
+
+    function validSchemaVersion() {
+      return request.resource.data.schemaVersion is int
+        && request.resource.data.schemaVersion > 0;
+    }
+
+    function validOptionalTimestamp(field) {
+      return !(field in request.resource.data)
+        || request.resource.data[field] == null
+        || request.resource.data[field] is timestamp;
+    }
+
+    function validNutritionWrite(uid) {
+      return isOwner(uid)
+        && validUserId(uid)
+        && validSchemaVersion()
+        && request.resource.data.updatedAt is timestamp
+        && validOptionalTimestamp('deletedAt')
+        && validOptionalTimestamp('createdAt');
+    }
+
+    match /users/{uid}/profile/{docId} {
+      allow read, write: if isOwner(uid);
+    }
+
+    match /users/{uid}/syncMetadata/{docId} {
+      allow read: if isOwner(uid);
+      allow create, update: if validNutritionWrite(uid);
+      allow delete: if isOwner(uid);
+    }
+
+    match /users/{uid}/dailyLogs/{dayId} {
+      allow read: if isOwner(uid);
+      allow create, update: if validNutritionWrite(uid);
+      allow delete: if isOwner(uid);
+
+      match /foodEntries/{entryId} {
+        allow read: if isOwner(uid);
+        allow create, update: if validNutritionWrite(uid);
+        allow delete: if isOwner(uid);
+      }
+
+      match /waterEntries/{entryId} {
+        allow read: if isOwner(uid);
+        allow create, update: if validNutritionWrite(uid);
+        allow delete: if isOwner(uid);
+      }
+    }
+
+    match /users/{uid}/weightEntries/{entryId} {
+      allow read: if isOwner(uid);
+      allow create, update: if validNutritionWrite(uid);
+      allow delete: if isOwner(uid);
+    }
+
+    match /users/{uid}/dailyReviews/{dayId} {
+      allow read: if isOwner(uid);
+      allow create, update: if validNutritionWrite(uid);
+      allow delete: if isOwner(uid);
     }
   }
 }
