@@ -212,7 +212,16 @@ struct CoachContextPacketV2Builder {
             )
         )
 
+        let bytesBeforeCompact = packet.estimatedEncodedByteCount()
         packet = CoachContextPacketV2SizeCompactor.compact(packet)
+        let compactionOccurred = packet.estimatedEncodedByteCount() < bytesBeforeCompact
+            || timelineContextEvents.count > packet.timeline.recentEvents.count
+
+        CoachAccuracyObservabilityLogger.logContextGenerated(
+            packet,
+            compactionOccurred: compactionOccurred,
+            fallbackPacketUsed: effectiveMode == .degraded
+        )
 
         recordHealthTimelineEvents(
             workoutsResult: workoutsResult,

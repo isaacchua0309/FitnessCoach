@@ -81,4 +81,18 @@ final class CoachImageAnalysisDebugLogFormatterTests: XCTestCase {
         XCTAssertFalse(sanitized.contains("private lunch caption"))
         XCTAssertFalse(sanitized.contains("abc123"))
     }
+
+    func testCoachAccuracyRedactionAlsoStripsContextPayloadAndTokens() {
+        let raw = """
+        {"text":"secret user prompt","context":{"meta":{"schemaVersion":2}},"imageJPEGBase64":"rawbytes","token":"Bearer abc"}
+        """
+        let sanitized = CoachAccuracyObservabilityLogFormatter.redactSensitiveJSONFields(raw)
+
+        XCTAssertTrue(sanitized.contains("\"text\":\"<redacted>\""))
+        XCTAssertTrue(sanitized.contains("\"context\":\"<redacted>\""))
+        XCTAssertTrue(sanitized.contains("\"imageJPEGBase64\":\"<redacted>\""))
+        XCTAssertFalse(sanitized.contains("secret user prompt"))
+        XCTAssertFalse(sanitized.contains("rawbytes"))
+        XCTAssertFalse(sanitized.contains("Bearer abc"))
+    }
 }

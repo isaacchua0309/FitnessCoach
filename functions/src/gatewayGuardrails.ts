@@ -11,6 +11,25 @@ export class GatewayError extends Error {
   }
 }
 
+/** Coarse backend error category for observability — no user content. */
+export function gatewayErrorCategory(error: unknown): string {
+  if (error instanceof GatewayError) {
+    switch (error.status) {
+    case 401:
+      return "authentication";
+    case 413:
+      return "payload_too_large";
+    case 429:
+      return "rate_limited";
+    case 400:
+      return "validation";
+    default:
+      return "gateway";
+    }
+  }
+  return "internal";
+}
+
 const DEFAULT_MAX_BODY_BYTES = 512 * 1024;
 const DEFAULT_MAX_BODY_BYTES_WITH_IMAGE = 2 * 1024 * 1024;
 const DEFAULT_MAX_TEXT_CHARS = 4_000;
