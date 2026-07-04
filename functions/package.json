@@ -4,6 +4,8 @@
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
     "test": "jest",
+    "test:benchmark": "jest --testPathPatterns='coachAccuracyBenchmarkHarness|singaporeFoodEstimationFixture'",
+    "test:benchmark:live": "jest --testPathPatterns='coachAccuracyBenchmarkLive'",
     "test:firestore-rules": "npx firebase-tools emulators:exec --only firestore --project forma-account-persistence-rules-test \"npm test -- --runInBand --testPathPatterns='accountPersistenceFirestoreRules|nutritionSyncContract'\"",
     "smoke:auth": "node scripts/smoke-ai-gateway-auth.mjs",
     "build:watch": "tsc --watch",
