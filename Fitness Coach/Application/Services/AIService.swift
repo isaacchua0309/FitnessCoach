@@ -11,39 +11,39 @@ import OSLog
 protocol AIServiceProtocol: Sendable {
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse
     func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse
     func generateNutritionEstimate(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> NutritionEstimateResponse
     func generateNutritionComparison(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> NutritionComparisonResponse
     func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse
-    func generateDailyReviewText(input: DailyReviewAIInput, context: AIContext) async throws -> AICoachResponse
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand
 }
 
 final class AIService: AIServiceProtocol {
@@ -61,7 +61,7 @@ final class AIService: AIServiceProtocol {
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         let request = AICoachIntentClassificationRequest(
@@ -77,7 +77,7 @@ final class AIService: AIServiceProtocol {
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data? = nil
     ) async throws -> AIFoodEstimateResponse {
         if let imageJPEGData, !imageJPEGData.isEmpty {
@@ -184,7 +184,7 @@ final class AIService: AIServiceProtocol {
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult? = nil,
         tier: CoachModelTier = .cheap
     ) async throws -> AICoachResponse {
@@ -202,7 +202,7 @@ final class AIService: AIServiceProtocol {
 
     func generateNutritionEstimate(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult? = nil,
         tier: CoachModelTier = .cheap
     ) async throws -> NutritionEstimateResponse {
@@ -220,7 +220,7 @@ final class AIService: AIServiceProtocol {
 
     func generateNutritionComparison(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult? = nil,
         tier: CoachModelTier = .cheap
     ) async throws -> NutritionComparisonResponse {
@@ -243,7 +243,7 @@ final class AIService: AIServiceProtocol {
         }
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         let request = AIEditDeleteParseRequest(text: prompt, context: context)
         return try await traced(method: "parseEditOrDelete") {
             let response = try await llmClient.parseEditOrDelete(request: request)
@@ -251,7 +251,7 @@ final class AIService: AIServiceProtocol {
         }
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         let request = AIMultiActionParseRequest(text: prompt, context: context)
         return try await traced(method: "parseMultiAction") {
             let response = try await llmClient.parseMultiAction(request: request)
@@ -259,21 +259,21 @@ final class AIService: AIServiceProtocol {
         }
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
-        guard let summary = context.todaySummary else {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
+        guard context.today != nil else {
             throw AIServiceError.validationFailed("Missing today summary for daily review.")
         }
 
         let input = TodayAISummaryMapper.dailyReviewAIInput(
-            from: summary,
-            date: context.date
+            from: context,
+            date: context.meta.generatedAt
         )
         return try await generateDailyReviewText(input: input, context: context)
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
-        context: AIContext
+        context: CoachContextPacketV2
     ) async throws -> AICoachResponse {
         let request = AIDailyReviewRequest(input: input, context: context)
         return try await traced(method: "generateDailyReview") {
@@ -281,9 +281,12 @@ final class AIService: AIServiceProtocol {
         }
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         try await traced(method: "parseCommand") {
-            try await commandParser.parseCommand(text, context: context)
+            try await commandParser.parseCommand(
+                text,
+                context: AIContext.legacyCompact(from: context)
+            )
         }
     }
 

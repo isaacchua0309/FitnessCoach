@@ -20,6 +20,7 @@ final class CoachMealImageAIRequestBuilderTests: XCTestCase {
         let attachment = CoachMealImageUploadAttachment.from(processed: processed)
         let result = CoachMealImageAIRequestBuilder.buildAnalysisRequest(
             attachment: attachment,
+            context: .test,
             message: "Lunch bowl"
         )
 

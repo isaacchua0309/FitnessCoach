@@ -70,7 +70,7 @@ final class AuthManagerErrorTests: XCTestCase {
         let client = FallbackLLMClient(primary: AuthenticationFailingLLMClient())
         let request = AICoachIntentClassificationRequest(
             text: "hello",
-            context: AIContext(date: Date(timeIntervalSince1970: 0), timezoneIdentifier: "UTC"),
+            context: .test,
             modelName: CoachModelConfig.default.cheapClassifierModel,
             modelConfig: .default
         )
@@ -92,7 +92,7 @@ final class AuthManagerErrorTests: XCTestCase {
         )
         let request = AICoachIntentClassificationRequest(
             text: "hello",
-            context: AIContext(date: Date(timeIntervalSince1970: 0), timezoneIdentifier: "UTC"),
+            context: .test,
             modelName: CoachModelConfig.default.cheapClassifierModel,
             modelConfig: .default
         )
@@ -122,6 +122,10 @@ private final class AuthenticationFailingLLMClient: LLMClient, @unchecked Sendab
     }
 
     func estimateFood(request: AIFoodEstimateRequest) async throws -> AIFoodEstimateResponse {
+        throw LLMClientError.authenticationFailed
+    }
+
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
         throw LLMClientError.authenticationFailed
     }
 

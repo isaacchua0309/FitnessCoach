@@ -377,7 +377,7 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         CoachMealPhotoPipeline.photoAnalysisIntentResult
@@ -385,7 +385,7 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         estimateFoodCallCount += 1
@@ -452,7 +452,7 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
@@ -463,23 +463,23 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub", confidence: .medium)
     }
 
-    func generateDailyReviewText(input: DailyReviewAIInput, context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub", confidence: .medium)
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 }
@@ -487,7 +487,7 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
 private final class GenericFallbackPhotoAIService: AIServiceProtocol, @unchecked Sendable {
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         CoachMealPhotoPipeline.photoAnalysisIntentResult
@@ -516,7 +516,7 @@ private final class GenericFallbackPhotoAIService: AIServiceProtocol, @unchecked
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         throw AIServiceError.backendUnavailable
@@ -524,7 +524,7 @@ private final class GenericFallbackPhotoAIService: AIServiceProtocol, @unchecked
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
@@ -535,23 +535,23 @@ private final class GenericFallbackPhotoAIService: AIServiceProtocol, @unchecked
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReviewText(input: DailyReviewAIInput, context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 }
@@ -561,7 +561,7 @@ private final class RetryImprovingPhotoAIService: AIServiceProtocol, @unchecked 
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         CoachMealPhotoPipeline.photoAnalysisIntentResult
@@ -592,7 +592,7 @@ private final class RetryImprovingPhotoAIService: AIServiceProtocol, @unchecked 
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         throw AIServiceError.backendUnavailable
@@ -600,7 +600,7 @@ private final class RetryImprovingPhotoAIService: AIServiceProtocol, @unchecked 
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
@@ -611,23 +611,23 @@ private final class RetryImprovingPhotoAIService: AIServiceProtocol, @unchecked 
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReviewText(input: DailyReviewAIInput, context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 }
@@ -638,7 +638,7 @@ private final class ClarifyingPhotoAIService: AIServiceProtocol, @unchecked Send
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         CoachMealPhotoPipeline.photoAnalysisIntentResult
@@ -675,7 +675,7 @@ private final class ClarifyingPhotoAIService: AIServiceProtocol, @unchecked Send
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         throw AIServiceError.backendUnavailable
@@ -683,7 +683,7 @@ private final class ClarifyingPhotoAIService: AIServiceProtocol, @unchecked Send
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
@@ -694,23 +694,23 @@ private final class ClarifyingPhotoAIService: AIServiceProtocol, @unchecked Send
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub", confidence: .medium)
     }
 
-    func generateDailyReviewText(input: DailyReviewAIInput, context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub", confidence: .medium)
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 }

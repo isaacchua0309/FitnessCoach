@@ -65,7 +65,7 @@ struct AIParseCommandResponse: Codable, Equatable, Sendable {
 
 struct AICoachIntentClassificationRequest: Codable, Equatable, Sendable {
     var text: String
-    var context: AIContext
+    var context: CoachContextPacketV2
     var modelName: String
     var modelConfig: CoachModelConfig
 }
@@ -84,7 +84,7 @@ struct AICoachIntentClassificationResponse: Codable, Equatable, Sendable {
 
 struct AIFoodEstimateRequest: Codable, Equatable, Sendable {
     var text: String
-    var context: AIContext
+    var context: CoachContextPacketV2
     /// Base64-encoded JPEG sent for vision-based meal analysis.
     var imageJPEGBase64: String?
     /// When set, backend/appends stricter repair instructions after a failed validation pass.
@@ -92,7 +92,7 @@ struct AIFoodEstimateRequest: Codable, Equatable, Sendable {
 
     init(
         text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGBase64: String? = nil,
         repairErrors: [String]? = nil
     ) {
@@ -189,14 +189,14 @@ struct AIFoodEstimateResponse: Codable, Equatable, Sendable {
 
 struct AIMealAdviceRequest: Codable, Equatable, Sendable {
     var question: String
-    var context: AIContext
+    var context: CoachContextPacketV2
     var intentResult: CoachIntentResult?
     var modelTier: CoachModelTier?
     var modelName: String?
 
     init(
         question: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult? = nil,
         modelTier: CoachModelTier? = nil,
         modelName: String? = nil
@@ -223,14 +223,14 @@ struct AIMealAdviceResponse: Codable, Equatable, Sendable {
 
 struct AINutritionEstimateRequest: Codable, Equatable, Sendable {
     var question: String
-    var context: AIContext
+    var context: CoachContextPacketV2
     var intentResult: CoachIntentResult?
     var modelTier: CoachModelTier?
     var modelName: String?
 
     init(
         question: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult? = nil,
         modelTier: CoachModelTier? = nil,
         modelName: String? = nil
@@ -257,14 +257,14 @@ struct AINutritionEstimateResponse: Codable, Equatable, Sendable {
 
 struct AINutritionComparisonRequest: Codable, Equatable, Sendable {
     var question: String
-    var context: AIContext
+    var context: CoachContextPacketV2
     var intentResult: CoachIntentResult?
     var modelTier: CoachModelTier?
     var modelName: String?
 
     init(
         question: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult? = nil,
         modelTier: CoachModelTier? = nil,
         modelName: String? = nil
@@ -291,7 +291,7 @@ struct AINutritionComparisonResponse: Codable, Equatable, Sendable {
 
 struct AIDailyReviewRequest: Codable, Equatable, Sendable {
     var input: DailyReviewAIInput
-    var context: AIContext
+    var context: CoachContextPacketV2
 }
 
 struct AIDailyReviewResponse: Codable, Equatable, Sendable {
@@ -334,7 +334,7 @@ struct AIWorkoutParseResponse: Codable, Equatable, Sendable {
 
 struct AIEditDeleteParseRequest: Codable, Equatable, Sendable {
     var text: String
-    var context: AIContext
+    var context: CoachContextPacketV2
 }
 
 struct AIEditDeleteParseResponse: Codable, Equatable, Sendable {
@@ -351,7 +351,7 @@ struct AIEditDeleteParseResponse: Codable, Equatable, Sendable {
 
 struct AIMultiActionParseRequest: Codable, Equatable, Sendable {
     var text: String
-    var context: AIContext
+    var context: CoachContextPacketV2
 }
 
 struct AIMultiActionParseResponse: Codable, Equatable, Sendable {
@@ -430,6 +430,7 @@ struct AIMealImageAnalysisTotals: Codable, Equatable, Sendable {
 
 struct AIMealImageAnalysisRequest: Codable, Equatable, Sendable {
     var message: String?
+    var context: CoachContextPacketV2
     var image: AIMealImagePayload
     var locale: String?
     var userContext: [String: String]?
@@ -438,6 +439,7 @@ struct AIMealImageAnalysisRequest: Codable, Equatable, Sendable {
 
     init(
         message: String? = nil,
+        context: CoachContextPacketV2,
         image: AIMealImagePayload,
         locale: String? = nil,
         userContext: [String: String]? = nil,
@@ -445,6 +447,7 @@ struct AIMealImageAnalysisRequest: Codable, Equatable, Sendable {
         previousAnalysis: AIMealImageAnalysisPreviousAnalysis? = nil
     ) {
         self.message = message
+        self.context = context
         self.image = image
         self.locale = locale
         self.userContext = userContext

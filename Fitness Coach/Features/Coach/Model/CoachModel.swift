@@ -63,7 +63,7 @@ final class CoachModel: ObservableObject {
     private let mutationHistory = CoachMutationHistory()
 
     private let aiService: AIServiceProtocol?
-    private let aiContextBuilder: CoachContextBuilder?
+    private let contextPacketBuilder: CoachContextPacketV2Builder?
     private var routeDecider: CoachRouteDecider
     private let coachModelConfig: CoachModelConfig
     private let aiCommandParsingEnabled: Bool
@@ -103,6 +103,7 @@ final class CoachModel: ObservableObject {
         isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled },
         weightLogReader: (any WeightLogReading)? = nil,
         aiService: AIServiceProtocol? = nil,
+        contextPacketBuilder: CoachContextPacketV2Builder? = nil,
         userProfileReader: (any UserProfileReading)? = nil,
         aiCommandParsingEnabled: Bool = false,
         coachModelConfig: CoachModelConfig? = nil,
@@ -128,15 +129,10 @@ final class CoachModel: ObservableObject {
         self.coachModelConfig = coachModelConfig ?? .default
         self.routeDecider = routeDecider ?? CoachRouteDecider()
         self.trainingInsightsStore = trainingInsightsStore
-        if let userProfileReader {
-            self.aiContextBuilder = CoachContextBuilder(
-                dailyLogReader: dailyLogReader,
-                userProfileReader: userProfileReader,
-                healthActivityQuery: healthActivityQuery,
-                actionCenter: actionCenter
-            )
+        if userProfileReader != nil {
+            self.contextPacketBuilder = contextPacketBuilder
         } else {
-            self.aiContextBuilder = nil
+            self.contextPacketBuilder = nil
         }
 
         let executor = CoachMutationExecutor(
@@ -156,7 +152,7 @@ final class CoachModel: ObservableObject {
         )
         self.mealPhotoAnalyzer = CoachMealPhotoAnalyzer(
             aiCommandParsingEnabled: aiCommandParsingEnabled,
-            aiContextBuilder: self.aiContextBuilder,
+            contextPacketBuilder: self.contextPacketBuilder,
             routeHandler: routeHandler
         )
         self.transcriptStore = transcriptStore
@@ -226,26 +222,25 @@ final class CoachModel: ObservableObject {
         )
     }
 
-    private func prepareAIContext(recentMessages: [ChatMessage]) async -> AIContext? {
-        guard let aiContextBuilder else { return nil }
+    private func prepareContextPacket(
+        recentMessages: [ChatMessage],
+        currentUserMessage: String? = nil
+    ) async -> CoachContextPacketV2? {
+        guard let contextPacketBuilder else { return nil }
         let activity = await resolveAIActivityContext()
-        if let healthIntelligence = activity.healthIntelligence {
+        if let snapshot = activity.sourceSnapshot {
             if activity.healthIntelligenceAwarenessAvailable {
-                healthIntelligenceAnalyticsCoordinator?.logCoachHealthContextAvailable(
-                    from: activity.sourceSnapshot
-                )
-            } else {
-                healthIntelligenceAnalyticsCoordinator?.logCoachHealthContextPartial(
-                    from: activity.sourceSnapshot
-                )
+                healthIntelligenceAnalyticsCoordinator?.logCoachHealthContextAvailable(from: snapshot)
+            } else if activity.healthIntelligence != nil {
+                healthIntelligenceAnalyticsCoordinator?.logCoachHealthContextPartial(from: snapshot)
             }
-            healthIntelligenceAnalyticsCoordinator?.logCoachHealthContextUsed(
-                from: activity.sourceSnapshot
-            )
+            if activity.healthIntelligence != nil {
+                healthIntelligenceAnalyticsCoordinator?.logCoachHealthContextUsed(from: snapshot)
+            }
         }
-        return aiContextBuilder.makeContext(
+        return await contextPacketBuilder.makeContext(
             recentMessages: recentMessages,
-            activity: activity
+            currentUserMessage: currentUserMessage
         )
     }
 
@@ -727,12 +722,17 @@ final class CoachModel: ObservableObject {
         }
 
         let priorChatMessages = messages.filter { $0.id != userMessageID }
-        let aiContext = await prepareAIContext(recentMessages: priorChatMessages)
+        let caption = session.userCaption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let contextPacket = await prepareContextPacket(
+            recentMessages: priorChatMessages,
+            currentUserMessage: caption.isEmpty ? nil : caption
+        )
         let outcome = await mealPhotoAnalyzer.analyze(
             session: activeSession,
             recommission: recommission,
             recentMessages: priorChatMessages,
-            context: aiContext
+            context: contextPacket,
+            currentUserMessage: caption.isEmpty ? nil : caption
         )
 
         if let sessionResult = outcome.sessionResult, outcome.result.pendingConfirmation != nil {
@@ -819,7 +819,7 @@ final class CoachModel: ObservableObject {
         traceOutcome: inout String
     ) async -> CoachActionResult {
         guard aiCommandParsingEnabled,
-              let aiContextBuilder,
+              let contextPacketBuilder,
               let aiService else {
             traceOutcome = "aiDisabled"
             FormaPipelineTracer.logError(
@@ -828,7 +828,7 @@ final class CoachModel: ObservableObject {
                 message: "AI command parsing unavailable",
                 fields: [
                     "aiCommandParsingEnabled": String(aiCommandParsingEnabled),
-                    "hasContextBuilder": String(self.aiContextBuilder != nil),
+                    "hasContextBuilder": String(self.contextPacketBuilder != nil),
                     "hasAIService": String(self.aiService != nil)
                 ]
             )
@@ -836,7 +836,10 @@ final class CoachModel: ObservableObject {
         }
 
         let priorChatMessages = Array(messages.dropLast())
-        guard let context = await prepareAIContext(recentMessages: priorChatMessages) else {
+        guard let context = await prepareContextPacket(
+            recentMessages: priorChatMessages,
+            currentUserMessage: text
+        ) else {
             traceOutcome = "aiDisabled"
             return .message(CoachResponseBuilder.backendUnavailableResponse)
         }

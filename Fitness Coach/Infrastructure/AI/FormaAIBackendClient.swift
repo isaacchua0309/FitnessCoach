@@ -188,9 +188,12 @@ final class FormaAIBackendClient: LLMClient {
             "requestTimeoutSeconds": String(httpTimeoutProfile.requestTimeout),
             "resourceTimeoutSeconds": String(httpTimeoutProfile.resourceTimeout)
         ]
+        requestFields.merge(CoachAIRequestLogFormatter.redactedContextFields(from: body)) { _, new in new }
+        #if DEBUG
         if let snippet = FormaPipelineTracer.sanitizedJSONSnippet(requestBody) {
             requestFields["requestBody"] = snippet
         }
+        #endif
         FormaPipelineTracer.event(
             stage: .httpRequest,
             level: .info,
