@@ -10,8 +10,11 @@ import Foundation
 
 enum FormaSwiftDataMigrationGate {
 
-    /// Active SwiftData schema version that includes Coach timeline + transcript entities.
+    /// Minimum schema version that includes Coach timeline + transcript entities.
     static let coachV2SchemaVersion = 6
+
+    /// Active SwiftData schema version for account persistence Phase 1 ownership fields.
+    static let activeSchemaVersion = 7
 
     private static let schemaVersionKey = "forma.swiftdata.schemaVersion"
     private static let migrationCompleteKey = "forma.swiftdata.coachV2MigrationComplete"
@@ -23,9 +26,9 @@ enum FormaSwiftDataMigrationGate {
         return storedVersion >= coachV2SchemaVersion && markedComplete
     }
 
-    /// Marks Coach v2 migration complete after `FormaSchemaV6` opens successfully.
+    /// Marks migration complete after the active schema opens successfully.
     static func markCoachV2MigrationComplete() {
-        UserDefaults.standard.set(coachV2SchemaVersion, forKey: schemaVersionKey)
+        UserDefaults.standard.set(activeSchemaVersion, forKey: schemaVersionKey)
         UserDefaults.standard.set(true, forKey: migrationCompleteKey)
     }
 
@@ -45,8 +48,8 @@ enum FormaSchemaCoachV2Verification {
 
     /// Compile-time list check used by tests to ensure Coach v2 entities ship in the active schema.
     static func coachV2EntitiesAreRegisteredInActiveSchema() -> Bool {
-        FormaSchemaV6.models.contains(where: { $0 == CoachTimelineEventEntity.self })
-            && FormaSchemaV6.models.contains(where: { $0 == CoachChatTranscriptMessageEntity.self })
+        FormaSchemaV7.models.contains(where: { $0 == CoachTimelineEventEntity.self })
+            && FormaSchemaV7.models.contains(where: { $0 == CoachChatTranscriptMessageEntity.self })
     }
 
     static func coachTimelineEntityRegisteredAtV5() -> Bool {

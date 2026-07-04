@@ -266,6 +266,8 @@ final class AppContainer {
             uidProvider: AuthAccountUIDProvider(authManager: authManager)
         )
 
+        try? accountMigrationService.backfillSchemaV7BookkeepingIfNeeded()
+
         let healthIntelligenceContextBuilder = HealthIntelligenceContextBuilder(
             repository: healthDataRepository,
             nutritionProvider: DailyLogNutritionProvider(reader: dailyLogService),

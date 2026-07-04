@@ -111,6 +111,9 @@ enum FormaSchemaV6: VersionedSchema {
 enum FormaSchemaV7: VersionedSchema {
     static var versionIdentifier = Schema.Version(7, 0, 0)
 
+    /// Account persistence Phase 1: optional `ownerUID` on nutrition entities plus
+    /// `localUpdatedAt` / `entitySchemaVersion` bookkeeping on all active user-data rows.
+    /// Coach entities continue to use `userId` as the owner field.
     static var models: [any PersistentModel.Type] {
         [
             UserProfileEntity.self,

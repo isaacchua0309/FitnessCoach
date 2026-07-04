@@ -75,6 +75,7 @@ extension CoachChatTranscriptMessageEntity {
         photoAnalysisLinkKindRaw = link?.kind.rawValue
         structuredContentJSON = CoachChatTranscriptStructuredContentCoding.encode(model.structuredContent)
         self.updatedAt = updatedAt
+        self.localUpdatedAt = updatedAt
     }
 
     func toModel() -> ChatMessage {

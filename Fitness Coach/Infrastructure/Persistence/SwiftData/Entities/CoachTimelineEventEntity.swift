@@ -25,8 +25,17 @@ final class CoachTimelineEventEntity {
 
     @Attribute(.unique) var id: UUID
 
-    /// Firebase / profile owner UID when available.
+    /// Firebase UID that owns this timeline row.
+    ///
+    /// Coach entities use `userId` as the owner field instead of `ownerUID`.
     var userId: String?
+
+    // MARK: Account persistence (Phase 1)
+
+    /// Local mutation timestamp for account persistence bookkeeping.
+    var localUpdatedAt: Date?
+    /// Per-entity schema version for future lightweight migrations.
+    var entitySchemaVersion: Int = UserDataEntitySchema.currentEntitySchemaVersion
 
     // MARK: Classification
 
@@ -87,7 +96,9 @@ final class CoachTimelineEventEntity {
         supersedesEventId: UUID?,
         schemaVersion: Int,
         createdAt: Date,
-        updatedAt: Date
+        updatedAt: Date,
+        localUpdatedAt: Date? = nil,
+        entitySchemaVersion: Int = UserDataEntitySchema.currentEntitySchemaVersion
     ) {
         self.id = id
         self.userId = userId
@@ -108,6 +119,8 @@ final class CoachTimelineEventEntity {
         self.schemaVersion = schemaVersion
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.localUpdatedAt = localUpdatedAt ?? updatedAt
+        self.entitySchemaVersion = entitySchemaVersion
     }
 }
 

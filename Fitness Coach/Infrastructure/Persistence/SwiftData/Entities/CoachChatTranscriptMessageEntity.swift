@@ -17,7 +17,19 @@ final class CoachChatTranscriptMessageEntity {
     #Index<CoachChatTranscriptMessageEntity>([\.createdAt])
 
     @Attribute(.unique) var id: UUID
+
+    /// Firebase UID that owns this transcript row.
+    ///
+    /// Coach entities use `userId` as the owner field instead of `ownerUID`.
     var userId: String?
+
+    // MARK: Account persistence (Phase 1)
+
+    /// Local mutation timestamp for account persistence bookkeeping.
+    var localUpdatedAt: Date?
+    /// Per-entity schema version for future lightweight migrations.
+    var entitySchemaVersion: Int = UserDataEntitySchema.currentEntitySchemaVersion
+
     var roleRawValue: String
     var text: String
     var createdAt: Date
@@ -60,7 +72,9 @@ final class CoachChatTranscriptMessageEntity {
         relatedUserMessageID: UUID?,
         photoAnalysisLinkKindRaw: String?,
         structuredContentJSON: String?,
-        updatedAt: Date
+        updatedAt: Date,
+        localUpdatedAt: Date? = nil,
+        entitySchemaVersion: Int = UserDataEntitySchema.currentEntitySchemaVersion
     ) {
         self.id = id
         self.userId = userId
@@ -80,5 +94,7 @@ final class CoachChatTranscriptMessageEntity {
         self.photoAnalysisLinkKindRaw = photoAnalysisLinkKindRaw
         self.structuredContentJSON = structuredContentJSON
         self.updatedAt = updatedAt
+        self.localUpdatedAt = localUpdatedAt ?? updatedAt
+        self.entitySchemaVersion = entitySchemaVersion
     }
 }
