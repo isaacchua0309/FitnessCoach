@@ -24,10 +24,13 @@ final class AppContainerAccountDataRemoteStoreWiringTests: XCTestCase {
         XCTAssertTrue(container.accountDataRemoteStore is InMemoryAccountDataRemoteStore)
     }
 
-    func testPhase2SyncFlagsRemainDisabled() {
+    func testPhase3SyncFlagsMatchRolloutPolicy() {
         XCTAssertTrue(AccountPersistenceFeatureFlags.cloudSchemaEnabled)
-        XCTAssertFalse(AccountPersistenceFeatureFlags.syncEngineEnabled)
+        XCTAssertTrue(AccountPersistenceFeatureFlags.syncEngineEnabled)
+        XCTAssertTrue(AccountPersistenceFeatureFlags.uploadPendingMutationsEnabled)
+        XCTAssertFalse(AccountPersistenceFeatureFlags.pullRecentDataEnabled)
         XCTAssertFalse(AccountPersistenceFeatureFlags.restoreOnLoginEnabled)
+        XCTAssertFalse(AccountPersistenceFeatureFlags.realtimeCrossDeviceSyncEnabled)
     }
 
     func testInMemoryContainerWiresAccountSyncUploader() throws {
@@ -40,5 +43,11 @@ final class AppContainerAccountDataRemoteStoreWiringTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
 
         XCTAssertNotNil(container.accountSyncPuller)
+    }
+
+    func testInMemoryContainerWiresAccountSyncCoordinator() throws {
+        let container = try AppContainer(inMemory: true)
+
+        XCTAssertNotNil(container.accountSyncCoordinator)
     }
 }

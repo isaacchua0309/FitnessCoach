@@ -19,6 +19,7 @@ final class AppContainer {
     let accountLocalMutationTracker: AccountLocalMutationTracker
     let accountSyncUploader: AccountSyncUploader
     let accountSyncPuller: AccountSyncPuller
+    let accountSyncCoordinator: AccountSyncCoordinator
 
     let userProfileService: UserProfileService
     let targetService: TargetService
@@ -249,6 +250,11 @@ final class AppContainer {
         accountSyncPuller = AccountSyncPuller(
             remoteStore: accountDataRemoteStore,
             store: store
+        )
+        accountSyncCoordinator = AccountSyncCoordinator(
+            uploader: accountSyncUploader,
+            puller: accountSyncPuller,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
         profileBootstrapService = ProfileBootstrapService(

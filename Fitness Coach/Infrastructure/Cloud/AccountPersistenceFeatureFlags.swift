@@ -4,8 +4,7 @@
 //
 //  Forma — Account persistence rollout flags (Phase 2 foundation / Phase 3 sync).
 //
-//  Phase 2: cloud schema + remote store are constructible but dormant.
-//  Phase 3: enable syncEngineEnabled when AccountSyncEngine is wired.
+//  Phase 3: `AccountSyncCoordinator` reads these flags. Pull and restore UX remain gated.
 //
 
 import Foundation
@@ -15,9 +14,18 @@ enum AccountPersistenceFeatureFlags {
     /// Cloud DTOs, paths, mappers, and remote store client are available.
     static let cloudSchemaEnabled = true
 
-    /// Background upload/outbox sync. Remains off until Phase 3.
-    static let syncEngineEnabled = false
+    /// Master switch for `AccountSyncCoordinator` upload/pull orchestration.
+    static let syncEngineEnabled = true
 
-    /// Restore local logs from cloud on login/reinstall. Remains off until Phase 3.
+    /// Upload due outbox mutations during coordinated sync runs.
+    static let uploadPendingMutationsEnabled = true
+
+    /// Bounded recent pull (default 90 days). Not full account restore.
+    static let pullRecentDataEnabled = false
+
+    /// Phase 4 user-facing restore on login/reinstall.
     static let restoreOnLoginEnabled = false
+
+    /// Phase 5 realtime cross-device listeners.
+    static let realtimeCrossDeviceSyncEnabled = false
 }
