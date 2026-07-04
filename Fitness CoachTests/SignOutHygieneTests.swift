@@ -5,6 +5,7 @@
 //  Forma — Sign-out preserves local data but clears session sync hints (Stage 9).
 //
 
+import SwiftData
 import XCTest
 @testable import Fitness_Coach
 
@@ -110,5 +111,40 @@ final class SignOutHygieneTests: XCTestCase {
         )
 
         XCTAssertEqual(decision, .requireOwnershipCloudLookup(uid: "signed-in-user"))
+    }
+
+    func testSignOutPreservesNutritionDataOnDisk() async throws {
+        let base = try DailyLogServiceTestSupport.makeHarness(sessionUID: "signed-in-user")
+        _ = try base.profileService.createProfile(
+            ProfileTestFixtures.sampleDraft,
+            ownerUID: "signed-in-user"
+        )
+        _ = try base.foodLogService.addFoodEntry(
+            DailyLogServiceTestSupport.foodDraft(name: "Post-logout meal", calories: 480),
+            date: base.today
+        )
+
+        let container = try AppContainer(inMemory: true)
+        await container.recordSignedOutLocalUserDataNamespace()
+        AuthLogoutPolicy.clearTransientSessionMetadata(cloudSyncStore: container.profileCloudSyncStore)
+
+        XCTAssertEqual(try base.store.fetch(FetchDescriptor<FoodEntryEntity>()).count, 1)
+        XCTAssertEqual(
+            try base.store.fetch(FetchDescriptor<FoodEntryEntity>()).first?.ownerUID,
+            "signed-in-user"
+        )
+    }
+
+    func testSignOutClearsDataNamespaceTracking() async throws {
+        let container = try AppContainer(inMemory: true)
+        await container.prepareLocalUserDataNamespace(uid: "signed-in-user")
+        XCTAssertEqual(
+            container.accountDataNamespaceService.currentDataNamespaceUID(),
+            "signed-in-user"
+        )
+
+        await container.recordSignedOutLocalUserDataNamespace()
+
+        XCTAssertNil(container.accountDataNamespaceService.currentDataNamespaceUID())
     }
 }

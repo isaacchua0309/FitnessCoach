@@ -6,10 +6,33 @@
 //
 
 import XCTest
+import SwiftData
 @testable import Fitness_Coach
 
 @MainActor
 final class CoachTranscriptUserIsolationTests: XCTestCase {
+
+    private var sessionUID = CoachTranscriptTestSessionUID()
+
+    override func tearDown() {
+        sessionUID.uid = nil
+        super.tearDown()
+    }
+
+    func testUserBDoesNotSeeUserACoachTranscript() throws {
+        let harness = try makeHarness()
+
+        let userAMessage = ChatMessage(
+            id: UUID(),
+            role: .user,
+            text: "User A message",
+            createdAt: ProfileTestFixtures.referenceDate
+        )
+        try harness.repository.replaceAll([userAMessage], userId: "user-a")
+
+        let messagesForB = try harness.repository.fetchAllSorted(userId: "user-b")
+        XCTAssertTrue(messagesForB.isEmpty)
+    }
 
     func testNilUserIdCoachRowsExcludedForSignedInUser() throws {
         let harness = try makeHarness()
@@ -30,6 +53,34 @@ final class CoachTranscriptUserIsolationTests: XCTestCase {
 
         let signedInMessages = try harness.repository.fetchAllSorted(userId: "signed-in-user")
         XCTAssertTrue(signedInMessages.isEmpty)
+    }
+
+    func testCoachRetentionPrunesOnlyCurrentUser() throws {
+        let harness = try makeHarness()
+        var userAMessages: [ChatMessage] = []
+        for index in 0..<305 {
+            userAMessages.append(
+                ChatMessage(
+                    role: index.isMultiple(of: 2) ? .user : .assistant,
+                    text: "user-a \(index)",
+                    createdAt: ProfileTestFixtures.referenceDate.addingTimeInterval(TimeInterval(index))
+                )
+            )
+        }
+        try harness.repository.replaceAll(userAMessages, userId: "user-a")
+
+        let userBMessage = ChatMessage(
+            role: .user,
+            text: "user-b only",
+            createdAt: ProfileTestFixtures.referenceDate.addingTimeInterval(10_000)
+        )
+        try harness.repository.replaceAll([userBMessage], userId: "user-b")
+
+        try harness.repository.pruneRetainedOnly(userId: "user-a")
+
+        XCTAssertEqual(try harness.repository.fetchAllSorted(userId: "user-a").count, 300)
+        XCTAssertEqual(try harness.repository.fetchAllSorted(userId: "user-b").count, 1)
+        XCTAssertEqual(try harness.repository.fetchAllSorted(userId: "user-b").first?.text, "user-b only")
     }
 
     func testCoachTranscriptIsolatedByUserId() throws {
@@ -62,9 +113,10 @@ final class CoachTranscriptUserIsolationTests: XCTestCase {
 
     func testSignedInSaveRequiresExplicitUserId() throws {
         let harness = try makeHarness()
+        sessionUID.uid = "signed-in-user"
         let store = SwiftDataCoachChatTranscriptStore(
             repository: harness.repository,
-            userIdProvider: { "signed-in-user" }
+            userIdProvider: { [sessionUID] in sessionUID.uid }
         )
 
         let message = ChatMessage(
@@ -93,4 +145,9 @@ final class CoachTranscriptUserIsolationTests: XCTestCase {
         let repository = CoachChatTranscriptPersistenceRepository(store: store)
         return Harness(store: store, repository: repository)
     }
+}
+
+@MainActor
+private final class CoachTranscriptTestSessionUID {
+    var uid: String?
 }

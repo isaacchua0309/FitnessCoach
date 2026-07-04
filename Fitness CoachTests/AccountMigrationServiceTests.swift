@@ -12,6 +12,46 @@ import SwiftData
 @MainActor
 final class AccountMigrationServiceTests: XCTestCase {
 
+    func testSafeBackfillAssignsNilOwnerRowsWhenProfileMatchesCurrentUID() async throws {
+        let harness = try makeHarness()
+        _ = try harness.profileService.createProfile(
+            ProfileTestFixtures.sampleDraft,
+            ownerUID: "signed-in-user"
+        )
+        try seedUnownedNutritionAndCoachRows(in: harness.store)
+
+        let report = try await harness.migrationService.runSafeBackfill(for: "signed-in-user")
+
+        XCTAssertTrue(report.canBackfill)
+        XCTAssertEqual(report.reason, "profile_owner_matches_session")
+        XCTAssertGreaterThan(report.totalRowsUpdated, 0)
+
+        let food = try XCTUnwrap(try harness.store.fetch(FetchDescriptor<FoodEntryEntity>()).first)
+        XCTAssertEqual(food.ownerUID, "signed-in-user")
+
+        let water = try XCTUnwrap(try harness.store.fetch(FetchDescriptor<WaterEntryEntity>()).first)
+        XCTAssertEqual(water.ownerUID, "signed-in-user")
+
+        let weight = try XCTUnwrap(try harness.store.fetch(FetchDescriptor<WeightEntryEntity>()).first)
+        XCTAssertEqual(weight.ownerUID, "signed-in-user")
+    }
+
+    func testUnsafeBackfillRefusesWhenProfileOwnerMismatch() async throws {
+        let harness = try makeHarness()
+        _ = try harness.profileService.createProfile(
+            ProfileTestFixtures.sampleDraft,
+            ownerUID: "user-a"
+        )
+        try seedUnownedFoodRow(in: harness.store)
+
+        let report = try await harness.migrationService.runSafeBackfill(for: "user-b")
+
+        XCTAssertFalse(report.canBackfill)
+        XCTAssertEqual(report.reason, "local_profile_owner_mismatch")
+        XCTAssertEqual(report.totalRowsUpdated, 0)
+        XCTAssertNil(try harness.store.fetch(FetchDescriptor<FoodEntryEntity>()).first?.ownerUID)
+    }
+
     func testSafeBackfillStampsUnownedNutritionAndCoachRows() async throws {
         let harness = try makeHarness()
         _ = try harness.profileService.createProfile(
@@ -56,22 +96,6 @@ final class AccountMigrationServiceTests: XCTestCase {
             try harness.store.fetch(FetchDescriptor<FoodEntryEntity>()).first?.ownerUID,
             "signed-in-user"
         )
-    }
-
-    func testBackfillRefusesWhenProfileOwnerMismatchesSession() async throws {
-        let harness = try makeHarness()
-        _ = try harness.profileService.createProfile(
-            ProfileTestFixtures.sampleDraft,
-            ownerUID: "user-a"
-        )
-        try seedUnownedFoodRow(in: harness.store)
-
-        let report = try await harness.migrationService.runSafeBackfill(for: "user-b")
-
-        XCTAssertFalse(report.canBackfill)
-        XCTAssertEqual(report.reason, "local_profile_owner_mismatch")
-        XCTAssertEqual(report.totalRowsUpdated, 0)
-        XCTAssertNil(try harness.store.fetch(FetchDescriptor<FoodEntryEntity>()).first?.ownerUID)
     }
 
     func testBackfillRefusesWhenForeignOwnedNutritionRowsExist() async throws {
