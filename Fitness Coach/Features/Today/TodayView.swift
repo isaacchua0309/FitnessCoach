@@ -24,6 +24,8 @@ struct TodayView: View {
     @State private var isShowingTrainingInsights = false
 
     /// Opens Coach with optional prefill when an action requires conversational AI.
+    /// Optional Phase 5 pull-to-refresh cross-device sync before local reload.
+    var onManualCrossDeviceRefresh: (() async -> Void)?
     var onOpenCoach: ((String?) -> Void)?
     var onOpenJourney: (() -> Void)?
     var onOpenPlan: (() -> Void)?
@@ -33,6 +35,7 @@ struct TodayView: View {
         actionCoordinator: TodayActionCoordinator,
         healthActivityQuery: HealthActivityQueryService,
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        onManualCrossDeviceRefresh: (() async -> Void)? = nil,
         onOpenCoach: ((String?) -> Void)? = nil,
         onOpenJourney: (() -> Void)? = nil,
         onOpenPlan: (() -> Void)? = nil
@@ -41,6 +44,7 @@ struct TodayView: View {
         _actionCoordinator = StateObject(wrappedValue: actionCoordinator)
         self.healthActivityQuery = healthActivityQuery
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
+        self.onManualCrossDeviceRefresh = onManualCrossDeviceRefresh
         self.onOpenCoach = onOpenCoach
         self.onOpenJourney = onOpenJourney
         self.onOpenPlan = onOpenPlan
@@ -74,6 +78,9 @@ struct TodayView: View {
                     }
                 }
                 .refreshable {
+                    if CrossDeviceSyncLifecycle.isManualRefreshEnabled {
+                        await onManualCrossDeviceRefresh?()
+                    }
                     await refreshDashboard()
                 }
                 .sheet(isPresented: $isShowingTrainingInsights) {

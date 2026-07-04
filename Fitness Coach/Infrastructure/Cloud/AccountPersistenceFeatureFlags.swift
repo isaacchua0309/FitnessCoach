@@ -24,8 +24,14 @@ enum AccountPersistenceFeatureFlags {
     static let pullRecentDataEnabled = false
 
     /// Phase 4 user-facing restore on login/reinstall.
-    static let restoreOnLoginEnabled = false
+    static let restoreOnLoginEnabled = true
+
+    /// Phase 5 bounded foreground cross-device refresh on app active.
+    static let foregroundCrossDeviceRefreshEnabled = true
 
     /// Phase 5 realtime cross-device listeners.
-    static let realtimeCrossDeviceSyncEnabled = false
+    static let realtimeCrossDeviceSyncEnabled = true
+
+    /// Phase 5 explicit pull-to-refresh cross-device sync.
+    static let manualRefreshEnabled = true
 }

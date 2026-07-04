@@ -18,6 +18,9 @@ struct JourneyView: View {
     let analyticsCoordinator: JourneyAnalyticsCoordinator
     let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
 
+    /// Optional Phase 5 pull-to-refresh cross-device sync before local reload.
+    var onManualCrossDeviceRefresh: (() async -> Void)?
+
     /// Optional prefill text for Coach input. `nil` opens Coach without prefilling.
     var onOpenCoach: ((String?) -> Void)?
     /// Opens the Plan tab for goal edits or Apple Health connection.
@@ -29,6 +32,7 @@ struct JourneyView: View {
         model: JourneyModel,
         analyticsCoordinator: JourneyAnalyticsCoordinator,
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        onManualCrossDeviceRefresh: (() async -> Void)? = nil,
         onOpenCoach: ((String?) -> Void)? = nil,
         onOpenPlan: (() -> Void)? = nil,
         onOpenToday: (() -> Void)? = nil
@@ -36,6 +40,7 @@ struct JourneyView: View {
         self.model = model
         self.analyticsCoordinator = analyticsCoordinator
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
+        self.onManualCrossDeviceRefresh = onManualCrossDeviceRefresh
         self.onOpenCoach = onOpenCoach
         self.onOpenPlan = onOpenPlan
         self.onOpenToday = onOpenToday
@@ -57,6 +62,9 @@ struct JourneyView: View {
                     }
                 }
                 .refreshable {
+                    if CrossDeviceSyncLifecycle.isManualRefreshEnabled {
+                        await onManualCrossDeviceRefresh?()
+                    }
                     await model.refresh(forceWeeklyReviewRefresh: true)
                 }
                 .background(FormaTokens.Color.canvas)

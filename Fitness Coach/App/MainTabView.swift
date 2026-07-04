@@ -88,6 +88,7 @@ struct MainTabView: View {
                 actionCoordinator: todayActionCoordinator,
                 healthActivityQuery: container.healthActivityQueryService,
                 healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+                onManualCrossDeviceRefresh: { await container.performManualCrossDeviceRefresh() },
                 onOpenCoach: { prefill in
                     coachModel.prepareInput(prefill: prefill)
                     selectedTab = .coach
@@ -114,6 +115,7 @@ struct MainTabView: View {
                 model: journeyModel,
                 analyticsCoordinator: journeyAnalyticsCoordinator,
                 healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+                onManualCrossDeviceRefresh: { await container.performManualCrossDeviceRefresh() },
                 onOpenCoach: { prefill in
                     coachModel.prepareInput(prefill: prefill)
                     selectedTab = .coach

@@ -21,6 +21,11 @@ final class AppContainer {
     let accountSyncPuller: AccountSyncPuller
     let accountSyncCoordinator: AccountSyncCoordinator
     let accountSyncDiagnostics: AccountSyncDiagnostics
+    let accountSyncCursorStore: AccountSyncCursorStore
+    let accountIncrementalPuller: AccountIncrementalPuller
+    let crossDeviceSyncCoordinator: CrossDeviceSyncCoordinator
+    let accountDataRefreshEventBus: AccountDataRefreshEventBus
+    let accountRealtimeChangeListener: AccountRealtimeChangeListening
 
     let accountRestoreStateStore: AccountRestoreStateStore
     let accountLocalDataInspector: AccountLocalDataInspector
@@ -423,6 +428,35 @@ final class AppContainer {
             userProfileService: userProfileService,
             outboxStore: accountSyncOutboxStore
         )
+        accountSyncCursorStore = AccountSyncCursorStore(userDefaults: onboardingUserDefaults)
+        accountIncrementalPuller = AccountIncrementalPuller(
+            remoteStore: accountDataRemoteStore,
+            mergePuller: accountSyncPuller,
+            cursorStore: accountSyncCursorStore,
+            profileBootstrapService: profileBootstrapService,
+            userProfileService: userProfileService,
+            profileCloudSyncStore: profileCloudSyncStore,
+            localInspector: accountLocalDataInspector,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+        )
+        accountDataRefreshEventBus = AccountDataRefreshEventBus()
+        crossDeviceSyncCoordinator = CrossDeviceSyncCoordinator(
+            syncCoordinator: accountSyncCoordinator,
+            incrementalPuller: accountIncrementalPuller,
+            cursorStore: accountSyncCursorStore,
+            uidProvider: ClosureAccountUIDProvider { [weak authManager] in authManager?.currentUID },
+            refreshCenter: refreshCenter,
+            refreshEventBus: accountDataRefreshEventBus
+        )
+        if inMemory {
+            accountRealtimeChangeListener = NoOpAccountRealtimeChangeListener()
+        } else {
+            accountRealtimeChangeListener = FirestoreAccountRealtimeChangeListener()
+        }
+        AccountRealtimeChangeListenerLifecycle.connect(
+            listener: accountRealtimeChangeListener,
+            crossDeviceCoordinator: crossDeviceSyncCoordinator
+        )
         accountRemoteDataInspector = AccountRemoteDataInspector(
             cloudProfileStore: cloudUserProfileStore,
             remoteStore: accountDataRemoteStore
@@ -500,6 +534,10 @@ final class AppContainer {
             healthSyncStateStore.cancelActiveSync()
             AccountSyncLifecycle.cancelOnAccountSwitch(coordinator: accountSyncCoordinator)
             accountRestoreCoordinator.cancelOnAccountSwitch()
+            CrossDeviceSyncLifecycle.cancelOnAccountSwitch(
+                crossDeviceCoordinator: crossDeviceSyncCoordinator,
+                realtimeListener: accountRealtimeChangeListener
+            )
         }
     }
 
@@ -509,11 +547,38 @@ final class AppContainer {
             Task {
                 _ = await accountRestoreCoordinator.prepareAccountOnAppLaunch(uid: uid)
             }
-            return
+        } else {
+            AccountSyncLifecycle.handleAppForeground(
+                coordinator: accountSyncCoordinator,
+                uidProvider: { [authManager] in authManager.currentUID }
+            )
         }
-        AccountSyncLifecycle.handleAppForeground(
-            coordinator: accountSyncCoordinator,
+        CrossDeviceSyncLifecycle.handleAppForeground(
+            coordinator: crossDeviceSyncCoordinator,
             uidProvider: { [authManager] in authManager.currentUID }
+        )
+    }
+
+    func handleSignedInSessionReady(uid: String) {
+        CrossDeviceSyncLifecycle.startRealtimeListenerIfEnabled(
+            listener: accountRealtimeChangeListener,
+            uid: uid
+        )
+    }
+
+    func stopCrossDeviceSyncSession() {
+        crossDeviceSyncCoordinator.cancelPendingWork()
+        Task {
+            await CrossDeviceSyncLifecycle.stopRealtimeListener(listener: accountRealtimeChangeListener)
+        }
+    }
+
+    @discardableResult
+    func performManualCrossDeviceRefresh() async -> CrossDeviceSyncSummary? {
+        guard let uid = authManager.currentUID else { return nil }
+        return await CrossDeviceSyncLifecycle.handleManualRefresh(
+            coordinator: crossDeviceSyncCoordinator,
+            uid: uid
         )
     }
 
@@ -597,6 +662,9 @@ final class AppContainer {
                     coordinator: accountSyncCoordinator,
                     ownerUID: uid
                 )
+            },
+            triggerManualCrossDeviceRefresh: { [weak self] in
+                await self?.performManualCrossDeviceRefresh()
             }
         )
     }

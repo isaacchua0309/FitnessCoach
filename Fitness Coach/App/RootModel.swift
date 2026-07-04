@@ -36,6 +36,8 @@ final class RootModel: ObservableObject {
 
     @Published private(set) var state: RootViewState = .loading
     @Published private(set) var bootstrapPhase: ProfileBootstrapPhase = .idle
+    /// Active signed-in UID when the main tab shell is visible (Phase 5 cross-device sync).
+    @Published private(set) var signedInMainShellUID: String?
 
     private let profileBootstrapService: ProfileBootstrapService
     private var loadTask: Task<Void, Never>?
@@ -107,8 +109,14 @@ final class RootModel: ObservableObject {
     /// Neutral shell state after sign-out. Avoids treating signed-out users as signed-in onboarding.
     func resetForSignedOutSession() {
         loadTask?.cancel()
+        signedInMainShellUID = nil
         applyState(.loading)
         bootstrapPhase = .idle
+    }
+
+    /// Main tab shell is active for the signed-in account.
+    func didEnterSignedInMainShell(uid: String) {
+        signedInMainShellUID = uid
     }
 
     func beginAccountRestore(uid: String) {

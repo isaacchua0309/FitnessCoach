@@ -29,8 +29,20 @@ final class AppContainerAccountDataRemoteStoreWiringTests: XCTestCase {
         XCTAssertTrue(AccountPersistenceFeatureFlags.syncEngineEnabled)
         XCTAssertTrue(AccountPersistenceFeatureFlags.uploadPendingMutationsEnabled)
         XCTAssertFalse(AccountPersistenceFeatureFlags.pullRecentDataEnabled)
-        XCTAssertFalse(AccountPersistenceFeatureFlags.restoreOnLoginEnabled)
-        XCTAssertFalse(AccountPersistenceFeatureFlags.realtimeCrossDeviceSyncEnabled)
+        XCTAssertTrue(AccountPersistenceFeatureFlags.restoreOnLoginEnabled)
+        XCTAssertTrue(AccountPersistenceFeatureFlags.foregroundCrossDeviceRefreshEnabled)
+        XCTAssertTrue(AccountPersistenceFeatureFlags.realtimeCrossDeviceSyncEnabled)
+        XCTAssertTrue(AccountPersistenceFeatureFlags.manualRefreshEnabled)
+    }
+
+    func testInMemoryContainerWiresCrossDeviceSyncStack() throws {
+        let container = try AppContainer(inMemory: true)
+
+        XCTAssertNotNil(container.crossDeviceSyncCoordinator)
+        XCTAssertNotNil(container.accountIncrementalPuller)
+        XCTAssertNotNil(container.accountSyncCursorStore)
+        XCTAssertNotNil(container.accountDataRefreshEventBus)
+        XCTAssertTrue(container.accountRealtimeChangeListener is NoOpAccountRealtimeChangeListener)
     }
 
     func testInMemoryContainerWiresAccountSyncUploader() throws {

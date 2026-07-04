@@ -12,6 +12,7 @@ struct AccountSyncDebugActions {
     var pendingMutationCount: () async -> Int
     var lastSnapshot: () -> AccountSyncDiagnosticsSnapshot?
     var triggerManualSync: () async -> AccountSyncDiagnosticsSnapshot?
+    var triggerManualCrossDeviceRefresh: (() async -> CrossDeviceSyncSummary?)?
 }
 
 import SwiftUI

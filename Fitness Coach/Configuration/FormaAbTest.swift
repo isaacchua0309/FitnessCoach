@@ -139,8 +139,14 @@ enum FormaAbTest {
         }
         static var pullRecentDataEnabled: Bool { AccountPersistenceFeatureFlags.pullRecentDataEnabled }
         static var restoreOnLoginEnabled: Bool { AccountPersistenceFeatureFlags.restoreOnLoginEnabled }
+        static var foregroundCrossDeviceRefreshEnabled: Bool {
+            AccountPersistenceFeatureFlags.foregroundCrossDeviceRefreshEnabled
+        }
         static var realtimeCrossDeviceSyncEnabled: Bool {
             AccountPersistenceFeatureFlags.realtimeCrossDeviceSyncEnabled
+        }
+        static var manualRefreshEnabled: Bool {
+            AccountPersistenceFeatureFlags.manualRefreshEnabled
         }
     }
 

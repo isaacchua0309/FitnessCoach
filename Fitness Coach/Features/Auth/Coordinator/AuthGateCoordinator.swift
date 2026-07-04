@@ -798,6 +798,7 @@ final class AuthGateCoordinator: ObservableObject {
 
     func prepareAuthenticatedSignOut(source: String) {
         guard AppRouteResolver.isSignedIn(authManager.authState) else { return }
+        container.stopCrossDeviceSyncSession()
         container.accountRestoreSessionState.clearForSignOut()
         clearAuthenticatedSessionPresentationState()
         signedInSessionID = UUID()
@@ -884,6 +885,8 @@ final class AuthGateCoordinator: ObservableObject {
             container.accountRestoreSessionState.recordRestoreCompletion(restoreSummary)
             container.refreshCenter.notifyAccountRestoreDidComplete()
         }
+        rootModel.didEnterSignedInMainShell(uid: uid)
+        container.handleSignedInSessionReady(uid: uid)
         rootModel.didCompleteOnboarding()
     }
 
