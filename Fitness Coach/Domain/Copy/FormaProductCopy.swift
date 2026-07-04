@@ -28,6 +28,24 @@ enum FormaProductCopy {
         static let completeRequiredFields = "Fill in the required fields to continue."
     }
 
+    // MARK: - Account restore (Phase 4)
+
+    enum AccountRestore {
+        static let restoringMessage = "Restoring your logs and progress…"
+
+        enum Failed {
+            static let title = "Couldn't restore your account data"
+            static let body =
+                "We signed you in but couldn't restore your logs. Check your connection and try again."
+            static let retryCTA = "Try again"
+        }
+
+        enum TimedOut {
+            static let body =
+                "Restore is taking longer than expected. You can keep using Forma while we finish in the background."
+        }
+    }
+
     // MARK: - Loading
 
     enum Loading {

@@ -15,6 +15,7 @@ enum OnboardingShellRoute: Equatable {
     case onboardingStart
     case onboardingStartInitializing
     case signedInProfileLoading
+    case accountRestoreFailed(String)
     case noExistingProfileFound
     case onboardingCloudProfileConflict
     case onboardingCloudCheckFailed

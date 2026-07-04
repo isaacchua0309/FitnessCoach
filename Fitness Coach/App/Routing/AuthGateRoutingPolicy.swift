@@ -18,11 +18,11 @@ enum AuthGateRoutingPolicy {
         guard !hasLocalProfile else { return false }
         if isFreshSignIn { return true }
         switch rootState {
-        case .loading, .onboarding:
+        case .loading, .onboarding, .restoringAccount:
             return true
         case .missingCloudProfile, .onboardingCloudProfileConflict, .onboardingCloudCheckFailed,
              .existingUserProfileLookupFailed, .cloudProfileUploadFailed, .accountProfileMismatch,
-             .main, .error:
+             .accountRestoreFailed, .main, .error:
             return false
         }
     }

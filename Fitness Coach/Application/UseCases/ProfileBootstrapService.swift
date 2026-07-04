@@ -49,6 +49,18 @@ final class ProfileBootstrapService {
         try userProfileService.assignOwnerUID(uid)
     }
 
+    /// Prepares UID namespace and legacy ownerUID backfill before profile bootstrap or restore.
+    func prepareSignedInAccountNamespace(
+        uid: String,
+        namespaceService: AccountDataNamespacePreparing,
+        migrationService: AccountMigrationRunning
+    ) async throws {
+        guard await namespaceService.prepareForSignedInUID(uid) else {
+            throw ServiceError.invalidInput("Signed-in account changed during namespace preparation.")
+        }
+        try await migrationService.runSafeBackfill(for: uid)
+    }
+
     func resolve(uid: String) async throws -> ProfileBootstrapResult {
         ProfileBootstrapDebugLogger.event("profile_bootstrap_started", fields: ["uid": uid])
         ProfileBootstrapDebugLogger.event("Resolving profile route", fields: ["uid": uid])

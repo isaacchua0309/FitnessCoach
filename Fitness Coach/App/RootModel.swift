@@ -10,6 +10,10 @@ import Foundation
 
 enum RootViewState: Equatable {
     case loading
+    /// Blocking account data restore before main shell.
+    case restoringAccount
+    /// Permission/auth restore failure with retry.
+    case accountRestoreFailed(String)
     /// Signed-in user acknowledged no cloud profile; awaiting setup onboarding.
     case missingCloudProfile
     /// Onboarding-completion sign-in found an existing cloud profile; user must choose.
@@ -54,21 +58,30 @@ final class RootModel: ObservableObject {
 
     func load(uid: String) {
         loadTask?.cancel()
-        applyState(.loading, uid: uid)
         loadTask = Task {
-            do {
-                let result = try await profileBootstrapService.resolve(uid: uid)
-                guard !Task.isCancelled else { return }
-                applyState(RootProfileRouteResolver.resolve(bootstrapResult: result), uid: uid)
-            } catch {
-                guard !Task.isCancelled else { return }
-                ProfileBootstrapDebugLogger.error(
-                    "Profile bootstrap failed",
-                    fields: ["uid": uid],
-                    underlying: error
-                )
-                applyState(.error(FormaProductCopy.Onboarding.V2.BootstrapError.body), uid: uid)
-            }
+            _ = await loadAwaitingCompletion(uid: uid)
+        }
+    }
+
+    @discardableResult
+    func loadAwaitingCompletion(uid: String) async -> RootViewState {
+        applyState(.loading, uid: uid)
+        do {
+            let result = try await profileBootstrapService.resolve(uid: uid)
+            guard !Task.isCancelled else { return state }
+            let resolved = RootProfileRouteResolver.resolve(bootstrapResult: result)
+            applyState(resolved, uid: uid)
+            return resolved
+        } catch {
+            guard !Task.isCancelled else { return state }
+            ProfileBootstrapDebugLogger.error(
+                "Profile bootstrap failed",
+                fields: ["uid": uid],
+                underlying: error
+            )
+            let errorState = RootViewState.error(FormaProductCopy.Onboarding.V2.BootstrapError.body)
+            applyState(errorState, uid: uid)
+            return errorState
         }
     }
 
@@ -96,6 +109,17 @@ final class RootModel: ObservableObject {
         loadTask?.cancel()
         applyState(.loading)
         bootstrapPhase = .idle
+    }
+
+    func beginAccountRestore(uid: String) {
+        loadTask?.cancel()
+        applyState(.restoringAccount, uid: uid)
+    }
+
+    func presentAccountRestoreFailed(message: String) {
+        loadTask?.cancel()
+        applyState(.accountRestoreFailed(message))
+        bootstrapPhase = .failed(message: message)
     }
 
     func didCompleteOnboarding() {

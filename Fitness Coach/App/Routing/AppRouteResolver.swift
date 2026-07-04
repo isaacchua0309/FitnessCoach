@@ -17,6 +17,7 @@ enum AppShellRoute: Equatable {
     case onboardingStart
     case onboardingStartInitializing
     case signedInProfileLoading
+    case accountRestoreFailed(String)
     /// Signed-in user with no local/cloud profile — invite into onboarding.
     case noExistingProfileFound
     case onboardingCloudProfileConflict
@@ -152,8 +153,10 @@ enum AppRouteResolver {
 
     private static func resolveSignedIn(_ input: AppRouteInput) -> AppShellRoute {
         switch input.rootState {
-        case .loading:
+        case .loading, .restoringAccount:
             return .signedInProfileLoading
+        case .accountRestoreFailed(let message):
+            return .accountRestoreFailed(message)
         case .missingCloudProfile:
             return .noExistingProfileFound
         case .onboardingCloudProfileConflict:
@@ -326,6 +329,8 @@ extension OnboardingShellRoute {
             self = .onboardingStartInitializing
         case .signedInProfileLoading:
             self = .signedInProfileLoading
+        case .accountRestoreFailed(let message):
+            self = .accountRestoreFailed(message)
         case .noExistingProfileFound:
             self = .noExistingProfileFound
         case .onboardingCloudProfileConflict:
@@ -366,6 +371,8 @@ extension AppShellRoute {
             self = .onboardingStartInitializing
         case .signedInProfileLoading:
             self = .signedInProfileLoading
+        case .accountRestoreFailed(let message):
+            self = .accountRestoreFailed(message)
         case .noExistingProfileFound:
             self = .noExistingProfileFound
         case .onboardingCloudProfileConflict:

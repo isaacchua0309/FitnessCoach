@@ -106,4 +106,31 @@ extension AccountRestoreSummary {
         guard let endedAt else { return nil }
         return endedAt.timeIntervalSince(startedAt)
     }
+
+    static func timedOutPartial(
+        uid: String,
+        reason: AccountRestoreReason,
+        startedAt: Date,
+        endedAt: Date
+    ) -> AccountRestoreSummary {
+        AccountRestoreSummary(
+            uid: uid,
+            reason: reason,
+            mode: .blockingInitial,
+            status: .partial,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            profileRestored: false,
+            dailyLogsRestored: 0,
+            foodEntriesRestored: 0,
+            waterEntriesRestored: 0,
+            weightEntriesRestored: 0,
+            dailyReviewsRestored: 0,
+            skippedLocalNewer: 0,
+            conflicts: 0,
+            failed: 0,
+            isPartial: true,
+            userFacingMessage: FormaProductCopy.AccountRestore.TimedOut.body
+        )
+    }
 }

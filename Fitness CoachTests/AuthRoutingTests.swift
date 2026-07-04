@@ -97,6 +97,23 @@ final class AppRouteResolverTests: XCTestCase {
             ),
             .signedInProfileLoading
         )
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedIn(uid: "google-user"),
+                rootState: .restoringAccount
+            ),
+            .signedInProfileLoading
+        )
+    }
+
+    func testSignedInAccountRestoreFailedRoutesToRetrySurface() {
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedIn(uid: "google-user"),
+                rootState: .accountRestoreFailed("Permission denied.")
+            ),
+            .accountRestoreFailed("Permission denied.")
+        )
     }
 
     func testShouldClearOnboardingModelOnlyAfterSignOut() {

@@ -19,7 +19,9 @@ struct AuthGateRouteView: View {
                         coordinator.bootstrapOnboardingIfNeeded()
                     }
             case .signedInProfileLoading:
-                if coordinator.pendingExistingUserSignIn {
+                if coordinator.rootModel.state == .restoringAccount {
+                    AccountRestoreResolvingView()
+                } else if coordinator.pendingExistingUserSignIn {
                     ExistingUserSignInResolvingView()
                 } else {
                     LaunchLoadingView()
@@ -27,6 +29,11 @@ struct AuthGateRouteView: View {
                             coordinator.bootstrapOnboardingIfNeeded()
                         }
                 }
+            case .accountRestoreFailed(let message):
+                AccountRestoreFailedView(
+                    message: message,
+                    onRetry: coordinator.retryAccountRestore
+                )
             case .welcome:
                 PublicWelcomeView(
                     analyticsLogger: coordinator.container.publicEntryAnalyticsLogger,

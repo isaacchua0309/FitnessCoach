@@ -509,12 +509,56 @@ final class AppContainer {
         )
     }
 
+    /// Prepares UID namespace and legacy ownerUID backfill before profile bootstrap.
+    func prepareSignedInAccountNamespace(uid: String) async {
+        try? await profileBootstrapService.prepareSignedInAccountNamespace(
+            uid: uid,
+            namespaceService: accountDataNamespaceService,
+            migrationService: accountMigrationService
+        )
+    }
+
+    /// Runs blocking account restore after profile bootstrap with policy timeout.
+    func runAccountRestoreAfterSignIn(
+        uid: String,
+        reason: AccountRestoreReason
+    ) async -> AccountRestoreSummary {
+        let startedAt = Date()
+        let timeoutNanoseconds = UInt64(
+            AccountRestorePolicy.preferredBlockingRestoreTimeoutSeconds * 1_000_000_000
+        )
+
+        return await withTaskGroup(of: AccountRestoreSummary.self) { group in
+            group.addTask {
+                await self.accountRestoreCoordinator.prepareAccountAfterSignIn(
+                    uid: uid,
+                    reason: reason
+                )
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+                return AccountRestoreSummary.timedOutPartial(
+                    uid: uid,
+                    reason: reason,
+                    startedAt: startedAt,
+                    endedAt: Date()
+                )
+            }
+
+            let firstFinished = await group.next() ?? AccountRestoreSummary.timedOutPartial(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt,
+                endedAt: Date()
+            )
+            group.cancelAll()
+            return firstFinished
+        }
+    }
+
     func handleAccountRestoreAfterSignIn(uid: String) {
         Task {
-            _ = await accountRestoreCoordinator.prepareAccountAfterSignIn(
-                uid: uid,
-                reason: .afterSignIn
-            )
+            _ = await runAccountRestoreAfterSignIn(uid: uid, reason: .afterSignIn)
         }
     }
 
