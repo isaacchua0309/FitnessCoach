@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import {
+  analyzeCompoundFoodPrompt,
+  componentNamesMatchCompound,
+  type CompoundDishSpec,
+} from "./foodCompoundDish";
+
 export interface FoodExtractionComponent {
   name: string;
   quantity: number | null;
@@ -48,6 +54,9 @@ const TOTAL_TOLERANCE_ABSOLUTE = {
   carbs_g: 1,
   fat_g: 1,
 };
+const MACRO_CALORIE_TOLERANCE = 0.15;
+const NORMAL_MEAL_CALORIE_MAX = 1800;
+const SINGLE_ITEM_CALORIE_MAX = 900;
 
 const FOOD_QUANTITY_UNITS = [
   "grams",
@@ -282,12 +291,60 @@ function isFoodClause(part: string): boolean {
   return FOOD_CLAUSE_KEYWORDS.some((keyword) => containsWholeWord(part, keyword));
 }
 
+export function normalizeFoodExtraction(
+  extraction: FoodExtractionResponse,
+  userText: string
+): FoodExtractionResponse {
+  const promptAnalysis = analyzeCompoundFoodPrompt(userText);
+
+  const meals = extraction.meals.map((meal) => {
+    const components = meal.components.map((component) => clampComponentMacros(component));
+    const summed = sumComponents(components);
+    const warnings = [...(meal.warnings ?? [])];
+
+    if (
+      summed.calories > NORMAL_MEAL_CALORIE_MAX &&
+      !promptAnalysis.hasHugePortionHint
+    ) {
+      warnings.push(
+        "Total calories look high for a normal portion; review before logging."
+      );
+    }
+
+    let confidence = meal.confidence;
+    if (promptAnalysis.isAmbiguousServing && confidence === "high") {
+      confidence = "medium";
+    }
+    if (
+      promptAnalysis.matchedDishes.length > 0 &&
+      components.length < promptAnalysis.minRequiredComponents &&
+      confidence !== "low"
+    ) {
+      confidence = "low";
+    }
+
+    return {
+      ...meal,
+      components,
+      totals: summed,
+      confidence,
+      warnings: Array.from(new Set(warnings)),
+    };
+  });
+
+  return {
+    ...extraction,
+    meals,
+  };
+}
+
 export function validateFoodExtraction(
   extraction: FoodExtractionResponse,
   userText: string
 ): FoodExtractionValidationResult {
   const errors: string[] = [];
   const listedIngredients = countListedIngredients(userText);
+  const promptAnalysis = analyzeCompoundFoodPrompt(userText);
 
   if (!Array.isArray(extraction.meals) || extraction.meals.length === 0) {
     return {ok: false, errors: ["Response is missing meals."]};
@@ -305,6 +362,13 @@ export function validateFoodExtraction(
         `${meal.components.length} component(s).`
       );
     }
+
+    validateCompoundDishDecomposition(
+      meal,
+      promptAnalysis.matchedDishes,
+      promptAnalysis.minRequiredComponents,
+      errors
+    );
 
     const summed = sumComponents(meal.components);
     const totals = meal.totals ?? summed;
@@ -331,6 +395,40 @@ export function validateFoodExtraction(
       );
     }
 
+    validateMacroCalorieBalance(
+      "meal totals",
+      totals.calories,
+      totals.protein_g,
+      totals.carbs_g,
+      totals.fat_g,
+      errors
+    );
+
+    if (
+      summed.calories > NORMAL_MEAL_CALORIE_MAX &&
+      !promptAnalysis.hasHugePortionHint
+    ) {
+      errors.push(
+        `Meal "${meal.meal_name}" calories ${Math.round(summed.calories)} look too high for a normal portion.`
+      );
+    }
+
+    if (
+      meal.components.length === 1 &&
+      summed.calories > SINGLE_ITEM_CALORIE_MAX &&
+      !promptAnalysis.hasHugePortionHint
+    ) {
+      errors.push(
+        `Meal "${meal.meal_name}" single-component calories look too high for a normal portion.`
+      );
+    }
+
+    if (promptAnalysis.requiresAssumptions && (!meal.assumptions || meal.assumptions.length === 0)) {
+      errors.push(
+        `Meal "${meal.meal_name}" must include assumptions for portion, oil/sauce, confidence, and clarifications.`
+      );
+    }
+
     for (const component of meal.components) {
       if (!component.source_text?.trim()) {
         errors.push(`Component "${component.name}" is missing source_text.`);
@@ -338,6 +436,7 @@ export function validateFoodExtraction(
       if (!component.name?.trim()) {
         errors.push("A component is missing name.");
       }
+      validateComponentMacros(component, errors);
     }
   }
 
@@ -351,9 +450,11 @@ export function foodEstimateRepairInstructions(errors: string[]): string {
     "Return corrected JSON only.",
     "You MUST keep every listed ingredient as its own component with quantity, unit, state, and source_text.",
     "totals must exactly equal the sum of component calories, protein_g, carbs_g, and fat_g.",
-    "Never collapse multiple listed ingredients into one generic component.",
+    "Never collapse multiple listed ingredients or compound dishes into one generic component.",
     "Do not use the first ingredient quantity as a meal-level quantity.",
+    "Include assumptions for portion, oil/sauce, confidence reason, and what the user can clarify.",
     "Prefer realistic or slightly conservative calorie estimates.",
+    "All macros must be non-negative and macro calories must match displayed calories within 15%.",
   ].join("\n");
 }
 
@@ -454,6 +555,94 @@ function sumMappedComponents(components: Array<Record<string, any>>) {
     }),
     {calories: 0, protein: 0, carbs: 0, fat: 0}
   );
+}
+
+function clampComponentMacros(component: FoodExtractionComponent): FoodExtractionComponent {
+  return {
+    ...component,
+    calories: Math.max(0, component.calories ?? 0),
+    protein_g: Math.max(0, component.protein_g ?? 0),
+    carbs_g: Math.max(0, component.carbs_g ?? 0),
+    fat_g: Math.max(0, component.fat_g ?? 0),
+  };
+}
+
+function validateCompoundDishDecomposition(
+  meal: FoodExtractionMeal,
+  matchedDishes: CompoundDishSpec[],
+  minRequiredComponents: number,
+  errors: string[]
+): void {
+  if (matchedDishes.length === 0 || minRequiredComponents <= 1) {
+    return;
+  }
+
+  if (meal.components.length < minRequiredComponents) {
+    const labels = matchedDishes.map((dish) => dish.label).join(", ");
+    errors.push(
+      `Meal "${meal.meal_name}" collapsed compound dish (${labels}) into ` +
+      `${meal.components.length} component(s); expected at least ${minRequiredComponents}.`
+    );
+    return;
+  }
+
+  const componentNames = meal.components.map((component) => component.name);
+  for (const dish of matchedDishes) {
+    if (dish.minComponents > 1 && !componentNamesMatchCompound(componentNames, dish)) {
+      errors.push(
+        `Meal "${meal.meal_name}" components do not reflect expected ${dish.label} decomposition.`
+      );
+    }
+  }
+}
+
+function validateComponentMacros(
+  component: FoodExtractionComponent,
+  errors: string[]
+): void {
+  const label = component.name ?? "component";
+  if ((component.calories ?? 0) < 0) {
+    errors.push(`Component "${label}" has negative calories.`);
+  }
+  if ((component.protein_g ?? 0) < 0) {
+    errors.push(`Component "${label}" has negative protein.`);
+  }
+  if ((component.carbs_g ?? 0) < 0) {
+    errors.push(`Component "${label}" has negative carbs.`);
+  }
+  if ((component.fat_g ?? 0) < 0) {
+    errors.push(`Component "${label}" has negative fat.`);
+  }
+
+  validateMacroCalorieBalance(
+    label,
+    component.calories ?? 0,
+    component.protein_g ?? 0,
+    component.carbs_g ?? 0,
+    component.fat_g ?? 0,
+    errors
+  );
+}
+
+function validateMacroCalorieBalance(
+  label: string,
+  calories: number,
+  protein: number,
+  carbs: number,
+  fat: number,
+  errors: string[]
+): void {
+  if (calories <= 0) {
+    return;
+  }
+  const computed = protein * 4 + carbs * 4 + fat * 9;
+  if (computed <= 0) {
+    return;
+  }
+  const delta = Math.abs(computed - calories) / calories;
+  if (delta > MACRO_CALORIE_TOLERANCE) {
+    errors.push(`Macro calories for ${label} do not match displayed calories.`);
+  }
 }
 
 function withinTolerance(actual: number, expected: number, absolute: number): boolean {

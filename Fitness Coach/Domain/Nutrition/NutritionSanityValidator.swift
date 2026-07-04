@@ -15,6 +15,9 @@ struct NutritionSanityResult: Equatable, Sendable {
 
     static let underEstimatedUserMessage =
         "This looks under-estimated. Review portions before logging."
+
+    static let collapsedCompoundDishUserMessage =
+        "This compound dish may be missing components — review before logging."
 }
 
 enum NutritionSanityValidator {
@@ -62,6 +65,14 @@ enum NutritionSanityValidator {
             if let issue = validateCompositeMixedMealFloor(meal, prompt: normalizedPrompt) {
                 issues.append(issue)
             }
+        }
+
+        if let issue = validateCollapsedCompoundDish(meal, prompt: normalizedPrompt) {
+            issues.append(issue)
+        }
+
+        for component in meal.components {
+            issues.append(contentsOf: validateNonNegativeMacros(component))
         }
 
         let uniqueIssues = Array(Set(issues)).sorted()
@@ -295,6 +306,39 @@ enum NutritionSanityValidator {
         guard hasChicken, hasGrain, hasDressing, hasDessert else { return nil }
         guard meal.totalCalories < 550 else { return nil }
         return "Mixed meal with chicken, grain, dressing, and dessert looks under-estimated."
+    }
+
+    // MARK: - Rule 6
+
+    private static func validateCollapsedCompoundDish(
+        _ meal: FoodLogDraft,
+        prompt: String
+    ) -> String? {
+        let analysis = FoodCompoundDishDetector.analyze(prompt: prompt)
+        guard !analysis.matchedDishes.isEmpty, analysis.minRequiredComponents > 1 else {
+            return nil
+        }
+        guard meal.components.count < analysis.minRequiredComponents else {
+            return nil
+        }
+        return "Compound dish appears collapsed into too few components."
+    }
+
+    private static func validateNonNegativeMacros(_ component: FoodComponent) -> [String] {
+        var issues: [String] = []
+        if component.calories < 0 {
+            issues.append("\(component.name) has negative calories.")
+        }
+        if component.protein < 0 {
+            issues.append("\(component.name) has negative protein.")
+        }
+        if component.carbs < 0 {
+            issues.append("\(component.name) has negative carbs.")
+        }
+        if component.fat < 0 {
+            issues.append("\(component.name) has negative fat.")
+        }
+        return issues
     }
 
     // MARK: - Helpers

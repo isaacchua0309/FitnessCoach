@@ -24,9 +24,11 @@ import {
 import {
   foodEstimateRepairInstructions,
   mapExtractionToGatewayPayload,
+  normalizeFoodExtraction,
   validateFoodExtraction,
   type FoodExtractionResponse,
 } from "./foodEstimateExtraction";
+import {compoundDishDecompositionPrompt} from "./foodCompoundDish";
 import {
   mealImageAnalysisInstructions,
   mealImageAnalysisResponseSchema,
@@ -489,6 +491,7 @@ async function estimateFood(request: Record<string, any>, traceId?: string) {
     undefined;
 
   let extraction = await runExtraction(clientRepairErrors);
+  extraction = normalizeFoodExtraction(extraction, userText);
   let validation = validateFoodExtraction(extraction, userText);
 
   if (!validation.ok && !clientRepairErrors) {
@@ -496,7 +499,7 @@ async function estimateFood(request: Record<string, any>, traceId?: string) {
       traceId,
       errors: validation.errors,
     });
-    extraction = await runExtraction(validation.errors);
+    extraction = normalizeFoodExtraction(await runExtraction(validation.errors), userText);
     validation = validateFoodExtraction(extraction, userText);
     if (!validation.ok) {
       logger.warn("Food extraction still invalid after repair retry", {
@@ -703,8 +706,27 @@ Hard requirements:
 - Preserve each user ingredient line in component source_text.
 - For calorie estimates, prefer realistic over optimistic.
 - For fat-loss tracking, underestimation is worse than slight overestimation.
-- Single simple foods (e.g. "2 eggs") may use one component.
-- Set requiresConfirmation true unless the user supplied exact complete nutrition values.`;
+- Single simple foods (e.g. "2 eggs", "protein shake") may use one component.
+- Set requiresConfirmation true unless the user supplied exact complete nutrition values.
+
+Compound dish decomposition (decompose into visible/likely components, never one collapsed item):
+${compoundDishDecompositionPrompt()}
+
+Assumptions array (required for compound dishes, vague portions, or ambiguous servings):
+- Portion assumption (e.g. bowl size, piece count).
+- Cooking oil/sauce assumption when relevant.
+- Confidence reason (why medium/low).
+- What the user can clarify to improve the estimate.
+
+Reasonableness clamps:
+- A single normal meal should stay below ~1800 kcal unless the user says huge/large/double portion.
+- Macros must be non-negative and macro calories must match displayed calories within ~15%.
+- Component sums must equal totals exactly.
+
+Ambiguous serving size:
+- Return a reasonable medium-portion estimate with medium or low confidence.
+- Ask one concise clarification in assistantMessage only when uncertainty is very large.
+- Still set requiresConfirmation true.`;
 }
 
 function foodPhotoEstimateInstructions(): string {
@@ -719,7 +741,9 @@ Task: Analyze the attached meal photo and estimate nutrition with strict per-ite
 Return JSON matching the schema with meals[] entries.
 Each visible distinct food must be its own component with quantity, unit, state, macros, confidence, and source_text describing what was seen.
 Never collapse multiple visible items into one component.
+For compound/local dishes (chicken rice, nasi lemak, cai fan, mala, prata, bubble tea), decompose into likely components.
 Sum component nutrition into totals exactly.
+Include assumptions for portion, oil/sauce, confidence, and clarifications when uncertain.
 Prefer realistic or slightly conservative estimates.
 Set requiresConfirmation true.`;
 }

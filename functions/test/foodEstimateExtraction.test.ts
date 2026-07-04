@@ -1,6 +1,7 @@
 import {
   countListedIngredients,
   mapExtractionToGatewayPayload,
+  normalizeFoodExtraction,
   validateFoodExtraction,
   type FoodExtractionResponse,
 } from "../src/foodEstimateExtraction";
@@ -155,5 +156,54 @@ describe("foodEstimateExtraction", () => {
     expect(payload.foodLogDrafts[0].components).toHaveLength(2);
     expect(payload.foodDrafts[0].quantity).toBeNull();
     expect(payload.foodDrafts[0].calories).toBe(413);
+  });
+
+  it("normalizes extraction totals before mapping", () => {
+    const extraction: FoodExtractionResponse = {
+      meals: [{
+        meal_name: "Chicken barley bowl",
+        meal_type: "lunch",
+        components: [
+          {
+            name: "chicken breast",
+            quantity: 150,
+            unit: "g",
+            state: "cooked",
+            calories: 248,
+            protein_g: 46,
+            carbs_g: 0,
+            fat_g: 5,
+            confidence: "high",
+            source_text: "150 g cooked chicken breast",
+          },
+          {
+            name: "barley rice",
+            quantity: 150,
+            unit: "g",
+            state: "cooked",
+            calories: 165,
+            protein_g: 4,
+            carbs_g: 34,
+            fat_g: 1,
+            confidence: "high",
+            source_text: "150 g cooked barley rice",
+          },
+        ],
+        totals: {
+          calories: 300,
+          protein_g: 50,
+          carbs_g: 34,
+          fat_g: 6,
+        },
+        confidence: "high",
+        assumptions: [],
+        warnings: [],
+      }],
+      requiresConfirmation: true,
+      assistantMessage: null,
+    };
+
+    const normalized = normalizeFoodExtraction(extraction, bowlPrompt);
+    expect(normalized.meals[0].totals.calories).toBe(413);
   });
 });
