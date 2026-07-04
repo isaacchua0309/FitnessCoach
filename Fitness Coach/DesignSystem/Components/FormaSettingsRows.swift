@@ -56,10 +56,12 @@ struct FormaSettingsRowLabel: View {
                     .accessibilityHidden(true)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .frame(
             minHeight: SettingsChromeAccessibility.minimumRowTouchTarget,
             alignment: .center
         )
+        .contentShape(Rectangle())
     }
 
     private var titleColor: Color {
