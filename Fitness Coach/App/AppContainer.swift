@@ -902,7 +902,10 @@ final class AppContainer {
             localDataInspector: accountLocalDataInspector,
             ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
             accountDataRefreshEventBus: accountDataRefreshEventBus,
-            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator,
+            accountSyncCursorStore: accountSyncCursorStore,
+            accountSyncOutboxStore: accountSyncOutboxStore,
+            accountRestoreStateStore: accountRestoreStateStore
         )
     }
 

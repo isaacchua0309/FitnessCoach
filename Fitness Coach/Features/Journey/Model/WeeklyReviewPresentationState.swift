@@ -141,5 +141,6 @@ struct WeeklyProgressDetailState: Equatable {
     var generatedAtLabel: String
     var healthKitLimitedNotice: String?
     var uncertaintyTitle: String
+    var freshness: WeeklyProgressFreshnessState?
     var accessibilityLabel: String
 }

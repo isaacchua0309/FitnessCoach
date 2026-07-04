@@ -134,6 +134,7 @@ struct JourneyView: View {
                     : nil,
                 analyticsCoordinator: analyticsCoordinator,
                 healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+                weeklyProgressFreshnessInput: model.weeklyProgressFreshnessInput,
                 onCTA: handleCTA,
                 onWeeklyProgressCTA: handleWeeklyProgressCTA,
                 onGoToToday: { onOpenToday?() },
@@ -147,7 +148,8 @@ struct JourneyView: View {
                             dashboard: state,
                             healthIntelligence: healthIntelligenceUIEnabled
                                 ? model.journeyHealthIntelligenceSectionState
-                                : nil
+                                : nil,
+                            freshnessInput: model.weeklyProgressFreshnessInput
                         )
                     )
                 }

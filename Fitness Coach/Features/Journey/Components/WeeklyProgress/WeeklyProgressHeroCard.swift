@@ -88,6 +88,10 @@ struct WeeklyProgressHeroCard: View {
                 }
 
                 ctaBlock
+
+                if let message = state.freshness?.cardMessage {
+                    freshnessNote(message)
+                }
             }
         }
         .contentShape(Rectangle())
@@ -209,6 +213,15 @@ struct WeeklyProgressHeroCard: View {
         }
     }
 
+    private func freshnessNote(_ message: String) -> some View {
+        Text(message)
+            .font(FormaTokens.Typography.caption2)
+            .foregroundStyle(FormaTokens.Color.textTertiary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, FormaTokens.Spacing.xs)
+            .accessibilityLabel(message)
+    }
+
     private var insufficientDataGuidanceTitle: String {
         FormaProductCopy.WeeklyReviewPresentation.notEnoughDataRequirements
     }
@@ -247,6 +260,9 @@ struct WeeklyProgressHeroCard: View {
         }
         if let primary = state.primaryCTA {
             parts.append(primary.accessibilityLabel)
+        }
+        if let freshness = state.freshness?.accessibilityLabel, !freshness.isEmpty {
+            parts.append(freshness)
         }
 
         return parts.filter { !$0.isEmpty }.joined(separator: ". ")

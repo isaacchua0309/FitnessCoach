@@ -161,6 +161,35 @@ final class UnifiedWeeklyReviewPresentationBuilderTests: XCTestCase {
         )
     }
 
+    func testBuildIncludesFreshnessWhenProvided() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let freshnessInput = WeeklyProgressFreshnessInput(
+            isRestoringAccount: false,
+            isCrossDeviceRefreshing: false,
+            pendingUploadCount: 1,
+            lastRefreshAt: nil,
+            recentlyRestoredAt: nil,
+            now: Date()
+        )
+
+        let state = UnifiedWeeklyReviewPresentationBuilder.build(
+            dashboard: dashboard,
+            freshnessInput: freshnessInput
+        )
+
+        XCTAssertEqual(
+            state.freshness?.cardMessage,
+            FormaProductCopy.WeeklyReviewPresentation.Freshness.syncingChanges
+        )
+        XCTAssertEqual(
+            UnifiedWeeklyReviewPresentationBuilder.buildDetail(
+                dashboard: dashboard,
+                freshnessInput: freshnessInput
+            ).freshness?.detailMessage,
+            FormaProductCopy.WeeklyReviewPresentation.Freshness.reviewMayUpdate
+        )
+    }
+
     func testBuildDetailMergesHealthIntelligenceFocusItems() {
         let dashboard = JourneyPreviewData.strongMomentum
         let review = makeHealthReview()

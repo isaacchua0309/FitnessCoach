@@ -3651,6 +3651,14 @@ enum FormaProductCopy {
             dayCountValue(count, total: total)
         }
 
+        enum Freshness {
+            static let updatedJustNow = "Updated just now"
+            static let savedToAccount = "Saved to your account"
+            static let syncingChanges = "Some changes are still syncing"
+            static let reviewMayUpdate = "Review may update when your latest logs finish syncing"
+            static let restoringAccount = "Restoring account data…"
+        }
+
         static func weightTrendValue(_ changeKg: Double) -> String {
             let formatted = String(format: "%.1f", abs(changeKg))
             if changeKg < 0 {

@@ -30,6 +30,7 @@ struct UnifiedWeeklyReviewState: Equatable, Identifiable {
     let secondaryCTA: WeeklyProgressCTA?
     let isReady: Bool
     let isInsufficientData: Bool
+    let freshness: WeeklyProgressFreshnessState?
 }
 
 // MARK: - Sub-states
@@ -117,6 +118,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
     var profile: UserProfile?
     var goalDirection: JourneyGoalDirection?
     var dailyReviewsThisWeekCount: Int
+    var freshnessInput: WeeklyProgressFreshnessInput?
     var calendar: Calendar
 
     init(
@@ -128,6 +130,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
         profile: UserProfile? = nil,
         goalDirection: JourneyGoalDirection? = nil,
         dailyReviewsThisWeekCount: Int = 0,
+        freshnessInput: WeeklyProgressFreshnessInput? = nil,
         calendar: Calendar = .current
     ) {
         self.summary = summary
@@ -138,6 +141,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
         self.profile = profile
         self.goalDirection = goalDirection
         self.dailyReviewsThisWeekCount = dailyReviewsThisWeekCount
+        self.freshnessInput = freshnessInput
         self.calendar = calendar
     }
 }
@@ -178,6 +182,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             habitRows: habitRows,
             isInsufficientData: isInsufficientData
         )
+        let freshness = WeeklyProgressFreshnessBuilder.build(input.freshnessInput)
 
         return UnifiedWeeklyReviewState(
             id: summary.id,
@@ -200,7 +205,8 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             primaryCTA: ctas.primary,
             secondaryCTA: ctas.secondary,
             isReady: isReady,
-            isInsufficientData: isInsufficientData
+            isInsufficientData: isInsufficientData,
+            freshness: freshness
         )
     }
 
@@ -208,6 +214,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         dashboard: JourneyDashboardState,
         healthIntelligence: JourneyHealthIntelligenceSectionState? = nil,
         profile: UserProfile? = nil,
+        freshnessInput: WeeklyProgressFreshnessInput? = nil,
         calendar: Calendar = .current
     ) -> UnifiedWeeklyReviewState {
         build(
@@ -219,6 +226,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
                 profile: profile,
                 goalDirection: dashboard.baseline.goalDirection,
                 dailyReviewsThisWeekCount: dashboard.dailyReviewsThisWeekCount,
+                freshnessInput: freshnessInput,
                 calendar: calendar
             )
         )
@@ -228,6 +236,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         dashboard: JourneyDashboardState,
         healthIntelligence: JourneyHealthIntelligenceSectionState? = nil,
         profile: UserProfile? = nil,
+        freshnessInput: WeeklyProgressFreshnessInput? = nil,
         calendar: Calendar = .current
     ) -> WeeklyProgressDetailState {
         let input = UnifiedWeeklyReviewInput(
@@ -238,9 +247,40 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             profile: profile,
             goalDirection: dashboard.baseline.goalDirection,
             dailyReviewsThisWeekCount: dashboard.dailyReviewsThisWeekCount,
+            freshnessInput: freshnessInput,
             calendar: calendar
         )
         return buildDetail(input)
+    }
+
+    static func buildDetail(
+        dashboard: JourneyDashboardState,
+        healthIntelligence: JourneyHealthIntelligenceSectionState? = nil,
+        profile: UserProfile? = nil,
+        calendar: Calendar = .current
+    ) -> WeeklyProgressDetailState {
+        buildDetail(
+            dashboard: dashboard,
+            healthIntelligence: healthIntelligence,
+            profile: profile,
+            freshnessInput: nil,
+            calendar: calendar
+        )
+    }
+
+    static func build(
+        dashboard: JourneyDashboardState,
+        healthIntelligence: JourneyHealthIntelligenceSectionState? = nil,
+        profile: UserProfile? = nil,
+        calendar: Calendar = .current
+    ) -> UnifiedWeeklyReviewState {
+        build(
+            dashboard: dashboard,
+            healthIntelligence: healthIntelligence,
+            profile: profile,
+            freshnessInput: nil,
+            calendar: calendar
+        )
     }
 
     static func buildDetail(_ input: UnifiedWeeklyReviewInput) -> WeeklyProgressDetailState {
@@ -268,6 +308,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             ),
             healthKitLimitedNotice: healthKitLimitedNotice(from: input.healthReviewDetail),
             uncertaintyTitle: uncertaintyTitle,
+            freshness: unified.freshness,
             accessibilityLabel: detailAccessibilityLabel(
                 unified: unified,
                 summary: summary,

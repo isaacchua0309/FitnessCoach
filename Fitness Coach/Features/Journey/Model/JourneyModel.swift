@@ -14,6 +14,7 @@ final class JourneyModel: ObservableObject {
     @Published private(set) var viewState: JourneyViewState = .loading
     @Published private(set) var journeyHealthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
     @Published private(set) var isCrossDeviceRefreshing = false
+    @Published private(set) var weeklyProgressFreshnessInput: WeeklyProgressFreshnessInput?
 
     private let dailyLogReader: any DailyLogReading
     private let weightLogReader: any WeightLogReading
@@ -38,11 +39,16 @@ final class JourneyModel: ObservableObject {
     private let ownerUIDProvider: () -> String?
     private let accountDataRefreshEventBus: AccountDataRefreshEventBus?
     private let crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating?
+    private let accountSyncCursorStore: AccountSyncCursorStore?
+    private let accountSyncOutboxStore: (any AccountSyncOutboxStore)?
+    private let accountRestoreStateStore: (any AccountRestoreStateStoring)?
     private let weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding
 
     private var crossDeviceRefreshCancellable: AnyCancellable?
+    private var restoreCompletionCancellable: AnyCancellable?
     private var debouncedCrossDeviceReloadTask: Task<Void, Never>?
     private var activeRefreshTask: Task<Void, Never>?
+    private var lastAppliedDataRefreshAt: Date?
 
     init(
         dailyLogReader: any DailyLogReading,
@@ -68,6 +74,9 @@ final class JourneyModel: ObservableObject {
         ownerUIDProvider: @escaping () -> String? = { nil },
         accountDataRefreshEventBus: AccountDataRefreshEventBus? = nil,
         crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating? = nil,
+        accountSyncCursorStore: AccountSyncCursorStore? = nil,
+        accountSyncOutboxStore: (any AccountSyncOutboxStore)? = nil,
+        accountRestoreStateStore: (any AccountRestoreStateStoring)? = nil,
         weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding = WeeklyProgressSummaryBuilder()
     ) {
         self.dailyLogReader = dailyLogReader
@@ -93,14 +102,31 @@ final class JourneyModel: ObservableObject {
         self.ownerUIDProvider = ownerUIDProvider
         self.accountDataRefreshEventBus = accountDataRefreshEventBus
         self.crossDeviceSyncCoordinator = crossDeviceSyncCoordinator
+        self.accountSyncCursorStore = accountSyncCursorStore
+        self.accountSyncOutboxStore = accountSyncOutboxStore
+        self.accountRestoreStateStore = accountRestoreStateStore
         self.weeklyProgressSummaryBuilder = weeklyProgressSummaryBuilder
         bindAccountDataRefreshEventsIfNeeded()
+        bindRestoreCompletionIfNeeded()
     }
 
     deinit {
         crossDeviceRefreshCancellable?.cancel()
+        restoreCompletionCancellable?.cancel()
         debouncedCrossDeviceReloadTask?.cancel()
         activeRefreshTask?.cancel()
+    }
+
+    private func bindRestoreCompletionIfNeeded() {
+        restoreCompletionCancellable?.cancel()
+        restoreCompletionCancellable = NotificationCenter.default.publisher(
+            for: .accountRestoreDidComplete
+        )
+        .sink { [weak self] _ in
+            Task { @MainActor in
+                await self?.refreshFreshnessInput()
+            }
+        }
     }
 
     // MARK: Cross-device refresh (Phase 5)
@@ -122,7 +148,11 @@ final class JourneyModel: ObservableObject {
                 }
                 return event
             }
-            .sink { [weak self] _ in
+            .sink { [weak self] event in
+                self?.lastAppliedDataRefreshAt = event.createdAt
+                Task { @MainActor in
+                    await self?.refreshFreshnessInput()
+                }
                 self?.scheduleCrossDeviceReload()
             }
     }
@@ -135,9 +165,16 @@ final class JourneyModel: ObservableObject {
         }
 
         isCrossDeviceRefreshing = true
-        defer { isCrossDeviceRefreshing = false }
+        await refreshFreshnessInput()
+        defer {
+            isCrossDeviceRefreshing = false
+            Task { @MainActor in
+                await self.refreshFreshnessInput()
+            }
+        }
 
         _ = await crossDeviceSyncCoordinator.manualRefresh(uid: uid)
+        lastAppliedDataRefreshAt = Date()
     }
 
     private func scheduleCrossDeviceReload() {
@@ -157,6 +194,8 @@ final class JourneyModel: ObservableObject {
         debouncedCrossDeviceReloadTask?.cancel()
         debouncedCrossDeviceReloadTask = nil
         isCrossDeviceRefreshing = false
+        weeklyProgressFreshnessInput = nil
+        lastAppliedDataRefreshAt = nil
         journeyHealthIntelligenceSectionState = nil
         viewState = .loading
     }
@@ -220,6 +259,7 @@ final class JourneyModel: ObservableObject {
 
         activeRefreshTask = task
         await task.value
+        await refreshFreshnessInput()
     }
 
     // MARK: Health Intelligence
@@ -484,6 +524,60 @@ final class JourneyModel: ObservableObject {
         })
         let weightDays = Set(weights.map { Calendar.current.startOfDay(for: $0.date) })
         return logDays.union(weightDays).count
+    }
+
+    private func refreshFreshnessInput() async {
+        guard let uid = ownerUIDProvider() else {
+            weeklyProgressFreshnessInput = nil
+            return
+        }
+
+        let now = Date()
+        var pendingUploadCount: Int?
+        if let accountSyncOutboxStore {
+            pendingUploadCount = try? await accountSyncOutboxStore
+                .countActiveMutations(ownerUID: uid)
+                .pending
+        }
+
+        var lastRefreshAt = lastAppliedDataRefreshAt
+        if let accountSyncCursorStore {
+            let cursor = accountSyncCursorStore.loadCursor(uid: uid)
+            let cursorDates = [
+                cursor.lastForegroundRefreshAt,
+                cursor.lastManualRefreshAt,
+                cursor.dailyLogsLastPulledAt,
+                cursor.foodEntriesLastPulledAt,
+                cursor.dailyReviewsLastPulledAt
+            ].compactMap { $0 }
+            if let latestCursor = cursorDates.max() {
+                lastRefreshAt = [lastRefreshAt, latestCursor].compactMap { $0 }.max()
+            }
+        }
+
+        var recentlyRestoredAt: Date?
+        var isRestoringFromStore = false
+        if let accountRestoreStateStore {
+            let stored = accountRestoreStateStore.loadState(uid: uid)
+            isRestoringFromStore = stored.status.isInProgress
+            recentlyRestoredAt = [
+                stored.lastSuccessfulBlockingRestoreAt,
+                stored.lastSuccessfulBackgroundBackfillAt,
+                stored.lastCompletedAt
+            ].compactMap { $0 }.max()
+        }
+
+        let isRestoringAccount = restoreSessionState?.isBlockingRestoreActive == true
+            || isRestoringFromStore
+
+        weeklyProgressFreshnessInput = WeeklyProgressFreshnessInput(
+            isRestoringAccount: isRestoringAccount,
+            isCrossDeviceRefreshing: isCrossDeviceRefreshing,
+            pendingUploadCount: pendingUploadCount,
+            lastRefreshAt: lastRefreshAt,
+            recentlyRestoredAt: recentlyRestoredAt,
+            now: now
+        )
     }
 
 #if DEBUG

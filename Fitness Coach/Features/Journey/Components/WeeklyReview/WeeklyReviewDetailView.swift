@@ -264,6 +264,14 @@ struct WeeklyReviewDetailView: View {
                 WeeklyReviewFocusList(items: detail.nextWeekFocus)
             }
 
+            if let freshnessMessage = detail.freshness?.resolvedDetailMessage {
+                Text(freshnessMessage)
+                    .font(FormaTokens.Typography.caption2)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(freshnessMessage)
+            }
+
             sectionDivider
 
             WeeklyReviewConfidenceFooter(

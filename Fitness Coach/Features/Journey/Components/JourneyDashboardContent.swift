@@ -18,6 +18,7 @@ struct JourneyDashboardContent: View {
     var onGoToToday: () -> Void = {}
     var onConnectHealth: (() -> Void)?
     var onOpenWeeklyProgressDetail: (() -> Void)?
+    var weeklyProgressFreshnessInput: WeeklyProgressFreshnessInput?
 
     var body: some View {
         LazyVStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
@@ -47,7 +48,8 @@ struct JourneyDashboardContent: View {
     private var unifiedWeeklyReview: UnifiedWeeklyReviewState {
         UnifiedWeeklyReviewPresentationBuilder.build(
             dashboard: state,
-            healthIntelligence: healthIntelligenceSectionState
+            healthIntelligence: healthIntelligenceSectionState,
+            freshnessInput: weeklyProgressFreshnessInput
         )
     }
 
