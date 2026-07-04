@@ -21,6 +21,11 @@ const validAnalysisResponse = {
       fat: 5,
       confidence: "high",
       assumptions: ["Skinless portion"],
+      uncertaintyReasons: ["Minor preparation details assumed."],
+      suggestedClarifications: [],
+      primaryUncertainty: null,
+      calorieRangeLower: 235,
+      calorieRangeUpper: 260,
     },
     {
       name: "Cooked white rice",
@@ -31,6 +36,11 @@ const validAnalysisResponse = {
       fat: 0.4,
       confidence: "medium",
       assumptions: ["Steamed, no butter"],
+      uncertaintyReasons: ["Portion estimated from visible cup."],
+      suggestedClarifications: [],
+      primaryUncertainty: null,
+      calorieRangeLower: 180,
+      calorieRangeUpper: 230,
     },
   ],
   total: {
@@ -38,9 +48,12 @@ const validAnalysisResponse = {
     protein: 50,
     carbs: 45,
     fat: 5.4,
+    calorieRangeLower: 400,
+    calorieRangeUpper: 510,
   },
   needsUserReview: true,
   clarifyingQuestion: null,
+  primaryUncertainty: "Portion sizes estimated from the photo.",
 };
 
 describe("mealImageAnalysis instructions", () => {
@@ -238,14 +251,62 @@ describe("mealImageAnalysis response parsing", () => {
         fat: 10,
         confidence: "low",
         assumptions: ["Grain type unclear"],
+        uncertaintyReasons: ["Grain type unclear from photo."],
+        suggestedClarifications: ["Was this rice or barley?"],
+        primaryUncertainty: "Grain type unclear",
+        calorieRangeLower: 340,
+        calorieRangeUpper: 480,
       }],
-      total: {calories: 400, protein: 16, carbs: 52, fat: 10},
+      total: {
+        calories: 400,
+        protein: 16,
+        carbs: 52,
+        fat: 10,
+        calorieRangeLower: 340,
+        calorieRangeUpper: 480,
+      },
       needsUserReview: true,
       clarifyingQuestion: "Was this rice or barley?",
+      primaryUncertainty: "Grain type unclear",
     });
 
     expect(parsed.needsUserReview).toBe(true);
     expect(parsed.clarifyingQuestion).toBe("Was this rice or barley?");
     expect(parsed.items[0].assumptions).toContain("Grain type unclear");
+    expect(parsed.items[0].uncertaintyReasons).toContain("Grain type unclear from photo.");
+  });
+
+  it("rejects low-confidence photo without clarifyingQuestion or suggestedClarifications", () => {
+    const result = validateMealImageAnalysisResponse({
+      summary: "Two plates with chicken and rice",
+      items: [{
+        name: "Plate one",
+        calories: 300,
+        protein: 20,
+        carbs: 30,
+        fat: 8,
+        confidence: "low",
+        assumptions: ["Left plate"],
+        uncertaintyReasons: ["Multiple plates visible."],
+        suggestedClarifications: [],
+        primaryUncertainty: null,
+        calorieRangeLower: 250,
+        calorieRangeUpper: 360,
+      }],
+      total: {
+        calories: 300,
+        protein: 20,
+        carbs: 30,
+        fat: 8,
+        calorieRangeLower: 250,
+        calorieRangeUpper: 360,
+      },
+      needsUserReview: true,
+      clarifyingQuestion: null,
+      primaryUncertainty: null,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((error) => error.includes("clarifyingQuestion"))).toBe(true);
   });
 });

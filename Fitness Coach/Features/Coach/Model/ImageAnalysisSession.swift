@@ -30,17 +30,20 @@ struct ImageAnalysisSessionResult: Equatable, Sendable {
     var confidence: AIConfidence
     var summary: String
     var clarifyingQuestion: String?
+    var trust: MealImageAnalysisTrustMetadata?
 
     init(
         mealDraft: FoodLogDraft,
         confidence: AIConfidence,
         summary: String,
-        clarifyingQuestion: String? = nil
+        clarifyingQuestion: String? = nil,
+        trust: MealImageAnalysisTrustMetadata? = nil
     ) {
         self.mealDraft = mealDraft
         self.confidence = confidence
         self.summary = summary
         self.clarifyingQuestion = clarifyingQuestion
+        self.trust = trust
     }
 }
 
@@ -158,6 +161,12 @@ enum ImageAnalysisSessionReducer {
         if result.confidence == .low {
             return true
         }
+        if result.trust?.clarifyingQuestion != nil {
+            return true
+        }
+        if result.mealDraft.requiresClarificationBeforeLogging {
+            return true
+        }
         if let question = result.clarifyingQuestion?
             .trimmingCharacters(in: .whitespacesAndNewlines),
            !question.isEmpty {
@@ -227,6 +236,17 @@ enum ImageAnalysisPromptBuilder {
             sections.append(
                 "Previous estimate: \(result.mealDraft.displayName) · \(result.mealDraft.totalCalories) kcal"
             )
+            if let lower = result.trust?.calorieRangeLower ?? result.mealDraft.calorieRangeLower,
+               let upper = result.trust?.calorieRangeUpper ?? result.mealDraft.calorieRangeUpper {
+                sections.append("Previous calorie range: \(lower)-\(upper) kcal")
+            }
+            if let primaryUncertainty = result.trust?.primaryUncertainty ?? result.mealDraft.primaryUncertainty {
+                sections.append("Previous main uncertainty: \(primaryUncertainty)")
+            }
+            let priorUncertainties = result.trust?.uncertaintyReasons ?? result.mealDraft.uncertaintyReasons
+            if !priorUncertainties.isEmpty {
+                sections.append("Previous uncertainty reasons: \(priorUncertainties.joined(separator: "; "))")
+            }
             if !result.mealDraft.components.isEmpty {
                 let itemLines = result.mealDraft.components.map { component in
                     let portion = [component.quantity.map(FoodEntryFormFormatter.formatOptionalDouble), component.unit]
