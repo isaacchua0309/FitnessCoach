@@ -260,9 +260,8 @@ describe("coachContextPacketV2", () => {
     expect(fields.contextSchemaVersion).toBe(2);
     expect(fields.contextGenerationMode).toBe("live");
     expect(fields.contextRecentMeals).toBe(1);
-    expect(fields.contextMissingDataFlags).toBe("contextGenerationFailed,stepsMissing");
-    expect(fields.contextGenerationFailed).toBe(true);
     expect(fields.contextMissingDataFlagsCount).toBe(2);
+    expect(fields.contextGenerationFailed).toBe(true);
     expect(typeof fields.contextSizeBucket).toBe("string");
     expect(typeof fields.contextEncodedBytes).toBe("number");
     expect(JSON.stringify(fields)).not.toContain("Salad");
@@ -421,7 +420,7 @@ describe("coachContextPacketV2", () => {
             source: "coachUI",
             summary: "Edited salad",
             timestamp: "2026-07-03T10:00:00.000Z",
-            linkedEntryId: "entry-salad",
+            linkedEntryId: mealEntryId,
           },
           {
             id: "deleted-1",
@@ -430,7 +429,7 @@ describe("coachContextPacketV2", () => {
             source: "coachUI",
             summary: "Deleted snack",
             timestamp: "2026-07-03T10:05:00.000Z",
-            linkedEntryId: "entry-snack",
+            linkedEntryId: timelineEntryId,
           },
           ...Array.from({length: 25}, (_, index) => ({
             id: `assistant-${index}`,
@@ -447,9 +446,9 @@ describe("coachContextPacketV2", () => {
     const events = (sanitized?.timeline as {
       recentEvents: Array<{type: string; linkedEntryId?: string}>;
     }).recentEvents;
-    expect(events.some((event) => event.type === "foodEdited" && event.linkedEntryId === "entry-salad"))
+    expect(events.some((event) => event.type === "foodEdited" && event.linkedEntryId === mealEntryId))
       .toBe(true);
-    expect(events.some((event) => event.type === "foodDeleted" && event.linkedEntryId === "entry-snack"))
+    expect(events.some((event) => event.type === "foodDeleted" && event.linkedEntryId === timelineEntryId))
       .toBe(true);
     expect(events.length).toBeLessThanOrEqual(20);
   });

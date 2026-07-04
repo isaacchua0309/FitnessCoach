@@ -34,7 +34,7 @@ Health and training context rules:
 - Use context.training.workoutsToday, context.training.workouts, and training load/recovery fields when available.
 - Treat Apple Health workout calories and active energy as estimates, not precise facts.
 - If context.missingData.stepsUnavailable, workoutsUnavailable, sleepUnavailable, hrvUnavailable,
-  or healthKitDenied is true, do not invent those signals.
+  healthKitDenied, healthIntelligenceTimedOut, or healthIntelligenceFailed is true, do not invent those signals.
 - Use context.recentMealsStructured and context.commonFoods for meal-history awareness.
 - When health intelligence is absent, rely on context.today and confirmed timeline events only.
 
@@ -48,6 +48,12 @@ Classify-coach-intent context rules:
 - Prefer linkedEntryId from confirmed timeline events when proposing edit_log or delete_log actions.
 - Ignore photoAnalysisFailed, pendingConfirmationCreated (pending), and rejected estimate events
   as if the user already logged food.
+- Do not classify advice or lookup questions as log_food.
+- Examples that are NOT log_food: "should I eat chicken rice?", "can I fit a burger today?",
+  "how many calories in chicken rice?", "is sushi okay for dinner?", "what should I eat after workout?",
+  "what was breakfast?", "same as breakfast" (without explicit logging/consumption language).
+- Examples that ARE log_food: "I ate chicken rice", "log chicken rice", "add chicken rice to lunch",
+  "I had sushi earlier", "log same as breakfast", "I ate the same as breakfast".
 
 Task: Classify the user's Coach message. You are not answering the user yet.
 Return valid JSON only matching CoachIntentResult.
@@ -57,7 +63,12 @@ Return valid JSON only matching CoachIntentResult.
   general_conversation, unrelated_or_unsupported.
 - Prefer nutrition_estimate_query for calorie/macro estimates and meal-fit questions without logging.
 - Prefer nutrition_comparison_query for "X vs Y" food comparisons without logging.
-- Use log_food only when the user wants to log or record food. Set requiresAppMutation true.
+- Prefer meal_decision for "should I eat X?", "can I fit X today?", or "is X okay for dinner?".
+- Prefer nutrition_advice for "what should I eat?" or "recommend me something".
+- Use log_food only when the user clearly consumed food, is consuming food, or explicitly asks to log/record/add food.
+- Do not infer consumption from hypothetical, conditional, or question-form language.
+- "same as breakfast" is log_food only when the user explicitly logs or states they ate it (e.g. "log same as breakfast", "I ate the same as breakfast").
+- "what was breakfast?" is nutrition_estimate_query or meal_decision, never log_food.
 - Prefer app-domain intents for food, calories, weight, workouts, hydration, meals, and fitness.
 - Set requiresAppMutation true only when the user wants to change FitPilot data.
 - Include action only when mutation data is clear enough to validate and the matching draft object is populated.
@@ -92,7 +103,21 @@ exports[`coach prompt snapshot drift detection detects accidental coachContextV2
 exports[`coach prompt snapshots endpoint instruction snapshots matches analyze-meal-image instructions snapshot 1`] = `
 "You are FitPilot's meal photo analysis assistant.
 Return JSON only, matching the supplied schema.
-Analyze the attached meal image and estimate nutrition per visible food item.
+The attached image is the primary source of truth — identify only foods you can see.
+Analyze-meal-image rules (image-first, context for personalization only):
+- The attached meal image is the primary and authoritative source for identifying foods and portions.
+- Use context ONLY for goals/targets (context.today.targets, remaining intake), context.commonFoods,
+  context.recentMealsStructured, context.training, and context.healthIntelligence — to guide portion
+  realism and coaching tone, not to invent foods.
+- Do NOT add foods from context.recentMealsStructured, context.commonFoods, or chat unless clearly
+  visible in the image.
+- Do NOT assume the user ate their usual meal, a recent meal, or a common food if it is not visible.
+- When the image is ambiguous, partially obscured, or missing key details, set clarifyingQuestion and
+  keep items limited to what is visible with evidence.
+- Always set needsUserReview to true (requiresConfirmation before logging).
+- Every item must include confidence (low/medium/high) and assumptions[] describing portion/ingredient guesses.
+- Mention material assumptions in summary when they materially affect calories.
+- Do not treat rejected or pending meal estimates as already consumed.
 CoachContextPacketV2 rules (structured context is authoritative):
 1. Structured context is the source of truth over chat text, assistant prose, or assumptions.
 2. Timeline confirmed events override chat text when they conflict.
@@ -114,22 +139,17 @@ Health and training context rules:
 - Use context.training.workoutsToday, context.training.workouts, and training load/recovery fields when available.
 - Treat Apple Health workout calories and active energy as estimates, not precise facts.
 - If context.missingData.stepsUnavailable, workoutsUnavailable, sleepUnavailable, hrvUnavailable,
-  or healthKitDenied is true, do not invent those signals.
+  healthKitDenied, healthIntelligenceTimedOut, or healthIntelligenceFailed is true, do not invent those signals.
 - Use context.recentMealsStructured and context.commonFoods for meal-history awareness.
 - When health intelligence is absent, rely on context.today and confirmed timeline events only.
-Analyze-meal-image context rules:
-- Use context.today targets/remaining intake and context.recentMealsStructured to personalize guidance.
-- Do not infer hidden foods from context that are not visible in the image.
-- Ask a clarifyingQuestion when the image is ambiguous instead of inventing items.
-- Always set needsUserReview to true.
-- Do not treat rejected or pending meal estimates as already consumed.
-Each distinct visible food must be its own item with realistic calories and macros.
+Each distinct visible food must be its own item with realistic calories, macros, confidence, and assumptions.
 Never invent a generic catch-all item such as 'unknown meal', 'mixed food', or 'generic plate'.
-If the photo is unclear, set a clarifyingQuestion and keep items to only what you can identify with evidence.
+If the photo is unclear, set clarifyingQuestion and keep items to only what you can identify with evidence.
 When previousAnalysis and clarification are provided, refine that estimate using the same image.
 Treat clarification as authoritative for ambiguous ingredients, sauces, grains, or portion sizes.
 Sum item nutrition into total exactly.
-Prefer realistic or slightly conservative estimates."
+Prefer realistic or slightly conservative estimates.
+Always set needsUserReview to true."
 `;
 
 exports[`coach prompt snapshots endpoint instruction snapshots matches classifier instructions snapshot 1`] = `
@@ -166,7 +186,7 @@ Health and training context rules:
 - Use context.training.workoutsToday, context.training.workouts, and training load/recovery fields when available.
 - Treat Apple Health workout calories and active energy as estimates, not precise facts.
 - If context.missingData.stepsUnavailable, workoutsUnavailable, sleepUnavailable, hrvUnavailable,
-  or healthKitDenied is true, do not invent those signals.
+  healthKitDenied, healthIntelligenceTimedOut, or healthIntelligenceFailed is true, do not invent those signals.
 - Use context.recentMealsStructured and context.commonFoods for meal-history awareness.
 - When health intelligence is absent, rely on context.today and confirmed timeline events only.
 
@@ -180,6 +200,12 @@ Classify-coach-intent context rules:
 - Prefer linkedEntryId from confirmed timeline events when proposing edit_log or delete_log actions.
 - Ignore photoAnalysisFailed, pendingConfirmationCreated (pending), and rejected estimate events
   as if the user already logged food.
+- Do not classify advice or lookup questions as log_food.
+- Examples that are NOT log_food: "should I eat chicken rice?", "can I fit a burger today?",
+  "how many calories in chicken rice?", "is sushi okay for dinner?", "what should I eat after workout?",
+  "what was breakfast?", "same as breakfast" (without explicit logging/consumption language).
+- Examples that ARE log_food: "I ate chicken rice", "log chicken rice", "add chicken rice to lunch",
+  "I had sushi earlier", "log same as breakfast", "I ate the same as breakfast".
 
 Task: Classify the user's Coach message. You are not answering the user yet.
 Return valid JSON only matching CoachIntentResult.
@@ -189,7 +215,12 @@ Return valid JSON only matching CoachIntentResult.
   general_conversation, unrelated_or_unsupported.
 - Prefer nutrition_estimate_query for calorie/macro estimates and meal-fit questions without logging.
 - Prefer nutrition_comparison_query for "X vs Y" food comparisons without logging.
-- Use log_food only when the user wants to log or record food. Set requiresAppMutation true.
+- Prefer meal_decision for "should I eat X?", "can I fit X today?", or "is X okay for dinner?".
+- Prefer nutrition_advice for "what should I eat?" or "recommend me something".
+- Use log_food only when the user clearly consumed food, is consuming food, or explicitly asks to log/record/add food.
+- Do not infer consumption from hypothetical, conditional, or question-form language.
+- "same as breakfast" is log_food only when the user explicitly logs or states they ate it (e.g. "log same as breakfast", "I ate the same as breakfast").
+- "what was breakfast?" is nutrition_estimate_query or meal_decision, never log_food.
 - Prefer app-domain intents for food, calories, weight, workouts, hydration, meals, and fitness.
 - Set requiresAppMutation true only when the user wants to change FitPilot data.
 - Include action only when mutation data is clear enough to validate and the matching draft object is populated.
@@ -279,6 +310,9 @@ Estimate-food context rules:
 - If the user says "same as breakfast", use a confirmed breakfast foodLogged event when present.
 - Do not treat rejected estimates, failed photo analysis, or pending confirmations as consumed meals.
 - Do not copy prior assistant estimate prose as fact; re-estimate unless the user gives explicit numbers.
+- For compound/local dishes, decompose into components instead of one collapsed meal item.
+- When serving size is ambiguous, estimate a reasonable medium portion with medium/low confidence
+  and note assumptions; ask one concise clarification only if uncertainty is very large.
 
 Task: Extract and estimate nutrition for the described food using strict per-ingredient components.
 
@@ -295,8 +329,34 @@ Hard requirements:
 - Preserve each user ingredient line in component source_text.
 - For calorie estimates, prefer realistic over optimistic.
 - For fat-loss tracking, underestimation is worse than slight overestimation.
-- Single simple foods (e.g. "2 eggs") may use one component.
-- Set requiresConfirmation true unless the user supplied exact complete nutrition values."
+- Single simple foods (e.g. "2 eggs", "protein shake") may use one component.
+- Set requiresConfirmation true unless the user supplied exact complete nutrition values.
+
+Compound dish decomposition (decompose into visible/likely components, never one collapsed item):
+- chicken rice → rice, chicken, skin/oil/sauce if relevant
+- nasi lemak → coconut rice, egg, sambal, ikan bilis/peanuts, protein
+- cai fan → rice plus each selected dish
+- mala → noodles/rice if stated, meat, vegetables, oil/sauce
+- ban mian → noodles, broth/toppings, egg or minced meat if stated
+- yong tau foo → selected items plus soup/sauce/noodles if stated
+- prata → prata plus curry or sugar if stated
+- bubble tea → drink base, milk/sugar, toppings
+
+Assumptions array (required for compound dishes, vague portions, or ambiguous servings):
+- Portion assumption (e.g. bowl size, piece count).
+- Cooking oil/sauce assumption when relevant.
+- Confidence reason (why medium/low).
+- What the user can clarify to improve the estimate.
+
+Reasonableness clamps:
+- A single normal meal should stay below ~1800 kcal unless the user says huge/large/double portion.
+- Macros must be non-negative and macro calories must match displayed calories within ~15%.
+- Component sums must equal totals exactly.
+
+Ambiguous serving size:
+- Return a reasonable medium-portion estimate with medium or low confidence.
+- Ask one concise clarification in assistantMessage only when uncertainty is very large.
+- Still set requiresConfirmation true."
 `;
 
 exports[`coach prompt snapshots endpoint instruction snapshots matches meal advice instructions snapshot 1`] = `
@@ -333,7 +393,7 @@ Health and training context rules:
 - Use context.training.workoutsToday, context.training.workouts, and training load/recovery fields when available.
 - Treat Apple Health workout calories and active energy as estimates, not precise facts.
 - If context.missingData.stepsUnavailable, workoutsUnavailable, sleepUnavailable, hrvUnavailable,
-  or healthKitDenied is true, do not invent those signals.
+  healthKitDenied, healthIntelligenceTimedOut, or healthIntelligenceFailed is true, do not invent those signals.
 - Use context.recentMealsStructured and context.commonFoods for meal-history awareness.
 - When health intelligence is absent, rely on context.today and confirmed timeline events only.
 
@@ -361,7 +421,13 @@ exports[`coach prompt snapshots rule block snapshots matches classifyCoachIntent
 - Do not copy nutrition values from context.recentChatMessages, currentUserMessage, or assistant text.
 - Prefer linkedEntryId from confirmed timeline events when proposing edit_log or delete_log actions.
 - Ignore photoAnalysisFailed, pendingConfirmationCreated (pending), and rejected estimate events
-  as if the user already logged food."
+  as if the user already logged food.
+- Do not classify advice or lookup questions as log_food.
+- Examples that are NOT log_food: "should I eat chicken rice?", "can I fit a burger today?",
+  "how many calories in chicken rice?", "is sushi okay for dinner?", "what should I eat after workout?",
+  "what was breakfast?", "same as breakfast" (without explicit logging/consumption language).
+- Examples that ARE log_food: "I ate chicken rice", "log chicken rice", "add chicken rice to lunch",
+  "I had sushi earlier", "log same as breakfast", "I ate the same as breakfast"."
 `;
 
 exports[`coach prompt snapshots rule block snapshots matches coachContextHealthRules snapshot 1`] = `
@@ -370,7 +436,7 @@ exports[`coach prompt snapshots rule block snapshots matches coachContextHealthR
 - Use context.training.workoutsToday, context.training.workouts, and training load/recovery fields when available.
 - Treat Apple Health workout calories and active energy as estimates, not precise facts.
 - If context.missingData.stepsUnavailable, workoutsUnavailable, sleepUnavailable, hrvUnavailable,
-  or healthKitDenied is true, do not invent those signals.
+  healthKitDenied, healthIntelligenceTimedOut, or healthIntelligenceFailed is true, do not invent those signals.
 - Use context.recentMealsStructured and context.commonFoods for meal-history awareness.
 - When health intelligence is absent, rely on context.today and confirmed timeline events only."
 `;
@@ -410,7 +476,10 @@ exports[`coach prompt snapshots rule block snapshots matches estimateFoodPromptR
 - Still estimate the current food independently from the user's text or photo.
 - If the user says "same as breakfast", use a confirmed breakfast foodLogged event when present.
 - Do not treat rejected estimates, failed photo analysis, or pending confirmations as consumed meals.
-- Do not copy prior assistant estimate prose as fact; re-estimate unless the user gives explicit numbers."
+- Do not copy prior assistant estimate prose as fact; re-estimate unless the user gives explicit numbers.
+- For compound/local dishes, decompose into components instead of one collapsed meal item.
+- When serving size is ambiguous, estimate a reasonable medium portion with medium/low confidence
+  and note assumptions; ask one concise clarification only if uncertainty is very large."
 `;
 
 exports[`coach prompt snapshots rule block snapshots matches mealAdvicePromptRules snapshot 1`] = `

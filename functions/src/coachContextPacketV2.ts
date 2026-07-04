@@ -722,7 +722,7 @@ export function coachContextLogFields(
     return {
       contextSchemaVersion: null,
       contextPresent: false,
-      contextMissingDataFlags: null,
+      contextMissingDataFlagsCount: 0,
     };
   }
 
@@ -754,7 +754,6 @@ export function coachContextLogFields(
       value.recentChatMessages.length :
       0,
     contextAssumptions: Array.isArray(value.assumptions) ? value.assumptions.length : 0,
-    contextMissingDataFlags: missingFlags.length > 0 ? missingFlags.join(",") : null,
     contextMissingDataFlagsCount: countMissingDataFlags(value.missingData),
     contextHasHealthIntelligence: isPlainObject(value.healthIntelligence),
     contextHasTraining: isPlainObject(value.training),
