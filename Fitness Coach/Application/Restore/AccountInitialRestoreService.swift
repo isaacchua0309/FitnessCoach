@@ -273,6 +273,7 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         var profileRestored = false
 
         if mode == .blockingInitial || !hadLocalProfile {
+            stateStore.markProgress(uid: normalizedUID, status: .restoringProfile, now: dateProvider.now)
             do {
                 switch try await profileBootstrapService.resolve(uid: normalizedUID) {
                 case .main:
@@ -336,12 +337,18 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         }
 
         let dateRange = dateRange(for: mode, referenceDate: today)
+        stateStore.markProgress(uid: normalizedUID, status: .restoringRecentData, now: dateProvider.now())
         let pullSummary = await puller.pullRecentAccountData(
             for: normalizedUID,
             from: dateRange.start,
             to: dateRange.end
         )
 
+        if mode == .blockingInitial || mode == .manualRetry {
+            stateStore.markProgress(uid: normalizedUID, status: .restoringWeightHistory, now: dateProvider.now())
+        }
+
+        stateStore.markProgress(uid: normalizedUID, status: .rebuildingLocalViews, now: dateProvider.now())
         refreshDailyTotals(from: dateRange.start, to: dateRange.end)
 
         return finishPullOutcome(

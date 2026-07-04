@@ -25,6 +25,7 @@ struct AccountRestoreStoredState: Codable, Equatable, Sendable {
 protocol AccountRestoreStateStoring {
     func loadState(uid: String) -> AccountRestoreStoredState
     func markStarted(uid: String, reason: AccountRestoreReason, mode: AccountRestoreMode, now: Date)
+    func markProgress(uid: String, status: AccountRestoreStatus, now: Date)
     func markCompleted(uid: String, summary: AccountRestoreSummary, now: Date)
     func markPartial(uid: String, summary: AccountRestoreSummary, now: Date)
     func markOffline(uid: String, reason: AccountRestoreReason, now: Date)
@@ -169,6 +170,13 @@ struct AccountRestoreStateStore: AccountRestoreStateStoring {
         setStatus(.checking, uid: normalizedUID)
         setDate(now, forKey: AccountRestoreStateStoreSupport.lastStartedAtKey(for: normalizedUID))
         removeValue(forKey: AccountRestoreStateStoreSupport.lastFailureMessageKey(for: normalizedUID))
+    }
+
+    func markProgress(uid: String, status: AccountRestoreStatus, now: Date) {
+        guard let normalizedUID = AccountRestoreStateStoreSupport.normalizedUID(uid) else { return }
+        _ = now
+        guard status.isInProgress || status == .checking else { return }
+        setStatus(status, uid: normalizedUID)
     }
 
     func markCompleted(uid: String, summary: AccountRestoreSummary, now: Date) {

@@ -63,6 +63,13 @@ final class AccountRestoreStateStoreTests: XCTestCase {
         )
     }
 
+    func testMarkProgressPersistsInProgressStatus() {
+        store.markStarted(uid: uidA, reason: .afterSignIn, mode: .blockingInitial, now: referenceDate)
+        store.markProgress(uid: uidA, status: .restoringRecentData, now: referenceDate)
+
+        XCTAssertEqual(store.loadState(uid: uidA).status, .restoringRecentData)
+    }
+
     func testMarkCompletedPersistsBlockingSuccessMetadata() {
         let summary = makeSummary(uid: uidA, mode: .blockingInitial, status: .completed)
 

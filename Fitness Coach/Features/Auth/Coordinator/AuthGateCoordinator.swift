@@ -38,6 +38,7 @@ final class AuthGateCoordinator: ObservableObject {
     @Published var didLogColdStartWelcome = false
     @Published var suppressSignOutEntrySourceAnnotation = false
     @Published var lastExistingUserResolutionResult: ExistingUserSignInResolutionResult?
+    @Published var accountRestoreViewModel: AccountRestoreViewModel?
 
     private var loggedAuthGatePhase: AuthGateLoggedPhase?
     private var cancellables = Set<AnyCancellable>()
@@ -259,6 +260,7 @@ final class AuthGateCoordinator: ObservableObject {
     private func clearAuthenticatedSessionPresentationState() {
         accountRestoreRouteTask?.cancel()
         accountRestoreRouteTask = nil
+        accountRestoreViewModel = nil
         isResolvingAccountMismatch = false
         isResolvingProfileConflict = false
         showUseDeviceProfileConfirmation = false
@@ -834,27 +836,32 @@ final class AuthGateCoordinator: ObservableObject {
 
     // MARK: - Account restore routing
 
-    func routeToMainWithAccountRestore(uid: String, reason: AccountRestoreReason) async {
-        if AccountRestoreCoordinatorSupport.isRestoreEnabled {
-            rootModel.beginAccountRestore(uid: uid)
+    func routeToMainWithAccountRestore(uid: String, reason: AccountRestoreReason) {
+        guard AccountRestoreCoordinatorSupport.isRestoreEnabled else {
+            completeRouteToMain(uid: uid)
+            return
         }
-        let summary = await container.runAccountRestoreAfterSignIn(uid: uid, reason: reason)
-        guard isUIDStillCurrent(uid) else { return }
-        applyAccountRestoreSummary(summary, uid: uid)
+
+        let viewModel = accountRestoreViewModel ?? makeAccountRestoreViewModel()
+        accountRestoreViewModel = viewModel
+        rootModel.beginAccountRestore(uid: uid)
+        viewModel.start(uid: uid, reason: reason)
     }
 
-    func applyAccountRestoreSummary(_ summary: AccountRestoreSummary, uid: String) {
-        switch summary.status {
-        case .completed, .partial, .skipped, .offline:
-            completeRouteToMain(uid: uid)
-        case .failed:
-            rootModel.presentAccountRestoreFailed(
-                message: summary.userFacingMessage ?? FormaProductCopy.AccountRestore.Failed.body
-            )
-        case .notStarted, .checking, .restoringProfile, .restoringRecentData,
-             .restoringWeightHistory, .rebuildingLocalViews:
-            completeRouteToMain(uid: uid)
+    private func makeAccountRestoreViewModel() -> AccountRestoreViewModel {
+        let viewModel = AccountRestoreViewModel(container: container)
+        viewModel.onContinueToMain = { [weak self] in
+            guard let self, let uid = self.authManager.currentUID else { return }
+            self.accountRestoreViewModel = nil
+            self.completeRouteToMain(uid: uid)
         }
+        viewModel.onSignOut = { [weak self] in
+            guard let self else { return }
+            self.accountRestoreViewModel = nil
+            self.prepareAuthenticatedSignOut(source: "account_restore_failed_sign_out")
+            self.authManager.signOut()
+        }
+        return viewModel
     }
 
     func completeRouteToMain(uid: String) {
@@ -870,18 +877,13 @@ final class AuthGateCoordinator: ObservableObject {
     func scheduleRouteToMainWithAccountRestore(uid: String, reason: AccountRestoreReason) {
         accountRestoreRouteTask?.cancel()
         accountRestoreRouteTask = Task { @MainActor in
-            await routeToMainWithAccountRestore(uid: uid, reason: reason)
+            guard isUIDStillCurrent(uid) else { return }
+            routeToMainWithAccountRestore(uid: uid, reason: reason)
         }
     }
 
     func retryAccountRestore() {
-        guard let uid = authManager.currentUID else { return }
-        rootModel.beginAccountRestore(uid: uid)
-        Task {
-            let summary = await container.accountRestoreCoordinator.retryRestore(uid: uid)
-            guard isUIDStillCurrent(uid) else { return }
-            applyAccountRestoreSummary(summary, uid: uid)
-        }
+        accountRestoreViewModel?.retry()
     }
 
     func isUIDStillCurrent(_ uid: String) -> Bool {

@@ -33,11 +33,37 @@ enum FormaProductCopy {
     enum AccountRestore {
         static let restoringMessage = "Restoring your logs and progress…"
 
+        enum Progress {
+            static let checkingAccount = "Checking account…"
+            static let restoringProfile = "Restoring your plan…"
+            static let restoringRecentLogs = "Restoring your recent meals and water…"
+            static let restoringWeightHistory = "Restoring your weight history…"
+            static let preparingDashboard = "Preparing your dashboard…"
+        }
+
+        enum Partial {
+            static let title = "Some data is still syncing"
+            static let body =
+                "Some data could not be restored yet. You can continue and we'll retry in the background."
+            static let continueCTA = "Continue to Forma"
+        }
+
+        enum Offline {
+            static let title = "You're offline"
+            static let body =
+                "You're offline. You can continue with local data, and we'll restore your account when you're back online."
+            static let continueCTA = "Continue to Forma"
+        }
+
+        enum Completed {
+            static let message = "Your account is ready."
+        }
+
         enum Failed {
             static let title = "Couldn't restore your account data"
-            static let body =
-                "We signed you in but couldn't restore your logs. Check your connection and try again."
+            static let body = "We couldn't restore your account data. Please try again."
             static let retryCTA = "Try again"
+            static let signOutCTA = "Sign out"
         }
 
         enum TimedOut {

@@ -19,8 +19,8 @@ struct AuthGateRouteView: View {
                         coordinator.bootstrapOnboardingIfNeeded()
                     }
             case .signedInProfileLoading:
-                if coordinator.rootModel.state == .restoringAccount {
-                    AccountRestoreResolvingView()
+                if let viewModel = coordinator.accountRestoreViewModel {
+                    AccountRestoreView(viewModel: viewModel)
                 } else if coordinator.pendingExistingUserSignIn {
                     ExistingUserSignInResolvingView()
                 } else {
@@ -29,11 +29,15 @@ struct AuthGateRouteView: View {
                             coordinator.bootstrapOnboardingIfNeeded()
                         }
                 }
-            case .accountRestoreFailed(let message):
-                AccountRestoreFailedView(
-                    message: message,
-                    onRetry: coordinator.retryAccountRestore
-                )
+            case .accountRestoreFailed(_):
+                if let viewModel = coordinator.accountRestoreViewModel {
+                    AccountRestoreView(viewModel: viewModel)
+                } else {
+                    AccountRestoreFailedView(
+                        message: FormaProductCopy.AccountRestore.Failed.body,
+                        onRetry: coordinator.retryAccountRestore
+                    )
+                }
             case .welcome:
                 PublicWelcomeView(
                     analyticsLogger: coordinator.container.publicEntryAnalyticsLogger,
