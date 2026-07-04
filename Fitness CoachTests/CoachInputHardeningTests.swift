@@ -199,9 +199,10 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
         )
     }
 
-    func testMediumConfidenceMutationClarifies() async throws {
-        let service = StubClassifierAIService(
-            classifyResult: CoachIntentResult(
+    func testMediumConfidenceLogFoodRoutesToEstimateFood() async throws {
+        try await assertClassifierRoute(
+            "log a mystery bowl",
+            stub: CoachIntentResult(
                 intent: .logFood,
                 confidence: 0.55,
                 domain: .nutrition,
@@ -225,10 +226,25 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
                     imageUrl: nil,
                     notes: nil
                 ))
+            ),
+            expectedHandler: "ai_estimate_food"
+        )
+    }
+
+    func testMediumConfidenceDeleteLogStillClarifies() async throws {
+        let service = StubClassifierAIService(
+            classifyResult: CoachIntentResult(
+                intent: .deleteLog,
+                confidence: 0.55,
+                domain: .nutrition,
+                requiresAppMutation: true,
+                requiresUserContext: true,
+                canAnswerWithCheapModel: true,
+                requiresEscalation: false
             )
         )
         let decision = try await CoachRouteDecider().decide(
-            text: "log a mystery bowl",
+            text: "delete lunch maybe",
             context: .hardeningTest,
             aiService: service,
             config: .default
@@ -239,6 +255,28 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
         } else {
             XCTFail("Expected clarification route")
         }
+    }
+
+    func testMediumConfidenceLogWaterStillClarifies() async throws {
+        let service = StubClassifierAIService(
+            classifyResult: CoachIntentResult(
+                intent: .logWater,
+                confidence: 0.55,
+                domain: .hydration,
+                requiresAppMutation: true,
+                requiresUserContext: true,
+                canAnswerWithCheapModel: true,
+                requiresEscalation: false,
+                action: .logWater(WaterDraft(amountMl: 500))
+            )
+        )
+        let decision = try await CoachRouteDecider().decide(
+            text: "add some water",
+            context: .hardeningTest,
+            aiService: service,
+            config: .default
+        )
+        XCTAssertEqual(decision.chosenHandler, "confidence_clarify")
     }
 
     func testLowConfidenceMutationClarifies() async throws {

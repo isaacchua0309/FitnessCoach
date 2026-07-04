@@ -28,7 +28,7 @@ enum CoachIntentConfidenceGate {
         }
 
         if result.confidence >= mediumThreshold {
-            if result.requiresAppMutation || result.action != nil {
+            if shouldClarifyMediumConfidenceMutation(result) {
                 traceConfidenceGate(
                     result: result,
                     branch: "medium_clarify",
@@ -39,7 +39,7 @@ enum CoachIntentConfidenceGate {
             return .proceed(result)
         }
 
-        if result.requiresAppMutation || result.action != nil {
+        if shouldClarifyLowConfidenceMutation(result) {
             traceConfidenceGate(
                 result: result,
                 branch: "low_mutation_blocked",
@@ -103,6 +103,26 @@ enum CoachIntentConfidenceGate {
         default:
             return false
         }
+    }
+
+    /// Mutations that always run through a dedicated AI step plus confirmation before persisting.
+    private static func defersMutationToDedicatedPipeline(_ intent: CoachIntent) -> Bool {
+        switch intent {
+        case .logFood, .logWorkout:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private static func shouldClarifyMediumConfidenceMutation(_ result: CoachIntentResult) -> Bool {
+        guard !defersMutationToDedicatedPipeline(result.intent) else { return false }
+        return result.requiresAppMutation || result.action != nil
+    }
+
+    private static func shouldClarifyLowConfidenceMutation(_ result: CoachIntentResult) -> Bool {
+        guard !defersMutationToDedicatedPipeline(result.intent) else { return false }
+        return result.requiresAppMutation || result.action != nil
     }
 
     private static func traceConfidenceGate(

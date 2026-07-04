@@ -115,6 +115,56 @@ final class CoachRoutingTests: XCTestCase {
         )
     }
 
+    func testMediumConfidenceProteinPowderRoutesToEstimateFood() async throws {
+        let draft = FoodDraft(
+            mealType: nil,
+            name: "ON protein",
+            quantity: 3,
+            unit: "scoops",
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            fiber: nil,
+            sodium: nil,
+            source: .manual,
+            confidence: .medium,
+            imageUrl: nil,
+            notes: nil
+        )
+        try await assertClassifierRoute(
+            "log 3 scoops of on protien",
+            stub: stubIntent(.logFood, confidence: 0.55, action: .logFood(draft)),
+            expectedHandler: "ai_estimate_food",
+            expectedTier: .cheap
+        )
+    }
+
+    func testMediumConfidenceChickenBreastRoutesToEstimateFood() async throws {
+        let draft = FoodDraft(
+            mealType: nil,
+            name: "chicken breast",
+            quantity: 1,
+            unit: "serving",
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            fiber: nil,
+            sodium: nil,
+            source: .manual,
+            confidence: .medium,
+            imageUrl: nil,
+            notes: nil
+        )
+        try await assertClassifierRoute(
+            "one chicken breast",
+            stub: stubIntent(.logFood, confidence: 0.58, action: .logFood(draft)),
+            expectedHandler: "ai_estimate_food",
+            expectedTier: .cheap
+        )
+    }
+
     func testCaloriesLeftStaysLocal() async throws {
         try await assertLocalGuard("how many calories left", expectedHandler: "local_command")
     }
@@ -610,13 +660,14 @@ final class CoachRoutingTests: XCTestCase {
 
     private func stubIntent(
         _ intent: CoachIntent,
+        confidence: Double = 0.9,
         canAnswerWithCheapModel: Bool = true,
         requiresEscalation: Bool = false,
         action: CoachAction? = nil
     ) -> CoachIntentResult {
         CoachIntentResult(
             intent: intent,
-            confidence: 0.9,
+            confidence: confidence,
             domain: .nutrition,
             requiresAppMutation: intent == .logFood || intent == .logWorkout,
             requiresUserContext: true,
