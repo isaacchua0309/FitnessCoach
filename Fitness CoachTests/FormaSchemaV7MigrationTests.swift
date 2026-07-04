@@ -87,11 +87,17 @@ final class FormaSchemaV7MigrationTests: XCTestCase {
 
         let migrationService = AccountMigrationService(
             store: SwiftDataStore(container: migratedContainer),
-            userProfileService: UserProfileService(store: SwiftDataStore(container: migratedContainer))
+            userProfileService: UserProfileService(store: SwiftDataStore(container: migratedContainer)),
+            uidProvider: StubSchemaMigrationUIDProvider(currentUID: "signed-in-user")
         )
         try migrationService.backfillSchemaV7BookkeepingIfNeeded()
 
         XCTAssertEqual(food.entitySchemaVersion, UserDataEntitySchema.currentEntitySchemaVersion)
         XCTAssertEqual(food.localUpdatedAt, food.updatedAt)
     }
+}
+
+@MainActor
+private struct StubSchemaMigrationUIDProvider: AccountUIDProviding {
+    let currentUID: String?
 }

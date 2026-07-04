@@ -259,7 +259,8 @@ final class AppContainer {
         )
         accountMigrationService = AccountMigrationService(
             store: store,
-            userProfileService: userProfileService
+            userProfileService: userProfileService,
+            uidProvider: AuthAccountUIDProvider(authManager: authManager)
         )
         accountDataNamespaceService = AccountDataNamespaceService(
             userDefaults: onboardingUserDefaults,
@@ -413,7 +414,7 @@ final class AppContainer {
         Task {
             await accountDataNamespaceService.prepareForSignedInUID(uid)
             do {
-                try accountMigrationService.backfillUnownedRows(sessionUID: uid)
+                _ = try await accountMigrationService.runSafeBackfill(for: uid)
             } catch {
                 ProfileBootstrapDebugLogger.error(
                     "Local user-data legacy backfill failed",

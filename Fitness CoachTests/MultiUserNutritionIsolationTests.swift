@@ -106,7 +106,7 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
         XCTAssertEqual(entities.first?.ownerUID, "signed-in-user")
     }
 
-    func testLegacyUnownedRowsBackfillToProfileOwner() throws {
+    func testLegacyUnownedRowsBackfillToProfileOwner() async throws {
         let harness = try makeHarness()
         _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
@@ -120,7 +120,9 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
         )
 
         sessionUID.uid = "signed-in-user"
-        try harness.migrationService.backfillUnownedRows(sessionUID: "signed-in-user")
+        let report = try await harness.migrationService.runSafeBackfill(for: "signed-in-user")
+        XCTAssertTrue(report.canBackfill)
+        XCTAssertEqual(report.foodEntriesUpdated, 1)
 
         let entries = try harness.foodLogService.getFoodEntries(for: harness.today)
         XCTAssertEqual(entries.count, 1)
@@ -173,7 +175,8 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
         )
         let migrationService = AccountMigrationService(
             store: store,
-            userProfileService: profileService
+            userProfileService: profileService,
+            uidProvider: StubNamespaceUIDProvider(uidProvider: uidProvider)
         )
         let namespaceDefaults = UserDefaults(
             suiteName: "MultiUserNutritionIsolationTests.\(UUID().uuidString)"
