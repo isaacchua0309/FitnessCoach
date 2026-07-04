@@ -35,6 +35,36 @@ const LOW_VALUE_TIMELINE_EVENT_TYPES = new Set([
   "stepsUpdated",
 ]);
 
+const EXCLUDED_TIMELINE_EVENT_TYPES = new Set([
+  "unknown",
+  "foodEstimateCreated",
+  "foodRejected",
+  "pendingConfirmationRejected",
+  "backendError",
+  "authError",
+]);
+
+const EXCLUDED_TIMELINE_STATUSES = new Set([
+  "rejected",
+  "failed",
+  "superseded",
+]);
+
+function isPromptEligibleTimelineEvent(event: Record<string, unknown>): boolean {
+  const status = String(event.status ?? "");
+  if (EXCLUDED_TIMELINE_STATUSES.has(status)) {
+    return false;
+  }
+  if (status === "pending" && event.type !== "pendingConfirmationCreated") {
+    return false;
+  }
+  const type = String(event.type ?? "");
+  if (EXCLUDED_TIMELINE_EVENT_TYPES.has(type)) {
+    return false;
+  }
+  return true;
+}
+
 export interface CoachContextPacketV2Meta {
   schemaVersion: number;
   generatedAt?: string;
@@ -229,6 +259,7 @@ function sanitizeTimeline(timeline: unknown): Record<string, unknown> {
   const events = Array.isArray(timeline.recentEvents) ? timeline.recentEvents : [];
   const normalized = events
     .filter(isPlainObject)
+    .filter(isPromptEligibleTimelineEvent)
     .map(sanitizeTimelineEvent);
 
   const protectedEvents = normalized.filter((event) =>

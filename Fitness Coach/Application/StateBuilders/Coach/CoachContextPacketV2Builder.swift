@@ -78,6 +78,7 @@ struct CoachContextPacketV2Builder {
     ) async -> CoachContextPacketV2 {
         let now = dateProvider.now
         let todayLocalDate = CoachContextMeta.make(generatedAt: now, calendar: calendar).localDate
+        var readFailures = 0
 
         await timelineBackfillService?.runBackfill()
 
@@ -87,11 +88,11 @@ struct CoachContextPacketV2Builder {
         var healthUnavailable = false
 
         let profile = makeProfileContext(sources: &sources)
-        let dailyLog = readTodayLog(sources: &sources)
+        let dailyLog = readTodayLog(sources: &sources, readFailures: &readFailures)
 
-        let foodEntries = readFoodEntries(for: now, sources: &sources)
-        _ = readWaterEntries(for: now, sources: &sources)
-        let weightEntries = readWeightEntries(for: now, sources: &sources)
+        let foodEntries = readFoodEntries(for: now, sources: &sources, readFailures: &readFailures)
+        _ = readWaterEntries(for: now, sources: &sources, readFailures: &readFailures)
+        let weightEntries = readWeightEntries(for: now, sources: &sources, readFailures: &readFailures)
 
         let healthSnapshot = await loadHealthSnapshot(on: now)
         let trainingLoad = await loadTrainingLoad(on: now)
@@ -133,7 +134,8 @@ struct CoachContextPacketV2Builder {
 
         let timelineEvents = await loadTimelineEvents(
             now: now,
-            todayLocalDate: todayLocalDate
+            todayLocalDate: todayLocalDate,
+            readFailures: &readFailures
         )
         let timelineContextEvents = CoachContextPacketV2TimelineSelector.makeContextEvents(
             from: timelineEvents,
@@ -177,6 +179,15 @@ struct CoachContextPacketV2Builder {
         if timelineStore != nil { sources.append("coachTimeline") }
         if healthActivityQuery != nil { sources.append("healthKit") }
 
+        let effectiveMode = resolveGenerationMode(
+            requested: mode,
+            readFailures: readFailures,
+            healthAccessDenied: healthAccessDenied,
+            healthUnavailable: healthUnavailable,
+            dailyLogServiceAvailable: dailyLogService != nil,
+            dailyLogLoaded: dailyLog != nil
+        )
+
         var packet = CoachContextPacketV2(
             meta: CoachContextMeta.make(generatedAt: now, calendar: calendar),
             profile: profile,
@@ -190,9 +201,9 @@ struct CoachContextPacketV2Builder {
             commonFoods: commonFoods,
             missingData: missingData,
             assumptions: assumptions,
-            generationMode: mode,
+            generationMode: effectiveMode,
             sourceAttribution: CoachContextSourceAttribution(
-                generationMode: mode,
+                generationMode: effectiveMode,
                 timelineEventCount: timelineContextEvents.count,
                 recentMealCount: recentMeals.count,
                 commonFoodCount: commonFoods.count,
@@ -211,7 +222,7 @@ struct CoachContextPacketV2Builder {
             healthUnavailable: healthUnavailable,
             now: now
         )
-        recordContextGenerated(packet: packet, mode: mode, now: now)
+        recordContextGenerated(packet: packet, mode: effectiveMode, now: now)
 
         FormaPipelineTracer.event(
             stage: .context,
@@ -247,26 +258,26 @@ struct CoachContextPacketV2Builder {
 
     // MARK: Reads
 
-    private func readTodayLog(sources: inout [String]) -> DailyLog? {
+    private func readTodayLog(sources: inout [String], readFailures: inout Int) -> DailyLog? {
         guard let dailyLogService else { return nil }
         do {
             let log = try dailyLogService.getTodayLog()
             sources.append("dailyLog")
             return log
         } catch {
-            logReadFailure("dailyLog", error: error)
+            logReadFailure("dailyLog", error: error, readFailures: &readFailures)
             return nil
         }
     }
 
-    private func readFoodEntries(for date: Date, sources: inout [String]) -> [FoodEntry] {
+    private func readFoodEntries(for date: Date, sources: inout [String], readFailures: inout Int) -> [FoodEntry] {
         guard let foodLogService else { return [] }
         do {
             let entries = try foodLogService.getFoodEntries(for: date)
             if !entries.isEmpty { sources.append("foodLog") }
             return entries
         } catch {
-            logReadFailure("foodLog", error: error)
+            logReadFailure("foodLog", error: error, readFailures: &readFailures)
             return []
         }
     }
@@ -299,19 +310,19 @@ struct CoachContextPacketV2Builder {
         }
     }
 
-    private func readWaterEntries(for date: Date, sources: inout [String]) -> [WaterEntry] {
+    private func readWaterEntries(for date: Date, sources: inout [String], readFailures: inout Int) -> [WaterEntry] {
         guard let waterLogService else { return [] }
         do {
             let entries = try waterLogService.getWaterEntries(for: date)
             if !entries.isEmpty { sources.append("waterLog") }
             return entries
         } catch {
-            logReadFailure("waterLog", error: error)
+            logReadFailure("waterLog", error: error, readFailures: &readFailures)
             return []
         }
     }
 
-    private func readWeightEntries(for date: Date, sources: inout [String]) -> [WeightEntry] {
+    private func readWeightEntries(for date: Date, sources: inout [String], readFailures: inout Int) -> [WeightEntry] {
         guard let weightLogService else { return [] }
         let dayStart = calendar.startOfDay(for: date)
         do {
@@ -319,7 +330,7 @@ struct CoachContextPacketV2Builder {
             if !entries.isEmpty { sources.append("weightLog") }
             return entries
         } catch {
-            logReadFailure("weightLog", error: error)
+            logReadFailure("weightLog", error: error, readFailures: &readFailures)
             return []
         }
     }
@@ -449,7 +460,11 @@ struct CoachContextPacketV2Builder {
         )
     }
 
-    private func loadTimelineEvents(now: Date, todayLocalDate: String) async -> [CoachTimelineEvent] {
+    private func loadTimelineEvents(
+        now: Date,
+        todayLocalDate: String,
+        readFailures: inout Int
+    ) async -> [CoachTimelineEvent] {
         guard let timelineStore else { return [] }
 
         do {
@@ -472,9 +487,9 @@ struct CoachContextPacketV2Builder {
                 todayEvents = merged.values.sorted { $0.utcTimestamp < $1.utcTimestamp }
             }
 
-            return todayEvents.filter { $0.status != .superseded && $0.type != .contextGenerated }
+            return todayEvents.filter { CoachContextPacketV2TimelineSelector.isContextEligible($0) }
         } catch {
-            logReadFailure("timeline", error: error)
+            logReadFailure("timeline", error: error, readFailures: &readFailures)
             return []
         }
     }
@@ -838,6 +853,30 @@ struct CoachContextPacketV2Builder {
         )
     }
 
+    private func resolveGenerationMode(
+        requested: CoachContextGenerationMode,
+        readFailures: Int,
+        healthAccessDenied: Bool,
+        healthUnavailable: Bool,
+        dailyLogServiceAvailable: Bool,
+        dailyLogLoaded: Bool
+    ) -> CoachContextGenerationMode {
+        guard requested == .live else { return requested }
+
+        if readFailures > 0
+            || healthAccessDenied
+            || healthUnavailable
+            || (dailyLogServiceAvailable && !dailyLogLoaded) {
+            return .degraded
+        }
+        return .live
+    }
+
+    private func logReadFailure(_ source: String, error: Error, readFailures: inout Int) {
+        readFailures += 1
+        logReadFailure(source, error: error)
+    }
+
     private func logReadFailure(_ source: String, error: Error) {
         logger.debug("CoachContextPacketV2 \(source, privacy: .public) read failed: \(error.localizedDescription, privacy: .public)")
     }
@@ -876,13 +915,39 @@ enum CoachContextPacketV2TimelineSelector {
         .weightLogged
     ]
 
+    private static let excludedContextTypes: Set<CoachTimelineEventType> = [
+        .unknown,
+        .foodEstimateCreated,
+        .foodRejected,
+        .pendingConfirmationRejected,
+        .backendError,
+        .authError,
+        .systemRefresh,
+        .contextGenerated,
+        .healthDataUnavailable
+    ]
+
+    /// Whether an event may appear in AI context timeline (audit-only or speculative events excluded).
+    static func isContextEligible(_ event: CoachTimelineEvent) -> Bool {
+        if event.status == .superseded || event.status == .rejected || event.status == .failed {
+            return false
+        }
+        if excludedContextTypes.contains(event.type) {
+            return false
+        }
+        if event.status == .pending, event.type != .pendingConfirmationCreated {
+            return false
+        }
+        return true
+    }
+
     static func selectEvents(
         from events: [CoachTimelineEvent],
         todayLocalDate: String,
         limit: Int
     ) -> [CoachTimelineEvent] {
         let sorted = events
-            .filter { $0.status != .superseded && $0.type != .contextGenerated }
+            .filter(isContextEligible)
             .sorted { $0.utcTimestamp > $1.utcTimestamp }
 
         var selected: [UUID: CoachTimelineEvent] = [:]
@@ -922,7 +987,7 @@ enum CoachContextPacketV2TimelineSelector {
             }
         }
 
-        for event in sorted {
+        for event in sorted where isContextEligible(event) {
             include(event)
             if selected.count >= limit { break }
         }

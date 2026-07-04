@@ -972,7 +972,11 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
 
         Task { @MainActor in
             do {
-                try await store.append(event)
+                if let supersededId = supersedesEventId {
+                    try await store.supersedeEvent(id: supersededId, by: event)
+                } else {
+                    try await store.append(event)
+                }
             } catch {
                 self.logFailure(event: event, error: error)
             }
