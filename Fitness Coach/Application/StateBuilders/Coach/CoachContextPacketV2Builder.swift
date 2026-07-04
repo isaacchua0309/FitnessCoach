@@ -20,8 +20,8 @@ struct CoachContextPacketV2Builder {
     static let crossDayLookbackDays = 7
     static let commonFoodLookbackDays = 30
 
-    private let dailyLogService: DailyLogService?
-    private let foodLogService: FoodLogService?
+    private let dailyLogService: (any DailyLogReading)?
+    private let foodLogService: (any FoodLogReading)?
     private let waterLogService: WaterLogService?
     private let weightLogService: WeightLogService?
     private let userProfileService: (any UserProfileReading)?
@@ -38,8 +38,8 @@ struct CoachContextPacketV2Builder {
     private let logger = Logger(subsystem: "Forma", category: "CoachContextPacketV2")
 
     init(
-        dailyLogService: DailyLogService? = nil,
-        foodLogService: FoodLogService? = nil,
+        dailyLogService: (any DailyLogReading)? = nil,
+        foodLogService: (any FoodLogReading)? = nil,
         waterLogService: WaterLogService? = nil,
         weightLogService: WeightLogService? = nil,
         userProfileService: (any UserProfileReading)? = nil,
@@ -77,6 +77,43 @@ struct CoachContextPacketV2Builder {
         mode: CoachContextGenerationMode = .live
     ) async -> CoachContextPacketV2 {
         let now = dateProvider.now
+        do {
+            return try await buildPrimaryContext(
+                recentMessages: recentMessages,
+                currentUserMessage: currentUserMessage,
+                mode: mode,
+                now: now
+            )
+        } catch {
+            let buildError = CoachContextBuildError.classify(error)
+            let fallback = CoachContextPacketV2FallbackBuilder.build(
+                failure: error,
+                now: now,
+                calendar: calendar,
+                recentMessages: recentMessages,
+                currentUserMessage: currentUserMessage,
+                userProfileService: userProfileService,
+                dailyLogService: dailyLogService
+            )
+            let validated = CoachContextCorrectnessValidator.validateAndCorrect(
+                fallback,
+                calendar: calendar
+            )
+            safelyRecordFallbackContextGenerated(
+                packet: validated.correctedPacket,
+                buildError: buildError,
+                now: now
+            )
+            return validated.correctedPacket
+        }
+    }
+
+    private func buildPrimaryContext(
+        recentMessages: [ChatMessage],
+        currentUserMessage: String?,
+        mode: CoachContextGenerationMode,
+        now: Date
+    ) async throws -> CoachContextPacketV2 {
         let todayLocalDate = CoachContextMeta.make(generatedAt: now, calendar: calendar).localDate
         var readFailures = 0
 
@@ -88,9 +125,9 @@ struct CoachContextPacketV2Builder {
         var healthUnavailable = false
 
         let profile = makeProfileContext(sources: &sources)
-        let dailyLog = readTodayLog(sources: &sources, readFailures: &readFailures)
+        let dailyLog = try readTodayLog(sources: &sources, readFailures: &readFailures)
 
-        let foodEntries = readFoodEntries(for: now, sources: &sources, readFailures: &readFailures)
+        let foodEntries = try readFoodEntries(for: now, sources: &sources, readFailures: &readFailures)
         _ = readWaterEntries(for: now, sources: &sources, readFailures: &readFailures)
         let weightEntries = readWeightEntries(for: now, sources: &sources, readFailures: &readFailures)
 
@@ -102,7 +139,7 @@ struct CoachContextPacketV2Builder {
             healthUnavailable: &healthUnavailable,
             sources: &sources
         )
-        let stepsResult = await readSteps(
+        let stepsResult = try await readSteps(
             on: now,
             snapshot: healthSnapshot,
             healthAccessDenied: &healthAccessDenied,
@@ -132,7 +169,7 @@ struct CoachContextPacketV2Builder {
             trainingLoad: trainingLoad
         )
 
-        let timelineEvents = await loadTimelineEvents(
+        let timelineEvents = try await loadTimelineEvents(
             now: now,
             todayLocalDate: todayLocalDate,
             readFailures: &readFailures
@@ -258,7 +295,7 @@ struct CoachContextPacketV2Builder {
 
     // MARK: Reads
 
-    private func readTodayLog(sources: inout [String], readFailures: inout Int) -> DailyLog? {
+    private func readTodayLog(sources: inout [String], readFailures: inout Int) throws -> DailyLog? {
         guard let dailyLogService else { return nil }
         do {
             let log = try dailyLogService.getTodayLog()
@@ -266,11 +303,11 @@ struct CoachContextPacketV2Builder {
             return log
         } catch {
             logReadFailure("dailyLog", error: error, readFailures: &readFailures)
-            return nil
+            throw CoachContextBuildError.dailyLogFailed
         }
     }
 
-    private func readFoodEntries(for date: Date, sources: inout [String], readFailures: inout Int) -> [FoodEntry] {
+    private func readFoodEntries(for date: Date, sources: inout [String], readFailures: inout Int) throws -> [FoodEntry] {
         guard let foodLogService else { return [] }
         do {
             let entries = try foodLogService.getFoodEntries(for: date)
@@ -278,7 +315,7 @@ struct CoachContextPacketV2Builder {
             return entries
         } catch {
             logReadFailure("foodLog", error: error, readFailures: &readFailures)
-            return []
+            throw CoachContextBuildError.foodLogFailed
         }
     }
 
@@ -406,7 +443,7 @@ struct CoachContextPacketV2Builder {
         healthAccessDenied: inout Bool,
         healthUnavailable: inout Bool,
         sources: inout [String]
-    ) async -> StepsReadResult {
+    ) async throws -> StepsReadResult {
         if let healthActivityQuery {
             do {
                 let steps = try await healthActivityQuery.stepsToday(on: date, calendar: calendar)
@@ -433,6 +470,7 @@ struct CoachContextPacketV2Builder {
                 }
                 healthUnavailable = true
                 logReadFailure("steps", error: error)
+                throw CoachContextBuildError.healthQueryFailed
             }
         } else {
             healthUnavailable = true
@@ -464,7 +502,7 @@ struct CoachContextPacketV2Builder {
         now: Date,
         todayLocalDate: String,
         readFailures: inout Int
-    ) async -> [CoachTimelineEvent] {
+    ) async throws -> [CoachTimelineEvent] {
         guard let timelineStore else { return [] }
 
         do {
@@ -490,7 +528,7 @@ struct CoachContextPacketV2Builder {
             return todayEvents.filter { CoachContextPacketV2TimelineSelector.isContextEligible($0) }
         } catch {
             logReadFailure("timeline", error: error, readFailures: &readFailures)
-            return []
+            throw CoachContextBuildError.timelineFailed
         }
     }
 
@@ -853,6 +891,15 @@ struct CoachContextPacketV2Builder {
         )
     }
 
+    private func safelyRecordFallbackContextGenerated(
+        packet: CoachContextPacketV2,
+        buildError: CoachContextBuildError,
+        now: Date
+    ) {
+        guard !buildError.shouldSkipTimelineRecording else { return }
+        recordContextGenerated(packet: packet, mode: .degraded, now: now)
+    }
+
     private func resolveGenerationMode(
         requested: CoachContextGenerationMode,
         readFailures: Int,
@@ -881,7 +928,7 @@ struct CoachContextPacketV2Builder {
         logger.debug("CoachContextPacketV2 \(source, privacy: .public) read failed: \(error.localizedDescription, privacy: .public)")
     }
 
-    private static func goalType(for profile: UserProfile) -> String? {
+    static func goalType(for profile: UserProfile) -> String? {
         if let weeklyLoss = profile.targets.expectedWeeklyWeightLossKg {
             if weeklyLoss > 0.05 { return "Lose Fat" }
             if weeklyLoss < -0.05 { return "Gain Muscle" }
@@ -1000,11 +1047,74 @@ enum CoachContextPacketV2TimelineSelector {
         todayLocalDate: String,
         limit: Int
     ) -> [CoachTimelineContextEvent] {
-        selectEvents(from: events, todayLocalDate: todayLocalDate, limit: limit).map { event in
-            CoachTimelineContextEvent.from(
-                event: event,
-                summary: CoachTimelineEventSummaryBuilder.summary(for: event)
-            )
+        selectEvents(from: events, todayLocalDate: todayLocalDate, limit: limit).compactMap {
+            safeContextEvent(from: $0)
+        }
+    }
+
+    static func safeContextEvent(from event: CoachTimelineEvent) -> CoachTimelineContextEvent? {
+        guard isPayloadConsistent(event) else { return nil }
+        return CoachTimelineContextEvent.from(
+            event: event,
+            summary: CoachTimelineEventSummaryBuilder.summary(for: event)
+        )
+    }
+
+    /// Rejects events whose declared type does not match their payload shape.
+    static func isPayloadConsistent(_ event: CoachTimelineEvent) -> Bool {
+        switch event.type {
+        case .foodLogged:
+            if case .foodLogged = event.payload { return true }
+            return false
+        case .waterLogged:
+            if case .waterLogged = event.payload { return true }
+            return false
+        case .weightLogged:
+            if case .weightLogged = event.payload { return true }
+            return false
+        case .workoutDetected:
+            if case .workoutDetected = event.payload { return true }
+            return false
+        case .stepsUpdated:
+            if case .steps = event.payload { return true }
+            return false
+        case .assistantMessage, .userMessage:
+            if case .message = event.payload { return true }
+            return false
+        case .pendingConfirmationCreated:
+            if case .confirmation = event.payload { return true }
+            return false
+        case .photoAttached, .photoAnalysisStarted, .photoAnalysisCompleted, .photoAnalysisFailed:
+            if case .photo = event.payload { return true }
+            return false
+        case .clarificationAsked, .clarificationAnswered:
+            if case .message = event.payload { return true }
+            return false
+        case .backendError, .authError:
+            if case .error = event.payload { return true }
+            return false
+        case .healthDataUnavailable:
+            if case .healthAvailability = event.payload { return true }
+            return false
+        case .contextGenerated:
+            if case .contextGeneration = event.payload { return true }
+            return false
+        case .undoPerformed:
+            if case .undo = event.payload { return true }
+            return false
+        case .systemRefresh:
+            if case .systemRefresh = event.payload { return true }
+            return false
+        case .foodEstimateCreated, .foodRejected, .pendingConfirmationRejected:
+            return true
+        case .foodEdited, .foodDeleted:
+            if case .foodLogged = event.payload { return true }
+            return false
+        case .pendingConfirmationConfirmed:
+            if case .confirmation = event.payload { return true }
+            return false
+        case .unknown:
+            return true
         }
     }
 }

@@ -297,6 +297,8 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
     var workoutsUnavailable: Bool
     var sleepUnavailable: Bool
     var hrvUnavailable: Bool
+    /// True when full context assembly failed and a minimal safe packet was emitted instead.
+    var contextGenerationFailed: Bool
 
     init(
         stepsMissing: Bool = false,
@@ -311,7 +313,8 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
         stepsUnavailable: Bool = false,
         workoutsUnavailable: Bool = false,
         sleepUnavailable: Bool = false,
-        hrvUnavailable: Bool = false
+        hrvUnavailable: Bool = false,
+        contextGenerationFailed: Bool = false
     ) {
         self.stepsMissing = stepsMissing
         self.workoutPermissionDeniedOrUnavailable = workoutPermissionDeniedOrUnavailable
@@ -326,6 +329,7 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
         self.workoutsUnavailable = workoutsUnavailable
         self.sleepUnavailable = sleepUnavailable
         self.hrvUnavailable = hrvUnavailable
+        self.contextGenerationFailed = contextGenerationFailed
     }
 
     var hasAnyMissingSignals: Bool {
@@ -342,6 +346,7 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
             || workoutsUnavailable
             || sleepUnavailable
             || hrvUnavailable
+            || contextGenerationFailed
     }
 }
 
@@ -532,6 +537,7 @@ extension CoachMissingDataContext {
         if weightMissing { labels.append("weight") }
         if noRecentMeals { labels.append("meals") }
         if noTimelineHistory { labels.append("timeline") }
+        if contextGenerationFailed { labels.append("contextGenerationFailed") }
         return labels
     }
 }
