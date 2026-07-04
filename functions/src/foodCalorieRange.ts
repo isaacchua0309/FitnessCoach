@@ -20,7 +20,10 @@ export function deriveCalorieRange(
 ): {lower: number; upper: number} {
   const roundedCalories = Math.max(0, Math.round(calories));
   const margin = RANGE_MARGIN[confidence];
-  const spread = Math.max(MIN_RANGE_WIDTH[confidence], Math.round(roundedCalories * margin));
+  const spread = Math.max(
+    MIN_RANGE_WIDTH[confidence],
+    Math.round(roundedCalories * margin)
+  );
   return {
     lower: Math.max(0, roundedCalories - spread),
     upper: roundedCalories + spread,
@@ -46,9 +49,15 @@ export function resolveCalorieRange(
   return deriveCalorieRange(roundedCalories, confidence);
 }
 
-export function minimumRangeWidth(calories: number, confidence: ConfidenceLevel): number {
+export function minimumRangeWidth(
+  calories: number,
+  confidence: ConfidenceLevel
+): number {
   const roundedCalories = Math.max(0, Math.round(calories));
-  return Math.max(MIN_RANGE_WIDTH[confidence], Math.round(roundedCalories * RANGE_MARGIN[confidence]));
+  return Math.max(
+    MIN_RANGE_WIDTH[confidence],
+    Math.round(roundedCalories * RANGE_MARGIN[confidence])
+  );
 }
 
 export function validateCalorieRangeBounds(
@@ -69,10 +78,14 @@ export function validateCalorieRangeBounds(
     return errors;
   }
   if (roundedCalories > 0 && lower > roundedCalories) {
-    errors.push(`${label} calorie range lower bound exceeds estimated calories.`);
+    errors.push(
+      `${label} calorie range lower bound exceeds estimated calories.`
+    );
   }
   if (roundedCalories > 0 && upper < roundedCalories) {
-    errors.push(`${label} calorie range upper bound is below estimated calories.`);
+    errors.push(
+      `${label} calorie range upper bound is below estimated calories.`
+    );
   }
   const width = upper - lower;
   const minWidth = minimumRangeWidth(roundedCalories, confidence);

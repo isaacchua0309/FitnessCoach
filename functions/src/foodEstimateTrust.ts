@@ -1,6 +1,6 @@
 /* eslint-disable require-jsdoc, max-len */
 
-import {resolveCalorieRange, type ConfidenceLevel} from "./foodCalorieRange";
+import {resolveCalorieRange, validateCalorieRangeBounds, type ConfidenceLevel} from "./foodCalorieRange";
 
 export function sanitizeStringList(values: unknown): string[] {
   if (!Array.isArray(values)) {
@@ -21,12 +21,12 @@ export function sanitizeStringList(values: unknown): string[] {
 
 export function defaultUncertaintyReason(confidence: ConfidenceLevel): string {
   switch (confidence) {
-    case "low":
-      return "Portion size or hidden ingredients are unclear.";
-    case "medium":
-      return "Some portion or preparation details were assumed.";
-    default:
-      return "Minor preparation details were assumed.";
+  case "low":
+    return "Portion size or hidden ingredients are unclear.";
+  case "medium":
+    return "Some portion or preparation details were assumed.";
+  default:
+    return "Minor preparation details were assumed.";
   }
 }
 
@@ -100,5 +100,12 @@ export function validateTrustFields(input: NormalizeTrustInput): string[] {
   if (sanitizeStringList(input.assumptions).length === 0) {
     errors.push(`${input.label} must include assumptions.`);
   }
+  errors.push(...validateCalorieRangeBounds(
+    input.calories,
+    range.lower,
+    range.upper,
+    input.confidence,
+    input.label
+  ));
   return errors;
 }

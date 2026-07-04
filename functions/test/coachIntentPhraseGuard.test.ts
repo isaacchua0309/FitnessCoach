@@ -2,6 +2,7 @@ import {
   applyCoachIntentPhraseGuard,
   hasExplicitLoggingIntent,
   isAmbiguousAdvicePhrase,
+  isEstimateWithoutLogging,
   suggestedIntentForText,
 } from "../src/coachIntentPhraseGuard";
 import {sanitizeCoachIntentResult} from "../src/coachIntentSanitizer";
@@ -60,6 +61,7 @@ describe("coachIntentPhraseGuard", () => {
   it("detects advice and explicit logging helpers", () => {
     expect(isAmbiguousAdvicePhrase("should I eat chicken rice?")).toBe(true);
     expect(hasExplicitLoggingIntent("log chicken rice")).toBe(true);
+    expect(isEstimateWithoutLogging("estimate pad thai but don't log")).toBe(true);
     expect(suggestedIntentForText("how many calories in chicken rice?"))
       .toBe("nutrition_estimate_query");
   });
