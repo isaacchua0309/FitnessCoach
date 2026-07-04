@@ -57,7 +57,11 @@ describe("coachContextPromptRules", () => {
   it("includes analyze-meal-image endpoint rules", () => {
     const rules = analyzeMealImagePromptRules();
     expect(rules).toContain("needsUserReview");
-    expect(rules).toContain("Do not infer hidden foods from context");
+    expect(rules).toContain("Do NOT add foods from context.recentMealsStructured");
+    expect(rules).toContain("primary and authoritative source");
+    expect(rules).toContain("clarifyingQuestion");
+    expect(rules).toContain("assumptions");
+    expect(rules).toContain("requiresConfirmation");
   });
 
   it("includes edit/delete endpoint rules", () => {
