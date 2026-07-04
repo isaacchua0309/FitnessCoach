@@ -103,14 +103,8 @@ struct AccountSyncMutation: Identifiable, Equatable, Sendable {
     let entityId: String
     let localDate: String?
     let operation: AccountSyncOperation
-    let payloadVersion: Int
     let createdAt: Date
-    let updatedAt: Date
     let attemptCount: Int
-    let nextRetryAt: Date?
-    let lastError: String?
-    let status: AccountSyncMutationStatus
-    let mutationGroupId: String?
 }
 
 enum AccountSyncMutationValidation {
@@ -192,40 +186,88 @@ enum AccountSyncMissingEntityResolver {
     }
 }
 
+enum AccountSyncCoalescingResult {
+    case persisted(AccountSyncMutationEntity)
+    case discarded
+}
+
 enum AccountSyncMutationCoalescing {
 
-    /// Delete dominates pending upserts. Upsert replaces a pending delete (undelete).
-    /// Multiple upserts collapse to the latest upsert mutation.
+    /// Applies safe coalescing for pending/failed mutations within the same owner + entity key.
     static func apply(
         to coalescable: [AccountSyncMutationEntity],
         incoming: AccountSyncMutationRequest,
+        remoteMayExist: Bool,
         now: Date
-    ) -> AccountSyncMutationEntity {
+    ) -> AccountSyncCoalescingResult {
         switch incoming.operation {
         case .delete:
-            for mutation in coalescable where mutation.operation == .upsert {
-                cancel(mutation, at: now, reason: "Superseded by delete mutation.")
-            }
-            if let existingDelete = coalescable.first(where: { $0.operation == .delete }) {
-                refresh(existingDelete, with: incoming, at: now)
-                return existingDelete
-            }
-            return makeEntity(from: incoming, now: now)
-
+            return applyDelete(
+                to: coalescable,
+                incoming: incoming,
+                remoteMayExist: remoteMayExist,
+                now: now
+            )
         case .upsert:
-            for mutation in coalescable where mutation.operation == .delete {
-                cancel(mutation, at: now, reason: "Superseded by upsert mutation.")
-            }
-            let upserts = coalescable.filter { $0.operation == .upsert }
-            if let primaryUpsert = upserts.first {
-                for duplicate in upserts.dropFirst() {
-                    cancel(duplicate, at: now, reason: "Coalesced into newer upsert.")
-                }
-                refresh(primaryUpsert, with: incoming, at: now)
-                return primaryUpsert
-            }
-            return makeEntity(from: incoming, now: now)
+            return applyUpsert(
+                to: coalescable,
+                incoming: incoming,
+                now: now
+            )
         }
+    }
+
+    private static func applyDelete(
+        to coalescable: [AccountSyncMutationEntity],
+        incoming: AccountSyncMutationRequest,
+        remoteMayExist: Bool,
+        now: Date
+    ) -> AccountSyncCoalescingResult {
+        for mutation in coalescable where mutation.operation == .upsert {
+            cancel(mutation, at: now, reason: "Superseded by delete mutation.")
+        }
+
+        guard remoteMayExist else {
+            for mutation in coalescable where mutation.operation == .delete {
+                cancel(mutation, at: now, reason: "Entity was never uploaded; delete not required.")
+            }
+            return .discarded
+        }
+
+        if let existingDelete = coalescable.first(where: { $0.operation == .delete }) {
+            refresh(existingDelete, with: incoming, at: now)
+            return .persisted(existingDelete)
+        }
+        return .persisted(makeEntity(from: incoming, now: now))
+    }
+
+    private static func applyUpsert(
+        to coalescable: [AccountSyncMutationEntity],
+        incoming: AccountSyncMutationRequest,
+        now: Date
+    ) -> AccountSyncCoalescingResult {
+        let pendingDeletes = coalescable.filter { $0.operation == .delete }
+        if !pendingDeletes.isEmpty {
+            if incoming.mutationGroupId != nil {
+                for mutation in pendingDeletes {
+                    cancel(mutation, at: now, reason: "Superseded by recreated entity upsert.")
+                }
+            } else {
+                for mutation in pendingDeletes {
+                    cancel(mutation, at: now, reason: "Superseded by upsert mutation.")
+                }
+            }
+        }
+
+        let upserts = coalescable.filter { $0.operation == .upsert }
+        if let primaryUpsert = upserts.first {
+            for duplicate in upserts.dropFirst() {
+                cancel(duplicate, at: now, reason: "Coalesced into newer upsert.")
+            }
+            refresh(primaryUpsert, with: incoming, at: now)
+            return .persisted(primaryUpsert)
+        }
+        return .persisted(makeEntity(from: incoming, now: now))
     }
 
     private static func cancel(_ mutation: AccountSyncMutationEntity, at now: Date, reason: String) {

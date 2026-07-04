@@ -88,36 +88,8 @@ extension AccountSyncMutationEntity {
             entityId: entityId,
             localDate: localDate,
             operation: operation,
-            payloadVersion: payloadVersion,
             createdAt: createdAt,
-            updatedAt: updatedAt,
-            attemptCount: attemptCount,
-            nextRetryAt: nextRetryAt,
-            lastError: lastError,
-            status: status,
-            mutationGroupId: mutationGroupId
-        )
-    }
-}
-
-extension AccountSyncMutation {
-
-    init(entity: AccountSyncMutationEntity) {
-        self.init(
-            id: entity.id,
-            ownerUID: entity.ownerUID,
-            entityType: entity.entityType,
-            entityId: entity.entityId,
-            localDate: entity.localDate,
-            operation: entity.operation,
-            payloadVersion: entity.payloadVersion,
-            createdAt: entity.createdAt,
-            updatedAt: entity.updatedAt,
-            attemptCount: entity.attemptCount,
-            nextRetryAt: entity.nextRetryAt,
-            lastError: entity.lastError,
-            status: entity.status,
-            mutationGroupId: entity.mutationGroupId
+            attemptCount: attemptCount
         )
     }
 }
