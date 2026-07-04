@@ -34,12 +34,18 @@ final class FoodLogService {
     func addFoodEntry(_ meal: FoodLogDraft, date: Date) throws -> FoodEntry {
         try validate(meal)
 
+        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
+            currentUIDProvider(),
+            operation: "log food"
+        )
         let log = try dailyLogService.getOrCreateLogEntity(for: date)
+        try UserDataOwnerScope.requireMatchingDailyLogOwner(log, sessionUID: ownerUID)
+
         let now = Date()
         let model = FoodLogDraftMapper.toFoodEntry(meal, dailyLogId: log.id, createdAt: now, updatedAt: now)
 
         let entity = FoodEntryEntity(model: model)
-        entity.ownerUID = UserDataOwnerScope.ownerUIDForNewWrite(sessionUID: currentUIDProvider())
+        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         entity.dailyLog = log
         try store.insert(entity)
         try dailyLogService.recalculateDailyTotals(for: log.date)
@@ -89,7 +95,9 @@ final class FoodLogService {
                 : nil
         }
 
-        entity.updatedAt = Date()
+        let now = Date()
+        entity.updatedAt = now
+        UserDataOwnerScope.touchNutritionWrite(on: entity, now: now)
         try save()
 
         if let logDate = entity.dailyLog?.date {

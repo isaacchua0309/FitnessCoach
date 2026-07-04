@@ -104,6 +104,33 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
         let entities = try harness.store.fetch(descriptor)
         XCTAssertEqual(entities.count, 1)
         XCTAssertEqual(entities.first?.ownerUID, "signed-in-user")
+        XCTAssertEqual(entities.first?.entitySchemaVersion, UserDataEntitySchema.currentEntitySchemaVersion)
+        XCTAssertNotNil(entities.first?.localUpdatedAt)
+    }
+
+    func testWritesWithoutUIDAreRejected() throws {
+        let harness = try makeHarness()
+        _ = try harness.profileService.createProfile(
+            ProfileTestFixtures.sampleDraft,
+            ownerUID: "signed-in-user"
+        )
+
+        sessionUID.uid = nil
+        XCTAssertThrowsError(
+            try harness.foodLogService.addFoodEntry(
+                DailyLogServiceTestSupport.foodDraft(name: "Blocked Meal", calories: 300),
+                date: harness.today
+            )
+        )
+    }
+
+    private func seedLegacyUnownedFoodEntry(in harness: Harness) throws {
+        let context = harness.store.modelContext
+        let seeded = try FormaSwiftDataMigrationTestSupport.seedNutritionLogs(in: context)
+        let food = try XCTUnwrap(try context.fetch(FetchDescriptor<FoodEntryEntity>()).first { $0.id == seeded.foodID })
+        food.name = "Legacy Meal"
+        food.calories = 400
+        try context.save()
     }
 
     func testLegacyUnownedRowsBackfillToProfileOwner() async throws {
@@ -113,11 +140,7 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
             ownerUID: "signed-in-user"
         )
 
-        sessionUID.uid = nil
-        _ = try harness.foodLogService.addFoodEntry(
-            DailyLogServiceTestSupport.foodDraft(name: "Legacy Meal", calories: 400),
-            date: harness.today
-        )
+        try seedLegacyUnownedFoodEntry(in: harness)
 
         sessionUID.uid = "signed-in-user"
         let report = try await harness.migrationService.runSafeBackfill(for: "signed-in-user")
@@ -131,9 +154,12 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
 
     func testMealSurvivesPersistenceRoundTrip() throws {
         let harness = try makeHarness()
-        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(
+            ProfileTestFixtures.sampleDraft,
+            ownerUID: "signed-in-user"
+        )
 
-        sessionUID.uid = nil
+        sessionUID.uid = "signed-in-user"
         _ = try harness.foodLogService.addFoodEntry(
             DailyLogServiceTestSupport.foodDraft(name: "Kill-Safe Meal", calories: 600),
             date: harness.today

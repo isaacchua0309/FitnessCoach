@@ -33,16 +33,23 @@ final class WaterLogService {
     func addWater(amountMl: Int, date: Date) throws -> WaterEntry {
         try validate(amountMl: amountMl)
 
+        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
+            currentUIDProvider(),
+            operation: "log water"
+        )
         let log = try dailyLogService.getOrCreateLogEntity(for: date)
+        try UserDataOwnerScope.requireMatchingDailyLogOwner(log, sessionUID: ownerUID)
+
+        let now = Date()
         let model = WaterEntry(
             id: UUID(),
             dailyLogId: log.id,
             amountMl: amountMl,
-            createdAt: Date()
+            createdAt: now
         )
 
         let entity = WaterEntryEntity(model: model)
-        entity.ownerUID = UserDataOwnerScope.ownerUIDForNewWrite(sessionUID: currentUIDProvider())
+        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         entity.dailyLog = log
         try store.insert(entity)
         try dailyLogService.recalculateDailyTotals(for: log.date)

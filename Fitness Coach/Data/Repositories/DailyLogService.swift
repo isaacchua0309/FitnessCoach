@@ -109,7 +109,9 @@ final class DailyLogService {
         entity.sodiumConsumed = totals.sodium
         entity.waterConsumedMl = waterTotal
         entity.workoutCaloriesBurned = workoutCalories
-        entity.updatedAt = dateProvider.now
+        let now = dateProvider.now
+        entity.updatedAt = now
+        UserDataOwnerScope.touchNutritionWrite(on: entity, now: now)
 
         try save()
         return entity.toModel()
@@ -150,6 +152,11 @@ final class DailyLogService {
             return existing
         }
 
+        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
+            currentUIDProvider(),
+            operation: "create daily log"
+        )
+
         guard let profile = try userProfileService.getCurrentProfile() else {
             throw ServiceError.missingUserProfile
         }
@@ -171,7 +178,7 @@ final class DailyLogService {
         )
 
         let entity = DailyLogEntity(model: log)
-        entity.ownerUID = UserDataOwnerScope.ownerUIDForNewWrite(sessionUID: currentUIDProvider())
+        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         try store.insert(entity)
         return entity
     }
@@ -200,7 +207,9 @@ final class DailyLogService {
         entity.waterTargetMl = targets.waterTargetMl
         entity.expectedWeeklyWeightLossKg = targets.expectedWeeklyWeightLossKg
         entity.aggressivenessRawValue = targets.aggressiveness.rawValue
-        entity.updatedAt = dateProvider.now
+        let now = dateProvider.now
+        entity.updatedAt = now
+        UserDataOwnerScope.touchNutritionWrite(on: entity, now: now)
         try save()
     }
 

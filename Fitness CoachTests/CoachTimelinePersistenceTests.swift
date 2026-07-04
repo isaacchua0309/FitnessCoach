@@ -180,15 +180,16 @@ final class CoachTimelinePersistenceTests: XCTestCase {
             payload: .steps(StepsPayload(steps: 4_000)),
             occurredAt: harness.now
         )
-        try harness.repository.appendIdempotent(todayEvent, userId: nil)
+        try harness.repository.appendIdempotent(todayEvent, userId: "uid-a")
 
         let deleted = try harness.repository.deleteEventsOlderThan(
             policy: CoachTimelineCompactionPolicy(retainDays: 0),
+            userId: "uid-a",
             calendar: harness.calendar
         )
 
         XCTAssertEqual(deleted, 0)
-        XCTAssertEqual(try harness.repository.fetch(userId: nil).count, 1)
+        XCTAssertEqual(try harness.repository.fetch(userId: "uid-a").count, 1)
     }
 
     func testCompactionRemovesOldCollapsibleEvents() throws {
@@ -203,16 +204,17 @@ final class CoachTimelinePersistenceTests: XCTestCase {
                 occurredAt: oldDate,
                 calendar: harness.calendar
             )
-            try harness.repository.appendIdempotent(event, userId: nil)
+            try harness.repository.appendIdempotent(event, userId: "uid-a")
         }
 
         let deleted = try harness.repository.deleteEventsOlderThan(
             policy: CoachTimelineCompactionPolicy(retainDays: 30),
+            userId: "uid-a",
             calendar: harness.calendar
         )
 
         XCTAssertEqual(deleted, 3)
-        XCTAssertTrue(try harness.repository.fetch(userId: nil).isEmpty)
+        XCTAssertTrue(try harness.repository.fetch(userId: "uid-a").isEmpty)
     }
 
     func testCompactionPreservesConfirmedMutationsBeyondRetention() throws {
@@ -235,11 +237,11 @@ final class CoachTimelinePersistenceTests: XCTestCase {
             occurredAt: oldDate,
             calendar: harness.calendar
         )
-        try harness.repository.appendIdempotent(food, userId: nil)
+        try harness.repository.appendIdempotent(food, userId: "uid-a")
 
-        _ = try harness.repository.deleteEventsOlderThan(calendar: harness.calendar)
+        _ = try harness.repository.deleteEventsOlderThan(userId: "uid-a", calendar: harness.calendar)
 
-        let remaining = try harness.repository.fetch(userId: nil)
+        let remaining = try harness.repository.fetch(userId: "uid-a")
         XCTAssertEqual(remaining.count, 1)
         XCTAssertEqual(remaining.first?.type, .foodLogged)
     }

@@ -143,18 +143,25 @@ final class ReviewService {
         _ review: DailyReview,
         dailyLogEntity: DailyLogEntity
     ) throws -> DailyReview {
+        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
+            currentUIDProvider(),
+            operation: "save daily review"
+        )
+        try UserDataOwnerScope.requireMatchingDailyLogOwner(dailyLogEntity, sessionUID: ownerUID)
+        let now = Date()
+
         if let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id) {
             apply(review, to: existing)
-            existing.ownerUID = UserDataOwnerScope.ownerUIDForNewWrite(sessionUID: currentUIDProvider())
             existing.dailyLog = dailyLogEntity
             dailyLogEntity.dailyReview = existing
             dailyLogEntity.dailyReviewId = existing.id
+            UserDataOwnerScope.touchNutritionWrite(on: existing, now: now)
             try save()
             return existing.toModel()
         }
 
         let entity = DailyReviewEntity(model: review)
-        entity.ownerUID = UserDataOwnerScope.ownerUIDForNewWrite(sessionUID: currentUIDProvider())
+        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         entity.dailyLog = dailyLogEntity
         dailyLogEntity.dailyReview = entity
         dailyLogEntity.dailyReviewId = review.id

@@ -26,23 +26,36 @@ final class CoachTimelinePersistenceRepository {
 
     /// Inserts the event when no row exists for `event.id`. Duplicate ids are ignored.
     func appendIdempotent(_ event: CoachTimelineEvent, userId: String?) throws {
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userId,
+            operation: "append coach timeline event"
+        )
         if try entity(id: event.id) != nil {
             return
         }
+        let now = dateProvider.now
         let entity = CoachTimelineEventEntity(model: event, userId: userId)
+        UserDataOwnerScope.stampNewCoachWrite(on: entity, userId: userId, now: now)
         try store.insert(entity)
     }
 
     func appendManyIdempotent(_ events: [CoachTimelineEvent], userId: String?) throws {
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userId,
+            operation: "append coach timeline events"
+        )
         let existingIDs = Set(try fetchEntities(
             query: CoachTimelineQuery(includeSuperseded: true),
             userId: userId
         ).map(\.id))
 
         var inserted = false
+        let now = dateProvider.now
         for event in events {
             guard !existingIDs.contains(event.id) else { continue }
-            store.modelContext.insert(CoachTimelineEventEntity(model: event, userId: userId))
+            let entity = CoachTimelineEventEntity(model: event, userId: userId)
+            UserDataOwnerScope.stampNewCoachWrite(on: entity, userId: userId, now: now)
+            store.modelContext.insert(entity)
             inserted = true
         }
 
@@ -53,13 +66,21 @@ final class CoachTimelinePersistenceRepository {
 
     func updateStatus(id: UUID, status: CoachTimelineEventStatus) throws {
         guard let entity = try entity(id: id) else { return }
+        let now = dateProvider.now
         entity.statusRaw = status.rawValue
-        entity.updatedAt = dateProvider.now
+        entity.updatedAt = now
+        UserDataOwnerScope.touchCoachWrite(on: entity, now: now)
         try store.save()
     }
 
     func insert(_ event: CoachTimelineEvent, userId: String?) throws {
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userId,
+            operation: "insert coach timeline event"
+        )
+        let now = dateProvider.now
         let entity = CoachTimelineEventEntity(model: event, userId: userId)
+        UserDataOwnerScope.stampNewCoachWrite(on: entity, userId: userId, now: now)
         try store.insert(entity)
     }
 

@@ -69,11 +69,19 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
     }
 
     func append(_ event: CoachTimelineEvent) async throws {
-        try repository.appendIdempotent(event, userId: userIdProvider())
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userIdProvider(),
+            operation: "append coach timeline event"
+        )
+        try repository.appendIdempotent(event, userId: userId)
     }
 
     func appendMany(_ events: [CoachTimelineEvent]) async throws {
-        try repository.appendManyIdempotent(events, userId: userIdProvider())
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userIdProvider(),
+            operation: "append coach timeline events"
+        )
+        try repository.appendManyIdempotent(events, userId: userId)
     }
 
     func events(forLocalDate localDate: String) async throws -> [CoachTimelineEvent] {
@@ -169,7 +177,11 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
             )
         }
 
-        try repository.appendIdempotent(replacement, userId: userIdProvider())
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userIdProvider(),
+            operation: "supersede coach timeline event"
+        )
+        try repository.appendIdempotent(replacement, userId: userId)
     }
 
     func deleteEventsOlderThan(policy: CoachTimelineCompactionPolicy) async throws {

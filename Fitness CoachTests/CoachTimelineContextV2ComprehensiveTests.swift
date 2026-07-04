@@ -265,11 +265,7 @@ final class CoachTimelineContextV2PacketTests: XCTestCase {
             dailyLogService: harness.dailyLogService,
             foodLogService: harness.foodLogService,
             waterLogService: harness.waterLogService,
-            weightLogService: WeightLogService(
-                store: harness.store,
-                dailyLogService: harness.dailyLogService,
-                dateProvider: harness.dateProvider
-            ),
+            weightLogService: harness.weightLogService,
             userProfileService: harness.profileService,
             healthActivityQuery: HealthActivityQueryService(
                 workoutReader: StubHealthKitWorkoutReader(workouts: []),

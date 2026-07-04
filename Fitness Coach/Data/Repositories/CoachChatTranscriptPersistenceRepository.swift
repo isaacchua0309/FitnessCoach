@@ -32,6 +32,10 @@ final class CoachChatTranscriptPersistenceRepository {
     }
 
     func replaceAll(_ messages: [ChatMessage], userId: String?) throws {
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userId,
+            operation: "save coach transcript"
+        )
         let retained = CoachChatTranscriptRetentionPolicy.retainedMessages(
             from: messages,
             now: dateProvider.now,
@@ -45,7 +49,9 @@ final class CoachChatTranscriptPersistenceRepository {
             if let entity = try entity(id: message.id, userId: userId) {
                 entity.update(from: message, updatedAt: now)
             } else {
-                store.modelContext.insert(CoachChatTranscriptMessageEntity(model: message, userId: userId, updatedAt: now))
+                let entity = CoachChatTranscriptMessageEntity(model: message, userId: userId, updatedAt: now)
+                UserDataOwnerScope.stampNewCoachWrite(on: entity, userId: userId, now: now)
+                store.modelContext.insert(entity)
             }
         }
 
@@ -57,6 +63,7 @@ final class CoachChatTranscriptPersistenceRepository {
     }
 
     func pruneRetainedOnly(userId: String?) throws {
+        guard let userId else { return }
         let all = try fetchAllSorted(userId: userId)
         let retained = CoachChatTranscriptRetentionPolicy.retainedMessages(
             from: all,

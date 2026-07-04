@@ -20,7 +20,13 @@ final class CoachTranscriptUserIsolationTests: XCTestCase {
             text: "Legacy coach reply",
             createdAt: ProfileTestFixtures.referenceDate
         )
-        try harness.repository.replaceAll([legacyMessage], userId: nil)
+        let entity = CoachChatTranscriptMessageEntity(
+            model: legacyMessage,
+            userId: nil,
+            updatedAt: ProfileTestFixtures.referenceDate
+        )
+        harness.store.modelContext.insert(entity)
+        try harness.store.save()
 
         let signedInMessages = try harness.repository.fetchAllSorted(userId: "signed-in-user")
         XCTAssertTrue(signedInMessages.isEmpty)
@@ -77,6 +83,7 @@ final class CoachTranscriptUserIsolationTests: XCTestCase {
     // MARK: - Harness
 
     private struct Harness {
+        let store: SwiftDataStore
         let repository: CoachChatTranscriptPersistenceRepository
     }
 
@@ -84,6 +91,6 @@ final class CoachTranscriptUserIsolationTests: XCTestCase {
         let container = try FormaModelContainer.makeContainer(inMemory: true)
         let store = SwiftDataStore(container: container)
         let repository = CoachChatTranscriptPersistenceRepository(store: store)
-        return Harness(repository: repository)
+        return Harness(store: store, repository: repository)
     }
 }
