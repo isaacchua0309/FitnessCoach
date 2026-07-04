@@ -25,6 +25,8 @@
 
 **Phase 5 reminder:** Incremental cross-device refresh (foreground, manual, realtime hints) makes same-account changes visible across devices. **Does not** implement account deletion, raw meal images, raw HealthKit, or push notifications. See `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`.
 
+**Weekly Progress Loop v1:** Journey, Plan, and Today weekly surfaces **recompute** from restored/pulled `DailyLog`, `WeightEntry`, and `DailyReview` entities — they do not sync a separate weekly-progress document. Freshness microcopy during restore/sync is handled by `WeeklyProgressFreshnessBuilder` (see `Docs/WeeklyProgress/WeeklyProgressLoopV1.md` §13).
+
 **Phase 6 reminder:** Full account deletion (remote Firestore → Firebase Auth → local wipe), local device-only wipe, Privacy & Data settings, and backend `POST /v1/account/delete-data`. Export foundation exists but **`AccountDataExportPolicy.accountDataExportEnabled = false`**. Does **not** delete Google account, Apple Health source data, or raw meal images. See `Docs/AccountPersistence/PHASE_6_ACCOUNT_DELETION_AND_PRIVACY.md`.
 
 ---

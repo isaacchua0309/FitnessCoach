@@ -164,6 +164,43 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
                 weightLogged: false
             )
         )
+        XCTAssertTrue(
+            DailyReviewSummaryBuilder.hasEnoughLogsForReview(
+                foodEntryCount: 0,
+                waterConsumedMl: 0,
+                workoutCaloriesBurned: 120,
+                weightLogged: false
+            )
+        )
+        XCTAssertTrue(
+            DailyReviewSummaryBuilder.hasEnoughLogsForReview(
+                foodEntryCount: 0,
+                waterConsumedMl: 0,
+                workoutCaloriesBurned: 0,
+                weightLogged: true
+            )
+        )
+    }
+
+    func testHasEnoughLogsAlignsWithTodayTeaserEligibility() {
+        let eligibleSignals: [(Int, Int, Int, Bool)] = [
+            (2, 0, 0, false),
+            (0, 500, 0, false),
+            (0, 0, 180, false),
+            (0, 0, 0, true)
+        ]
+
+        for signal in eligibleSignals {
+            XCTAssertTrue(
+                DailyReviewSummaryBuilder.hasEnoughLogsForReview(
+                    foodEntryCount: signal.0,
+                    waterConsumedMl: signal.1,
+                    workoutCaloriesBurned: signal.2,
+                    weightLogged: signal.3
+                ),
+                "Expected teaser eligibility for signal \(signal)"
+            )
+        }
     }
 
     func testTeaserLinesPreferSummaryAndSections() {
@@ -184,5 +221,33 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
         XCTAssertEqual(lines.count, 2)
         XCTAssertEqual(lines[0], "Strong protein day.")
         XCTAssertEqual(lines[1], "Calories: 1,700 / 1,800 kcal.")
+    }
+
+    func testTeaserLinesUseDeterministicReviewSectionsNotCoachPipeline() {
+        let review = DailyReview(
+            id: UUID(),
+            dailyLogId: UUID(),
+            summaryText: "",
+            caloriesSummary: DailyReviewFormatter.caloriesSummary(
+                from: buildReviewSummary(for: DailyNutritionSummaryTestFixtures.baselineLog)
+            ),
+            proteinSummary: DailyReviewFormatter.proteinSummary(
+                from: buildReviewSummary(for: DailyNutritionSummaryTestFixtures.baselineLog)
+            ),
+            hydrationSummary: DailyReviewFormatter.hydrationSummary(
+                from: buildReviewSummary(for: DailyNutritionSummaryTestFixtures.baselineLog)
+            ),
+            workoutSummary: nil,
+            weightSummary: nil,
+            tomorrowRecommendation: DailyReviewFormatter.tomorrowRecommendation(
+                from: buildReviewSummary(for: DailyNutritionSummaryTestFixtures.baselineLog)
+            ),
+            createdAt: Date()
+        )
+
+        let lines = DailyReviewSummaryBuilder.teaserLines(from: review)
+        XCTAssertFalse(lines.isEmpty)
+        XCTAssertTrue(lines[0].contains("Calories:"))
+        XCTAssertFalse(lines.joined(separator: " ").localizedCaseInsensitiveContains("coach note"))
     }
 }

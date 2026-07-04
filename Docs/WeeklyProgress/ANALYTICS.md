@@ -2,6 +2,8 @@
 
 Typed contracts for the weekly progress ritual live in `Fitness Coach/Domain/WeeklyProgress/WeeklyProgressAnalyticsLogging.swift`.
 
+**Product overview:** [WeeklyProgressLoopV1.md](./WeeklyProgressLoopV1.md) §14
+
 ## Sinks
 
 | Build | Logger | Trace flag |
@@ -25,4 +27,5 @@ Never log raw weight, calories, food names, review text, or full UID.
 
 ## Tests
 
-`Fitness CoachTests/WeeklyProgressAnalyticsLoggingTests.swift` uses `CapturingWeeklyProgressAnalyticsLogger` to verify coordinator deduplication and bucketed payloads.
+- `Fitness CoachTests/WeeklyProgressAnalyticsTests.swift` — 13 named contract + privacy tests with `CapturingWeeklyProgressAnalyticsLogger`
+- `Fitness CoachTests/WeeklyProgressAnalyticsLoggingTests.swift` — context builder buckets and coordinator deduplication

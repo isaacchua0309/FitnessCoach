@@ -186,7 +186,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertGreaterThan(state.macroHydration.waterSummary.targetMl, 0)
     }
 
-    func testYesterdayReviewHiddenWithoutEnoughLogs() {
+    func testTodayDoesNotShowDailyReviewTeaserWhenNoReviewAndNoLogs() {
         let state = build(
             foodEntries: [],
             hasPriorFoodLogs: true,
@@ -201,9 +201,10 @@ final class TodayPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertFalse(state.yesterdayReview.isVisible)
+        XCTAssertEqual(state.yesterdayReview, .hidden)
     }
 
-    func testYesterdayReviewShowsExistingReviewWithPreviewLines() {
+    func testTodayShowsYesterdayDailyReviewWhenAvailable() {
         let review = DailyReview(
             id: UUID(),
             dailyLogId: UUID(),
@@ -236,9 +237,14 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertEqual(state.yesterdayReview.cta, .viewReview)
         XCTAssertEqual(state.yesterdayReview.actionTitle, FormaProductCopy.Today.YesterdayReview.viewAction)
         XCTAssertFalse(state.yesterdayReview.previewLines.isEmpty)
+        XCTAssertEqual(state.yesterdayReview.review, review)
+        XCTAssertEqual(
+            state.yesterdayReview.previewLines,
+            DailyReviewSummaryBuilder.teaserLines(from: review)
+        )
     }
 
-    func testYesterdayReviewOffersGenerateWhenEligibleWithoutReview() {
+    func testTodayCanShowGenerateReviewCTAWhenYesterdayHasEnoughLogs() {
         let yesterday = TodayDashboardFixtures.date(hour: 14).addingTimeInterval(-86_400)
         let state = build(
             foodEntries: [],
@@ -256,7 +262,64 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertTrue(state.yesterdayReview.isVisible)
         XCTAssertEqual(state.yesterdayReview.cta, .generateReview)
         XCTAssertEqual(state.yesterdayReview.actionTitle, FormaProductCopy.Today.YesterdayReview.generateAction)
+        XCTAssertNil(state.yesterdayReview.review)
         XCTAssertTrue(state.yesterdayReview.previewLines.isEmpty)
+        XCTAssertTrue(
+            DailyReviewSummaryBuilder.hasEnoughLogsForReview(
+                foodEntryCount: 3,
+                waterConsumedMl: 1_000,
+                workoutCaloriesBurned: 0,
+                weightLogged: false
+            )
+        )
+    }
+
+    func testTodayDoesNotDuplicateEndOfDayWrapUp() {
+        let evening = TodayDashboardFixtures.date(hour: 20)
+        let review = DailyReview(
+            id: UUID(),
+            dailyLogId: UUID(),
+            summaryText: "Solid consistency yesterday.",
+            caloriesSummary: "Calories: 1,650 / 1,800 kcal.",
+            proteinSummary: "Protein: 160 / 170g.",
+            hydrationSummary: "Water: 2,500 / 3,500ml.",
+            workoutSummary: nil,
+            weightSummary: nil,
+            tomorrowRecommendation: "Keep logging.",
+            createdAt: evening.addingTimeInterval(-86_400)
+        )
+
+        let state = build(
+            date: evening,
+            foodEntries: TodayPreviewData.foodEntries,
+            hasPriorFoodLogs: true,
+            yesterdayReviewInput: TodayYesterdayReviewInput(
+                date: evening.addingTimeInterval(-86_400),
+                review: review,
+                foodEntryCount: 2,
+                waterConsumedMl: 2_500,
+                workoutCaloriesBurned: 0,
+                weightLogged: false
+            )
+        )
+
+        XCTAssertTrue(state.yesterdayReview.isVisible)
+        XCTAssertTrue(state.endOfDay.isVisible)
+        XCTAssertNotEqual(state.yesterdayReview.sectionTitle, state.endOfDay.sectionTitle)
+        XCTAssertEqual(state.yesterdayReview.sectionTitle, FormaProductCopy.Today.YesterdayReview.sectionTitle)
+        XCTAssertEqual(state.endOfDay.sectionTitle, FormaProductCopy.Today.EndOfDay.sectionTitle)
+
+        let combinedYesterdayCopy = (
+            [state.yesterdayReview.sectionTitle]
+                + state.yesterdayReview.previewLines
+                + [state.yesterdayReview.actionTitle, state.yesterdayReview.actionHint]
+        ).joined(separator: " ").lowercased()
+        XCTAssertFalse(combinedYesterdayCopy.contains(state.endOfDay.sectionTitle.lowercased()))
+        XCTAssertFalse(
+            (state.endOfDay.overallMessage ?? "").localizedCaseInsensitiveContains(
+                state.yesterdayReview.sectionTitle
+            )
+        )
     }
 
     // MARK: - Fixtures
