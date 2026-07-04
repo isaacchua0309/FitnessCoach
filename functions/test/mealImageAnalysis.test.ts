@@ -1,5 +1,6 @@
 import {minimalCoachContextV2} from "./fixtures/coachContextPacketV2";
 import {
+  mealImageAnalysisInstructions,
   parseMealImageAnalysisResponse,
   validateAnalyzeMealImagePayload,
   validateMealImageAnalysisResponse,
@@ -41,6 +42,16 @@ const validAnalysisResponse = {
   needsUserReview: true,
   clarifyingQuestion: null,
 };
+
+describe("mealImageAnalysis instructions", () => {
+  it("prioritizes visible food and forbids hidden context inference", () => {
+    const instructions = mealImageAnalysisInstructions();
+    expect(instructions).toContain("primary source of truth");
+    expect(instructions).toContain("Do NOT add foods from context.recentMealsStructured");
+    expect(instructions).toContain("needsUserReview");
+    expect(instructions).toContain("assumptions");
+  });
+});
 
 describe("mealImageAnalysis validation", () => {
   it("accepts a valid JPEG payload and normalizes base64", () => {
@@ -213,5 +224,28 @@ describe("mealImageAnalysis response parsing", () => {
       items: [],
       total: {calories: 0, protein: 0, carbs: 0, fat: 0},
     })).toThrow("items must contain at least one identified food.");
+  });
+
+  it("parses ambiguous analysis with clarifyingQuestion", () => {
+    const parsed = parseMealImageAnalysisResponse({
+      ...validAnalysisResponse,
+      items: [{
+        name: "Grain bowl",
+        quantity: "1 bowl",
+        calories: 400,
+        protein: 16,
+        carbs: 52,
+        fat: 10,
+        confidence: "low",
+        assumptions: ["Grain type unclear"],
+      }],
+      total: {calories: 400, protein: 16, carbs: 52, fat: 10},
+      needsUserReview: true,
+      clarifyingQuestion: "Was this rice or barley?",
+    });
+
+    expect(parsed.needsUserReview).toBe(true);
+    expect(parsed.clarifyingQuestion).toBe("Was this rice or barley?");
+    expect(parsed.items[0].assumptions).toContain("Grain type unclear");
   });
 });

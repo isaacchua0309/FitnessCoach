@@ -215,11 +215,181 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
         let answered = try await waitForEvent { $0.type == .clarificationAnswered }
         XCTAssertEqual(answered.linkedPhotoSessionId, asked.linkedPhotoSessionId)
         XCTAssertEqual(aiService.receivedClarifications.last??, "It was barley, not quinoa.")
+
+        let photoLifecycleEvents = timelineStore.events.filter {
+            [
+                CoachTimelineEventType.photoAttached,
+                CoachTimelineEventType.photoAnalysisStarted,
+                CoachTimelineEventType.photoAnalysisCompleted,
+                CoachTimelineEventType.clarificationAsked,
+                CoachTimelineEventType.clarificationAnswered
+            ].contains($0.type)
+        }
+        let sessionIds = Set(photoLifecycleEvents.compactMap(\.linkedPhotoSessionId))
+        XCTAssertEqual(sessionIds.count, 1)
+    }
+
+    func testCommonFoodsIncludedWhenAvailable() async throws {
+        for _ in 0..<2 {
+            _ = try harness.foodLogService.addFoodEntry(
+                DailyLogServiceTestSupport.foodDraft(name: "Oatmeal", calories: 310, protein: 11),
+                date: harness.today
+            )
+        }
+
+        let context = await makeContextBuilder().makeContext(recentMessages: [], mode: .live)
+        let attachment = try makeUploadAttachment()
+        let request = try XCTUnwrap(
+            CoachMealImageAIRequestBuilder.buildAnalysisRequest(
+                attachment: attachment,
+                context: context,
+                message: nil
+            ).successValue
+        )
+
+        XCTAssertFalse(request.context.commonFoods.isEmpty)
+        XCTAssertEqual(request.context.commonFoods.first?.name, "oatmeal")
+    }
+
+    func testHealthIntelligenceIncludedWhenEnabled() async throws {
+        let snapshotProvider = MealPhotoHealthIntelligenceSnapshotProvider()
+        snapshotProvider.snapshot = HealthIntelligenceSnapshot(
+            date: harness.today,
+            recovery: RecoverySummary(
+                score: 72,
+                status: .moderate,
+                title: "Moderate recovery",
+                explanation: "Recovery is acceptable.",
+                recommendedTraining: "Train as planned.",
+                recommendedNutrition: "Prioritize protein.",
+                confidence: .moderate,
+                contributingFactors: [],
+                missingSignals: []
+            ),
+            workout: WorkoutSummary(
+                hasWorkout: true,
+                primaryWorkoutType: .strength,
+                title: "Strength training",
+                workoutCount: 1,
+                totalDurationMinutes: 45,
+                totalActiveCalories: 280,
+                intensity: .moderate,
+                demand: .high,
+                latestWorkoutStart: harness.today,
+                latestWorkoutEnd: harness.today.addingTimeInterval(2_700),
+                nutritionAdvice: "Refuel with protein.",
+                hydrationAdviceMl: 500,
+                explanation: "Workout logged.",
+                confidence: .high,
+                sourceSummary: "Synced workout."
+            ),
+            activity: ActivitySummary(steps: 7_500, activeEnergyKcal: 350, exerciseMinutes: 45),
+            nutritionAdjustment: .none,
+            weeklyReview: nil,
+            planConfidence: PlanHealthConfidence(score: 0.8, label: "High"),
+            nextBestAction: .none
+        )
+
+        let context = await makeContextBuilder(
+            snapshotProvider: snapshotProvider,
+            loadHealthIntelligence: true
+        ).makeContext(recentMessages: [], mode: .live)
+        let attachment = try makeUploadAttachment()
+        let request = try XCTUnwrap(
+            CoachMealImageAIRequestBuilder.buildAnalysisRequest(
+                attachment: attachment,
+                context: context,
+                message: nil
+            ).successValue
+        )
+
+        XCTAssertNotNil(request.context.healthIntelligence)
+        XCTAssertTrue(request.context.sourceAttribution?.healthIntelligenceIncluded == true)
+    }
+
+    func testRejectedPhotoEstimateExcludedFromConsumedTotals() async throws {
+        let fitness = try FitnessActionCenterTestSupport.makeHarness(referenceNow: harness.today)
+        try fitness.seedProfile()
+        let aiService = PhotoContextCapturingAIService()
+        let model = makePhotoCoachModel(
+            fitness: fitness,
+            aiService: aiService,
+            timelineRecorder: DefaultCoachTimelineRecorder(store: timelineStore)
+        )
+
+        await model.handleMealPhotoSelection(.success(makeTestJPEGData()), source: .library)
+        await model.sendCurrentMessage()
+        XCTAssertNotNil(model.pendingConfirmation)
+
+        await model.send("cancel")
+        XCTAssertNil(model.pendingConfirmation)
+
+        let log = try fitness.dailyLogService.getTodayLog()
+        XCTAssertEqual(log.totals.calories, 0)
+
+        let context = await makeContextBuilder().makeContext(recentMessages: [], mode: .live)
+        XCTAssertEqual(context.today?.nutrition?.caloriesConsumed, 0)
+    }
+
+    func testTimelinePhotoEventsDoNotStoreRawImageBytes() async throws {
+        let fitness = try FitnessActionCenterTestSupport.makeHarness(referenceNow: harness.today)
+        try fitness.seedProfile()
+        let aiService = PhotoContextCapturingAIService()
+        let recorder = DefaultCoachTimelineRecorder(store: timelineStore)
+        let model = makePhotoCoachModel(
+            fitness: fitness,
+            aiService: aiService,
+            timelineRecorder: recorder
+        )
+
+        await model.handleMealPhotoSelection(.success(makeTestJPEGData()), source: .library)
+        await model.sendCurrentMessage()
+        _ = try await waitForEvent { $0.type == .photoAnalysisCompleted }
+
+        let encoded = try JSONEncoder().encode(timelineStore.events)
+        let json = String(data: encoded, encoding: .utf8) ?? ""
+        XCTAssertFalse(json.contains("base64"))
+        XCTAssertFalse(json.contains("imageJPEG"))
+
+        let attached = try await waitForEvent { $0.type == .photoAttached }
+        if case .photo(let payload) = attached.payload {
+            XCTAssertNotNil(payload.sessionId)
+            XCTAssertNotNil(payload.compressedByteSize)
+        }
+    }
+
+    func testAmbiguousPhotoAnalysisMapperSurfacesClarification() {
+        let response = AIMealImageAnalysisResponse(
+            summary: "Grain bowl",
+            items: [
+                AIMealImageAnalysisItem(
+                    name: "Grain bowl",
+                    quantity: "1 bowl",
+                    calories: 400,
+                    protein: 16,
+                    carbs: 52,
+                    fat: 10,
+                    confidence: .low,
+                    assumptions: ["Grain type unclear"]
+                )
+            ],
+            total: AIMealImageAnalysisTotals(calories: 400, protein: 16, carbs: 52, fat: 10),
+            needsUserReview: true,
+            clarifyingQuestion: "Was this rice or barley?"
+        )
+
+        let sessionResult = MealImageAnalysisMapper.sessionResult(from: response)
+        XCTAssertEqual(sessionResult.clarifyingQuestion, "Was this rice or barley?")
+        XCTAssertTrue(sessionResult.mealDraft.warnings.contains("Was this rice or barley?"))
+        XCTAssertTrue(sessionResult.mealDraft.warnings.contains("Grain type unclear"))
     }
 
     // MARK: Helpers
 
-    private func makeContextBuilder() -> CoachContextPacketV2Builder {
+    private func makeContextBuilder(
+        snapshotProvider: (any HealthIntelligenceSnapshotServing)? = nil,
+        loadHealthIntelligence: Bool = false
+    ) -> CoachContextPacketV2Builder {
         CoachContextPacketV2Builder(
             dailyLogService: harness.dailyLogService,
             foodLogService: harness.foodLogService,
@@ -234,9 +404,11 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
                 ),
                 repositoryReadRoutingEnabled: false
             ),
+            healthIntelligenceSnapshotProvider: snapshotProvider,
             timelineStore: timelineStore,
             dateProvider: harness.dateProvider,
-            calendar: harness.dateProvider.calendar
+            calendar: harness.dateProvider.calendar,
+            loadHealthIntelligence: { loadHealthIntelligence }
         )
     }
 
@@ -303,6 +475,16 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
 }
 
 // MARK: - Test doubles
+
+private final class MealPhotoHealthIntelligenceSnapshotProvider: HealthIntelligenceSnapshotServing, @unchecked Sendable {
+    var snapshot: HealthIntelligenceSnapshot?
+
+    func refreshTodaySnapshot(calendar: Calendar) async {}
+
+    func loadTodaySnapshot(for date: Date, calendar: Calendar) async -> HealthIntelligenceSnapshot? {
+        snapshot
+    }
+}
 
 @MainActor
 private final class ClarifyingPhotoContextAIService: AIServiceProtocol, @unchecked Sendable {

@@ -91,11 +91,19 @@ export function mealAdvicePromptRules(): string {
 
 export function analyzeMealImagePromptRules(): string {
   return [
-    "Analyze-meal-image context rules:",
-    "- Use context.today targets/remaining intake and context.recentMealsStructured to personalize guidance.",
-    "- Do not infer hidden foods from context that are not visible in the image.",
-    "- Ask a clarifyingQuestion when the image is ambiguous instead of inventing items.",
-    "- Always set needsUserReview to true.",
+    "Analyze-meal-image rules (image-first, context for personalization only):",
+    "- The attached meal image is the primary and authoritative source for identifying foods and portions.",
+    "- Use context ONLY for goals/targets (context.today.targets, remaining intake), context.commonFoods,",
+    "  context.recentMealsStructured, context.training, and context.healthIntelligence — to guide portion",
+    "  realism and coaching tone, not to invent foods.",
+    "- Do NOT add foods from context.recentMealsStructured, context.commonFoods, or chat unless clearly",
+    "  visible in the image.",
+    "- Do NOT assume the user ate their usual meal, a recent meal, or a common food if it is not visible.",
+    "- When the image is ambiguous, partially obscured, or missing key details, set clarifyingQuestion and",
+    "  keep items limited to what is visible with evidence.",
+    "- Always set needsUserReview to true (requiresConfirmation before logging).",
+    "- Every item must include confidence (low/medium/high) and assumptions[] describing portion/ingredient guesses.",
+    "- Mention material assumptions in summary when they materially affect calories.",
     "- Do not treat rejected or pending meal estimates as already consumed.",
   ].join("\n");
 }
