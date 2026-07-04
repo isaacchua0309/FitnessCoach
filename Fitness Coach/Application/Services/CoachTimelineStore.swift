@@ -85,16 +85,18 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
     }
 
     func events(forLocalDate localDate: String) async throws -> [CoachTimelineEvent] {
+        guard let userId = userIdProvider() else { return [] }
         let query = CoachTimelineQuery(
             fromLocalDate: localDate,
             toLocalDate: localDate,
             limit: Self.maxQueryEventLimit,
             includeSuperseded: false
         )
-        return try repository.fetch(query: query, userId: userIdProvider())
+        return try repository.fetch(query: query, userId: userId)
     }
 
     func events(from start: Date, to end: Date) async throws -> [CoachTimelineEvent] {
+        guard let userId = userIdProvider() else { return [] }
         guard start <= end else {
             throw CoachTimelineStoreError.invalidDateRange
         }
@@ -108,7 +110,7 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
                 limit: Self.maxQueryEventLimit,
                 includeSuperseded: false
             ),
-            userId: userIdProvider()
+            userId: userId
         )
         return ranged.filter { event in
             event.utcTimestamp >= start && event.utcTimestamp <= end
@@ -117,6 +119,7 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
 
     func recentEvents(limit: Int, before date: Date?) async throws -> [CoachTimelineEvent] {
         guard limit > 0 else { return [] }
+        guard let userId = userIdProvider() else { return [] }
 
         let fetchLimit = min(max(limit * 4, limit), Self.maxQueryEventLimit)
         let candidates = try repository.fetch(
@@ -124,7 +127,7 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
                 limit: fetchLimit,
                 includeSuperseded: false
             ),
-            userId: userIdProvider()
+            userId: userId
         )
 
         let filtered = candidates.filter { event in
@@ -140,7 +143,8 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
     }
 
     func event(id: UUID) async throws -> CoachTimelineEvent? {
-        try repository.event(id: id, userId: userIdProvider())
+        guard let userId = userIdProvider() else { return nil }
+        return try repository.event(id: id, userId: userId)
     }
 
     func markEventStatus(id: UUID, status: CoachTimelineEventStatus) async throws {
@@ -148,7 +152,7 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
         guard try repository.entity(id: id, userId: userId) != nil else {
             throw CoachTimelineStoreError.eventNotFound(id)
         }
-        try repository.updateStatus(id: id, status: status)
+        try repository.updateStatus(id: id, status: status, userId: userId)
     }
 
     func supersedeEvent(id: UUID, by newEvent: CoachTimelineEvent) async throws {
@@ -160,7 +164,7 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
             throw CoachTimelineStoreError.eventNotFound(id)
         }
 
-        try repository.updateStatus(id: id, status: .superseded)
+        try repository.updateStatus(id: id, status: .superseded, userId: userId)
 
         var replacement = newEvent
         if replacement.supersedesEventId != id {
@@ -187,9 +191,10 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
 
     func deleteEventsOlderThan(policy: CoachTimelineCompactionPolicy) async throws {
         guard FormaSwiftDataMigrationGate.shouldAllowCoachDataMaintenance() else { return }
+        guard let userId = userIdProvider() else { return }
         _ = try repository.deleteEventsOlderThan(
             policy: policy,
-            userId: userIdProvider(),
+            userId: userId,
             calendar: calendar
         )
     }

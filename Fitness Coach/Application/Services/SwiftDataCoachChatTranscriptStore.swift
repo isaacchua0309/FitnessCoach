@@ -38,7 +38,7 @@ final class SwiftDataCoachChatTranscriptStore: CoachChatTranscriptStore {
     }
 
     func loadMessages() -> [ChatMessage] {
-        let userId = userIdProvider()
+        guard let userId = userIdProvider() else { return [] }
         do {
             if FormaSwiftDataMigrationGate.shouldAllowCoachDataMaintenance() {
                 try repository.pruneRetainedOnly(userId: userId)

@@ -44,8 +44,13 @@ enum UserDataOwnerScope {
     }
 
     /// Whether a coach row is visible to the current session (`userId` ownership field).
+    ///
+    /// Coach data is never shared across accounts. Nil `userId` legacy rows are excluded
+    /// from all reads; they are only claimed via `AccountMigrationService` when safe.
     static func isCoachRowVisible(entityUserId: String?, sessionUID: String?) -> Bool {
-        isVisible(entityOwnerUID: entityUserId, sessionUID: sessionUID)
+        guard let sessionUID else { return false }
+        guard let entityUserId else { return false }
+        return entityUserId == sessionUID
     }
 
     static func filterVisibleNutritionEntities<T: UserDataNutritionOwnershipEntity>(

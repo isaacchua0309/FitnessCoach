@@ -54,4 +54,11 @@ final class UserDataOwnershipTests: XCTestCase {
             UserDataOwnership.canRead(ownerUID: "user-a", currentUID: "user-a")
         )
     }
+
+    func testCoachRowVisibilityRequiresSignedInUIDMatch() {
+        XCTAssertTrue(UserDataOwnerScope.isCoachRowVisible(entityUserId: "user-a", sessionUID: "user-a"))
+        XCTAssertFalse(UserDataOwnerScope.isCoachRowVisible(entityUserId: nil, sessionUID: "user-a"))
+        XCTAssertFalse(UserDataOwnerScope.isCoachRowVisible(entityUserId: nil, sessionUID: nil))
+        XCTAssertFalse(UserDataOwnerScope.isCoachRowVisible(entityUserId: "user-a", sessionUID: "user-b"))
+    }
 }

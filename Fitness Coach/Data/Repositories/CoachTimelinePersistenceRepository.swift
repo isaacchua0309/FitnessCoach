@@ -30,7 +30,7 @@ final class CoachTimelinePersistenceRepository {
             userId,
             operation: "append coach timeline event"
         )
-        if try entity(id: event.id) != nil {
+        if try entity(id: event.id, userId: userId) != nil {
             return
         }
         let now = dateProvider.now
@@ -64,8 +64,8 @@ final class CoachTimelinePersistenceRepository {
         }
     }
 
-    func updateStatus(id: UUID, status: CoachTimelineEventStatus) throws {
-        guard let entity = try entity(id: id) else { return }
+    func updateStatus(id: UUID, status: CoachTimelineEventStatus, userId: String?) throws {
+        guard let entity = try entity(id: id, userId: userId) else { return }
         let now = dateProvider.now
         entity.statusRaw = status.rawValue
         entity.updatedAt = now
@@ -127,6 +127,8 @@ final class CoachTimelinePersistenceRepository {
         userId: String? = nil,
         calendar: Calendar = .current
     ) throws -> Int {
+        guard userId != nil else { return 0 }
+
         let todayLocalDate = Self.localDateString(for: dateProvider.now, calendar: calendar)
         guard let cutoffDate = calendar.date(
             byAdding: .day,
