@@ -18,6 +18,18 @@ final class WaterEntryEntity {
     var amountMl: Int
     var createdAt: Date
 
+    // MARK: Account persistence sync metadata (Phase 3)
+
+    var cloudId: String?
+    var cloudUpdatedAt: Date?
+    var lastSyncedAt: Date?
+    var syncStatusRawValue: String = AccountDataSyncStatus.localOnly.rawValue
+    var lastSyncError: String?
+    var deletedAt: Date?
+    var lastMutationId: String?
+    var syncAttemptCount: Int = 0
+    var nextRetryAt: Date?
+
     // MARK: Relationships
 
     var dailyLog: DailyLogEntity?
