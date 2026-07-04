@@ -2,7 +2,7 @@
 //  AccountRealtimeChangeListenerTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Realtime change listener abstraction tests (Phase 5).
+//  Forma — Realtime change listener tests (Phase 5).
 //
 
 import XCTest
@@ -12,8 +12,37 @@ import XCTest
 final class AccountRealtimeChangeListenerTests: XCTestCase {
 
     private let ownerUID = "user-a"
+    private let otherUID = "user-b"
 
-    func testLifecycleConnectsHintToCrossDeviceCoordinator() async {
+    func testListenerStartsForCurrentUID() async {
+        let listener = RecordingAccountRealtimeChangeListener()
+
+        CrossDeviceSyncLifecycle.startRealtimeListenerIfEnabled(listener: listener, uid: ownerUID)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        XCTAssertEqual(listener.startedUIDs, [ownerUID])
+    }
+
+    func testListenerStopsOnLogout() async {
+        let listener = RecordingAccountRealtimeChangeListener()
+        await listener.startListening(uid: ownerUID)
+
+        await CrossDeviceSyncLifecycle.stopRealtimeListener(listener: listener)
+
+        XCTAssertEqual(listener.stopAllCallCount, 1)
+    }
+
+    func testListenerStopsOldUIDOnAccountSwitch() async {
+        let listener = RecordingAccountRealtimeChangeListener()
+        await listener.startListening(uid: ownerUID)
+
+        AccountRealtimeChangeListenerLifecycle.stopOnAccountSwitch(listener: listener)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        XCTAssertEqual(listener.stopAllCallCount, 1)
+    }
+
+    func testRemoteHintTriggersCoordinator() async {
         let listener = RecordingAccountRealtimeChangeListener()
         let coordinator = RecordingCrossDeviceSyncCoordinator()
         AccountRealtimeChangeListenerLifecycle.connect(
@@ -22,131 +51,61 @@ final class AccountRealtimeChangeListenerTests: XCTestCase {
         )
 
         listener.onRemoteChangeHint?(ownerUID)
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        try? await Task.sleep(nanoseconds: 600_000_000)
 
         XCTAssertEqual(coordinator.hintedUIDs, [ownerUID])
     }
 
-    func testStopOnAccountSwitchStopsAllListeners() async {
+    func testRealtimeHintsAreDebounced() async {
+        let syncCoordinator = TrackingAccountSyncCoordinator()
+        let incrementalPuller = TrackingAccountIncrementalPuller()
+        let coordinator = CrossDeviceSyncCoordinator(
+            syncCoordinator: syncCoordinator,
+            incrementalPuller: incrementalPuller,
+            cursorStore: AccountSyncCursorStore(
+                userDefaults: UserDefaults(suiteName: "AccountRealtimeChangeListenerTests.\(UUID().uuidString)")!
+            ),
+            currentUIDProvider: { self.ownerUID },
+            refreshCenter: AppRefreshCenter()
+        )
+
+        _ = await coordinator.handleRealtimeHint(uid: ownerUID)
+        _ = await coordinator.handleRealtimeHint(uid: ownerUID)
+        _ = await coordinator.handleRealtimeHint(uid: ownerUID)
+
+        try? await Task.sleep(nanoseconds: 700_000_000)
+
+        XCTAssertEqual(syncCoordinator.uploadCallCount, 1)
+        XCTAssertEqual(incrementalPuller.pullCallCount, 1)
+    }
+
+    func testListenerDoesNotDirectlyMergeDocuments() async {
         let listener = RecordingAccountRealtimeChangeListener()
-        await listener.startListening(uid: ownerUID)
+        let incrementalPuller = TrackingAccountIncrementalPuller()
+        let coordinator = CrossDeviceSyncCoordinator(
+            syncCoordinator: TrackingAccountSyncCoordinator(),
+            incrementalPuller: incrementalPuller,
+            cursorStore: AccountSyncCursorStore(
+                userDefaults: UserDefaults(suiteName: "AccountRealtimeChangeListenerTests.\(UUID().uuidString)")!
+            ),
+            currentUIDProvider: { self.ownerUID },
+            refreshCenter: AppRefreshCenter()
+        )
+        AccountRealtimeChangeListenerLifecycle.connect(
+            listener: listener,
+            crossDeviceCoordinator: coordinator
+        )
 
-        AccountRealtimeChangeListenerLifecycle.stopOnAccountSwitch(listener: listener)
-        try? await Task.sleep(nanoseconds: 20_000_000)
-
-        XCTAssertEqual(listener.stopAllCallCount, 1)
-    }
-
-    func testHintDebouncerCoalescesRapidEvents() async {
-        let debouncer = AccountRealtimeChangeHintDebouncer(debounceInterval: .milliseconds(100))
-        var hintedUIDs: [String] = []
-        let lock = NSLock()
-
-        for _ in 0..<5 {
-            debouncer.schedule(uid: ownerUID) { uid in
-                lock.lock()
-                hintedUIDs.append(uid)
-                lock.unlock()
-            }
-        }
-
-        try? await Task.sleep(nanoseconds: 200_000_000)
-
-        lock.lock()
-        let results = hintedUIDs
-        lock.unlock()
-        XCTAssertEqual(results, [ownerUID])
-    }
-
-    func testNoOpListenerDoesNotRetainHints() async {
-        let listener = NoOpAccountRealtimeChangeListener()
-        var hintCount = 0
-        listener.onRemoteChangeHint = { _ in hintCount += 1 }
-
-        await listener.startListening(uid: ownerUID)
         listener.onRemoteChangeHint?(ownerUID)
-        await listener.stopAll()
 
-        XCTAssertEqual(hintCount, 1)
-    }
-
-    func testSupportListsOnlyPhaseFiveHintCollections() {
-        XCTAssertEqual(
-            AccountRealtimeChangeListenerSupport.hintedCollectionSegments,
-            [
-                AccountDataCloudPaths.Segment.dailyLogs,
-                AccountDataCloudPaths.Segment.weightEntries,
-                AccountDataCloudPaths.Segment.dailyReviews
-            ]
+        XCTAssertEqual(incrementalPuller.pullCallCount, 0)
+        XCTAssertFalse(
+            Mirror(reflecting: listener).children.contains { $0.label == "incrementalPuller" }
         )
-        XCTAssertEqual(
-            AccountRealtimeChangeListenerSupport.profileDocumentSegment,
-            AccountDataCloudPaths.Segment.profile
+        XCTAssertFalse(
+            Mirror(reflecting: FirestoreAccountRealtimeChangeListener()).children.contains {
+                $0.label == "mergePuller" || $0.label == "incrementalPuller"
+            }
         )
     }
-}
-
-@MainActor
-private final class RecordingCrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
-
-    var hintedUIDs: [String] = []
-
-    func refreshNow(
-        uid: String,
-        mode: CrossDeviceSyncMode,
-        reason: CrossDeviceSyncReason
-    ) async -> CrossDeviceSyncSummary {
-        emptySummary(uid: uid, mode: mode, reason: reason)
-    }
-
-    func foregroundRefreshIfNeeded(uid: String) async -> CrossDeviceSyncSummary? { nil }
-
-    func manualRefresh(uid: String) async -> CrossDeviceSyncSummary {
-        emptySummary(uid: uid, mode: .manualRefresh, reason: .manualPullToRefresh)
-    }
-
-    func handleRealtimeHint(uid: String) async -> CrossDeviceSyncSummary? {
-        hintedUIDs.append(uid)
-        return nil
-    }
-
-    private func emptySummary(
-        uid: String,
-        mode: CrossDeviceSyncMode,
-        reason: CrossDeviceSyncReason
-    ) -> CrossDeviceSyncSummary {
-        CrossDeviceSyncSummary(
-            uid: uid,
-            mode: mode,
-            reason: reason,
-            status: .completed,
-            startedAt: Date(),
-            endedAt: Date(),
-            uploadedMutations: 0,
-            pulledDailyLogs: 0,
-            pulledFoodEntries: 0,
-            pulledWaterEntries: 0,
-            pulledWeightEntries: 0,
-            pulledDailyReviews: 0,
-            pulledProfile: false,
-            inserted: 0,
-            updated: 0,
-            deleted: 0,
-            skippedLocalNewer: 0,
-            conflicts: 0,
-            failed: 0,
-            didRefreshUI: false,
-            userFacingMessage: nil
-        )
-    }
-}
-
-private final class RecordingAccountRealtimeChangeListener: AccountRealtimeChangeListening, @unchecked Sendable {
-
-    var onRemoteChangeHint: ((String) -> Void)?
-    private(set) var stopAllCallCount = 0
-
-    func startListening(uid: String) async {}
-    func stopListening(uid: String) async {}
-    func stopAll() async { stopAllCallCount += 1 }
 }
