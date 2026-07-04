@@ -304,6 +304,8 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
     var hrvUnavailable: Bool
     var healthIntelligenceTimedOut: Bool
     var healthIntelligenceFailed: Bool
+    /// True when full context assembly failed and a minimal safe packet was emitted instead.
+    var contextGenerationFailed: Bool
 
     init(
         stepsMissing: Bool = false,
@@ -320,7 +322,8 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
         sleepUnavailable: Bool = false,
         hrvUnavailable: Bool = false,
         healthIntelligenceTimedOut: Bool = false,
-        healthIntelligenceFailed: Bool = false
+        healthIntelligenceFailed: Bool = false,
+        contextGenerationFailed: Bool = false
     ) {
         self.stepsMissing = stepsMissing
         self.workoutPermissionDeniedOrUnavailable = workoutPermissionDeniedOrUnavailable
@@ -337,6 +340,7 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
         self.hrvUnavailable = hrvUnavailable
         self.healthIntelligenceTimedOut = healthIntelligenceTimedOut
         self.healthIntelligenceFailed = healthIntelligenceFailed
+        self.contextGenerationFailed = contextGenerationFailed
     }
 
     var hasAnyMissingSignals: Bool {
@@ -355,6 +359,7 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
             || hrvUnavailable
             || healthIntelligenceTimedOut
             || healthIntelligenceFailed
+            || contextGenerationFailed
     }
 }
 
@@ -551,6 +556,7 @@ extension CoachMissingDataContext {
         if noTimelineHistory { labels.append("timeline") }
         if healthIntelligenceTimedOut { labels.append("healthIntelligenceTimedOut") }
         if healthIntelligenceFailed { labels.append("healthIntelligenceFailed") }
+        if contextGenerationFailed { labels.append("contextGenerationFailed") }
         return labels
     }
 }

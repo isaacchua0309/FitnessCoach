@@ -455,6 +455,7 @@ final class FakeCoachTimelineStore: CoachTimelineStoring {
     private(set) var events: [CoachTimelineEvent] = []
     private(set) var appendAttempts = 0
     var injectedAppendError: Error?
+    var injectedLoadError: Error?
 
     func append(_ event: CoachTimelineEvent) async throws {
         appendAttempts += 1
@@ -472,10 +473,16 @@ final class FakeCoachTimelineStore: CoachTimelineStoring {
     }
 
     func events(forLocalDate localDate: String) async throws -> [CoachTimelineEvent] {
-        events.filter { $0.localDate == localDate }
+        if let injectedLoadError {
+            throw injectedLoadError
+        }
+        return events.filter { $0.localDate == localDate }
     }
 
     func events(from start: Date, to end: Date) async throws -> [CoachTimelineEvent] {
+        if let injectedLoadError {
+            throw injectedLoadError
+        }
         guard start <= end else {
             throw CoachTimelineStoreError.invalidDateRange
         }
