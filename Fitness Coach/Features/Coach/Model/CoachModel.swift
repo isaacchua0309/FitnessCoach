@@ -962,6 +962,15 @@ final class CoachModel: ObservableObject {
     func confirmPendingFromBar() async {
         guard let confirmation = pendingConfirmation else { return }
         guard !isConfirmingPending else { return }
+
+        if confirmation.isConfirmBlocked {
+            appendAssistantMessage(
+                confirmation.confirmBlockedReason
+                    ?? FoodEstimateTrustPolicy.editBeforeLoggingMessage
+            )
+            return
+        }
+
         isConfirmingPending = true
         defer { isConfirmingPending = false }
 
@@ -1049,6 +1058,9 @@ final class CoachModel: ObservableObject {
         do {
             let updated = try formState.makeMealDraft(original: draft.primaryMealDraft)
             draft.mealDraft = updated
+            draft.requiresEditBeforeConfirm = false
+            draft.sanityFailed = false
+            draft.sanityWarning = nil
             pendingConfirmation = .food(draft)
             userEditedPendingBeforeConfirm = true
             if let userMessageID = draft.relatedPhotoUserMessageID {
@@ -1125,6 +1137,8 @@ final class CoachModel: ObservableObject {
                     confidence: draft.confidence,
                     requiresConfirmation: draft.requiresConfirmation,
                     sanityWarning: draft.sanityWarning,
+                    requiresEditBeforeConfirm: draft.requiresEditBeforeConfirm,
+                    sanityFailed: draft.sanityFailed,
                     imageAnalysisSessionID: draft.imageAnalysisSessionID,
                     relatedPhotoUserMessageID: draft.relatedPhotoUserMessageID,
                     createdAt: priorFoodDraft.createdAt

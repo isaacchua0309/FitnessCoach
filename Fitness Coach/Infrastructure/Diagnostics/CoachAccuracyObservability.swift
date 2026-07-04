@@ -70,6 +70,25 @@ struct CoachMutationObservabilitySnapshot: Equatable, Sendable {
     var backendErrorCategory: String?
 }
 
+struct CoachFoodEstimateTrustObservabilitySnapshot: Equatable, Sendable {
+    var confidenceBucket: String
+    var sanityFailed: Bool
+    var hasCalorieRange: Bool
+    var assumptionCount: Int
+    var requiresEditBeforeConfirm: Bool
+
+    static func from(_ draft: AIFoodConfirmationDraft) -> CoachFoodEstimateTrustObservabilitySnapshot {
+        let meal = draft.primaryMealDraft
+        return CoachFoodEstimateTrustObservabilitySnapshot(
+            confidenceBucket: draft.confidence.rawValue,
+            sanityFailed: draft.sanityFailed,
+            hasCalorieRange: FoodCalorieRangeResolver.resolvedRange(for: meal) != nil,
+            assumptionCount: AIFoodConfirmationFormatter.explicitAssumptionSection(for: meal).count,
+            requiresEditBeforeConfirm: draft.requiresEditBeforeConfirm
+        )
+    }
+}
+
 // MARK: - Formatter
 
 enum CoachAccuracyObservabilityLogFormatter {
@@ -148,6 +167,16 @@ enum CoachAccuracyObservabilityLogFormatter {
         [
             "pendingConfirmationCreated": "true",
             "pendingConfirmationKind": kind,
+        ]
+    }
+
+    static func fields(from snapshot: CoachFoodEstimateTrustObservabilitySnapshot) -> [String: String] {
+        [
+            "confidenceBucket": snapshot.confidenceBucket,
+            "sanityFailed": String(snapshot.sanityFailed),
+            "hasCalorieRange": String(snapshot.hasCalorieRange),
+            "assumptionCount": String(snapshot.assumptionCount),
+            "requiresEditBeforeConfirm": String(snapshot.requiresEditBeforeConfirm),
         ]
     }
 
@@ -276,6 +305,19 @@ enum CoachAccuracyObservabilityLogger {
             stage: .aiTask,
             level: .info,
             message: "Pending confirmation observability",
+            fields: fields
+        )
+        #endif
+    }
+
+    static func logFoodEstimateTrust(_ snapshot: CoachFoodEstimateTrustObservabilitySnapshot) {
+        let fields = CoachAccuracyObservabilityLogFormatter.fields(from: snapshot)
+        emit(event: "food_estimate_trust", fields: fields)
+        #if DEBUG
+        FormaPipelineTracer.event(
+            stage: .aiTask,
+            level: snapshot.sanityFailed ? .warn : .info,
+            message: "Food estimate trust observability",
             fields: fields
         )
         #endif

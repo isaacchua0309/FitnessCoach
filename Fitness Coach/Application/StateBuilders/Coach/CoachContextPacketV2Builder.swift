@@ -231,6 +231,11 @@ struct CoachContextPacketV2Builder {
             healthIntelligenceTimedOut: healthIntelligenceTimedOut,
             healthIntelligenceFailed: healthIntelligenceFailed
         ))
+        assumptions.append(contentsOf: CoachCorrectionMemoryBuilder.makeAssumptions(
+            from: timelineEvents,
+            now: now,
+            calendar: calendar
+        ))
 
         if dailyLog != nil { sources.append("swiftData") }
         if timelineStore != nil { sources.append("coachTimeline") }

@@ -166,7 +166,10 @@ enum SingaporeFoodEstimationFixtureSupport {
             components: components,
             confidence: confidence.asConfidenceLevel,
             source: .aiTextEstimate,
-            warnings: assumptions
+            warnings: [],
+            assumptions: assumptions,
+            caloriesRangeLower: Int(fixtureCase.caloriesRange.min.rounded()),
+            caloriesRangeUpper: Int(fixtureCase.caloriesRange.max.rounded())
         )
     }
 
@@ -206,10 +209,15 @@ enum SingaporeFoodEstimationFixtureSupport {
         }
 
         if !assumptionKeywordsMatch(
-            assumptions: meal.warnings,
+            assumptions: meal.assumptions + meal.warnings,
             expectedKeywords: fixtureCase.expectedAssumptions
         ) {
             errors.append("Assumptions do not cover expected keywords.")
+        }
+
+        if let range = FoodCalorieRangeResolver.resolvedRange(for: meal),
+           !valueInRange(Double(meal.totalCalories), range: fixtureCase.caloriesRange) {
+            errors.append("Resolved calorie range does not align with fixture midpoint.")
         }
 
         if requiresConfirmation != fixtureCase.shouldRequireConfirmation {

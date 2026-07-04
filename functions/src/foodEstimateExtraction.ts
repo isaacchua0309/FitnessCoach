@@ -5,6 +5,7 @@ import {
   componentNamesMatchCompound,
   type CompoundDishSpec,
 } from "./foodCompoundDish";
+import {resolveCalorieRange} from "./foodCalorieRange";
 
 export interface FoodExtractionComponent {
   name: string;
@@ -24,6 +25,8 @@ export interface FoodExtractionTotals {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  calories_range_lower?: number | null;
+  calories_range_upper?: number | null;
 }
 
 export interface FoodExtractionMeal {
@@ -326,7 +329,17 @@ export function normalizeFoodExtraction(
     return {
       ...meal,
       components,
-      totals: summed,
+      totals: {
+        ...summed,
+        calories_range_lower: resolveCalorieRange(
+          summed.calories,
+          confidence
+        ).lower,
+        calories_range_upper: resolveCalorieRange(
+          summed.calories,
+          confidence
+        ).upper,
+      },
       confidence,
       warnings: Array.from(new Set(warnings)),
     };
@@ -480,10 +493,17 @@ export function mapExtractionToGatewayPayload(
     "low";
 
   const foodLogDrafts = extraction.meals.map((meal) => {
-    const warnings = [
-      ...(meal.warnings ?? []),
-      ...(meal.assumptions ?? []).map((item) => `Assumption: ${item}`),
-    ];
+    const summed = sumComponents(meal.components);
+    const calorieRange = resolveCalorieRange(
+      summed.calories,
+      meal.confidence,
+      meal.totals?.calories_range_lower,
+      meal.totals?.calories_range_upper
+    );
+    const mealAssumptions = (meal.assumptions ?? [])
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const warnings = [...(meal.warnings ?? [])];
     if (!validation.ok) {
       warnings.push(
         "Estimate failed strict extraction validation. Review portions before logging."
@@ -511,6 +531,9 @@ export function mapExtractionToGatewayPayload(
       source,
       notes: null,
       warnings,
+      assumptions: mealAssumptions,
+      caloriesRangeLower: calorieRange.lower,
+      caloriesRangeUpper: calorieRange.upper,
       imageUrl: null,
     };
   });

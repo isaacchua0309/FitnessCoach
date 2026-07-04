@@ -49,6 +49,32 @@ enum AIFoodConfirmationFormatter {
         macroSummary(for: FoodLogDraftMapper.fromLegacyDraft(draft))
     }
 
+    static func caloriesDisplay(for meal: FoodLogDraft) -> String {
+        if let range = FoodCalorieRangeResolver.resolvedRange(for: meal) {
+            if range.lower == range.upper {
+                return "\(PlanDisplayFormatter.formatGroupedInteger(range.lower)) kcal"
+            }
+            return "\(PlanDisplayFormatter.formatGroupedInteger(range.lower))–\(PlanDisplayFormatter.formatGroupedInteger(range.upper)) kcal"
+        }
+        if meal.totalCalories > 0 {
+            return "~\(PlanDisplayFormatter.formatGroupedInteger(meal.totalCalories)) kcal"
+        }
+        return "Estimated kcal"
+    }
+
+    static func compactCaloriesDisplay(for meal: FoodLogDraft) -> String {
+        if let range = FoodCalorieRangeResolver.resolvedRange(for: meal) {
+            if range.lower == range.upper {
+                return "\(range.lower) kcal"
+            }
+            return "\(range.lower)–\(range.upper) kcal"
+        }
+        if meal.totalCalories > 0 {
+            return "~\(meal.totalCalories) kcal"
+        }
+        return "Estimated kcal"
+    }
+
     static func totalCalories(for meals: [FoodLogDraft]) -> Int {
         meals.reduce(0) { $0 + $1.totalCalories }
     }
@@ -87,11 +113,26 @@ enum AIFoodConfirmationFormatter {
     }
 
     static func assumptionLines(for meal: FoodLogDraft) -> [String] {
-        meal.components.compactMap { component in
+        var lines: [String] = []
+
+        let mealAssumptions = meal.assumptions
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if !mealAssumptions.isEmpty {
+            lines.append(contentsOf: mealAssumptions.map { "Assumption: \($0)" })
+        }
+
+        let componentAssumptions = meal.components.compactMap { component -> String? in
             let assumptions = component.sourceText?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             guard !assumptions.isEmpty else { return nil }
             return "\(component.name): \(assumptions)"
         }
+        lines.append(contentsOf: componentAssumptions)
+        return lines
+    }
+
+    static func explicitAssumptionSection(for meal: FoodLogDraft) -> [String] {
+        assumptionLines(for: meal)
     }
 }

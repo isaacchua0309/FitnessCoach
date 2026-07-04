@@ -76,6 +76,36 @@ final class CoachAccuracyObservabilityTests: XCTestCase {
         XCTAssertFalse(sanitized.contains("Bearer secret"))
     }
 
+    func testFoodEstimateTrustObservabilityFields() {
+        let draft = AIFoodConfirmationDraft(
+            originalText: "log chicken rice",
+            assistantMessage: nil,
+            mealDraft: FoodLogDraft(
+                displayName: "Chicken rice",
+                components: [
+                    FoodComponent(name: "Chicken rice", calories: 520, protein: 30, carbs: 60, fat: 15)
+                ],
+                confidence: .medium,
+                assumptions: ["Medium plate"],
+                caloriesRangeLower: 450,
+                caloriesRangeUpper: 750
+            ),
+            confidence: .medium,
+            requiresConfirmation: true,
+            sanityFailed: true,
+            requiresEditBeforeConfirm: true
+        )
+
+        let snapshot = CoachFoodEstimateTrustObservabilitySnapshot.from(draft)
+        let fields = CoachAccuracyObservabilityLogFormatter.fields(from: snapshot)
+
+        XCTAssertEqual(fields["confidenceBucket"], "medium")
+        XCTAssertEqual(fields["sanityFailed"], "true")
+        XCTAssertEqual(fields["hasCalorieRange"], "true")
+        XCTAssertEqual(fields["requiresEditBeforeConfirm"], "true")
+        XCTAssertEqual(fields["assumptionCount"], "1")
+    }
+
     func testRedactedDebugDescriptionExcludesFoodNamesAndTokens() {
         let packet = CoachContextPacketV2(
             meta: CoachContextMeta.make(generatedAt: Date()),

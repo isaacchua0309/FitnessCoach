@@ -33,7 +33,7 @@ enum CoachPendingConfirmation: Equatable {
             var lines: [String] = []
             if meal.hasUsableNutritionEstimate {
                 lines.append(
-                    "\(meal.displayName) · \(meal.totalCalories) kcal · \(AIFoodConfirmationFormatter.macroSummary(for: meal))"
+                    "\(meal.displayName) · \(AIFoodConfirmationFormatter.caloriesDisplay(for: meal)) · \(AIFoodConfirmationFormatter.macroSummary(for: meal))"
                 )
             } else {
                 lines.append(meal.displayName)
@@ -50,12 +50,16 @@ enum CoachPendingConfirmation: Equatable {
             ) {
                 lines.append(reviewWarning)
             }
-            let assumptions = AIFoodConfirmationFormatter.assumptionLines(for: meal)
+            let assumptions = AIFoodConfirmationFormatter.explicitAssumptionSection(for: meal)
             if !assumptions.isEmpty {
+                lines.append("Assumptions:")
                 lines.append(contentsOf: assumptions)
             }
             if let sanityWarning = draft.sanityWarning, !sanityWarning.isEmpty {
                 lines.append(sanityWarning)
+            }
+            if draft.requiresEditBeforeConfirm {
+                lines.append(FoodEstimateTrustPolicy.editBeforeLoggingMessage)
             }
             return lines.joined(separator: "\n")
         case .water(let draft, _):
@@ -75,6 +79,16 @@ enum CoachPendingConfirmation: Equatable {
     var supportsPhotoRetry: Bool {
         guard case .food(let draft) = self else { return false }
         return draft.relatedPhotoUserMessageID != nil && draft.confidence == .low
+    }
+
+    var isConfirmBlocked: Bool {
+        guard case .food(let draft) = self else { return false }
+        return draft.requiresEditBeforeConfirm
+    }
+
+    var confirmBlockedReason: String? {
+        guard case .food(let draft) = self, draft.requiresEditBeforeConfirm else { return nil }
+        return FoodEstimateTrustPolicy.editBeforeLoggingMessage
     }
 
     var relatedPhotoUserMessageID: UUID? {
@@ -102,7 +116,7 @@ enum CoachPendingConfirmation: Equatable {
         case .food(let draft):
             let meal = draft.primaryMealDraft
             if meal.hasUsableNutritionEstimate {
-                return "~\(meal.totalCalories) kcal"
+                return AIFoodConfirmationFormatter.compactCaloriesDisplay(for: meal)
             }
             let name = meal.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
             return name.isEmpty ? nil : name

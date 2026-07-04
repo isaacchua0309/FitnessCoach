@@ -20,7 +20,9 @@ enum CoachPendingConfirmationPresenter {
         confidence: AIConfidence,
         sanityWarning: String? = nil,
         fromPhotoAnalysis: Bool = false,
-        sourceAttribution: CoachTimelineEventSourceAttribution? = nil
+        sourceAttribution: CoachTimelineEventSourceAttribution? = nil,
+        sanityFailed: Bool = false,
+        requiresEditBeforeConfirm: Bool = false
     ) -> CoachActionResult {
         let draft = AIFoodConfirmationDraft(
             originalText: originalText,
@@ -29,6 +31,8 @@ enum CoachPendingConfirmationPresenter {
             confidence: confidence,
             requiresConfirmation: true,
             sanityWarning: sanityWarning,
+            requiresEditBeforeConfirm: requiresEditBeforeConfirm,
+            sanityFailed: sanityFailed,
             sourceAttribution: sourceAttribution
         )
         let message = CoachResponseBuilder.aiFoodEstimatePending(
@@ -38,6 +42,7 @@ enum CoachPendingConfirmationPresenter {
             sanityWarning: sanityWarning,
             fromPhotoAnalysis: fromPhotoAnalysis
         )
+        logFoodEstimateTrustObservability(for: draft)
         return .pending(.food(draft), message: message)
     }
 
@@ -72,6 +77,10 @@ enum CoachPendingConfirmationPresenter {
             prompt: request.originalText,
             confidence: confidence
         )
+        let trustGate = FoodEstimateTrustPolicy.confirmGate(
+            sanityResult: sanity,
+            userEditedBeforeConfirm: false
+        )
         let draft = AIFoodConfirmationDraft(
             originalText: request.originalText,
             assistantMessage: request.estimate.explanation,
@@ -79,8 +88,11 @@ enum CoachPendingConfirmationPresenter {
             confidence: sanity.confidence,
             requiresConfirmation: true,
             sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage,
+            requiresEditBeforeConfirm: trustGate.requiresEditBeforeConfirm,
+            sanityFailed: trustGate.sanityFailed,
             sourceAttribution: sourceAttribution
         )
+        logFoodEstimateTrustObservability(for: draft)
         return .pending(
             .food(draft),
             message: CoachResponseBuilder.localFoodEstimatePending(
@@ -122,10 +134,20 @@ enum CoachPendingConfirmationPresenter {
             return nil
         }
 
+        if case .food(let draft) = confirmation, draft.requiresEditBeforeConfirm {
+            return .message(FoodEstimateTrustPolicy.editBeforeLoggingMessage)
+        }
+
         let response = await executor.executePendingConfirmation(
             confirmation,
             timelineContext: timelineContext
         )
         return .message(response)
+    }
+
+    private static func logFoodEstimateTrustObservability(for draft: AIFoodConfirmationDraft) {
+        CoachAccuracyObservabilityLogger.logFoodEstimateTrust(
+            CoachFoodEstimateTrustObservabilitySnapshot.from(draft)
+        )
     }
 }

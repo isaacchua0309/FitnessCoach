@@ -618,6 +618,10 @@ final class CoachAIRouteHandler {
             confidence: confidence
         )
         let resolvedSanityWarning = sanityWarning ?? (sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage)
+        let trustGate = FoodEstimateTrustPolicy.confirmGate(
+            sanityResult: sanity,
+            userEditedBeforeConfirm: false
+        )
 
         if let debugContext {
             logFoodEstimateDebug(
@@ -654,7 +658,9 @@ final class CoachAIRouteHandler {
                 confidence: sanity.confidence,
                 sanityWarning: resolvedSanityWarning,
                 fromPhotoAnalysis: fromPhotoAnalysis,
-                sourceAttribution: sourceAttribution
+                sourceAttribution: sourceAttribution,
+                sanityFailed: trustGate.sanityFailed,
+                requiresEditBeforeConfirm: trustGate.requiresEditBeforeConfirm
             )
         case .reject(let message):
             return .message(message)

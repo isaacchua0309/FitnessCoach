@@ -115,6 +115,31 @@ final class FoodLogDraftTests: XCTestCase {
         XCTAssertNil(draft.mealType)
     }
 
+    func testDecodesAssumptionsAndCalorieRanges() throws {
+        let json = """
+        {
+          "displayName": "Chicken rice",
+          "components": [{
+            "name": "Chicken rice",
+            "calories": 520,
+            "protein": 30,
+            "carbs": 60,
+            "fat": 15
+          }],
+          "confidence": "medium",
+          "source": "aiTextEstimate",
+          "assumptions": ["Medium plate"],
+          "caloriesRangeLower": 450,
+          "caloriesRangeUpper": 750
+        }
+        """.data(using: .utf8)!
+
+        let draft = try JSONDecoder().decode(FoodLogDraft.self, from: json)
+        XCTAssertEqual(draft.assumptions, ["Medium plate"])
+        XCTAssertEqual(draft.caloriesRangeLower, 450)
+        XCTAssertEqual(draft.caloriesRangeUpper, 750)
+    }
+
     private func sampleBowlMeal() -> FoodLogDraft {
         FoodLogDraft(
             displayName: "Chicken barley bowl",

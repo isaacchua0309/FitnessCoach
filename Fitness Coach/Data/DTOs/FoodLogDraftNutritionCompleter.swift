@@ -22,6 +22,7 @@ enum FoodLogDraftNutritionCompleter {
         )
         result = clearMixedMealPortionFields(result)
         result = appendReviewWarnings(result, hintText: hintText)
+        result = FoodCalorieRangeResolver.fillMissingRanges(result)
         return FoodLogDraftMapper.reconcileTotals(result)
     }
 

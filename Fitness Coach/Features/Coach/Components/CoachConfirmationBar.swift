@@ -174,7 +174,7 @@ struct CoachConfirmationBar: View {
                 Text(confirmLabel)
             }
         }
-        .disabled(isConfirming)
+        .disabled(isConfirming || confirmation.isConfirmBlocked)
         .accessibilityLabel(confirmLabel)
         .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardLogButton)
     }

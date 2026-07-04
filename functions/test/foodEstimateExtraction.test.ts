@@ -157,6 +157,9 @@ describe("foodEstimateExtraction", () => {
     expect(payload.foodLogDrafts[0].components).toHaveLength(2);
     expect(payload.foodDrafts[0].quantity).toBeNull();
     expect(payload.foodDrafts[0].calories).toBe(413);
+    expect(payload.foodLogDrafts[0].caloriesRangeLower).toBeLessThanOrEqual(413);
+    expect(payload.foodLogDrafts[0].caloriesRangeUpper).toBeGreaterThanOrEqual(413);
+    expect(payload.foodLogDrafts[0].assumptions).toEqual([]);
   });
 
   it("maps meal_type null string to null mealType", () => {

@@ -16,6 +16,9 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
     var source: FoodEntrySource
     var notes: String?
     var warnings: [String]
+    var assumptions: [String]
+    var caloriesRangeLower: Int?
+    var caloriesRangeUpper: Int?
     var imageUrl: String?
 
     init(
@@ -27,6 +30,9 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         source: FoodEntrySource = .aiTextEstimate,
         notes: String? = nil,
         warnings: [String] = [],
+        assumptions: [String] = [],
+        caloriesRangeLower: Int? = nil,
+        caloriesRangeUpper: Int? = nil,
         imageUrl: String? = nil
     ) {
         self.id = id
@@ -37,6 +43,9 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         self.source = source
         self.notes = notes
         self.warnings = warnings
+        self.assumptions = assumptions
+        self.caloriesRangeLower = caloriesRangeLower
+        self.caloriesRangeUpper = caloriesRangeUpper
         self.imageUrl = imageUrl
     }
 
@@ -50,6 +59,9 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         source = try container.decodeIfPresent(FoodEntrySource.self, forKey: .source) ?? .aiTextEstimate
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
         warnings = try container.decodeIfPresent([String].self, forKey: .warnings) ?? []
+        assumptions = try container.decodeIfPresent([String].self, forKey: .assumptions) ?? []
+        caloriesRangeLower = try container.decodeIfPresent(Int.self, forKey: .caloriesRangeLower)
+        caloriesRangeUpper = try container.decodeIfPresent(Int.self, forKey: .caloriesRangeUpper)
         imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
     }
 
@@ -82,6 +94,11 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         return totalProtein > 0 || totalCarbs > 0 || totalFat > 0
     }
 
+    var hasCalorieRange: Bool {
+        guard let lower = caloriesRangeLower, let upper = caloriesRangeUpper else { return false }
+        return lower >= 0 && upper >= lower
+    }
+
     /// Portion for legacy single-item display. Mixed meals intentionally omit a scalar amount.
     var legacyQuantity: Double? {
         guard !isMultiComponent else { return nil }
@@ -102,6 +119,9 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         case source
         case notes
         case warnings
+        case assumptions
+        case caloriesRangeLower
+        case caloriesRangeUpper
         case imageUrl
     }
 }

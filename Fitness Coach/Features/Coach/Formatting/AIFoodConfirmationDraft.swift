@@ -15,6 +15,8 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
     var confidence: AIConfidence
     var requiresConfirmation: Bool
     var sanityWarning: String?
+    var requiresEditBeforeConfirm: Bool
+    var sanityFailed: Bool
     var imageAnalysisSessionID: UUID?
     var relatedPhotoUserMessageID: UUID?
     var sourceAttribution: CoachTimelineEventSourceAttribution?
@@ -28,6 +30,8 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         confidence: AIConfidence,
         requiresConfirmation: Bool,
         sanityWarning: String? = nil,
+        requiresEditBeforeConfirm: Bool = false,
+        sanityFailed: Bool = false,
         imageAnalysisSessionID: UUID? = nil,
         relatedPhotoUserMessageID: UUID? = nil,
         sourceAttribution: CoachTimelineEventSourceAttribution? = nil,
@@ -40,6 +44,8 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         self.confidence = confidence
         self.requiresConfirmation = requiresConfirmation
         self.sanityWarning = sanityWarning
+        self.requiresEditBeforeConfirm = requiresEditBeforeConfirm
+        self.sanityFailed = sanityFailed
         self.imageAnalysisSessionID = imageAnalysisSessionID
         self.relatedPhotoUserMessageID = relatedPhotoUserMessageID
         self.sourceAttribution = sourceAttribution

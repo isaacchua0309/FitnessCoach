@@ -50,16 +50,18 @@ enum MealImageAnalysisMapper {
             .flatMap(\.assumptions)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-        warnings.append(contentsOf: assumptionLines.prefix(4))
 
-        return FoodLogDraft(
+        var draft = FoodLogDraft(
             displayName: displayName(for: response),
             components: components,
             confidence: confidenceLevel(from: overallConfidence(from: response)),
             source: .aiPhotoEstimate,
             notes: response.summary,
-            warnings: warnings
+            warnings: warnings,
+            assumptions: Array(assumptionLines.prefix(6))
         )
+        draft = FoodCalorieRangeResolver.fillMissingRanges(draft)
+        return draft
     }
 
     static func previousAnalysis(
