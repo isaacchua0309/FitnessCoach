@@ -288,7 +288,8 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
 
         let status = resolvedStatus(
             pullStatus: pullSummary.status,
-            uploadFailed: uploadFailed
+            uploadFailed: uploadFailed,
+            conflicts: pullSummary.conflicts
         )
 
         let summary = CrossDeviceSyncSummary(
@@ -417,9 +418,10 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
 
     private func resolvedStatus(
         pullStatus: CrossDeviceSyncStatus,
-        uploadFailed: Int
+        uploadFailed: Int,
+        conflicts: Int
     ) -> CrossDeviceSyncStatus {
-        if uploadFailed > 0 || pullStatus == .partial {
+        if uploadFailed > 0 || pullStatus == .partial || conflicts > 0 {
             return .partial
         }
         return pullStatus

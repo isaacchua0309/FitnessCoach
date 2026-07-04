@@ -2,7 +2,7 @@
 //  AccountSyncMergePolicy.swift
 //  Fitness Coach
 //
-//  Forma — Conflict-safe merge rules for cloud → local account data pull (Phase 3).
+//  Forma — Conflict-safe merge rules for cloud → local account data pull (Phase 3/5).
 //
 
 import Foundation
@@ -19,13 +19,26 @@ struct AccountSyncMergeContext: Equatable, Sendable {
     let localEffectiveUpdatedAt: Date?
 }
 
+/// Privacy-safe conflict classification for logs and sync metadata.
+enum AccountSyncMergeConflictReason: String, Equatable, Sendable, CaseIterable {
+    case pendingUploadVsRemoteNewer
+    case failedVsRemoteNewer
+    case pendingDeleteVsRemoteRevive
+    case pendingUploadVsRemoteDelete
+    case ownerMismatch
+
+    var logCode: String {
+        "merge_conflict:\(rawValue)"
+    }
+}
+
 enum AccountSyncMergeDecision: Equatable, Sendable {
     case insert
     case update
     case applyRemoteTombstone
     case skipStaleRemote
     case skipLocalNewer
-    case conflict
+    case conflict(AccountSyncMergeConflictReason)
     case failedOwnerMismatch
     case skipRemoteDeletedNoLocal
 }
@@ -68,11 +81,26 @@ enum AccountSyncMergePolicy {
             if resurrectPendingDeleteFromRemote, remoteIsNewer {
                 return .update
             }
+            if remoteIsNewer {
+                return .conflict(.pendingDeleteVsRemoteRevive)
+            }
             return .skipLocalNewer
 
-        case .pendingUpload, .failed, .conflict:
+        case .pendingUpload:
             if remoteIsNewer {
-                return .conflict
+                return .conflict(.pendingUploadVsRemoteNewer)
+            }
+            return .skipLocalNewer
+
+        case .failed:
+            if remoteIsNewer {
+                return .conflict(.failedVsRemoteNewer)
+            }
+            return .skipLocalNewer
+
+        case .conflict:
+            if remoteIsNewer {
+                return .conflict(.pendingUploadVsRemoteNewer)
             }
             return .skipLocalNewer
 
@@ -101,13 +129,7 @@ enum AccountSyncMergePolicy {
     ) -> AccountSyncMergeDecision {
         switch localStatus {
         case .pendingUpload, .failed, .conflict:
-            if let localEffectiveUpdatedAt, localEffectiveUpdatedAt > remoteDeletedAt {
-                return .skipLocalNewer
-            }
-            if remoteIsNewer {
-                return .applyRemoteTombstone
-            }
-            return .skipLocalNewer
+            return .conflict(.pendingUploadVsRemoteDelete)
 
         case .pendingDelete:
             return .applyRemoteTombstone
@@ -136,6 +158,36 @@ enum AccountSyncMergePolicy {
         return trimmed.isEmpty ? nil : trimmed
     }
 }
+
+#if DEBUG
+/// Debug-only helpers for inspecting merge conflicts without exposing payload data.
+enum AccountSyncMergeConflictInspector {
+
+    static func describe(_ reason: AccountSyncMergeConflictReason) -> String {
+        switch reason {
+        case .pendingUploadVsRemoteNewer:
+            return "Local pending upload diverged from a newer remote update."
+        case .failedVsRemoteNewer:
+            return "Local failed upload diverged from a newer remote update."
+        case .pendingDeleteVsRemoteRevive:
+            return "Local pending delete diverged from a newer active remote row."
+        case .pendingUploadVsRemoteDelete:
+            return "Local pending edit diverged from a remote delete."
+        case .ownerMismatch:
+            return "Local row owner does not match the signed-in account."
+        }
+    }
+
+    static func entitySummary(_ entity: AccountDataSyncMetadataEntity) -> String {
+        let cloudIdSuffix = entity.cloudId.map { String($0.suffix(6)) } ?? "none"
+        return [
+            "status=\(entity.syncStatus.rawValue)",
+            "cloudIdSuffix=\(cloudIdSuffix)",
+            "error=\(entity.lastSyncError ?? "none")"
+        ].joined(separator: " ")
+    }
+}
+#endif
 
 /// Applies accepted merge decisions to SwiftData entities and sync metadata.
 enum AccountSyncRemoteMergeApplicator {
@@ -189,10 +241,12 @@ enum AccountSyncRemoteMergeApplicator {
 
     static func markConflict(
         on entity: AccountDataSyncMetadataEntity,
-        remoteUpdatedAt: Date
+        remoteUpdatedAt: Date,
+        reason: AccountSyncMergeConflictReason
     ) {
         entity.syncStatusRawValue = AccountDataSyncStatus.conflict.rawValue
         entity.cloudUpdatedAt = remoteUpdatedAt
+        entity.lastSyncError = reason.logCode
     }
 
     static func apply(

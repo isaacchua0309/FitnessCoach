@@ -153,6 +153,7 @@ final class AccountIncrementalPuller: AccountIncrementalPulling {
             break
         case .conflict:
             profileConflicts = 1
+            AccountSyncLogger.profileMergeConflictDetected(uid: uid)
         case .failed:
             profileFailed = 1
         }
@@ -357,7 +358,7 @@ final class AccountIncrementalPuller: AccountIncrementalPulling {
         let totalFailed = mergeTotals.reduce(0) { $0 + $1.failed } + profileFailed + domainFailures
         let totalConflicts = mergeTotals.reduce(0) { $0 + $1.conflicts } + profileConflicts
         let endedAt = nowProvider()
-        let status: CrossDeviceSyncStatus = totalFailed > 0 ? .partial : .completed
+        let status: CrossDeviceSyncStatus = (totalFailed > 0 || totalConflicts > 0) ? .partial : .completed
 
         let summary = CrossDeviceSyncSummary(
             uid: normalizedUID,

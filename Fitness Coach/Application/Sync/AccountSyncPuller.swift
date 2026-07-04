@@ -248,16 +248,27 @@ final class AccountSyncPuller: AccountSyncPulling {
             case .skipLocalNewer:
                 stats.skippedLocalNewer += 1
 
-            case .conflict:
+            case .conflict(let reason):
                 if let entity = existing {
                     AccountSyncRemoteMergeApplicator.markConflict(
                         on: entity,
-                        remoteUpdatedAt: document.updatedAt
+                        remoteUpdatedAt: document.updatedAt,
+                        reason: reason
+                    )
+                    recordMergeConflict(
+                        entityType: .dailyLog,
+                        cloudId: cloudId,
+                        reason: reason
                     )
                 }
                 stats.conflicts += 1
 
             case .failedOwnerMismatch:
+                recordMergeConflict(
+                    entityType: .dailyLog,
+                    cloudId: cloudId,
+                    reason: .ownerMismatch
+                )
                 stats.failed += 1
             }
         } catch {
@@ -328,16 +339,27 @@ final class AccountSyncPuller: AccountSyncPulling {
             case .skipLocalNewer:
                 stats.skippedLocalNewer += 1
 
-            case .conflict:
+            case .conflict(let reason):
                 if let entity = existing {
                     AccountSyncRemoteMergeApplicator.markConflict(
                         on: entity,
-                        remoteUpdatedAt: document.updatedAt
+                        remoteUpdatedAt: document.updatedAt,
+                        reason: reason
+                    )
+                    recordMergeConflict(
+                        entityType: .foodEntry,
+                        cloudId: cloudId,
+                        reason: reason
                     )
                 }
                 stats.conflicts += 1
 
             case .failedOwnerMismatch:
+                recordMergeConflict(
+                    entityType: .foodEntry,
+                    cloudId: cloudId,
+                    reason: .ownerMismatch
+                )
                 stats.failed += 1
             }
         } catch {
@@ -408,16 +430,27 @@ final class AccountSyncPuller: AccountSyncPulling {
             case .skipLocalNewer:
                 stats.skippedLocalNewer += 1
 
-            case .conflict:
+            case .conflict(let reason):
                 if let entity = existing {
                     AccountSyncRemoteMergeApplicator.markConflict(
                         on: entity,
-                        remoteUpdatedAt: document.updatedAt
+                        remoteUpdatedAt: document.updatedAt,
+                        reason: reason
+                    )
+                    recordMergeConflict(
+                        entityType: .waterEntry,
+                        cloudId: cloudId,
+                        reason: reason
                     )
                 }
                 stats.conflicts += 1
 
             case .failedOwnerMismatch:
+                recordMergeConflict(
+                    entityType: .waterEntry,
+                    cloudId: cloudId,
+                    reason: .ownerMismatch
+                )
                 stats.failed += 1
             }
         } catch {
@@ -483,16 +516,27 @@ final class AccountSyncPuller: AccountSyncPulling {
             case .skipLocalNewer:
                 stats.skippedLocalNewer += 1
 
-            case .conflict:
+            case .conflict(let reason):
                 if let entity = existing {
                     AccountSyncRemoteMergeApplicator.markConflict(
                         on: entity,
-                        remoteUpdatedAt: document.updatedAt
+                        remoteUpdatedAt: document.updatedAt,
+                        reason: reason
+                    )
+                    recordMergeConflict(
+                        entityType: .weightEntry,
+                        cloudId: cloudId,
+                        reason: reason
                     )
                 }
                 stats.conflicts += 1
 
             case .failedOwnerMismatch:
+                recordMergeConflict(
+                    entityType: .weightEntry,
+                    cloudId: cloudId,
+                    reason: .ownerMismatch
+                )
                 stats.failed += 1
             }
         } catch {
@@ -565,16 +609,27 @@ final class AccountSyncPuller: AccountSyncPulling {
             case .skipLocalNewer:
                 stats.skippedLocalNewer += 1
 
-            case .conflict:
+            case .conflict(let reason):
                 if let entity = existing {
                     AccountSyncRemoteMergeApplicator.markConflict(
                         on: entity,
-                        remoteUpdatedAt: document.updatedAt
+                        remoteUpdatedAt: document.updatedAt,
+                        reason: reason
+                    )
+                    recordMergeConflict(
+                        entityType: .dailyReview,
+                        cloudId: cloudId,
+                        reason: reason
                     )
                 }
                 stats.conflicts += 1
 
             case .failedOwnerMismatch:
+                recordMergeConflict(
+                    entityType: .dailyReview,
+                    cloudId: cloudId,
+                    reason: .ownerMismatch
+                )
                 stats.failed += 1
             }
         } catch {
@@ -646,6 +701,18 @@ final class AccountSyncPuller: AccountSyncPulling {
                     contentUpdatedAt: contentUpdatedAt ?? remoteUpdatedAt
                 )
             }
+        )
+    }
+
+    private func recordMergeConflict(
+        entityType: AccountSyncEntityType,
+        cloudId: String,
+        reason: AccountSyncMergeConflictReason
+    ) {
+        AccountSyncLogger.mergeConflictDetected(
+            entityType: entityType,
+            cloudIdSuffix: String(cloudId.suffix(6)),
+            reason: reason
         )
     }
 

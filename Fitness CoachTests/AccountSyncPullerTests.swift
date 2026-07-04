@@ -257,6 +257,83 @@ final class AccountSyncPullerTests: XCTestCase {
         XCTAssertNotNil(food.cloudUpdatedAt)
     }
 
+    func testPullMarksConflictWhenPendingUploadAndRemoteDelete() async throws {
+        let foodID = UUID()
+        let dailyLog = try seedDailyLog(ownerUID: ownerUID)
+        let food = try seedFood(
+            id: foodID,
+            dailyLog: dailyLog,
+            ownerUID: ownerUID,
+            name: "Local Draft",
+            updatedAt: referenceDate.addingTimeInterval(300)
+        )
+        food.syncStatus = .pendingUpload
+        food.localUpdatedAt = referenceDate.addingTimeInterval(300)
+        try store.save()
+
+        let deletedAt = referenceDate.addingTimeInterval(120)
+        let remoteDailyLog = makeDailyLogDocument(caloriesConsumed: 100)
+        var remoteFood = makeFoodDocument(
+            entryId: foodID.uuidString,
+            name: "Deleted Remote",
+            updatedAt: deletedAt
+        )
+        remoteFood.deletedAt = deletedAt
+        try await remoteStore.saveDailyLog(remoteDailyLog, uid: ownerUID)
+        try await remoteStore.saveFoodEntry(remoteFood, uid: ownerUID)
+
+        let summary = await puller.pullRecentAccountData(
+            for: ownerUID,
+            from: localDate,
+            to: localDate
+        )
+
+        XCTAssertEqual(summary.conflicts, 1)
+        XCTAssertEqual(food.name, "Local Draft")
+        XCTAssertEqual(food.syncStatus, .conflict)
+        XCTAssertNil(food.deletedAt)
+        XCTAssertEqual(food.lastSyncError, AccountSyncMergeConflictReason.pendingUploadVsRemoteDelete.logCode)
+    }
+
+    func testPullMarksConflictWhenPendingDeleteAndRemoteRevives() async throws {
+        let foodID = UUID()
+        let dailyLog = try seedDailyLog(ownerUID: ownerUID)
+        let food = try seedFood(
+            id: foodID,
+            dailyLog: dailyLog,
+            ownerUID: ownerUID,
+            name: "Pending Delete",
+            updatedAt: referenceDate
+        )
+        food.syncStatus = .pendingDelete
+        food.deletedAt = referenceDate
+        food.localUpdatedAt = referenceDate
+        try store.save()
+
+        let remoteDailyLog = makeDailyLogDocument(caloriesConsumed: 100)
+        let remoteFood = makeFoodDocument(
+            entryId: foodID.uuidString,
+            name: "Remote Revived",
+            updatedAt: referenceDate.addingTimeInterval(300)
+        )
+        try await remoteStore.saveDailyLog(remoteDailyLog, uid: ownerUID)
+        try await remoteStore.saveFoodEntry(remoteFood, uid: ownerUID)
+
+        let summary = await puller.mergeFetchedDocuments(
+            for: ownerUID,
+            dailyLogs: [remoteDailyLog],
+            foodEntries: [remoteFood],
+            waterEntries: [],
+            weightEntries: [],
+            dailyReviews: []
+        )
+
+        XCTAssertEqual(summary.conflicts, 1)
+        XCTAssertEqual(food.name, "Pending Delete")
+        XCTAssertEqual(food.syncStatus, .conflict)
+        XCTAssertNotNil(food.deletedAt)
+    }
+
     func testPullerReturnsSummaryCounts() async throws {
         let foodID = UUID().uuidString
         let dailyLogDocument = makeDailyLogDocument(caloriesConsumed: 520)

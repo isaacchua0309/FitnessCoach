@@ -105,7 +105,38 @@ enum AccountSyncLogger {
                 "inserted": String(summary.inserted),
                 "updated": String(summary.updated),
                 "deleted": String(summary.deleted),
+                "skippedLocalNewer": String(summary.skippedLocalNewer),
+                "conflicts": String(summary.conflicts),
+                "failed": String(summary.failed),
                 "didRefreshUI": summary.didRefreshUI ? "true" : "false"
+            ]
+        )
+    }
+
+    nonisolated static func mergeConflictDetected(
+        entityType: AccountSyncEntityType,
+        cloudIdSuffix: String,
+        reason: AccountSyncMergeConflictReason
+    ) {
+        emit(
+            levelName: "info",
+            osLogType: .info,
+            message: "merge_conflict_detected",
+            fields: [
+                "entityType": entityType.rawValue,
+                "cloudIdSuffix": cloudIdSuffix,
+                "reason": reason.rawValue
+            ]
+        )
+    }
+
+    nonisolated static func profileMergeConflictDetected(uid: String) {
+        emit(
+            levelName: "info",
+            osLogType: .info,
+            message: "profile_merge_conflict_detected",
+            fields: [
+                "uidHash": hashedUID(uid)
             ]
         )
     }

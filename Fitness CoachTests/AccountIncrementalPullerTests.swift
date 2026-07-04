@@ -167,9 +167,10 @@ final class AccountIncrementalPullerTests: XCTestCase {
             reason: .appForeground
         )
 
-        XCTAssertEqual(summary.skippedLocalNewer, 1)
+        XCTAssertEqual(summary.conflicts, 1)
+        XCTAssertEqual(summary.status, .partial)
         XCTAssertEqual(try fetchFoodEntity(id: foodID.uuidString)?.name, "Local Draft")
-        XCTAssertEqual(try fetchFoodEntity(id: foodID.uuidString)?.syncStatus, .pendingUpload)
+        XCTAssertEqual(try fetchFoodEntity(id: foodID.uuidString)?.syncStatus, .conflict)
     }
 
     func testIncrementalPullAppliesRemoteDeleteTombstone() async throws {
