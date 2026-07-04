@@ -10,16 +10,51 @@ import XCTest
 
 final class AccountAuthDeletionTests: XCTestCase {
 
-    // MARK: - Policy
+    func testDeleteAuthMapsRecentLoginRequired() {
+        let error = NSError(
+            domain: AuthAccountDeletionErrorClassifier.firebaseAuthErrorDomain,
+            code: AuthAccountDeletionErrorClassifier.requiresRecentLoginCode
+        )
 
-    func testGoogleUserIsEligibleForAccountDeletion() {
         XCTAssertEqual(
-            AuthAccountDeletionPolicy.providerEligibility(isGoogleUser: true),
-            .google
+            AuthAccountDeletionErrorClassifier.classify(error),
+            .reauthenticationRequired
         )
     }
 
-    func testNonGoogleUserIsUnsupportedForAccountDeletion() {
+    func testReauthCancellationDoesNotLeaveLoadingState() async {
+        let authDeleting = await MainActor.run { InMemoryAccountAuthDeleting() }
+        await MainActor.run {
+            authDeleting.configuredReauthError = .cancelled
+        }
+
+        do {
+            try await authDeleting.reauthenticateForAccountDeletion()
+            XCTFail("Expected cancelled")
+        } catch {
+            await MainActor.run {
+                XCTAssertEqual(error as? AccountAuthDeletionError, .cancelled)
+                XCTAssertEqual(authDeleting.reauthCallCount, 1)
+                XCTAssertEqual(authDeleting.deleteCallCount, 0)
+            }
+        }
+    }
+
+    func testUnsupportedProviderShowsSafeError() async {
+        let authDeleting = await MainActor.run { InMemoryAccountAuthDeleting() }
+        await MainActor.run {
+            authDeleting.configuredDeleteError = .providerMismatch
+        }
+
+        do {
+            try await authDeleting.deleteCurrentAuthAccount()
+            XCTFail("Expected providerMismatch")
+        } catch {
+            await MainActor.run {
+                XCTAssertEqual(error as? AccountAuthDeletionError, .providerMismatch)
+            }
+        }
+
         XCTAssertEqual(
             AuthAccountDeletionPolicy.providerEligibility(isGoogleUser: false),
             .unsupported
@@ -30,17 +65,10 @@ final class AccountAuthDeletionTests: XCTestCase {
         )
     }
 
-    // MARK: - Error classification
-
-    func testClassifierMapsRequiresRecentLoginToReauthenticationRequired() {
-        let error = NSError(
-            domain: AuthAccountDeletionErrorClassifier.firebaseAuthErrorDomain,
-            code: AuthAccountDeletionErrorClassifier.requiresRecentLoginCode
-        )
-
+    func testGoogleUserIsEligibleForAccountDeletion() {
         XCTAssertEqual(
-            AuthAccountDeletionErrorClassifier.classify(error),
-            .reauthenticationRequired
+            AuthAccountDeletionPolicy.providerEligibility(isGoogleUser: true),
+            .google
         )
     }
 
@@ -68,8 +96,6 @@ final class AccountAuthDeletionTests: XCTestCase {
         )
     }
 
-    // MARK: - In-memory fake
-
     @MainActor
     func testInMemoryFakeCanSimulateReauthenticationRequiredThenRecovery() async {
         let authDeleting = InMemoryAccountAuthDeleting()
@@ -91,37 +117,5 @@ final class AccountAuthDeletionTests: XCTestCase {
 
         XCTAssertEqual(authDeleting.reauthCallCount, 1)
         XCTAssertEqual(authDeleting.deleteCallCount, 2)
-    }
-
-    @MainActor
-    func testInMemoryFakePropagatesCancelledReauthWithoutDeleting() async {
-        let authDeleting = InMemoryAccountAuthDeleting()
-        authDeleting.configuredReauthError = .cancelled
-
-        do {
-            try await authDeleting.reauthenticateForAccountDeletion()
-            XCTFail("Expected cancelled")
-        } catch {
-            XCTAssertEqual(error as? AccountAuthDeletionError, .cancelled)
-        }
-
-        authDeleting.configuredDeleteError = nil
-
-        try await authDeleting.deleteCurrentAuthAccount()
-        XCTAssertEqual(authDeleting.reauthCallCount, 1)
-        XCTAssertEqual(authDeleting.deleteCallCount, 1)
-    }
-
-    @MainActor
-    func testInMemoryFakeCanSimulateProviderMismatch() async {
-        let authDeleting = InMemoryAccountAuthDeleting()
-        authDeleting.configuredDeleteError = .providerMismatch
-
-        do {
-            try await authDeleting.deleteCurrentAuthAccount()
-            XCTFail("Expected providerMismatch")
-        } catch {
-            XCTAssertEqual(error as? AccountAuthDeletionError, .providerMismatch)
-        }
     }
 }

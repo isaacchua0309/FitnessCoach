@@ -7,6 +7,13 @@
 
 import SwiftUI
 
+private enum PlanEditShellLayout {
+    static let progressHeight: CGFloat = 3
+    static let progressSpacing: CGFloat = 6
+    static let sectionSpacing: CGFloat = FormaTokens.Spacing.sm
+    static let bottomInset: CGFloat = FormaTokens.Spacing.md
+}
+
 // MARK: - Shell
 
 struct PlanEditShell<Content: View>: View {
@@ -24,13 +31,6 @@ struct PlanEditShell<Content: View>: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private enum Layout {
-        static let progressHeight: CGFloat = 3
-        static let progressSpacing: CGFloat = 6
-        static let sectionSpacing: CGFloat = FormaTokens.Spacing.sm
-        static let bottomInset: CGFloat = FormaTokens.Spacing.md
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             PlanEditProgressIndicator(
@@ -39,11 +39,11 @@ struct PlanEditShell<Content: View>: View {
             )
             .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
             .padding(.top, FormaTokens.Spacing.xs)
-            .padding(.bottom, Layout.sectionSpacing)
+            .padding(.bottom, PlanEditShellLayout.sectionSpacing)
 
             PlanHeroCard(state: heroState)
                 .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
-                .padding(.bottom, Layout.sectionSpacing)
+                .padding(.bottom, PlanEditShellLayout.sectionSpacing)
                 .animation(
                     PlanEditMotion.animation(PlanEditMotion.heroUpdate, reduceMotion: reduceMotion),
                     value: heroState
@@ -78,7 +78,7 @@ struct PlanEditShell<Content: View>: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear.frame(height: Layout.bottomInset)
+            Color.clear.frame(height: PlanEditShellLayout.bottomInset)
         }
         .planEditSupportsDynamicType()
     }

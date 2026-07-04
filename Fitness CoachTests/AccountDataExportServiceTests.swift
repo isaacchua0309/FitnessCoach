@@ -101,7 +101,7 @@ final class AccountDataExportServiceTests: XCTestCase {
         }
     }
 
-    func testExportOnlyIncludesCurrentUIDData() async throws {
+    func testExportIncludesOnlyCurrentUIDData() async throws {
         try seedUserAData()
         try insertOwnedFood(name: "User B Meal", calories: 510, ownerUID: userB, imageUrl: "file:///secret.jpg")
         _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: userB)
@@ -117,7 +117,7 @@ final class AccountDataExportServiceTests: XCTestCase {
         XCTAssertFalse(bundle.dailyLogs.isEmpty)
     }
 
-    func testExportJSONExcludesRawMealImagesAndInternalErrors() async throws {
+    func testExportDoesNotIncludeRawImages() async throws {
         try seedUserAData(imageUrl: "file:///meal-photo.jpg")
         sessionUID = userA
 
@@ -128,8 +128,22 @@ final class AccountDataExportServiceTests: XCTestCase {
         XCTAssertTrue(json.contains("User A Meal"))
         XCTAssertFalse(json.localizedCaseInsensitiveContains("imageUrl"))
         XCTAssertFalse(json.localizedCaseInsensitiveContains("imageurl"))
+        XCTAssertFalse(json.localizedCaseInsensitiveContains("file://"))
         XCTAssertFalse(json.localizedCaseInsensitiveContains("lastSyncError"))
         XCTAssertFalse(json.localizedCaseInsensitiveContains("trace"))
+    }
+
+    func testExportDoesNotIncludeOtherUserData() async throws {
+        try seedUserAData()
+        try insertOwnedFood(name: "User B Meal", calories: 510, ownerUID: userB)
+        _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: userB)
+        sessionUID = userA
+
+        let bundle = try await exportService.buildExportBundle(for: userA)
+
+        XCTAssertEqual(bundle.foodEntries.count, 1)
+        XCTAssertEqual(bundle.foodEntries.first?.name, "User A Meal")
+        XCTAssertNotEqual(bundle.uid, userB)
     }
 
     func testExportRejectsMismatchedSessionUID() async throws {

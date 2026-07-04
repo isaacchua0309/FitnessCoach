@@ -53,7 +53,7 @@ struct PlanActivityLevelCard: View {
                     }
                 }
 
-                PlanSelectableCard.selectionCheckmark(isSelected: isSelected)
+                PlanSelectableCardAccessory.selectionCheckmark(isSelected: isSelected)
                     .padding(.top, 2)
             }
         }

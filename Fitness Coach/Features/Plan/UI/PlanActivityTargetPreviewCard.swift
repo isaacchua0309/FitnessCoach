@@ -64,12 +64,12 @@ struct PlanActivityTargetPreviewCard: View {
                 )
             )
         }
-        if let trainingAssumption = state.trainingAssumption {
+        if !state.trainingAssumption.isEmpty {
             rows.append(
                 PlanMetricRowDisplayModel(
                     id: "training",
                     label: activityCopy.trainingAssumptionLabel,
-                    value: trainingAssumption
+                    value: state.trainingAssumption
                 )
             )
         }

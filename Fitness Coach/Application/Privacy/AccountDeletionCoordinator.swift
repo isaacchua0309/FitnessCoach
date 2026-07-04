@@ -125,7 +125,7 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
     ) async -> AccountDeletionSummary {
         guard let pending = pendingReauthentication else {
             return failureSummary(
-                uid: uidProvider.currentUID() ?? "",
+                uid: uidProvider.currentUID ?? "",
                 scope: .fullAccount,
                 startedAt: nowProvider(),
                 status: .failed,
@@ -199,7 +199,7 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
 
         guard validateConfirmation(confirmation) else {
             return failureSummary(
-                uid: uidProvider.currentUID() ?? "",
+                uid: uidProvider.currentUID ?? "",
                 scope: scope,
                 startedAt: flowStartedAt,
                 status: .failed,
@@ -588,12 +588,12 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
                 authorizedUID: uid
             )
         }
-        guard let sessionUID = uidProvider.currentUID() else { return false }
+        guard let sessionUID = uidProvider.currentUID else { return false }
         return AccountDeletionPolicy.mayDeleteData(for: uid, sessionUID: sessionUID)
     }
 
     private func resolveSessionUID() -> String? {
-        guard let raw = uidProvider.currentUID()?.trimmingCharacters(in: .whitespacesAndNewlines),
+        guard let raw = uidProvider.currentUID?.trimmingCharacters(in: .whitespacesAndNewlines),
               !raw.isEmpty else {
             return nil
         }
@@ -713,7 +713,7 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
 
     private func invalidScopeSummary(scope: AccountDeletionScope) -> AccountDeletionSummary {
         failureSummary(
-            uid: uidProvider.currentUID() ?? "",
+            uid: uidProvider.currentUID ?? "",
             scope: scope,
             startedAt: nowProvider(),
             status: .failed,

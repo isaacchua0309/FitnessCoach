@@ -122,7 +122,7 @@ final class WaterLogService {
         dailyLog: DailyLogEntity?,
         mutationGroupId: String?
     ) throws {
-        let localDate = dailyLog.map { mutationTracker?.dailyLogCloudID(for: $0.date) }
+        let localDate = dailyLog.flatMap { mutationTracker?.dailyLogCloudID(for: $0.date) }
         if let mutationTracker {
             try mutationTracker.trackDelete(
                 entity: entity,
@@ -131,7 +131,7 @@ final class WaterLogService {
                 localDate: localDate,
                 mutationGroupId: mutationGroupId,
                 hardDelete: { [store] in
-                    store.delete(entity)
+                    try store.delete(entity)
                 }
             )
         } else {

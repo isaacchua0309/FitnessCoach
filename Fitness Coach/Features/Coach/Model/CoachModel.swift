@@ -70,6 +70,17 @@ final class CoachModel: ObservableObject {
     private let transcriptStore: CoachChatTranscriptStore
     private let imageAnalysisSessionStore = ImageAnalysisSessionStore()
     private let pendingImageLocalSources = CoachPendingImageLocalSourceStore()
+    private let coachAnalyticsLogger: any CoachAnalyticsLogging
+    private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
+    private let timelineRecorder: any CoachTimelineRecording
+    private var userEditedPendingBeforeConfirm = false
+    private var nutritionEstimateLogPending = false
+    private var lastNutritionActionTapAt: Date?
+    private var recordedTimelineUserMessageIDs = Set<UUID>()
+    private var recordedTimelineAssistantMessageIDs = Set<UUID>()
+    private var recordedTimelinePendingConfirmationKeys = Set<String>()
+    private var pendingConfirmationTimelineKey: UUID?
+    private var lastTimelineAttribution: CoachTimelineEventSourceAttribution = .localParser
 
     var awaitingPhotoClarification: Bool {
         imageAnalysisSessionStore.sessionAwaitingClarification() != nil
@@ -890,8 +901,8 @@ final class CoachModel: ObservableObject {
             guard let presentation = CoachLaunchPresentationBuilder.presentation(for: intent) else { return }
             mutateInputState { state in
                 state.updateText("")
-                state.removeAttachment()
-                state.error = nil
+                state.clearPendingImage()
+                state.clearImageError()
             }
             activeLaunchPresentation = presentation
             composerPlaceholderOverride = presentation.composerPlaceholder
@@ -901,8 +912,8 @@ final class CoachModel: ObservableObject {
             guard let presentation = CoachLaunchPresentationBuilder.presentation(for: intent) else { return }
             mutateInputState { state in
                 state.updateText("")
-                state.removeAttachment()
-                state.error = nil
+                state.clearPendingImage()
+                state.clearImageError()
             }
             activeLaunchPresentation = presentation
             composerPlaceholderOverride = presentation.composerPlaceholder
@@ -927,7 +938,7 @@ final class CoachModel: ObservableObject {
     func handleCoachBecameInactive() {
         consumeLaunchPresentation()
         requestsCameraPresentation = false
-        if inputState.trimmedText.isEmpty, inputState.attachment == nil {
+        if inputState.trimmedText.isEmpty, inputState.pendingImage == nil {
             clearComposerLaunchChrome()
         }
     }

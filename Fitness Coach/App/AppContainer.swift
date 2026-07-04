@@ -267,11 +267,11 @@ final class AppContainer {
         accountSyncUploader = AccountSyncUploader(
             outbox: accountSyncOutboxStore,
             payloadBuilder: SwiftDataAccountSyncPayloadBuilder(store: store),
-            remoteStore: accountDataRemoteStore,
+            remoteStore: self.accountDataRemoteStore,
             store: store
         )
         accountSyncPuller = AccountSyncPuller(
-            remoteStore: accountDataRemoteStore,
+            remoteStore: self.accountDataRemoteStore,
             store: store
         )
         accountSyncDiagnostics = AccountSyncDiagnostics()
@@ -284,6 +284,11 @@ final class AppContainer {
             deletionGuard: accountDeletionGuard
         )
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
+        dailyLogService = DailyLogService(
+            store: store,
+            userProfileService: userProfileService,
+            mutationTracker: accountLocalMutationTracker
+        )
         profileBootstrapService = ProfileBootstrapService(
             userProfileService: userProfileService,
             cloudStore: cloudUserProfileStore,
@@ -296,11 +301,6 @@ final class AppContainer {
         )
         cloudUploadFailureNotifier = ProfileCloudUploadFailureNotifier(
             syncStore: profileCloudSyncStore
-        )
-        dailyLogService = DailyLogService(
-            store: store,
-            userProfileService: userProfileService,
-            mutationTracker: accountLocalMutationTracker
         )
         targetService = TargetService(
             userProfileService: userProfileService,
@@ -431,15 +431,15 @@ final class AppContainer {
             mutationTracker: accountLocalMutationTracker
         )
 
-        accountRestoreStateStore = AccountRestoreStateStore(userDefaults: onboardingUserDefaults)
+        accountRestoreStateStore = AccountRestoreStateStore(userDefaults: self.onboardingUserDefaults)
         accountLocalDataInspector = AccountLocalDataInspector(
             store: store,
             userProfileService: userProfileService,
             outboxStore: accountSyncOutboxStore
         )
-        accountSyncCursorStore = AccountSyncCursorStore(userDefaults: onboardingUserDefaults)
+        accountSyncCursorStore = AccountSyncCursorStore(userDefaults: self.onboardingUserDefaults)
         accountIncrementalPuller = AccountIncrementalPuller(
-            remoteStore: accountDataRemoteStore,
+            remoteStore: self.accountDataRemoteStore,
             mergePuller: accountSyncPuller,
             cursorStore: accountSyncCursorStore,
             profileBootstrapService: profileBootstrapService,
@@ -472,12 +472,12 @@ final class AppContainer {
         )
         accountRemoteDataInspector = AccountRemoteDataInspector(
             cloudProfileStore: cloudUserProfileStore,
-            remoteStore: accountDataRemoteStore
+            remoteStore: self.accountDataRemoteStore
         )
         accountDataNamespaceService = AccountDataNamespaceService(
             store: store,
             healthCacheStore: healthCacheStore,
-            userDefaults: onboardingUserDefaults,
+            userDefaults: self.onboardingUserDefaults,
             syncCoordinator: accountSyncCoordinator
         )
         accountMigrationService = AccountMigrationService(
@@ -507,8 +507,8 @@ final class AppContainer {
             deletionGuard: accountDeletionGuard,
             diagnostics: accountRestoreDiagnostics,
             currentUIDProvider: { [weak authManager] in authManager?.currentUID },
-            onBackgroundBackfillFinished: { [weak self] _ in
-                self?.refreshCenter.notifyBackgroundBackfillDidComplete()
+            onBackgroundBackfillFinished: { [refreshCenter] _ in
+                refreshCenter.notifyBackgroundBackfillDidComplete()
             }
         )
         let accountDeletionBackendURL =
@@ -524,12 +524,12 @@ final class AppContainer {
         localAccountDataWipeService = LocalAccountDataWipeService(
             store: store,
             healthCacheStore: healthCacheStore,
-            userDefaults: onboardingUserDefaults,
+            userDefaults: self.onboardingUserDefaults,
             restoreStateStore: accountRestoreStateStore,
             syncCursorStore: accountSyncCursorStore,
             healthConsentStore: healthSummarySyncConsentStorage,
             healthSyncStateStore: UserDefaultsHealthSummaryRemoteSyncStateStore(
-                userDefaults: onboardingUserDefaults
+                userDefaults: self.onboardingUserDefaults
             ),
             profileCloudSyncStore: profileCloudSyncStore,
             currentSessionUIDProvider: { [weak authManager] in authManager?.currentUID }
@@ -717,7 +717,7 @@ final class AppContainer {
 
     func makeAccountSyncDebugActions() -> AccountSyncDebugActions {
         AccountSyncDebugActions(
-            pendingMutationCount: { [accountSyncOutboxStore, authManager] in
+            pendingMutationCount: { [accountSyncOutboxStore, authManager, accountSyncDiagnostics] in
                 await accountSyncDiagnostics.pendingMutationCount(
                     outbox: accountSyncOutboxStore,
                     ownerUID: authManager.currentUID ?? ""

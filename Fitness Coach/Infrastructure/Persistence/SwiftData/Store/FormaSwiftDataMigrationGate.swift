@@ -64,13 +64,14 @@ enum FormaSchemaV7AccountSyncVerification {
 
     static func syncMetadataEntitiesAreRegisteredInV7Schema() -> Bool {
         let models = FormaSchemaV7.models
-        return [
+        let required: [any PersistentModel.Type] = [
             DailyLogEntity.self,
             FoodEntryEntity.self,
             WaterEntryEntity.self,
             WeightEntryEntity.self,
             DailyReviewEntity.self
-        ].allSatisfy { entity in
+        ]
+        return required.allSatisfy { entity in
             models.contains(where: { $0 == entity })
         }
     }
@@ -96,13 +97,14 @@ enum FormaSchemaV9AccountSyncVerification {
 
     static func syncMetadataEntitiesAreRegisteredInActiveSchema() -> Bool {
         let models = FormaSchemaV9.models
-        return [
+        let required: [any PersistentModel.Type] = [
             DailyLogEntity.self,
             FoodEntryEntity.self,
             WaterEntryEntity.self,
             WeightEntryEntity.self,
             DailyReviewEntity.self
-        ].allSatisfy { entity in
+        ]
+        return required.allSatisfy { entity in
             models.contains(where: { $0 == entity })
         }
     }

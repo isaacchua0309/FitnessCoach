@@ -51,7 +51,7 @@ struct PlanGoalSelectionCard: View {
                 Spacer(minLength: 0)
             }
 
-            PlanSelectableCard.selectionCheckmark(isSelected: isSelected)
+            PlanSelectableCardAccessory.selectionCheckmark(isSelected: isSelected)
         }
     }
 

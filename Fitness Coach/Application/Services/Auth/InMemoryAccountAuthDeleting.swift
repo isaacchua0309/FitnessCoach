@@ -15,9 +15,12 @@ final class InMemoryAccountAuthDeleting: AccountAuthDeleting {
 
     var configuredDeleteError: AccountAuthDeletionError?
     var configuredReauthError: AccountAuthDeletionError?
+    var onDeleteCalled: (() -> Void)?
+    var onReauthCalled: (() -> Void)?
 
     func deleteCurrentAuthAccount() async throws {
         deleteCallCount += 1
+        onDeleteCalled?()
         if let configuredDeleteError {
             throw configuredDeleteError
         }
@@ -25,6 +28,7 @@ final class InMemoryAccountAuthDeleting: AccountAuthDeleting {
 
     func reauthenticateForAccountDeletion() async throws {
         reauthCallCount += 1
+        onReauthCalled?()
         if let configuredReauthError {
             throw configuredReauthError
         }

@@ -409,7 +409,7 @@ final class FirestoreAccountDataRemoteStore: AccountDataRemoteStore, @unchecked 
         return query.limit(to: limit)
     }
 
-    private func validatedDocuments<T: CloudAccountDataDocument>(
+    private func validatedDocuments<T: CloudAccountDataDocument & Decodable>(
         from snapshots: [QueryDocumentSnapshot],
         as type: T.Type,
         sessionUID: String

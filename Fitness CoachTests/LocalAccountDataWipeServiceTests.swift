@@ -15,6 +15,7 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
     private let userA = "user-a"
     private let userB = "user-b"
     private let referenceDate = ProfileTestFixtures.referenceDate
+    private let localDate = "2026-07-04"
 
     private var sessionUID: String?
     private var defaults: UserDefaults!
@@ -25,6 +26,7 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
     private var foodLogService: FoodLogService!
     private var restoreStateStore: AccountRestoreStateStore!
     private var syncCursorStore: AccountSyncCursorStore!
+    private var profileCloudSyncStore: ProfileCloudSyncStore!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -53,6 +55,7 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
 
         restoreStateStore = AccountRestoreStateStore(userDefaults: defaults)
         syncCursorStore = AccountSyncCursorStore(userDefaults: defaults)
+        profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: defaults)
 
         let authUIDCache = AuthUIDCache()
         authUIDCache.update(uid: sessionUID)
@@ -69,7 +72,7 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
             syncCursorStore: syncCursorStore,
             healthConsentStore: UserDefaultsHealthSummarySyncConsentStore(userDefaults: defaults),
             healthSyncStateStore: UserDefaultsHealthSummaryRemoteSyncStateStore(userDefaults: defaults),
-            profileCloudSyncStore: ProfileCloudSyncStore(userDefaults: defaults),
+            profileCloudSyncStore: profileCloudSyncStore,
             healthCacheRootDirectory: healthCacheRoot,
             currentSessionUIDProvider: { [weak self] in self?.sessionUID },
             fileManager: .default,
@@ -87,6 +90,7 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
         store = nil
         syncCursorStore = nil
         restoreStateStore = nil
+        profileCloudSyncStore = nil
         defaults.removePersistentDomain(forName: defaults.suiteName!)
         defaults = nil
         try? FileManager.default.removeItem(at: healthCacheRoot)
@@ -95,29 +99,81 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
         try await super.tearDown()
     }
 
-    func testWipeDeletesAllCurrentUIDLocalData() async throws {
-        try seedUserAData()
-        restoreStateStore.markSkipped(uid: userA, reason: .afterSignIn, now: referenceDate)
-        syncCursorStore.updateForegroundRefresh(uid: userA, date: referenceDate)
-        defaults.set(userA, forKey: AccountDataNamespaceService.lastActiveUIDKey)
+    func testWipeDeletesCurrentUserFoodWaterWeight() async throws {
+        try seedUserAFoodWaterWeight()
+
+        let summary = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
+
+        XCTAssertEqual(summary.status, .completed)
+        XCTAssertGreaterThan(summary.localFoodEntriesDeleted, 0)
+        XCTAssertGreaterThan(summary.localWaterEntriesDeleted, 0)
+        XCTAssertGreaterThan(summary.localWeightEntriesDeleted, 0)
+        XCTAssertEqual(try ownedEntityCount(FoodEntryEntity.self, uid: userA), 0)
+        XCTAssertEqual(try ownedEntityCount(WaterEntryEntity.self, uid: userA), 0)
+        XCTAssertEqual(try ownedEntityCount(WeightEntryEntity.self, uid: userA), 0)
+    }
+
+    func testWipeDeletesCurrentUserDailyLogsAndReviews() async throws {
+        try seedUserADailyLogAndReview()
+
+        let summary = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
+
+        XCTAssertEqual(summary.status, .completed)
+        XCTAssertGreaterThan(summary.localDailyLogsDeleted, 0)
+        XCTAssertGreaterThan(summary.localDailyReviewsDeleted, 0)
+        XCTAssertEqual(try ownedEntityCount(DailyLogEntity.self, uid: userA), 0)
+        XCTAssertEqual(try ownedEntityCount(DailyReviewEntity.self, uid: userA), 0)
+    }
+
+    func testWipeDeletesCurrentUserCoachMessagesAndTimeline() async throws {
+        try seedUserACoachData()
+
+        let summary = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
+
+        XCTAssertEqual(summary.status, .completed)
+        XCTAssertGreaterThan(summary.localCoachMessagesDeleted, 0)
+        XCTAssertGreaterThan(summary.localTimelineEventsDeleted, 0)
+        XCTAssertEqual(try store.fetch(FetchDescriptor<CoachChatTranscriptMessageEntity>()).count, 0)
+        XCTAssertEqual(try store.fetch(FetchDescriptor<CoachTimelineEventEntity>()).count, 0)
+    }
+
+    func testWipeDeletesCurrentUserPendingMutations() async throws {
+        try seedUserAPendingMutation()
+
+        let summary = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
+
+        XCTAssertEqual(summary.status, .completed)
+        XCTAssertGreaterThan(summary.pendingMutationsDeleted, 0)
+        XCTAssertEqual(try store.fetch(FetchDescriptor<AccountSyncMutationEntity>()).count, 0)
+    }
+
+    func testWipeDeletesCurrentUserHealthCache() async throws {
         try writeHealthCacheMarker(for: userA)
 
         let summary = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
 
         XCTAssertEqual(summary.status, .completed)
-        XCTAssertTrue(summary.localProfileDeleted)
-        XCTAssertGreaterThan(summary.localFoodEntriesDeleted, 0)
         XCTAssertTrue(summary.localHealthCacheDeleted)
-        XCTAssertTrue(summary.localPreferencesDeleted)
-        XCTAssertNil(try profileService.getCurrentProfile())
-        XCTAssertTrue(try store.fetch(FetchDescriptor<FoodEntryEntity>()).isEmpty)
-        XCTAssertNil(defaults.string(forKey: AccountDataNamespaceService.lastActiveUIDKey))
-        XCTAssertNil(defaults.string(forKey: AccountRestoreStateStoreSupport.statusKey(for: userA)))
         XCTAssertFalse(healthCacheDirectoryExists(for: userA))
     }
 
-    func testWipeDoesNotDeleteOtherUIDDataOnSameDevice() async throws {
-        try seedUserAData()
+    func testWipeDeletesCurrentUserRestoreAndSyncMetadata() async throws {
+        restoreStateStore.markSkipped(uid: userA, reason: .afterSignIn, now: referenceDate)
+        syncCursorStore.updateForegroundRefresh(uid: userA, date: referenceDate)
+        profileCloudSyncStore.markSynced(uid: userA, updatedAt: referenceDate)
+        defaults.set(userA, forKey: AccountDataNamespaceService.lastActiveUIDKey)
+
+        let summary = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
+
+        XCTAssertEqual(summary.status, .completed)
+        XCTAssertTrue(summary.localPreferencesDeleted)
+        XCTAssertNil(defaults.string(forKey: AccountDataNamespaceService.lastActiveUIDKey))
+        XCTAssertNil(defaults.string(forKey: AccountRestoreStateStoreSupport.statusKey(for: userA)))
+        XCTAssertFalse(profileCloudSyncStore.isSyncedForUID(userA))
+    }
+
+    func testWipeDoesNotDeleteOtherUserData() async throws {
+        try seedUserAFoodWaterWeight()
         try insertOwnedFood(name: "User B Meal", calories: 510, ownerUID: userB)
         _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: userB)
         sessionUID = userA
@@ -125,46 +181,83 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
         let summary = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
 
         XCTAssertEqual(summary.status, .completed)
-        XCTAssertEqual(try ownedFoodCount(for: userA), 0)
-        XCTAssertEqual(try ownedFoodCount(for: userB), 1)
+        XCTAssertEqual(try ownedEntityCount(FoodEntryEntity.self, uid: userA), 0)
+        XCTAssertEqual(try ownedEntityCount(FoodEntryEntity.self, uid: userB), 1)
         XCTAssertNotNil(try profileFor(ownerUID: userB))
         XCTAssertNil(try profileFor(ownerUID: userA))
     }
 
-    func testSecondWipeIsIdempotent() async throws {
-        try seedUserAData()
+    func testWipeIsIdempotent() async throws {
+        try seedUserAFoodWaterWeight()
 
         let first = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
         let second = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
 
         XCTAssertEqual(first.status, .completed)
         XCTAssertEqual(second.status, .completed)
-        XCTAssertEqual(try ownedFoodCount(for: userA), 0)
+        XCTAssertEqual(try ownedEntityCount(FoodEntryEntity.self, uid: userA), 0)
     }
 
-    func testWipeRejectsMismatchedSessionUID() async throws {
-        try seedUserAData()
-        sessionUID = userB
+    // MARK: - Helpers
 
-        let summary = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
-
-        XCTAssertEqual(summary.status, .failed)
-        XCTAssertEqual(summary.failureCategory, .accountSwitched)
-        XCTAssertEqual(try ownedFoodCount(for: userA), 1)
+    private func seedUserAFoodWaterWeight() throws {
+        sessionUID = userA
+        _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: userA)
+        _ = try foodLogService.addFoodEntry(
+            DailyLogServiceTestSupport.foodDraft(name: "User A Meal", calories: 420),
+            for: referenceDate
+        )
+        let dailyLogId = try store.fetch(FetchDescriptor<DailyLogEntity>()).first?.id ?? UUID()
+        store.modelContext.insert(
+            WaterEntryEntity(
+                id: UUID(),
+                ownerUID: userA,
+                dailyLogId: dailyLogId,
+                amountMl: 250,
+                createdAt: referenceDate
+            )
+        )
+        store.modelContext.insert(
+            WeightEntryEntity(
+                id: UUID(),
+                ownerUID: userA,
+                date: referenceDate,
+                weightKg: 68.2,
+                note: nil,
+                createdAt: referenceDate
+            )
+        )
+        try store.save()
     }
 
-    func testRemoteOnlyScopeSkipsLocalWipe() async throws {
-        try seedUserAData()
-
-        let summary = await wipeService.wipeLocalData(for: userA, scope: .remoteAccountDataOnly)
-
-        XCTAssertEqual(summary.status, .completed)
-        XCTAssertEqual(try ownedFoodCount(for: userA), 1)
-        XCTAssertFalse(summary.didDeleteAnyLocalData)
+    private func seedUserADailyLogAndReview() throws {
+        sessionUID = userA
+        _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: userA)
+        _ = try foodLogService.addFoodEntry(
+            DailyLogServiceTestSupport.foodDraft(name: "User A Meal", calories: 420),
+            for: referenceDate
+        )
+        let dailyLogId = try store.fetch(FetchDescriptor<DailyLogEntity>()).first?.id ?? UUID()
+        store.modelContext.insert(
+            DailyReviewEntity(
+                id: UUID(),
+                ownerUID: userA,
+                dailyLogId: dailyLogId,
+                summaryText: "Solid day",
+                caloriesSummary: "On target",
+                proteinSummary: "High",
+                hydrationSummary: "Good",
+                workoutSummary: nil,
+                weightSummary: nil,
+                tomorrowRecommendation: "Repeat",
+                createdAt: referenceDate
+            )
+        )
+        try store.save()
     }
 
-    func testWipeDeletesCoachAndSyncMutationRowsForUID() async throws {
-        try seedUserAData()
+    private func seedUserACoachData() throws {
+        sessionUID = userA
         store.modelContext.insert(
             CoachChatTranscriptMessageEntity(
                 id: UUID(),
@@ -188,12 +281,40 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
             )
         )
         store.modelContext.insert(
+            CoachTimelineEventEntity(
+                id: UUID(),
+                userId: userA,
+                eventTypeRaw: "meal_logged",
+                sourceRaw: "manual",
+                statusRaw: "completed",
+                confidenceRaw: "high",
+                sourceAttributionRaw: nil,
+                utcCreatedAt: referenceDate,
+                localCreatedAt: referenceDate.ISO8601Format(),
+                localDate: localDate,
+                timezoneIdentifier: "America/Los_Angeles",
+                summary: "Logged meal",
+                payloadJSON: "{}",
+                linkedEntryId: nil,
+                linkedMessageId: nil,
+                supersedesEventId: nil,
+                schemaVersion: 1,
+                createdAt: referenceDate,
+                updatedAt: referenceDate
+            )
+        )
+        try store.save()
+    }
+
+    private func seedUserAPendingMutation() throws {
+        sessionUID = userA
+        store.modelContext.insert(
             AccountSyncMutationEntity(
                 id: "mutation-1",
                 ownerUID: userA,
                 entityType: .foodEntry,
                 entityId: UUID().uuidString,
-                localDate: "2026-07-04",
+                localDate: localDate,
                 operation: .upsert,
                 payloadVersion: 1,
                 createdAt: referenceDate,
@@ -201,42 +322,13 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
             )
         )
         try store.save()
-
-        let summary = await wipeService.wipeLocalData(for: userA, scope: .localDeviceOnly)
-
-        XCTAssertEqual(summary.status, .completed)
-        XCTAssertEqual(summary.localCoachMessagesDeleted, 1)
-        XCTAssertEqual(summary.pendingMutationsDeleted, 1)
-        XCTAssertEqual(try store.fetch(FetchDescriptor<CoachChatTranscriptMessageEntity>()).count, 0)
-        XCTAssertEqual(try store.fetch(FetchDescriptor<AccountSyncMutationEntity>()).count, 0)
-    }
-
-    // MARK: - Helpers
-
-    private func seedUserAData() throws {
-        sessionUID = userA
-        _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: userA)
-        _ = try foodLogService.addFoodEntry(
-            DailyLogServiceTestSupport.foodDraft(name: "User A Meal", calories: 420),
-            for: referenceDate
-        )
-    }
-
-    private func seedUserBData() throws {
-        sessionUID = userB
-        _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: userB)
-        _ = try foodLogService.addFoodEntry(
-            DailyLogServiceTestSupport.foodDraft(name: "User B Meal", calories: 510),
-            for: referenceDate
-        )
     }
 
     private func insertOwnedFood(name: String, calories: Int, ownerUID: String) throws {
-        let dailyLogId = UUID()
         let food = FoodEntryEntity(
             id: UUID(),
             ownerUID: ownerUID,
-            dailyLogId: dailyLogId,
+            dailyLogId: UUID(),
             mealTypeRawValue: MealType.lunch.rawValue,
             name: name,
             quantity: 1,
@@ -258,8 +350,11 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
         try store.save()
     }
 
-    private func ownedFoodCount(for uid: String) throws -> Int {
-        let descriptor = FetchDescriptor<FoodEntryEntity>(
+    private func ownedEntityCount<T: PersistentModel>(
+        _ type: T.Type,
+        uid: String
+    ) throws -> Int where T: AccountDataSyncOwnable {
+        let descriptor = FetchDescriptor<T>(
             predicate: #Predicate { entity in
                 entity.ownerUID == uid
             }

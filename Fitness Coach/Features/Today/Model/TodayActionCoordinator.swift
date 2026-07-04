@@ -116,13 +116,13 @@ final class TodayActionCoordinator: ObservableObject {
 
         switch destination {
         case .logMeal:
-            perform(.presentLogMeal(mealType: nil))
+            perform(.openCoach(.logMeal(mealType: nil)))
         case .addWater:
-            perform(.presentAddWater)
+            perform(.logWater(amountMl: 500))
         case .askCoach:
-            onOpenCoach?(nil)
+            onOpenCoach?(.normal)
         case .viewRecovery:
-            onOpenCoach?(nil)
+            onOpenCoach?(.normal)
         case .logWeight:
             perform(.presentLogWeight)
         case .connectHealth:
@@ -342,7 +342,7 @@ final class TodayActionCoordinator: ObservableObject {
                 log(.scanFoodTapped, actionType: "scan_food", route: "open_coach")
             case .logMeal(let mealType):
                 log(
-                    .logMealStarted,
+                    .mealAddTapped,
                     actionType: "log_meal",
                     mealType: TodayAnalyticsContextBuilder.mealTypeAction(mealType)
                 )

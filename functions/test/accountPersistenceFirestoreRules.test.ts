@@ -3,7 +3,7 @@ import {
   assertSucceeds,
   RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import {doc, getDoc, setDoc, updateDoc} from "firebase/firestore";
+import {deleteDoc, doc, getDoc, setDoc, updateDoc} from "firebase/firestore";
 import {
   accountPersistencePaths,
   dailyLogPayload,
@@ -204,6 +204,102 @@ describe("account persistence firestore rules", () => {
     );
     await assertFails(
       setDoc(doc(other.firestore(), accountPersistencePaths.profile(USER_A)), profilePayload())
+    );
+  });
+
+  // Phase 6 account deletion — client rules (backend uses Admin SDK; see accountDeletion.test.ts).
+  it("15. other user cannot delete another user's profile", async () => {
+    const owner = testEnv.authenticatedContext(USER_A);
+    const other = testEnv.authenticatedContext(USER_B);
+    const profileRef = doc(owner.firestore(), accountPersistencePaths.profile(USER_A));
+
+    await assertSucceeds(setDoc(profileRef, profilePayload()));
+    await assertFails(deleteDoc(doc(other.firestore(), accountPersistencePaths.profile(USER_A))));
+    await assertSucceeds(getDoc(profileRef));
+  });
+
+  it("16. other user cannot delete another user's daily log or nested entries", async () => {
+    const owner = testEnv.authenticatedContext(USER_A);
+    const other = testEnv.authenticatedContext(USER_B);
+
+    await assertSucceeds(
+      setDoc(
+        doc(owner.firestore(), accountPersistencePaths.dailyLog(USER_A)),
+        dailyLogPayload(USER_A)
+      )
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(owner.firestore(), accountPersistencePaths.foodEntry(USER_A)),
+        foodEntryPayload(USER_A)
+      )
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(owner.firestore(), accountPersistencePaths.waterEntry(USER_A)),
+        waterEntryPayload(USER_A)
+      )
+    );
+
+    await assertFails(
+      deleteDoc(doc(other.firestore(), accountPersistencePaths.dailyLog(USER_A)))
+    );
+    await assertFails(
+      deleteDoc(doc(other.firestore(), accountPersistencePaths.foodEntry(USER_A)))
+    );
+    await assertFails(
+      deleteDoc(doc(other.firestore(), accountPersistencePaths.waterEntry(USER_A)))
+    );
+  });
+
+  it("17. other user cannot delete another user's weight entries daily reviews or sync metadata", async () => {
+    const owner = testEnv.authenticatedContext(USER_A);
+    const other = testEnv.authenticatedContext(USER_B);
+
+    await assertSucceeds(
+      setDoc(
+        doc(owner.firestore(), accountPersistencePaths.weightEntry(USER_A)),
+        weightEntryPayload(USER_A)
+      )
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(owner.firestore(), accountPersistencePaths.dailyReview(USER_A)),
+        dailyReviewPayload(USER_A)
+      )
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(owner.firestore(), accountPersistencePaths.syncMetadata(USER_A)),
+        syncMetadataPayload(USER_A)
+      )
+    );
+
+    await assertFails(
+      deleteDoc(doc(other.firestore(), accountPersistencePaths.weightEntry(USER_A)))
+    );
+    await assertFails(
+      deleteDoc(doc(other.firestore(), accountPersistencePaths.dailyReview(USER_A)))
+    );
+    await assertFails(
+      deleteDoc(doc(other.firestore(), accountPersistencePaths.syncMetadata(USER_A)))
+    );
+  });
+
+  it("18. owner can delete own account persistence documents via client SDK", async () => {
+    const owner = testEnv.authenticatedContext(USER_A);
+
+    await assertSucceeds(
+      setDoc(
+        doc(owner.firestore(), accountPersistencePaths.dailyLog(USER_A)),
+        dailyLogPayload(USER_A)
+      )
+    );
+    await assertSucceeds(
+      deleteDoc(doc(owner.firestore(), accountPersistencePaths.dailyLog(USER_A)))
+    );
+    await assertFails(
+      getDoc(doc(owner.firestore(), accountPersistencePaths.dailyLog(USER_A)))
     );
   });
 });

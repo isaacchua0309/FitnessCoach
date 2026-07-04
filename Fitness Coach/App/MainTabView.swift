@@ -43,7 +43,6 @@ struct MainTabView: View {
     @Environment(\.formaResolvedTheme) private var resolvedTheme
 
     @StateObject private var todayModel: TodayModel
-    @StateObject private var todayActionCoordinator: TodayActionCoordinator
     @StateObject private var coachModel: CoachModel
     @StateObject private var journeyModel: JourneyModel
     @StateObject private var planModel: PlanModel
@@ -201,7 +200,7 @@ struct MainTabView: View {
 
     private func bootstrapAfterEntry() async {
         container.syncHealthCacheUserID()
-        await trainingInsightsStore.refresh()
+        await container.trainingInsightsStore.refresh()
         await todayModel.loadToday()
         await journeyModel.loadProgress()
         coachModel.refreshTodayContext()
@@ -223,7 +222,7 @@ struct MainTabView: View {
     private func coachLaunchIntent(fromLegacyPrefill prefill: String?) -> CoachLaunchIntent {
         guard let prefill, !prefill.isEmpty else { return .normal }
         if prefill == TodayCoachPrompt.scanFood {
-            return .analyzePhotoMeal
+            return .analyzePhotoMeal()
         }
         if prefill == TodayCoachPrompt.logWater {
             return .logWater(amountMl: 500)

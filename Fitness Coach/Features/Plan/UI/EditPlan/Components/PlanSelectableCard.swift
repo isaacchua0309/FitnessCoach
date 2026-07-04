@@ -57,17 +57,16 @@ struct PlanSelectableCard<Content: View>: View {
     }
 }
 
-extension PlanSelectableCard {
+enum PlanSelectableCardAccessory {
 
+    @ViewBuilder
     static func selectionCheckmark(isSelected: Bool) -> some View {
-        Group {
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                    .transition(.opacity)
-                    .accessibilityHidden(true)
-            }
+        if isSelected {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(FormaPlanTokens.Color.planAccent)
+                .transition(.opacity)
+                .accessibilityHidden(true)
         }
     }
 }

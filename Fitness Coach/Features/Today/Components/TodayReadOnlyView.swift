@@ -149,11 +149,11 @@ struct TodayReadOnlyView: View {
         VStack(alignment: .leading, spacing: TodayLayout.statusZoneSpacing) {
             TodayMissionHero(
                 mission: state.mission,
-                suppressLogMealCTA: Self.suppressesHeroLogMealCTA(for: state.nextBestAction),
                 onLogMeal: {
                     actionCoordinator.logPrimaryCTATapped()
                     actionCoordinator.performQuickAction(.logMeal)
                 },
+                suppressLogMealCTA: Self.suppressesHeroLogMealCTA(for: state.nextBestAction),
                 onViewed: {
                     actionCoordinator.logMissionViewed()
                 }

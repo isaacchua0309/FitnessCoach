@@ -144,6 +144,8 @@ enum AppShellRoutingLogger {
             return "onboardingStartInitializing"
         case .signedInProfileLoading:
             return "signedInProfileLoading"
+        case .accountRestoreFailed:
+            return "accountRestoreFailed"
         case .noExistingProfileFound:
             return "noExistingProfileFound"
         case .onboardingCloudProfileConflict:

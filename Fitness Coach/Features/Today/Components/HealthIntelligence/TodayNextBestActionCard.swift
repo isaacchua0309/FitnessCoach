@@ -66,7 +66,7 @@ struct TodayNextBestActionCard: View {
         case .addWater:
             return FormaProductCopy.Today.NextAction.ctaAddWater
         case .askCoach:
-            return FormaProductCopy.Today.nextActionQuickChipTitle
+            return state.title
         case .viewRecovery:
             return state.title
         case .logWeight:

@@ -110,7 +110,7 @@ final class FoodLogService {
         }
         let log = entity.dailyLog
         let logDate = log?.date
-        let localDate = log.map { mutationTracker?.dailyLogCloudID(for: $0.date) }
+        let localDate = log.flatMap { mutationTracker?.dailyLogCloudID(for: $0.date) }
 
         if let mutationTracker {
             try mutationTracker.trackDelete(
@@ -119,7 +119,7 @@ final class FoodLogService {
                 entityId: entity.id.uuidString,
                 localDate: localDate,
                 hardDelete: { [store] in
-                    store.delete(entity)
+                    try store.delete(entity)
                 }
             )
         } else {
@@ -150,7 +150,7 @@ final class FoodLogService {
                 localDate: mutationTracker.dailyLogCloudID(for: log.date),
                 mutationGroupId: mutationGroupId,
                 hardDelete: { [store] in
-                    store.delete(last)
+                    try store.delete(last)
                 }
             )
         } else {

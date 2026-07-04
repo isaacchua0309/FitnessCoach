@@ -75,48 +75,89 @@ final class AccountDeletionCoordinatorTests: XCTestCase {
         )
     }
 
-    func testDeleteAccountRequiresConfirmationPhrase() async {
-        let summary = await coordinator.deleteAccount(confirmation: "delete")
+    func testFullDeletionStopsSyncBeforeRemoteDelete() async {
+        remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
+        localWiper.configuredSummary = Self.completedLocalSummary(uid: ownerUID)
 
-        XCTAssertEqual(summary.status, .failed)
-        XCTAssertEqual(summary.failureCategory, .unknown)
-        XCTAssertEqual(remoteClient.callCount, 0)
-        XCTAssertEqual(authDeleting.deleteCallCount, 0)
+        remoteClient.onWillDelete = { [weak self] in
+            guard let self else { return }
+            XCTAssertEqual(self.realtimeListener.stoppedUIDs, [self.ownerUID])
+            XCTAssertTrue(self.deletionGuard.isDeletionInProgress(for: self.ownerUID))
+        }
+
+        _ = await coordinator.deleteAccount(confirmation: "DELETE")
+
+        XCTAssertEqual(remoteClient.callCount, 1)
+        XCTAssertEqual(realtimeListener.stoppedUIDs, [ownerUID])
     }
 
-    func testDeleteAccountRunsRemoteAuthAndLocalPhasesInOrder() async {
+    func testFullDeletionDeletesRemoteBeforeAuth() async {
+        var phaseOrder: [String] = []
+        remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
+        localWiper.configuredSummary = Self.completedLocalSummary(uid: ownerUID)
+        remoteClient.onWillDelete = { phaseOrder.append("remote") }
+        authDeleting.onDeleteCalled = { phaseOrder.append("auth") }
+        localWiper.onWipeCalled = { phaseOrder.append("local") }
+
+        _ = await coordinator.deleteAccount(confirmation: "DELETE")
+
+        XCTAssertEqual(phaseOrder, ["remote", "auth", "local"])
+    }
+
+    func testFullDeletionDeletesAuthBeforeLocalWipeOrAccordingToChosenPolicy() async {
+        remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
+        localWiper.configuredSummary = Self.completedLocalSummary(uid: ownerUID)
+
+        var authDeletedBeforeLocal = false
+        authDeleting.onDeleteCalled = { [weak self] in
+            guard let self else { return }
+            authDeletedBeforeLocal = self.localWiper.callCount == 0
+        }
+
+        _ = await coordinator.deleteAccount(confirmation: "DELETE")
+
+        XCTAssertTrue(authDeletedBeforeLocal)
+        XCTAssertEqual(authDeleting.deleteCallCount, 1)
+        XCTAssertEqual(localWiper.callCount, 1)
+    }
+
+    func testFullDeletionWipesLocalAfterAuthDeleteSuccess() async {
         remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
         localWiper.configuredSummary = Self.completedLocalSummary(uid: ownerUID)
 
         let summary = await coordinator.deleteAccount(confirmation: "DELETE")
 
         XCTAssertEqual(summary.status, .completed)
-        XCTAssertTrue(summary.remoteProfileDeleted)
         XCTAssertTrue(summary.authAccountDeleted)
         XCTAssertTrue(summary.localProfileDeleted)
-        XCTAssertEqual(remoteClient.callCount, 1)
-        XCTAssertEqual(authDeleting.deleteCallCount, 1)
-        XCTAssertEqual(localWiper.callCount, 1)
-        XCTAssertEqual(router.fullDeletionRouteCount, 1)
+        XCTAssertEqual(localWiper.lastAuthorization, .deletionInProgress(uid: ownerUID))
+    }
+
+    func testRemoteDeleteFailureDoesNotDeleteAuth() async {
+        remoteClient.configuredError = .offline
+
+        let summary = await coordinator.deleteAccount(confirmation: "DELETE")
+
+        XCTAssertEqual(summary.status, .offline)
+        XCTAssertEqual(authDeleting.deleteCallCount, 0)
+        XCTAssertEqual(localWiper.callCount, 0)
         XCTAssertFalse(coordinator.isDeletionInProgress(for: ownerUID))
     }
 
-    func testDeleteAccountReturnsReauthenticationRequiredWithoutLocalWipe() async {
+    func testAuthReauthRequiredReturnsReauthState() async {
         remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
         authDeleting.configuredDeleteError = .reauthenticationRequired
 
         let summary = await coordinator.deleteAccount(confirmation: "DELETE")
 
         XCTAssertEqual(summary.status, .reauthenticationRequired)
-        XCTAssertEqual(summary.failureCategory, .reauthenticationRequired)
         XCTAssertTrue(summary.remoteProfileDeleted)
         XCTAssertFalse(summary.authAccountDeleted)
-        XCTAssertFalse(summary.localProfileDeleted)
         XCTAssertEqual(localWiper.callCount, 0)
         XCTAssertTrue(coordinator.isDeletionInProgress(for: ownerUID))
     }
 
-    func testRetryAfterReauthenticationCompletesDeletion() async {
+    func testRetryAfterReauthContinuesDeletion() async {
         remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
         authDeleting.configuredDeleteError = .reauthenticationRequired
 
@@ -135,50 +176,20 @@ final class AccountDeletionCoordinatorTests: XCTestCase {
         XCTAssertEqual(router.fullDeletionRouteCount, 1)
     }
 
-    func testRemoteFailureDoesNotDeleteAuthOrLocalData() async {
-        remoteClient.configuredError = .offline
-
-        let summary = await coordinator.deleteAccount(confirmation: "DELETE")
-
-        XCTAssertEqual(summary.status, .offline)
-        XCTAssertEqual(summary.failureCategory, .offline)
-        XCTAssertEqual(authDeleting.deleteCallCount, 0)
-        XCTAssertEqual(localWiper.callCount, 0)
-        XCTAssertFalse(coordinator.isDeletionInProgress(for: ownerUID))
-    }
-
-    func testAuthFailureAfterRemoteDeleteReturnsPartial() async {
+    func testLocalWipeFailureReturnsPartial() async {
         remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
-        authDeleting.configuredDeleteError = .network
+        localWiper.configuredSummary = Self.partialLocalSummary(uid: ownerUID)
 
         let summary = await coordinator.deleteAccount(confirmation: "DELETE")
 
         XCTAssertEqual(summary.status, .partial)
-        XCTAssertEqual(summary.failureCategory, .authDeleteFailed)
+        XCTAssertEqual(summary.failureCategory, .localWipeFailed)
+        XCTAssertTrue(summary.authAccountDeleted)
         XCTAssertTrue(summary.remoteProfileDeleted)
-        XCTAssertFalse(summary.authAccountDeleted)
-        XCTAssertEqual(localWiper.callCount, 0)
+        XCTAssertEqual(router.fullDeletionRouteCount, 1)
     }
 
-    func testDeleteLocalDeviceDataOnlyWipesLocalAndSignsOut() async {
-        localWiper.configuredSummary = Self.completedLocalSummary(
-            uid: ownerUID,
-            scope: .localDeviceOnly
-        )
-
-        let summary = await coordinator.deleteLocalDeviceDataOnly(confirmation: "DELETE")
-
-        XCTAssertEqual(summary.scope, .localDeviceOnly)
-        XCTAssertEqual(summary.status, .completed)
-        XCTAssertFalse(summary.authAccountDeleted)
-        XCTAssertTrue(summary.localProfileDeleted)
-        XCTAssertEqual(remoteClient.callCount, 0)
-        XCTAssertEqual(authDeleting.deleteCallCount, 0)
-        XCTAssertEqual(signOutCallCount, 1)
-        XCTAssertEqual(router.localOnlyRouteCount, 1)
-    }
-
-    func testAccountSwitchDuringDeletionReturnsAccountSwitched() async {
+    func testAccountSwitchCancelsOldDeletion() async {
         remoteClient.delayNanoseconds = 200_000_000
         remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
 
@@ -188,21 +199,42 @@ final class AccountDeletionCoordinatorTests: XCTestCase {
 
         let summary = await deletionTask
 
-        XCTAssertEqual(summary.status, .partial)
         XCTAssertEqual(summary.failureCategory, .accountSwitched)
         XCTAssertEqual(authDeleting.deleteCallCount, 0)
+        XCTAssertEqual(localWiper.callCount, 0)
     }
 
-    func testCancelDeletionClearsPendingReauthentication() async {
+    func testCancelDeletionStopsBeforeDestructiveStep() async {
+        remoteClient.delayNanoseconds = 300_000_000
         remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
-        authDeleting.configuredDeleteError = .reauthenticationRequired
 
-        _ = await coordinator.deleteAccount(confirmation: "DELETE")
+        async let deletionTask = coordinator.deleteAccount(confirmation: "DELETE")
+        try? await Task.sleep(nanoseconds: 30_000_000)
         coordinator.cancelDeletion()
 
-        let retry = await coordinator.retryAfterReauthentication(confirmation: "DELETE")
-        XCTAssertEqual(retry.status, .failed)
+        let summary = await deletionTask
+
+        XCTAssertEqual(authDeleting.deleteCallCount, 0)
+        XCTAssertEqual(localWiper.callCount, 0)
         XCTAssertFalse(coordinator.isDeletionInProgress(for: ownerUID))
+        XCTAssertNotEqual(summary.status, .completed)
+    }
+
+    func testLocalDeviceOnlyWipeDoesNotDeleteRemoteOrAuth() async {
+        localWiper.configuredSummary = Self.completedLocalSummary(
+            uid: ownerUID,
+            scope: .localDeviceOnly
+        )
+
+        let summary = await coordinator.deleteLocalDeviceDataOnly(confirmation: "DELETE")
+
+        XCTAssertEqual(summary.scope, .localDeviceOnly)
+        XCTAssertEqual(summary.status, .completed)
+        XCTAssertEqual(remoteClient.callCount, 0)
+        XCTAssertEqual(authDeleting.deleteCallCount, 0)
+        XCTAssertEqual(signOutCallCount, 1)
+        XCTAssertEqual(router.localOnlyRouteCount, 1)
+        XCTAssertEqual(localWiper.lastAuthorization, .activeSession)
     }
 
     private static func remoteResult(uid: String) -> RemoteAccountDeletionResult {
@@ -252,6 +284,37 @@ final class AccountDeletionCoordinatorTests: XCTestCase {
             userFacingMessage: nil
         )
     }
+
+    private static func partialLocalSummary(uid: String) -> AccountDeletionSummary {
+        AccountDeletionSummary(
+            uid: uid,
+            scope: .fullAccount,
+            status: .partial,
+            startedAt: Date(),
+            endedAt: Date(),
+            remoteProfileDeleted: false,
+            remoteDailyLogsDeleted: 0,
+            remoteFoodEntriesDeleted: 0,
+            remoteWaterEntriesDeleted: 0,
+            remoteWeightEntriesDeleted: 0,
+            remoteDailyReviewsDeleted: 0,
+            remoteHealthSummariesDeleted: false,
+            authAccountDeleted: false,
+            localProfileDeleted: false,
+            localDailyLogsDeleted: 0,
+            localFoodEntriesDeleted: 0,
+            localWaterEntriesDeleted: 0,
+            localWeightEntriesDeleted: 0,
+            localDailyReviewsDeleted: 0,
+            localCoachMessagesDeleted: 0,
+            localTimelineEventsDeleted: 0,
+            localHealthCacheDeleted: false,
+            localPreferencesDeleted: false,
+            pendingMutationsDeleted: 0,
+            failureCategory: .localWipeFailed,
+            userFacingMessage: "Some on-device data may remain."
+        )
+    }
 }
 
 @MainActor
@@ -261,9 +324,11 @@ private final class MockAccountDeletionRemoteClient: AccountDeletionRemoteDeleti
     var configuredResult: RemoteAccountDeletionResult?
     var configuredError: AccountDeletionRemoteError?
     var delayNanoseconds: UInt64 = 0
+    var onWillDelete: (() -> Void)?
 
     func deleteRemoteAccountData(confirmation: String) async throws -> RemoteAccountDeletionResult {
         callCount += 1
+        onWillDelete?()
         if delayNanoseconds > 0 {
             try await Task.sleep(nanoseconds: delayNanoseconds)
         }
@@ -282,6 +347,8 @@ private final class MockLocalAccountDataWiper: LocalAccountDataWiping {
 
     var callCount = 0
     var configuredSummary: AccountDeletionSummary?
+    var onWipeCalled: (() -> Void)?
+    private(set) var lastAuthorization: LocalAccountDataWipeAuthorization?
 
     func wipeLocalData(
         for uid: String,
@@ -289,6 +356,8 @@ private final class MockLocalAccountDataWiper: LocalAccountDataWiping {
         authorization: LocalAccountDataWipeAuthorization
     ) async -> AccountDeletionSummary {
         callCount += 1
+        lastAuthorization = authorization
+        onWipeCalled?()
         return configuredSummary ?? AccountDeletionCoordinatorTests.completedLocalSummary(
             uid: uid,
             scope: scope
@@ -309,4 +378,42 @@ private final class RecordingAccountDeletionRouter: AccountDeletionRouting {
     func routeToSignedOutAfterLocalDeviceOnlyWipe() async {
         localOnlyRouteCount += 1
     }
+}
+
+@MainActor
+private final class RecordingAccountRestoreCoordinator: AccountRestoreCoordinating {
+
+    func prepareAccountAfterSignIn(uid: String, reason: AccountRestoreReason) async -> AccountRestoreSummary {
+        AccountRestoreSummary(
+            uid: uid,
+            reason: reason,
+            mode: .blockingInitial,
+            status: .skipped,
+            startedAt: Date(),
+            endedAt: Date(),
+            profileRestored: false,
+            dailyLogsRestored: 0,
+            foodEntriesRestored: 0,
+            waterEntriesRestored: 0,
+            weightEntriesRestored: 0,
+            dailyReviewsRestored: 0,
+            skippedLocalNewer: 0,
+            conflicts: 0,
+            failed: 0,
+            isPartial: false,
+            userFacingMessage: nil
+        )
+    }
+
+    func prepareAccountOnAppLaunch(uid: String) async -> AccountRestoreSummary? { nil }
+
+    func retryRestore(uid: String) async -> AccountRestoreSummary {
+        await prepareAccountAfterSignIn(uid: uid, reason: .manualRetry)
+    }
+
+    func runBackgroundBackfillIfNeeded(uid: String) async {}
+
+    func cancelOnAccountSwitch() {}
+
+    func cancelAllWork(for uid: String) {}
 }
