@@ -1,8 +1,8 @@
 # Account Persistence — Implementation Plan
 
 **Companion to:** `ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`  
-**Status:** Phases 2–5 foundation **implemented** — see `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md`, `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`, `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`, and `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`  
-**Generated:** 2026-07-04 · **Updated:** 2026-07-04
+**Status:** Phases 2–6 foundation **implemented** — see `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md`, `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`, `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`, `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`, and `Docs/AccountPersistence/PHASE_6_ACCOUNT_DELETION_AND_PRIVACY.md`  
+**Generated:** 2026-07-04 · **Updated:** 2026-07-05
 
 ---
 
@@ -15,7 +15,7 @@
 | **3** | Local-first sync engine — upload/pull/outbox | **Implemented** ([#110](https://github.com/isaacchua0309/FitnessCoach/pull/110)) |
 | **4** | Fresh install restore + bootstrap UX | **Implemented** — verify with `xcodebuild test` before enabling `restoreOnLoginEnabled` ([#113](https://github.com/isaacchua0309/FitnessCoach/pull/113)–[#117](https://github.com/isaacchua0309/FitnessCoach/pull/117)) |
 | **5** | Cross-device refresh + near-realtime sync | **Implemented** — verify with `xcodebuild test` before production rollout ([#122](https://github.com/isaacchua0309/FitnessCoach/pull/122)–[#125](https://github.com/isaacchua0309/FitnessCoach/pull/125)) |
-| **6** | Account delete, export, privacy | **Pending** |
+| **6** | Account delete, export foundation, privacy | **Implemented** — verify with `xcodebuild test` + `npm --prefix functions test` before production rollout |
 
 **Phase 2 reminder:** Cloud DTOs and Firestore paths exist. See Phase 2 doc for schema/rules.
 
@@ -24,6 +24,8 @@
 **Phase 4 reminder:** Blocking restore after sign-in pulls profile + bounded nutrition history from Firestore; background backfill extends windows. **Restore UX is off by default** (`restoreOnLoginEnabled = false`) until CI/manual QA passes. **No realtime cross-device listeners.** See `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`.
 
 **Phase 5 reminder:** Incremental cross-device refresh (foreground, manual, realtime hints) makes same-account changes visible across devices. **Does not** implement account deletion, raw meal images, raw HealthKit, or push notifications. See `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`.
+
+**Phase 6 reminder:** Full account deletion (remote Firestore → Firebase Auth → local wipe), local device-only wipe, Privacy & Data settings, and backend `POST /v1/account/delete-data`. Export foundation exists but **`AccountDataExportPolicy.accountDataExportEnabled = false`**. Does **not** delete Google account, Apple Health source data, or raw meal images. See `Docs/AccountPersistence/PHASE_6_ACCOUNT_DELETION_AND_PRIVACY.md`.
 
 ---
 
@@ -37,7 +39,7 @@
 | P1 | No offline upload | Sync outbox + retry | 3 ✅ |
 | P1 | Deletes don't propagate | Tombstones + pull merge | 3 ✅ (upload); 5 ✅ (cross-device pull) |
 | P1 | Firestore rules incomplete | Expand `firestore.rules` + emulator tests | 2 |
-| P2 | Account delete stub | GDPR delete orchestration | 6 |
+| P2 | Account delete stub | GDPR delete orchestration | 6 ✅ |
 | P2 | Coach nil userId rows | Backfill + strict filter | 1 |
 | P3 | Daily reviews not synced | Optional collection | 3 ✅ (upload); 5 ✅ (incremental pull) |
 
@@ -517,23 +519,41 @@ See context packet §12. Add to `firestore.rules`:
 
 ### Phase 6 — Deletion and Privacy
 
-**Goal:** Account delete, export, privacy copy.
+**Goal:** Account delete, local wipe, privacy controls, export foundation.
 
-**Status:** **Pending**
+**Status:** **Implemented** — documented in `Docs/AccountPersistence/PHASE_6_ACCOUNT_DELETION_AND_PRIVACY.md`. Verify with `xcodebuild test` (iOS) and `npm --prefix functions test` (backend) before production rollout.
 
 | Action | Files |
 |--------|-------|
-| Implement `SettingsDeleteDataActionHandler` | Existing stub |
-| Delete Firestore `users/{uid}/**` | New `AccountDeletionService` |
-| Firebase Auth `user.delete()` | `AuthManager` |
-| Local SwiftData wipe | `AccountDataNamespaceService.wipeAll()` |
-| Health remote delete | Reuse `HealthSummarySyncService.deleteRemoteHealthSummaries` |
-| Export | `SettingsExportDataActionHandler` |
-| Privacy copy in onboarding | `FormaProductCopy` |
+| Deletion coordinator (remote → Auth → local) | `Application/Privacy/AccountDeletionCoordinator.swift` |
+| Local UID-scoped wipe | `Application/Privacy/LocalAccountDataWipeService.swift` |
+| Policy + models | `AccountDeletionPolicy.swift`, `AccountDeletionModels.swift` |
+| Remote HTTP client | `Infrastructure/Cloud/AccountDeletionRemoteClient.swift` |
+| Backend deletion | `functions/src/accountDeletion/*` |
+| Firebase Auth delete + reauth | `AuthManager` (`AccountAuthDeleting`) |
+| Settings Privacy & Data UI | `Features/Settings/*PrivacyData*`, `AccountDeletionView` |
+| Export foundation (flag off) | `AccountDataExportService.swift`, `AccountDataExportPolicy.swift` |
+| Sync/listener cancellation | `AccountDeletionGuard`, `AccountDeletionCancellationTests` |
+| Privacy copy | `FormaProductCopy.Settings.PrivacyData` |
 
-**Acceptance:**
-- Account delete clears local + remote nutrition + profile
-- `SettingsDataDeletionCapability.isImplemented == true`
+**Tests (iOS — run on macOS):**
+- `LocalAccountDataWipeServiceTests`, `AccountDeletionCoordinatorTests`, `AccountDeletionCancellationTests`
+- `AccountDeletionEndToEndTests`, `AccountDeletionViewModelTests`, `AccountAuthDeletionTests`
+- `AccountDeletionRemoteClientTests`, `PrivacyDataSettingsTests`, `SettingsPrivacyDataTests`
+- `AccountDataExportServiceTests`, `AccountDataExportPolicyTests`
+
+**Tests (backend):**
+- `functions/test/accountDeletion.test.ts`
+- `functions/test/accountPersistenceFirestoreRules.test.ts` (cross-user delete denied, rules 15–18)
+
+**Acceptance (met by test suite; verify before production rollout):**
+- Full account deletion: remote + Auth + local wipe for signed-in UID only; typed `DELETE` required
+- Local device-only wipe: local data gone; cloud + Auth untouched; other UID data protected
+- Reauthentication path completes after remote delete
+- Partial/offline/account-switch safe terminal states
+- Backend deletes all documented Firestore paths; client rules block cross-user delete
+- `SettingsDataDeletionCapability.isImplemented` when `FormaAbTest.Settings.dataDeletionEnabled`
+- **Not met (by design):** export UI wired (`accountDataExportEnabled = false`); Google / Apple Health / raw meal image deletion claims
 
 ---
 
@@ -568,6 +588,19 @@ See context packet §12. Add to `firestore.rules`:
 - [x] `testRealtimeHintCausesDeviceBToPullChanges` — `CrossDeviceEndToEndSyncTests`
 - [x] `testOfflineDeviceBRefreshKeepsExistingLocalData` — `CrossDeviceEndToEndSyncTests`
 - [ ] Manual QA on two physical devices with production Firestore before wide rollout
+
+### Account deletion (Phase 6)
+
+- [x] `testFullAccountDeletionSuccess` — `AccountDeletionEndToEndTests`
+- [x] `testRemoteDeleteFailsBeforeAuthDelete` — `AccountDeletionEndToEndTests`
+- [x] `testAuthDeleteRequiresReauth` — `AccountDeletionEndToEndTests`
+- [x] `testLocalWipeFailsAfterRemoteAndAuthDelete` — `AccountDeletionEndToEndTests`
+- [x] `testLocalDeviceOnlyWipe` — `AccountDeletionEndToEndTests`
+- [x] `testAccountSwitchDuringDeletionCancelsOldResult` — `AccountDeletionEndToEndTests`
+- [x] `testDeletionStopsRealtimeListenerAndSync` — `AccountDeletionEndToEndTests`
+- [x] Backend `accountDeletion.test.ts` — auth, confirmation, per-collection delete, UID isolation
+- [x] Firestore rules cross-user delete denied — `accountPersistenceFirestoreRules.test.ts`
+- [ ] Manual QA: full delete on device, reauth, offline, two-account switch
 
 ### Multi-User (new — Phase 1)
 
@@ -626,7 +659,7 @@ Execute phases in order. **Do not skip Phase 1.**
 > Implemented: `CrossDeviceSyncCoordinator`, `AccountIncrementalPuller`, realtime change hints, tab refresh policies. See `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`. Verify with `xcodebuild test` + two-device manual QA.
 
 **Phase 6:**
-> Wire SettingsDeleteDataActionHandler to delete local SwiftData, Firestore collections, Firebase Auth user.
+> Implemented: `AccountDeletionCoordinator`, `LocalAccountDataWipeService`, backend `accountDataDeletion`, Settings Privacy & Data UI. See `Docs/AccountPersistence/PHASE_6_ACCOUNT_DELETION_AND_PRIVACY.md`. Enable export (`AccountDataExportPolicy.accountDataExportEnabled`) only after wiring share sheet + QA.
 
 ---
 
@@ -685,7 +718,12 @@ Copy into Phase 6 PR description:
 | `Features/Auth/Views/AccountRestoreView.swift` | 4 |
 | `Fitness CoachTests/MultiUserNutritionIsolationTests.swift` | 1 |
 | `Fitness CoachTests/AccountRestoreEndToEndTests.swift` | 4 |
-| `Fitness CoachTests/NutritionSyncEngineTests.swift` | 3 |
+| `Application/Privacy/AccountDeletionCoordinator.swift` | 6 |
+| `Application/Privacy/LocalAccountDataWipeService.swift` | 6 |
+| `Infrastructure/Cloud/AccountDeletionRemoteClient.swift` | 6 |
+| `functions/src/accountDeletion/*` | 6 |
+| `Fitness CoachTests/AccountDeletionEndToEndTests.swift` | 6 |
+| `Docs/AccountPersistence/PHASE_6_ACCOUNT_DELETION_AND_PRIVACY.md` | 6 |
 
 ---
 
@@ -704,7 +742,9 @@ Copy into Phase 6 PR description:
 | `FormaAbTest.swift` | 1, 3 |
 | `firestore.rules` | 2 |
 | `SettingsDeleteDataActionHandler.swift` | 6 |
+| `Features/Settings/View/AccountDeletionView.swift` | 6 |
+| `AppContainer.swift` | 3, 4, 6 |
 
 ---
 
-*End of implementation plan. Phases 2–4 implemented; Phases 5–6 pending. Phase 4 rollout gated by `restoreOnLoginEnabled`.*
+*End of implementation plan. Phases 2–6 implemented; verify Phase 4–6 with `xcodebuild test` + backend tests before production rollout. Phase 4 rollout gated by `restoreOnLoginEnabled`; Phase 6 export gated by `accountDataExportEnabled`.*
