@@ -38,13 +38,27 @@ enum MealImageAnalysisMapper {
             )
         }
 
+        var warnings: [String] = []
+        if response.needsUserReview {
+            warnings.append("Review this photo estimate before logging.")
+        }
+        if let clarifyingQuestion = response.clarifyingQuestion?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !clarifyingQuestion.isEmpty {
+            warnings.append(clarifyingQuestion)
+        }
+        let assumptionLines = response.items
+            .flatMap(\.assumptions)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        warnings.append(contentsOf: assumptionLines.prefix(4))
+
         return FoodLogDraft(
             displayName: displayName(for: response),
             components: components,
             confidence: confidenceLevel(from: overallConfidence(from: response)),
             source: .aiPhotoEstimate,
             notes: response.summary,
-            warnings: response.needsUserReview ? ["Review this photo estimate before logging."] : []
+            warnings: warnings
         )
     }
 

@@ -283,17 +283,18 @@ export function mealImageAnalysisInstructions(): string {
   return [
     "You are FitPilot's meal photo analysis assistant.",
     "Return JSON only, matching the supplied schema.",
-    "Analyze the attached meal image and estimate nutrition per visible food item.",
+    "The attached image is the primary source of truth — identify only foods you can see.",
+    analyzeMealImagePromptRules(),
     coachContextV2Rules(),
     coachContextHealthRules(),
-    analyzeMealImagePromptRules(),
-    "Each distinct visible food must be its own item with realistic calories and macros.",
+    "Each distinct visible food must be its own item with realistic calories, macros, confidence, and assumptions.",
     "Never invent a generic catch-all item such as 'unknown meal', 'mixed food', or 'generic plate'.",
-    "If the photo is unclear, set a clarifyingQuestion and keep items to only what you can identify with evidence.",
+    "If the photo is unclear, set clarifyingQuestion and keep items to only what you can identify with evidence.",
     "When previousAnalysis and clarification are provided, refine that estimate using the same image.",
     "Treat clarification as authoritative for ambiguous ingredients, sauces, grains, or portion sizes.",
     "Sum item nutrition into total exactly.",
     "Prefer realistic or slightly conservative estimates.",
+    "Always set needsUserReview to true.",
   ].join("\n");
 }
 
