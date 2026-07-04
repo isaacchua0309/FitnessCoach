@@ -25,6 +25,8 @@ final class AppContainer {
 
     let authManager: AuthManager
     let cloudUserProfileStore: CloudUserProfileStoring
+    /// Phase 2 cloud log store — constructed and injectable; not wired to log mutations yet.
+    let accountDataRemoteStore: any AccountDataRemoteStore
     let profileBootstrapService: ProfileBootstrapService
     let profileCloudSyncStore: ProfileCloudSyncStore
     let profileBootstrapCoordinatorService: ProfileBootstrapCoordinatorService
@@ -89,7 +91,8 @@ final class AppContainer {
         publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)? = nil,
         themeAnalyticsLogger: (any ThemeAnalyticsLogging)? = nil,
         settingsAnalyticsLogger: (any SettingsAnalyticsLogging)? = nil,
-        onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil
+        onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil,
+        accountDataRemoteStore: (any AccountDataRemoteStore)? = nil
     ) throws {
         let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
         refreshCenter = AppRefreshCenter()
@@ -218,6 +221,13 @@ final class AppContainer {
         cloudUserProfileStore = inMemory
             ? NoOpCloudUserProfileStore()
             : FirestoreCloudUserProfileStore()
+        if let accountDataRemoteStore {
+            self.accountDataRemoteStore = accountDataRemoteStore
+        } else if inMemory || !AccountPersistenceFeatureFlags.cloudSchemaEnabled {
+            self.accountDataRemoteStore = InMemoryAccountDataRemoteStore()
+        } else {
+            self.accountDataRemoteStore = FirestoreAccountDataRemoteStore()
+        }
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
         profileBootstrapService = ProfileBootstrapService(
             userProfileService: userProfileService,
