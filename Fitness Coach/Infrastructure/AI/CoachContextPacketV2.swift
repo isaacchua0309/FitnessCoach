@@ -470,6 +470,24 @@ extension CoachContextPacketV2 {
 
     /// Privacy-safe single-line summary for logs and debug overlays.
     func redactedDebugDescription(maxLength: Int = 500) -> String {
+        let stepsLabel: String = {
+            if missingData.stepsMissing || missingData.stepsUnavailable {
+                return "missing"
+            }
+            if let steps = today?.steps {
+                return String(steps.value)
+            }
+            return "unknown"
+        }()
+
+        let workoutsLabel: String = {
+            if missingData.workoutPermissionDeniedOrUnavailable || missingData.workoutsUnavailable {
+                return "unknown"
+            }
+            guard let workoutsToday = training?.workoutsToday else { return "unknown" }
+            return String(workoutsToday)
+        }()
+
         var parts: [String] = [
             "CoachContextPacketV2",
             "schema=\(meta.schemaVersion)",
@@ -477,7 +495,9 @@ extension CoachContextPacketV2 {
             "mode=\(generationMode.rawValue)",
             "profile=\(profile != nil)",
             "today=\(today != nil)",
-            "trainingWorkouts=\(training?.workoutsToday ?? 0)",
+            "stepsToday=\(stepsLabel)",
+            "stepsMissing=\(missingData.stepsMissing)",
+            "trainingWorkouts=\(workoutsLabel)",
             "timelineEvents=\(timeline.recentEvents.count)",
             "chatMessages=\(recentChatMessages.count)",
             "meals=\(recentMealsStructured.count)",

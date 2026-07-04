@@ -138,8 +138,45 @@ final class CoachContextPacketV2Tests: XCTestCase {
 
         XCTAssertTrue(description.contains("CoachContextPacketV2"))
         XCTAssertTrue(description.contains("timelineEvents=1"))
+        XCTAssertTrue(description.contains("stepsToday=6500"))
+        XCTAssertTrue(description.contains("trainingWorkouts=1"))
         XCTAssertFalse(description.contains("Salad"))
         XCTAssertFalse(description.contains("Oatmeal"))
+    }
+
+    func testRedactedDebugDescriptionDistinguishesMissingStepsFromZeroSteps() {
+        let zeroStepsPacket = CoachContextPacketV2(
+            meta: CoachContextMeta.make(generatedAt: referenceDate, calendar: calendar),
+            today: CoachContextTodayPacket(
+                steps: CoachContextSourcedInt(value: 0, source: "healthKit")
+            ),
+            missingData: CoachMissingDataContext()
+        )
+        XCTAssertTrue(zeroStepsPacket.redactedDebugDescription().contains("stepsToday=0"))
+        XCTAssertTrue(zeroStepsPacket.redactedDebugDescription().contains("stepsMissing=false"))
+
+        let missingStepsPacket = CoachContextPacketV2(
+            meta: CoachContextMeta.make(generatedAt: referenceDate, calendar: calendar),
+            missingData: CoachMissingDataContext(stepsMissing: true)
+        )
+        let missingDescription = missingStepsPacket.redactedDebugDescription()
+        XCTAssertTrue(missingDescription.contains("stepsToday=missing"))
+        XCTAssertTrue(missingDescription.contains("stepsMissing=true"))
+    }
+
+    func testRedactedDebugDescriptionDistinguishesUnknownWorkoutsFromZeroWorkouts() {
+        let noWorkoutsPacket = CoachContextPacketV2(
+            meta: CoachContextMeta.make(generatedAt: referenceDate, calendar: calendar),
+            training: CoachTrainingContext(workoutsToday: 0),
+            missingData: CoachMissingDataContext()
+        )
+        XCTAssertTrue(noWorkoutsPacket.redactedDebugDescription().contains("trainingWorkouts=0"))
+
+        let unknownWorkoutsPacket = CoachContextPacketV2(
+            meta: CoachContextMeta.make(generatedAt: referenceDate, calendar: calendar),
+            missingData: CoachMissingDataContext(workoutPermissionDeniedOrUnavailable: true)
+        )
+        XCTAssertTrue(unknownWorkoutsPacket.redactedDebugDescription().contains("trainingWorkouts=unknown"))
     }
 
     // MARK: Bridges
