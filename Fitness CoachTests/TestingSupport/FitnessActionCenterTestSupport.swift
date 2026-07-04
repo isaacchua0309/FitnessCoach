@@ -58,11 +58,15 @@ enum FitnessActionCenterTestSupport {
         referenceNow: Date = DailyLogServiceTestSupport.referenceNow,
         cloudUID: String? = "test-user-1"
     ) throws -> Harness {
-        let base = try DailyLogServiceTestSupport.makeHarness(referenceNow: referenceNow)
+        let base = try DailyLogServiceTestSupport.makeHarness(
+            referenceNow: referenceNow,
+            ownerUID: cloudUID
+        )
         let weightLogService = WeightLogService(
             store: base.store,
             dailyLogService: base.dailyLogService,
-            dateProvider: base.dateProvider
+            dateProvider: base.dateProvider,
+            mutationTracker: base.accountLocalMutationTracker
         )
         let targetService = TargetService(
             userProfileService: base.profileService,
@@ -89,7 +93,8 @@ enum FitnessActionCenterTestSupport {
             weightLogService: weightLogService,
             healthActivityQuery: healthActivityQuery,
             userProfileService: base.profileService,
-            aiService: AIService(llmClient: MockLLMClient())
+            aiService: AIService(llmClient: MockLLMClient()),
+            mutationTracker: base.accountLocalMutationTracker
         )
 
         let actionCenter = FitnessActionCenter(

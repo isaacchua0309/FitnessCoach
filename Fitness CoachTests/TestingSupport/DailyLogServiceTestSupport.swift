@@ -19,6 +19,8 @@ enum DailyLogServiceTestSupport {
         let foodLogService: FoodLogService
         let waterLogService: WaterLogService
         let dateProvider: FixedDailyLogTestDateProvider
+        let accountSyncOutboxStore: SwiftDataAccountSyncOutboxStore?
+        let accountLocalMutationTracker: AccountLocalMutationTracker?
 
         var today: Date { dateProvider.now }
 
@@ -63,19 +65,36 @@ enum DailyLogServiceTestSupport {
     }
 
     static func makeHarness(
-        referenceNow: Date = DailyLogServiceTestSupport.referenceNow
+        referenceNow: Date = DailyLogServiceTestSupport.referenceNow,
+        ownerUID: String? = nil
     ) throws -> Harness {
         let dateProvider = FixedDailyLogTestDateProvider(now: referenceNow)
         let container = try FormaModelContainer.makeContainer(inMemory: true)
         let store = SwiftDataStore(container: container)
+        let outbox = SwiftDataAccountSyncOutboxStore(store: store)
+        let mutationTracker = ownerUID.map { uid in
+            AccountLocalMutationTracker(
+                outbox: outbox,
+                ownerUIDProvider: { uid }
+            )
+        }
         let profileService = UserProfileService(store: store, dateProvider: dateProvider)
         let dailyLogService = DailyLogService(
             store: store,
             userProfileService: profileService,
-            dateProvider: dateProvider
+            dateProvider: dateProvider,
+            mutationTracker: mutationTracker
         )
-        let foodLogService = FoodLogService(store: store, dailyLogService: dailyLogService)
-        let waterLogService = WaterLogService(store: store, dailyLogService: dailyLogService)
+        let foodLogService = FoodLogService(
+            store: store,
+            dailyLogService: dailyLogService,
+            mutationTracker: mutationTracker
+        )
+        let waterLogService = WaterLogService(
+            store: store,
+            dailyLogService: dailyLogService,
+            mutationTracker: mutationTracker
+        )
 
         return Harness(
             store: store,
@@ -83,7 +102,9 @@ enum DailyLogServiceTestSupport {
             dailyLogService: dailyLogService,
             foodLogService: foodLogService,
             waterLogService: waterLogService,
-            dateProvider: dateProvider
+            dateProvider: dateProvider,
+            accountSyncOutboxStore: outbox,
+            accountLocalMutationTracker: mutationTracker
         )
     }
 

@@ -13,10 +13,16 @@ final class FoodLogService {
 
     private let store: SwiftDataStore
     private let dailyLogService: DailyLogService
+    private let mutationTracker: AccountLocalMutationTracker?
 
-    init(store: SwiftDataStore, dailyLogService: DailyLogService) {
+    init(
+        store: SwiftDataStore,
+        dailyLogService: DailyLogService,
+        mutationTracker: AccountLocalMutationTracker? = nil
+    ) {
         self.store = store
         self.dailyLogService = dailyLogService
+        self.mutationTracker = mutationTracker
     }
 
     // MARK: Create
@@ -35,7 +41,10 @@ final class FoodLogService {
         let entity = FoodEntryEntity(model: model)
         entity.dailyLog = log
         try store.insert(entity)
-        try dailyLogService.recalculateDailyTotals(for: log.date)
+
+        let mutationGroupId = mutationTracker?.makeMutationGroupId()
+        try dailyLogService.recalculateDailyTotals(for: log.date, mutationGroupId: mutationGroupId)
+        try trackFoodUpsert(entity, dailyLog: log, mutationGroupId: mutationGroupId)
         return entity.toModel()
     }
 
@@ -85,8 +94,10 @@ final class FoodLogService {
         entity.updatedAt = Date()
         try save()
 
-        if let logDate = entity.dailyLog?.date {
-            try dailyLogService.recalculateDailyTotals(for: logDate)
+        if let log = entity.dailyLog {
+            let mutationGroupId = mutationTracker?.makeMutationGroupId()
+            try dailyLogService.recalculateDailyTotals(for: log.date, mutationGroupId: mutationGroupId)
+            try trackFoodUpsert(entity, dailyLog: log, mutationGroupId: mutationGroupId)
         }
         return entity.toModel()
     }
@@ -97,10 +108,28 @@ final class FoodLogService {
         guard let entity = try foodEntity(id: id) else {
             throw ServiceError.foodEntryNotFound
         }
-        let logDate = entity.dailyLog?.date
-        try store.delete(entity)
+        let log = entity.dailyLog
+        let logDate = log?.date
+        let localDate = log.map { mutationTracker?.dailyLogCloudID(for: $0.date) }
+
+        if let mutationTracker {
+            try mutationTracker.trackDelete(
+                entity: entity,
+                entityType: .foodEntry,
+                entityId: entity.id.uuidString,
+                localDate: localDate,
+                hardDelete: { [store] in
+                    store.delete(entity)
+                }
+            )
+        } else {
+            try store.delete(entity)
+        }
+        try save()
+
         if let logDate {
-            try dailyLogService.recalculateDailyTotals(for: logDate)
+            let mutationGroupId = mutationTracker?.makeMutationGroupId()
+            try dailyLogService.recalculateDailyTotals(for: logDate, mutationGroupId: mutationGroupId)
         }
     }
 
@@ -108,12 +137,27 @@ final class FoodLogService {
         guard let log = try dailyLogService.dailyLogEntity(for: date) else {
             return nil
         }
-        guard let last = log.foodEntries.max(by: { $0.createdAt < $1.createdAt }) else {
+        guard let last = visibleFoodEntries(in: log).max(by: { $0.createdAt < $1.createdAt }) else {
             return nil
         }
         let model = last.toModel()
-        try store.delete(last)
-        try dailyLogService.recalculateDailyTotals(for: log.date)
+        let mutationGroupId = mutationTracker?.makeMutationGroupId()
+        if let mutationTracker {
+            try mutationTracker.trackDelete(
+                entity: last,
+                entityType: .foodEntry,
+                entityId: last.id.uuidString,
+                localDate: mutationTracker.dailyLogCloudID(for: log.date),
+                mutationGroupId: mutationGroupId,
+                hardDelete: { [store] in
+                    store.delete(last)
+                }
+            )
+        } else {
+            try store.delete(last)
+        }
+        try save()
+        try dailyLogService.recalculateDailyTotals(for: log.date, mutationGroupId: mutationGroupId)
         return model
     }
 
@@ -123,7 +167,7 @@ final class FoodLogService {
         guard let log = try dailyLogService.dailyLogEntity(for: date) else {
             return []
         }
-        return log.foodEntries
+        return visibleFoodEntries(in: log)
             .sorted { $0.createdAt < $1.createdAt }
             .map { $0.toModel() }
     }
@@ -142,7 +186,7 @@ final class FoodLogService {
         )
         let logs = try store.fetch(descriptor)
         return logs.flatMap { log in
-            log.foodEntries
+            visibleFoodEntries(in: log)
                 .sorted { $0.createdAt < $1.createdAt }
                 .map { $0.toModel() }
         }
@@ -156,6 +200,27 @@ final class FoodLogService {
         )
         descriptor.fetchLimit = 1
         return try store.fetch(descriptor).first
+    }
+
+    private func visibleFoodEntries(in log: DailyLogEntity) -> [FoodEntryEntity] {
+        log.foodEntries.filter(AccountDataSyncReadFilter.isVisible)
+    }
+
+    private func trackFoodUpsert(
+        _ entity: FoodEntryEntity,
+        dailyLog: DailyLogEntity,
+        mutationGroupId: String?
+    ) throws {
+        guard let mutationTracker else { return }
+        try save()
+        try mutationTracker.trackUpsert(
+            entity: entity,
+            entityType: .foodEntry,
+            entityId: entity.id.uuidString,
+            localDate: mutationTracker.dailyLogCloudID(for: dailyLog.date),
+            mutationGroupId: mutationGroupId
+        )
+        try save()
     }
 
     private func validate(_ meal: FoodLogDraft) throws {

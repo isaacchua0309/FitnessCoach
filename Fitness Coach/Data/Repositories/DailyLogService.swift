@@ -14,15 +14,18 @@ final class DailyLogService {
     private let store: SwiftDataStore
     private let userProfileService: UserProfileService
     private let dateProvider: DateProviding
+    private let mutationTracker: AccountLocalMutationTracker?
 
     init(
         store: SwiftDataStore,
         userProfileService: UserProfileService,
-        dateProvider: DateProviding? = nil
+        dateProvider: DateProviding? = nil,
+        mutationTracker: AccountLocalMutationTracker? = nil
     ) {
         self.store = store
         self.userProfileService = userProfileService
         self.dateProvider = dateProvider ?? SystemDateProvider()
+        self.mutationTracker = mutationTracker
     }
 
     // MARK: Read
@@ -33,6 +36,7 @@ final class DailyLogService {
 
     func getLog(for date: Date) throws -> DailyLog? {
         guard let entity = try dailyLogEntity(for: date) else { return nil }
+        guard AccountDataSyncReadFilter.isVisible(entity) else { return nil }
         if isToday(date) {
             try syncTargetsFromProfile(to: entity)
         }
@@ -50,7 +54,9 @@ final class DailyLogService {
             predicate: #Predicate { $0.date >= lowerBound && $0.date <= upperBound },
             sortBy: [SortDescriptor(\.date, order: .forward)]
         )
-        return try store.fetch(descriptor).map { $0.toModel() }
+        return try store.fetch(descriptor)
+            .filter(AccountDataSyncReadFilter.isVisible)
+            .map { $0.toModel() }
     }
 
     // MARK: New Day
@@ -64,17 +70,19 @@ final class DailyLogService {
     // MARK: Recalculation
 
     @discardableResult
-    func recalculateDailyTotals(for date: Date) throws -> DailyLog {
+    func recalculateDailyTotals(for date: Date, mutationGroupId: String? = nil) throws -> DailyLog {
         guard let entity = try dailyLogEntity(for: date) else {
             throw ServiceError.dailyLogNotFound
         }
 
-        let foodModels = entity.foodEntries.map { $0.toModel() }
+        let foodModels = entity.foodEntries
+            .filter(AccountDataSyncReadFilter.isVisible)
+            .map { $0.toModel() }
         let totals = MacroCalculator.totals(from: foodModels)
 
-        let waterTotal = entity.waterEntries.reduce(0) { $0 + $1.amountMl }
-        // Legacy manual workout rows are retired; training reads use Apple Health.
-        // Preserve any stored summary value when recalculating food/water totals.
+        let waterTotal = entity.waterEntries
+            .filter(AccountDataSyncReadFilter.isVisible)
+            .reduce(0) { $0 + $1.amountMl }
         let workoutCalories = entity.workoutCaloriesBurned
 
         entity.caloriesConsumed = totals.calories
@@ -88,20 +96,26 @@ final class DailyLogService {
         entity.updatedAt = dateProvider.now
 
         try save()
+
+        if let mutationGroupId, let mutationTracker {
+            try mutationTracker.trackDailyLogUpsert(entity, mutationGroupId: mutationGroupId)
+            try save()
+        }
+
         return entity.toModel()
     }
 
     // MARK: Internal Entity Access
 
-    /// Returns the persistence entity for a date, used internally by sibling
-    /// log services to attach relationships. Not exposed to the feature layer.
     func dailyLogEntity(for date: Date) throws -> DailyLogEntity? {
         let dayStart = dateProvider.startOfDay(for: date)
         var descriptor = FetchDescriptor<DailyLogEntity>(
             predicate: #Predicate { $0.date == dayStart }
         )
         descriptor.fetchLimit = 1
-        return try store.fetch(descriptor).first
+        guard let entity = try store.fetch(descriptor).first else { return nil }
+        guard AccountDataSyncReadFilter.isVisible(entity) else { return nil }
+        return entity
     }
 
     func getOrCreateLogEntity(for date: Date) throws -> DailyLogEntity {
@@ -139,8 +153,6 @@ final class DailyLogService {
 
     // MARK: Target Sync
 
-    /// Copies the current profile targets onto today's daily log. Past days keep
-    /// their snapshot so historical progress stays accurate.
     func syncTodayTargetsFromProfile() throws {
         guard let entity = try dailyLogEntity(for: dateProvider.now) else { return }
         try syncTargetsFromProfile(to: entity)
@@ -163,6 +175,12 @@ final class DailyLogService {
         entity.aggressivenessRawValue = targets.aggressiveness.rawValue
         entity.updatedAt = dateProvider.now
         try save()
+
+        if let mutationTracker {
+            let mutationGroupId = mutationTracker.makeMutationGroupId()
+            try mutationTracker.trackDailyLogUpsert(entity, mutationGroupId: mutationGroupId)
+            try save()
+        }
     }
 
     private func entityTargets(_ entity: DailyLogEntity) -> UserTargets {
@@ -180,8 +198,6 @@ final class DailyLogService {
     private func isToday(_ date: Date) -> Bool {
         dateProvider.startOfDay(for: date) == dateProvider.startOfDay(for: dateProvider.now)
     }
-
-    // MARK: Helpers
 
     private func save() throws {
         do {

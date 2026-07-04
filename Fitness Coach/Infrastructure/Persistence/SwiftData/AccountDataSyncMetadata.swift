@@ -18,6 +18,7 @@ protocol AccountDataSyncMetadataEntity: AnyObject {
     var lastMutationId: String? { get set }
     var syncAttemptCount: Int { get set }
     var nextRetryAt: Date? { get set }
+    var localUpdatedAt: Date? { get set }
 }
 
 extension AccountDataSyncMetadataEntity {

@@ -35,6 +35,7 @@ final class DailyReviewEntity {
     var lastMutationId: String?
     var syncAttemptCount: Int = 0
     var nextRetryAt: Date?
+    var localUpdatedAt: Date?
 
     // MARK: Relationships
 

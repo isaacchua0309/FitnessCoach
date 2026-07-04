@@ -14,6 +14,10 @@ final class AppContainer {
     let modelContainer: ModelContainer
     let store: SwiftDataStore
 
+    /// Phase 3 durable sync outbox — enqueues mutations; upload engine not wired yet.
+    let accountSyncOutboxStore: SwiftDataAccountSyncOutboxStore
+    let accountLocalMutationTracker: AccountLocalMutationTracker
+
     let userProfileService: UserProfileService
     let targetService: TargetService
     let dailyLogService: DailyLogService
@@ -217,6 +221,12 @@ final class AppContainer {
         modelContainer = try FormaModelContainer.makeContainer(inMemory: inMemory)
         store = SwiftDataStore(container: modelContainer)
 
+        accountSyncOutboxStore = SwiftDataAccountSyncOutboxStore(store: store)
+        accountLocalMutationTracker = AccountLocalMutationTracker(
+            outbox: accountSyncOutboxStore,
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID }
+        )
+
         userProfileService = UserProfileService(store: store)
         cloudUserProfileStore = inMemory
             ? NoOpCloudUserProfileStore()
@@ -243,7 +253,8 @@ final class AppContainer {
         )
         dailyLogService = DailyLogService(
             store: store,
-            userProfileService: userProfileService
+            userProfileService: userProfileService,
+            mutationTracker: accountLocalMutationTracker
         )
         targetService = TargetService(
             userProfileService: userProfileService,
@@ -251,15 +262,18 @@ final class AppContainer {
         )
         foodLogService = FoodLogService(
             store: store,
-            dailyLogService: dailyLogService
+            dailyLogService: dailyLogService,
+            mutationTracker: accountLocalMutationTracker
         )
         waterLogService = WaterLogService(
             store: store,
-            dailyLogService: dailyLogService
+            dailyLogService: dailyLogService,
+            mutationTracker: accountLocalMutationTracker
         )
         weightLogService = WeightLogService(
             store: store,
-            dailyLogService: dailyLogService
+            dailyLogService: dailyLogService,
+            mutationTracker: accountLocalMutationTracker
         )
 
         let healthIntelligenceContextBuilder = HealthIntelligenceContextBuilder(
@@ -367,7 +381,8 @@ final class AppContainer {
             weightLogService: weightLogService,
             healthActivityQuery: healthActivityQueryService,
             userProfileService: userProfileService,
-            aiService: aiService
+            aiService: aiService,
+            mutationTracker: accountLocalMutationTracker
         )
 
         actionCenter = FitnessActionCenter(

@@ -23,6 +23,7 @@ final class ReviewService {
     private let healthActivityQuery: HealthActivityQueryService
     private let userProfileService: UserProfileService
     private let aiService: AIServiceProtocol
+    private let mutationTracker: AccountLocalMutationTracker?
 
     init(
         store: SwiftDataStore,
@@ -32,7 +33,8 @@ final class ReviewService {
         weightLogService: WeightLogService,
         healthActivityQuery: HealthActivityQueryService,
         userProfileService: UserProfileService,
-        aiService: AIServiceProtocol
+        aiService: AIServiceProtocol,
+        mutationTracker: AccountLocalMutationTracker? = nil
     ) {
         self.store = store
         self.dailyLogService = dailyLogService
@@ -42,6 +44,7 @@ final class ReviewService {
         self.healthActivityQuery = healthActivityQuery
         self.userProfileService = userProfileService
         self.aiService = aiService
+        self.mutationTracker = mutationTracker
     }
 
     // MARK: Read
@@ -50,7 +53,11 @@ final class ReviewService {
         guard let dailyLog = try dailyLogService.dailyLogEntity(for: date) else {
             return nil
         }
-        return try dailyReviewEntity(dailyLogId: dailyLog.id)?.toModel()
+        guard let entity = try dailyReviewEntity(dailyLogId: dailyLog.id),
+              AccountDataSyncReadFilter.isVisible(entity) else {
+            return nil
+        }
+        return entity.toModel()
     }
 
     // MARK: Generate
@@ -61,7 +68,8 @@ final class ReviewService {
     ) async throws -> DailyReview {
         let dailyLogEntity = try dailyLogService.getOrCreateLogEntity(for: date)
 
-        if !forceRegenerate, let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id) {
+        if !forceRegenerate, let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id),
+           AccountDataSyncReadFilter.isVisible(existing) {
             return existing.toModel()
         }
 
@@ -146,6 +154,7 @@ final class ReviewService {
             dailyLogEntity.dailyReview = existing
             dailyLogEntity.dailyReviewId = existing.id
             try save()
+            try trackReviewUpsert(existing, dailyLog: dailyLogEntity)
             return existing.toModel()
         }
 
@@ -155,7 +164,15 @@ final class ReviewService {
         dailyLogEntity.dailyReviewId = review.id
         try store.insert(entity)
         try save()
+        try trackReviewUpsert(entity, dailyLog: dailyLogEntity)
         return entity.toModel()
+    }
+
+    private func trackReviewUpsert(_ entity: DailyReviewEntity, dailyLog: DailyLogEntity) throws {
+        guard let mutationTracker else { return }
+        let mutationGroupId = mutationTracker.makeMutationGroupId()
+        try mutationTracker.trackDailyReviewUpsert(entity, dailyLog: dailyLog, mutationGroupId: mutationGroupId)
+        try save()
     }
 
     private func dailyReviewEntity(dailyLogId: UUID) throws -> DailyReviewEntity? {

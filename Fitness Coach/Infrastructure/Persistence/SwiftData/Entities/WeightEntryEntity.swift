@@ -30,6 +30,7 @@ final class WeightEntryEntity {
     var lastMutationId: String?
     var syncAttemptCount: Int = 0
     var nextRetryAt: Date?
+    var localUpdatedAt: Date?
 
     init(
         id: UUID,

@@ -27,11 +27,11 @@ final class FormaSchemaV8MigrationTests: XCTestCase {
         super.tearDown()
     }
 
-    func testActiveSchemaIsV8WithSyncOutboxEntity() {
-        XCTAssertTrue(FormaSchemaV8AccountSyncVerification.syncMetadataEntitiesAreRegisteredInActiveSchema())
-        XCTAssertTrue(FormaSchemaV8AccountSyncVerification.syncOutboxEntityIsRegisteredInActiveSchema())
+    func testActiveSchemaIsV9WithSyncOutboxEntity() {
+        XCTAssertTrue(FormaSchemaV9AccountSyncVerification.syncMetadataEntitiesAreRegisteredInActiveSchema())
+        XCTAssertTrue(FormaSchemaV9AccountSyncVerification.syncOutboxEntityIsRegisteredInActiveSchema())
         XCTAssertTrue(FormaSchemaCoachV2Verification.coachV2EntitiesAreRegisteredInActiveSchema())
-        XCTAssertTrue(FormaSchemaV8AccountSyncVerification.coachEntitiesAreExcludedFromAccountSyncMetadata())
+        XCTAssertTrue(FormaSchemaV9AccountSyncVerification.coachEntitiesAreExcludedFromAccountSyncMetadata())
     }
 
     func testFreshInstallSupportsEmptyOutboxTable() throws {

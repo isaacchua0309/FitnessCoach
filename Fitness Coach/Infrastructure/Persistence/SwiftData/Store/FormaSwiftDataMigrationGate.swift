@@ -11,7 +11,7 @@ import Foundation
 enum FormaSwiftDataMigrationGate {
 
     /// Active SwiftData schema version that includes Coach timeline + transcript + sync outbox entities.
-    static let coachV2SchemaVersion = 8
+    static let coachV2SchemaVersion = 9
 
     private static let schemaVersionKey = "forma.swiftdata.schemaVersion"
     private static let migrationCompleteKey = "forma.swiftdata.coachV2MigrationComplete"
@@ -45,8 +45,8 @@ enum FormaSchemaCoachV2Verification {
 
     /// Compile-time list check used by tests to ensure Coach v2 entities ship in the active schema.
     static func coachV2EntitiesAreRegisteredInActiveSchema() -> Bool {
-        FormaSchemaV8.models.contains(where: { $0 == CoachTimelineEventEntity.self })
-            && FormaSchemaV8.models.contains(where: { $0 == CoachChatTranscriptMessageEntity.self })
+        FormaSchemaV9.models.contains(where: { $0 == CoachTimelineEventEntity.self })
+            && FormaSchemaV9.models.contains(where: { $0 == CoachChatTranscriptMessageEntity.self })
     }
 
     static func coachTimelineEntityRegisteredAtV5() -> Bool {
@@ -87,14 +87,14 @@ enum FormaSchemaV7AccountSyncVerification {
     }
 }
 
-enum FormaSchemaV8AccountSyncVerification {
+enum FormaSchemaV9AccountSyncVerification {
 
     static var activeSchema: any VersionedSchema.Type {
-        FormaSchemaV8.self
+        FormaSchemaV9.self
     }
 
     static func syncMetadataEntitiesAreRegisteredInActiveSchema() -> Bool {
-        let models = FormaSchemaV8.models
+        let models = FormaSchemaV9.models
         return [
             DailyLogEntity.self,
             FoodEntryEntity.self,
@@ -107,7 +107,7 @@ enum FormaSchemaV8AccountSyncVerification {
     }
 
     static func syncOutboxEntityIsRegisteredInActiveSchema() -> Bool {
-        FormaSchemaV8.models.contains(where: { $0 == AccountSyncMutationEntity.self })
+        FormaSchemaV9.models.contains(where: { $0 == AccountSyncMutationEntity.self })
     }
 
     static func coachEntitiesAreExcludedFromAccountSyncMetadata() -> Bool {

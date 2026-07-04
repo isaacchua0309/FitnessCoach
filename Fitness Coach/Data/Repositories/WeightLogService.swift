@@ -14,15 +14,18 @@ final class WeightLogService {
     private let store: SwiftDataStore
     private let dailyLogService: DailyLogService
     private let dateProvider: DateProviding
+    private let mutationTracker: AccountLocalMutationTracker?
 
     init(
         store: SwiftDataStore,
         dailyLogService: DailyLogService,
-        dateProvider: DateProviding? = nil
+        dateProvider: DateProviding? = nil,
+        mutationTracker: AccountLocalMutationTracker? = nil
     ) {
         self.store = store
         self.dailyLogService = dailyLogService
         self.dateProvider = dateProvider ?? SystemDateProvider()
+        self.mutationTracker = mutationTracker
     }
 
     // MARK: Create
@@ -31,13 +34,17 @@ final class WeightLogService {
         guard weightKg > 0 else { throw ServiceError.invalidInput("Weight must be greater than zero.") }
 
         let dayStart = dateProvider.startOfDay(for: date)
+        let mutationGroupId = mutationTracker?.makeMutationGroupId()
 
-        // Same-day policy: update the existing entry for this day if present,
-        // otherwise create a new one.
         if let existing = try weightEntity(forDayStart: dayStart) {
             existing.weightKg = weightKg
             try save()
-            try updateDailyLogWeightIfPresent(date: dayStart, weightKg: weightKg)
+            let dailyLogUpdated = try updateDailyLogWeightIfPresent(date: dayStart, weightKg: weightKg, mutationGroupId: mutationGroupId)
+            try trackWeightUpsert(existing, mutationGroupId: mutationGroupId)
+            if dailyLogUpdated, let log = try dailyLogService.dailyLogEntity(for: dayStart) {
+                try mutationTracker?.trackDailyLogUpsert(log, mutationGroupId: mutationGroupId)
+                try save()
+            }
             return existing.toModel()
         }
 
@@ -50,7 +57,12 @@ final class WeightLogService {
         )
         let entity = WeightEntryEntity(model: model)
         try store.insert(entity)
-        try updateDailyLogWeightIfPresent(date: dayStart, weightKg: weightKg)
+        let dailyLogUpdated = try updateDailyLogWeightIfPresent(date: dayStart, weightKg: weightKg, mutationGroupId: mutationGroupId)
+        try trackWeightUpsert(entity, mutationGroupId: mutationGroupId)
+        if dailyLogUpdated, let log = try dailyLogService.dailyLogEntity(for: dayStart) {
+            try mutationTracker?.trackDailyLogUpsert(log, mutationGroupId: mutationGroupId)
+            try save()
+        }
         return entity.toModel()
     }
 
@@ -58,12 +70,18 @@ final class WeightLogService {
         guard draft.weightKg > 0 else { throw ServiceError.invalidInput("Weight must be greater than zero.") }
 
         let dayStart = dateProvider.startOfDay(for: date)
+        let mutationGroupId = mutationTracker?.makeMutationGroupId()
 
         if let existing = try weightEntity(forDayStart: dayStart) {
             existing.weightKg = draft.weightKg
             existing.note = draft.note
             try save()
-            try updateDailyLogWeightIfPresent(date: dayStart, weightKg: draft.weightKg)
+            let dailyLogUpdated = try updateDailyLogWeightIfPresent(date: dayStart, weightKg: draft.weightKg, mutationGroupId: mutationGroupId)
+            try trackWeightUpsert(existing, mutationGroupId: mutationGroupId)
+            if dailyLogUpdated, let log = try dailyLogService.dailyLogEntity(for: dayStart) {
+                try mutationTracker?.trackDailyLogUpsert(log, mutationGroupId: mutationGroupId)
+                try save()
+            }
             return existing.toModel()
         }
 
@@ -76,7 +94,12 @@ final class WeightLogService {
         )
         let entity = WeightEntryEntity(model: model)
         try store.insert(entity)
-        try updateDailyLogWeightIfPresent(date: dayStart, weightKg: draft.weightKg)
+        let dailyLogUpdated = try updateDailyLogWeightIfPresent(date: dayStart, weightKg: draft.weightKg, mutationGroupId: mutationGroupId)
+        try trackWeightUpsert(entity, mutationGroupId: mutationGroupId)
+        if dailyLogUpdated, let log = try dailyLogService.dailyLogEntity(for: dayStart) {
+            try mutationTracker?.trackDailyLogUpsert(log, mutationGroupId: mutationGroupId)
+            try save()
+        }
         return entity.toModel()
     }
 
@@ -86,15 +109,18 @@ final class WeightLogService {
         var descriptor = FetchDescriptor<WeightEntryEntity>(
             sortBy: [SortDescriptor(\.date, order: .reverse)]
         )
-        descriptor.fetchLimit = 1
-        return try store.fetch(descriptor).first?.toModel()
+        return try store.fetch(descriptor)
+            .first(where: AccountDataSyncReadFilter.isVisible)?
+            .toModel()
     }
 
     func getWeightEntries(from startDate: Date?, to endDate: Date?) throws -> [WeightEntry] {
         let descriptor = FetchDescriptor<WeightEntryEntity>(
             sortBy: [SortDescriptor(\.date, order: .forward)]
         )
-        var entries = try store.fetch(descriptor).map { $0.toModel() }
+        var entries = try store.fetch(descriptor)
+            .filter(AccountDataSyncReadFilter.isVisible)
+            .map { $0.toModel() }
         if let startDate {
             entries = entries.filter { $0.date >= startDate }
         }
@@ -117,15 +143,34 @@ final class WeightLogService {
             predicate: #Predicate { $0.date == dayStart }
         )
         descriptor.fetchLimit = 1
-        return try store.fetch(descriptor).first
+        guard let entity = try store.fetch(descriptor).first else { return nil }
+        guard AccountDataSyncReadFilter.isVisible(entity) else { return nil }
+        return entity
     }
 
-    /// Updates the day's log weight only if a log already exists; this avoids
-    /// requiring a user profile just to log weight.
-    private func updateDailyLogWeightIfPresent(date: Date, weightKg: Double) throws {
-        guard let log = try dailyLogService.dailyLogEntity(for: date) else { return }
+    @discardableResult
+    private func updateDailyLogWeightIfPresent(
+        date: Date,
+        weightKg: Double,
+        mutationGroupId: String?
+    ) throws -> Bool {
+        guard let log = try dailyLogService.dailyLogEntity(for: date) else { return false }
         log.weightKg = weightKg
         log.updatedAt = dateProvider.now
+        try save()
+        return true
+    }
+
+    private func trackWeightUpsert(_ entity: WeightEntryEntity, mutationGroupId: String?) throws {
+        guard let mutationTracker else { return }
+        let localDate = mutationTracker.dailyLogCloudID(for: entity.date)
+        try mutationTracker.trackUpsert(
+            entity: entity,
+            entityType: .weightEntry,
+            entityId: entity.id.uuidString,
+            localDate: localDate,
+            mutationGroupId: mutationGroupId
+        )
         try save()
     }
 

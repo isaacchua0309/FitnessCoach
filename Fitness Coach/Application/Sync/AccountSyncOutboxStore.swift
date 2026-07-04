@@ -76,6 +76,25 @@ final class SwiftDataAccountSyncOutboxStore: AccountSyncOutboxStore {
         operation: AccountSyncOperation,
         mutationGroupId: String?
     ) async throws {
+        try enqueueLocalMutation(
+            ownerUID: ownerUID,
+            entityType: entityType,
+            entityId: entityId,
+            localDate: localDate,
+            operation: operation,
+            mutationGroupId: mutationGroupId
+        )
+    }
+
+    /// Synchronous enqueue for local repository write paths on the main actor.
+    func enqueueLocalMutation(
+        ownerUID: String,
+        entityType: AccountSyncEntityType,
+        entityId: String,
+        localDate: String?,
+        operation: AccountSyncOperation,
+        mutationGroupId: String?
+    ) throws {
         let now = Date()
         let normalizedOwnerUID = try AccountSyncMutationValidation.normalizedOwnerUID(ownerUID)
         let normalizedEntityId = try AccountSyncMutationValidation.normalizedEntityId(entityId)
