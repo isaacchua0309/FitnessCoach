@@ -54,12 +54,19 @@ enum JourneyRevampQAChecklistSupport {
                 return true
             case .goalProjection:
                 return state.showsGoalProjectionSection
+            case .weeklyProgress:
+                return state.showsWeeklyProgressSection
             case .healthIntelligence:
                 return false
             case .milestones:
                 return state.showsMilestonesSection
             case .weeklyReview:
-                return state.showsWeeklyReviewSection
+                return JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
+                    dashboard: state,
+                    showsWeeklyProgressHero: state.showsWeeklyProgressSection,
+                    isHealthIntelligenceUIEnabled: false,
+                    healthIntelligenceSectionState: nil
+                )
             case .storyTimeline:
                 return state.showsStoryTimelineSection
             case .insights:

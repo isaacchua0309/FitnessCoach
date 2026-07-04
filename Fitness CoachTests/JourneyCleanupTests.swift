@@ -19,6 +19,7 @@ final class JourneyCleanupTests: XCTestCase {
         XCTAssertFalse(identifiers.contains("personalRecords"))
         XCTAssertFalse(identifiers.contains("journeyLevel"))
         XCTAssertFalse(identifiers.contains("detailedAnalytics"))
+        XCTAssertTrue(identifiers.contains("weeklyProgress"))
         XCTAssertTrue(identifiers.contains("monthlyRecap"))
         XCTAssertTrue(identifiers.contains("chapters"))
         XCTAssertTrue(identifiers.contains("header"))

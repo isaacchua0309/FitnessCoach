@@ -111,6 +111,36 @@ final class JourneyHealthIntelligenceCompositionTests: XCTestCase {
         XCTAssertTrue(sections.contains(.insights))
     }
 
+    func testWeeklyProgressHeroCollapsesLegacyHabitRowsWhenVisible() {
+        XCTAssertTrue(
+            JourneyDashboardCompositionPolicy.collapsesLegacyWeeklyHabitRows(
+                showsWeeklyProgressHero: true
+            )
+        )
+        XCTAssertFalse(
+            JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
+                dashboard: dashboard,
+                showsWeeklyProgressHero: true,
+                isHealthIntelligenceUIEnabled: true,
+                healthIntelligenceSectionState: section
+            )
+        )
+    }
+
+    func testVisibleSectionsIncludeWeeklyProgressForStrongMomentum() {
+        let sections = visibleSections(
+            for: dashboard,
+            healthIntelligenceUIEnabled: true,
+            healthIntelligenceSectionState: section
+        )
+
+        XCTAssertTrue(sections.contains(.weeklyProgress))
+        XCTAssertLessThan(
+            sections.firstIndex(of: .weeklyProgress)!,
+            sections.firstIndex(of: .healthIntelligence)!
+        )
+    }
+
     // MARK: - Helpers
 
     private func visibleSections(
@@ -124,6 +154,8 @@ final class JourneyHealthIntelligenceCompositionTests: XCTestCase {
                 return true
             case .goalProjection:
                 return state.showsGoalProjectionSection
+            case .weeklyProgress:
+                return state.showsWeeklyProgressSection
             case .healthIntelligence:
                 return JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
                     isUIEnabled: healthIntelligenceUIEnabled,
@@ -132,7 +164,12 @@ final class JourneyHealthIntelligenceCompositionTests: XCTestCase {
             case .milestones:
                 return state.showsMilestonesSection
             case .weeklyReview:
-                return state.showsWeeklyReviewSection
+                return JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
+                    dashboard: state,
+                    showsWeeklyProgressHero: state.showsWeeklyProgressSection,
+                    isHealthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
+                    healthIntelligenceSectionState: healthIntelligenceSectionState
+                )
             case .storyTimeline:
                 return state.showsStoryTimelineSection
             case .insights:

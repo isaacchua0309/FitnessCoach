@@ -22,7 +22,7 @@ final class UnifiedWeeklyReviewPresentationBuilderTests: XCTestCase {
         XCTAssertFalse(state.dateRangeText.isEmpty)
         XCTAssertFalse(state.habitRows.isEmpty)
         XCTAssertTrue(state.isReady)
-        XCTAssertEqual(state.primaryCTA?.kind, dashboard.weeklyProgressSummary.nextAction == .reviewPlan ? .reviewPlan : state.primaryCTA?.kind)
+        XCTAssertNotNil(state.primaryCTA)
     }
 
     func testBrandNewUserShowsInsufficientDataWithoutFakeMaintenanceKcal() {

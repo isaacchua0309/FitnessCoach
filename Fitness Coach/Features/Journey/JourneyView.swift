@@ -127,6 +127,7 @@ struct JourneyView: View {
                 analyticsCoordinator: analyticsCoordinator,
                 healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                 onCTA: handleCTA,
+                onWeeklyProgressCTA: handleWeeklyProgressCTA,
                 onGoToToday: { onOpenToday?() },
                 onConnectHealth: healthIntelligenceUIEnabled ? {
                     healthIntelligenceAnalyticsCoordinator?.logHealthPermissionCTATapped(surface: .journey)
@@ -160,6 +161,15 @@ struct JourneyView: View {
     private func handleCTA(_ cta: JourneyCTA) {
         analyticsCoordinator.logCTATapped(cta)
         JourneyCTAHandler.perform(cta, onOpenCoach: onOpenCoach, onOpenPlan: onOpenPlan)
+    }
+
+    private func handleWeeklyProgressCTA(_ cta: WeeklyProgressCTA) {
+        WeeklyProgressCTAHandler.perform(
+            cta,
+            onOpenToday: onOpenToday,
+            onOpenPlan: onOpenPlan,
+            onOpenCoach: onOpenCoach
+        )
     }
 
     private func syncAnalyticsContext(for state: JourneyDashboardState) {

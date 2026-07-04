@@ -39,4 +39,30 @@ enum JourneyDashboardCompositionPolicy {
     ) -> Bool {
         showsHealthIntelligenceSection(isUIEnabled: isUIEnabled, sectionState: sectionState)
     }
+
+    /// Hides duplicate habit rows in the legacy weekly section when the unified hero is visible.
+    static func collapsesLegacyWeeklyHabitRows(showsWeeklyProgressHero: Bool) -> Bool {
+        showsWeeklyProgressHero
+    }
+
+    static func showsLegacyWeeklyReviewSection(
+        dashboard: JourneyDashboardState,
+        showsWeeklyProgressHero: Bool,
+        isHealthIntelligenceUIEnabled: Bool,
+        healthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
+    ) -> Bool {
+        guard dashboard.showsWeeklyReviewSection else { return false }
+        guard showsWeeklyProgressHero,
+              collapsesLegacyWeeklyHabitRows(showsWeeklyProgressHero: true) else {
+            return true
+        }
+
+        let hidesTrainingRow = hidesTrainingHabitRow(
+            isUIEnabled: isHealthIntelligenceUIEnabled,
+            sectionState: healthIntelligenceSectionState
+        )
+        guard !hidesTrainingRow else { return false }
+
+        return JourneyCTARouter.weeklyTrainingCTA(training: dashboard.weeklyHabit.training) != nil
+    }
 }

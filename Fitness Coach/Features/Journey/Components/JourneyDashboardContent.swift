@@ -14,6 +14,7 @@ struct JourneyDashboardContent: View {
     var analyticsCoordinator: JourneyAnalyticsCoordinator?
     var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     var onCTA: (JourneyCTA) -> Void = { _ in }
+    var onWeeklyProgressCTA: (WeeklyProgressCTA) -> Void = { _ in }
     var onGoToToday: () -> Void = {}
     var onConnectHealth: (() -> Void)?
     var onWeeklyReviewSelected: ((WeeklyReviewDetailState) -> Void)?
@@ -39,6 +40,17 @@ struct JourneyDashboardContent: View {
         )
     }
 
+    private var showsWeeklyProgressHero: Bool {
+        state.showsWeeklyProgressSection
+    }
+
+    private var unifiedWeeklyReview: UnifiedWeeklyReviewState {
+        UnifiedWeeklyReviewPresentationBuilder.build(
+            dashboard: state,
+            healthIntelligence: healthIntelligenceSectionState
+        )
+    }
+
     private var visibleSections: [JourneyProductSection] {
         JourneyProductLayout.sectionOrder.filter { section in
             switch section {
@@ -48,12 +60,19 @@ struct JourneyDashboardContent: View {
                 return true
             case .goalProjection:
                 return state.showsGoalProjectionSection
+            case .weeklyProgress:
+                return showsWeeklyProgressHero
             case .healthIntelligence:
                 return showsHealthIntelligenceSection
             case .milestones:
                 return state.showsMilestonesSection
             case .weeklyReview:
-                return state.showsWeeklyReviewSection
+                return JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
+                    dashboard: state,
+                    showsWeeklyProgressHero: showsWeeklyProgressHero,
+                    isHealthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
+                    healthIntelligenceSectionState: healthIntelligenceSectionState
+                )
             case .storyTimeline:
                 return state.showsStoryTimelineSection
             case .insights:
@@ -92,6 +111,16 @@ struct JourneyDashboardContent: View {
             JourneyGoalProjectionSection(state: state.goalProjection, onCTA: onCTA)
                 .onAppear { analyticsCoordinator?.logProjectionViewed() }
 
+        case .weeklyProgress:
+            WeeklyProgressHeroSection(
+                state: unifiedWeeklyReview,
+                foodLoggedDays: state.weeklyProgressSummary.foodLoggedDays,
+                totalDays: state.weeklyProgressSummary.totalDays,
+                onPrimaryCTA: onWeeklyProgressCTA,
+                onSecondaryCTA: onWeeklyProgressCTA,
+                onOpenWeeklyReviewDetail: weeklyReviewDetailAction
+            )
+
         case .healthIntelligence:
             if let healthIntelligenceSectionState {
                 JourneyHealthIntelligenceSection(
@@ -114,6 +143,9 @@ struct JourneyDashboardContent: View {
                 hidesTrainingHabitRow: JourneyDashboardCompositionPolicy.hidesTrainingHabitRow(
                     isUIEnabled: healthIntelligenceUIEnabled,
                     sectionState: healthIntelligenceSectionState
+                ),
+                hidesHabitRows: JourneyDashboardCompositionPolicy.collapsesLegacyWeeklyHabitRows(
+                    showsWeeklyProgressHero: showsWeeklyProgressHero
                 ),
                 onCTA: onCTA
             )
@@ -149,6 +181,13 @@ struct JourneyDashboardContent: View {
                 onGoToToday()
             }
         }
+    }
+
+    private var weeklyReviewDetailAction: (() -> Void)? {
+        guard let detail = healthIntelligenceSectionState?.weeklyReviewDetail else {
+            return nil
+        }
+        return { onWeeklyReviewSelected?(detail) }
     }
 }
 
