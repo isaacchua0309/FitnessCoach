@@ -171,4 +171,121 @@ describe("nutrition sync firestore rules", () => {
     await assertFails(setDoc(ref, baseDailyLog));
     await assertFails(getDoc(ref));
   });
+
+  it("denies daily log writes with invalid date document id", async () => {
+    const alice = testEnv.authenticatedContext("user-a");
+    const ref = doc(alice.firestore(), "users/user-a/dailyLogs/not-a-date");
+
+    await assertFails(setDoc(ref, {
+      ...baseDailyLog,
+      id: "not-a-date",
+      localDate: "not-a-date",
+    }));
+  });
+
+  it("denies daily log writes when localDate does not match document id", async () => {
+    const alice = testEnv.authenticatedContext("user-a");
+    const ref = doc(alice.firestore(), "users/user-a/dailyLogs/2026-07-03");
+
+    await assertFails(setDoc(ref, {
+      ...baseDailyLog,
+      localDate: "2026-07-04",
+    }));
+  });
+
+  it("allows owner read/write on water subcollection", async () => {
+    const alice = testEnv.authenticatedContext("user-a");
+    const waterRef = doc(
+      alice.firestore(),
+      "users/user-a/dailyLogs/2026-07-03/waterEntries/water-entry-1"
+    );
+
+    await assertSucceeds(setDoc(waterRef, {
+      id: "water-entry-1",
+      userId: "user-a",
+      dailyLogId: "daily-log-1",
+      localDate: "2026-07-03",
+      amountMl: 250,
+      schemaVersion: 1,
+      updatedAt: Timestamp.now(),
+      createdAt: Timestamp.now(),
+    }));
+    await assertSucceeds(getDoc(waterRef));
+  });
+
+  it("allows owner read/write on weight entries and daily reviews", async () => {
+    const alice = testEnv.authenticatedContext("user-a");
+    const weightRef = doc(alice.firestore(), "users/user-a/weightEntries/weight-1");
+    const reviewRef = doc(alice.firestore(), "users/user-a/dailyReviews/2026-07-03");
+
+    await assertSucceeds(setDoc(weightRef, {
+      id: "weight-1",
+      userId: "user-a",
+      localDate: "2026-07-03",
+      weightKg: 68.2,
+      schemaVersion: 1,
+      updatedAt: Timestamp.now(),
+      createdAt: Timestamp.now(),
+    }));
+    await assertSucceeds(setDoc(reviewRef, {
+      id: "review-1",
+      userId: "user-a",
+      dailyLogId: "daily-log-1",
+      localDate: "2026-07-03",
+      summaryText: "Solid day",
+      caloriesSummary: "On target",
+      proteinSummary: "High",
+      hydrationSummary: "Good",
+      tomorrowRecommendation: "Repeat",
+      schemaVersion: 1,
+      updatedAt: Timestamp.now(),
+      createdAt: Timestamp.now(),
+    }));
+  });
+
+  it("preserves owner profile read/write", async () => {
+    const alice = testEnv.authenticatedContext("user-a");
+    const bob = testEnv.authenticatedContext("user-b");
+    const profileRef = doc(alice.firestore(), "users/user-a/profile/current");
+
+    await assertSucceeds(setDoc(profileRef, {
+      age: 30,
+      sex: "female",
+      heightCm: 165,
+      currentWeightKg: 68,
+      goalWeightKg: 62,
+      activityLevel: "moderatelyActive",
+      trainingFrequencyPerWeek: 3,
+      averageSteps: 8000,
+      unitSystem: "metric",
+      targets: {
+        calorieTarget: 2000,
+        proteinTarget: 140,
+        carbTarget: 180,
+        fatTarget: 65,
+        waterTargetMl: 2500,
+        aggressiveness: "moderate",
+      },
+      onboardingCompletedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    }));
+    await assertSucceeds(getDoc(profileRef));
+    await assertFails(getDoc(doc(bob.firestore(), "users/user-a/profile/current")));
+  });
+
+  it("allows owner read/write on health daily summaries", async () => {
+    const alice = testEnv.authenticatedContext("user-a");
+    const bob = testEnv.authenticatedContext("user-b");
+    const ref = doc(alice.firestore(), "users/user-a/healthDaily/2026-07-03");
+
+    await assertSucceeds(setDoc(ref, {
+      id: "2026-07-03",
+      userId: "user-a",
+      localDate: "2026-07-03",
+      schemaVersion: 1,
+      updatedAt: Timestamp.now(),
+    }));
+    await assertSucceeds(getDoc(ref));
+    await assertFails(getDoc(doc(bob.firestore(), "users/user-a/healthDaily/2026-07-03")));
+  });
 });
