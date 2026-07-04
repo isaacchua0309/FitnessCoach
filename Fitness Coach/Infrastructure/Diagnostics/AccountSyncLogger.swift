@@ -32,6 +32,48 @@ enum AccountSyncLogger {
         return "unknown"
     }
 
+    nonisolated static func crossDeviceSyncStarted(
+        traceId: String,
+        mode: CrossDeviceSyncMode,
+        reason: CrossDeviceSyncReason,
+        uid: String
+    ) {
+        emit(
+            levelName: "info",
+            osLogType: .info,
+            message: "cross_device_sync_started",
+            fields: [
+                "traceId": traceId,
+                "mode": mode.rawValue,
+                "reason": reason.rawValue,
+                "uidHash": hashedUID(uid)
+            ]
+        )
+    }
+
+    nonisolated static func crossDeviceSyncCompleted(
+        traceId: String,
+        summary: CrossDeviceSyncSummary
+    ) {
+        emit(
+            levelName: "info",
+            osLogType: .info,
+            message: "cross_device_sync_completed",
+            fields: [
+                "traceId": traceId,
+                "mode": summary.mode.rawValue,
+                "reason": summary.reason.rawValue,
+                "status": summary.status.rawValue,
+                "uidHash": hashedUID(summary.uid),
+                "uploadedMutations": String(summary.uploadedMutations),
+                "inserted": String(summary.inserted),
+                "updated": String(summary.updated),
+                "deleted": String(summary.deleted),
+                "didRefreshUI": summary.didRefreshUI ? "true" : "false"
+            ]
+        )
+    }
+
     nonisolated static func incrementalPullCompleted(
         traceId: String,
         summary: CrossDeviceSyncSummary

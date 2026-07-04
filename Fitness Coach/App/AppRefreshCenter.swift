@@ -45,6 +45,11 @@ final class AppRefreshCenter: ObservableObject {
         refreshToken += 1
     }
 
+    /// Cross-device upload/pull changed shared account data (Today, Journey, Plan, Coach).
+    func notifyCrossDeviceSyncDidComplete() {
+        refreshToken += 1
+    }
+
     /// Call when the app becomes active so tabs reload if the calendar day changed.
     func refreshIfDayChanged(now: Date = Date()) {
         let todayStart = Calendar.current.startOfDay(for: now)
