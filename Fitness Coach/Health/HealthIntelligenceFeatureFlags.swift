@@ -4,6 +4,19 @@
 //
 //  Forma — Health Intelligence rollout flags (facade over FormaAbTest).
 //
+//  ## Production defaults (safe release)
+//  | Flag | Env key | Default | Effect when off |
+//  |------|---------|---------|-----------------|
+//  | Foundation | `FORMA_HEALTH_INTELLIGENCE_ENABLED` | `true` | Disables all HI wiring |
+//  | Engines | `FORMA_HEALTH_INTELLIGENCE_ENGINES_ENABLED` | `true` | No snapshot/review composition |
+//  | UI | `FORMA_HEALTH_INTELLIGENCE_UI_ENABLED` | `false` | Today/Journey/Plan HI hidden |
+//  | Coach context | `FORMA_HEALTH_INTELLIGENCE_COACH_CONTEXT_ENABLED` | `true` | Coach omits HI from context packets |
+//  | Weekly review | `FORMA_HEALTH_INTELLIGENCE_WEEKLY_REVIEW_ENABLED` | `false` | No weekly review generation |
+//
+//  Coach Health Intelligence context is **on by default** when engines are enabled.
+//  Set `FORMA_HEALTH_INTELLIGENCE_COACH_CONTEXT_ENABLED=0` only as an operational
+//  rollback — not for A/B testing or user-facing toggles.
+//
 
 import Foundation
 
@@ -149,9 +162,9 @@ struct AbTestHealthIntelligenceFeatureFlags: HealthIntelligenceFeatureFlagProvid
 struct TestHealthIntelligenceFeatureFlags: HealthIntelligenceFeatureFlagProviding {
     var healthIntelligenceEnabled: Bool = true
     var healthIntelligenceEnginesEnabled: Bool = true
-    var healthIntelligenceUIEnabled: Bool = true
+    var healthIntelligenceUIEnabled: Bool = false
     var healthIntelligenceCoachContextEnabled: Bool = true
-    var healthIntelligenceWeeklyReviewEnabled: Bool = true
+    var healthIntelligenceWeeklyReviewEnabled: Bool = false
     var isSyncEnabled: Bool = true
     var healthSummaryRemoteSyncEnabled: Bool = true
     var healthIntelligencePipelineAnalyticsEnabled: Bool = true

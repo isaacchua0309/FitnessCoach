@@ -297,6 +297,8 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
     var workoutsUnavailable: Bool
     var sleepUnavailable: Bool
     var hrvUnavailable: Bool
+    var healthIntelligenceTimedOut: Bool
+    var healthIntelligenceFailed: Bool
 
     init(
         stepsMissing: Bool = false,
@@ -311,7 +313,9 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
         stepsUnavailable: Bool = false,
         workoutsUnavailable: Bool = false,
         sleepUnavailable: Bool = false,
-        hrvUnavailable: Bool = false
+        hrvUnavailable: Bool = false,
+        healthIntelligenceTimedOut: Bool = false,
+        healthIntelligenceFailed: Bool = false
     ) {
         self.stepsMissing = stepsMissing
         self.workoutPermissionDeniedOrUnavailable = workoutPermissionDeniedOrUnavailable
@@ -326,6 +330,8 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
         self.workoutsUnavailable = workoutsUnavailable
         self.sleepUnavailable = sleepUnavailable
         self.hrvUnavailable = hrvUnavailable
+        self.healthIntelligenceTimedOut = healthIntelligenceTimedOut
+        self.healthIntelligenceFailed = healthIntelligenceFailed
     }
 
     var hasAnyMissingSignals: Bool {
@@ -342,6 +348,8 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
             || workoutsUnavailable
             || sleepUnavailable
             || hrvUnavailable
+            || healthIntelligenceTimedOut
+            || healthIntelligenceFailed
     }
 }
 
@@ -532,6 +540,8 @@ extension CoachMissingDataContext {
         if weightMissing { labels.append("weight") }
         if noRecentMeals { labels.append("meals") }
         if noTimelineHistory { labels.append("timeline") }
+        if healthIntelligenceTimedOut { labels.append("healthIntelligenceTimedOut") }
+        if healthIntelligenceFailed { labels.append("healthIntelligenceFailed") }
         return labels
     }
 }

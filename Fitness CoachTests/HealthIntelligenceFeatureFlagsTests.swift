@@ -23,12 +23,12 @@ final class HealthIntelligenceFeatureFlagsTests: XCTestCase {
         XCTAssertTrue(defaults.healthIntelligenceEnginesEnabled)
         XCTAssertTrue(defaults.healthIntelligenceUIEnabled)
         XCTAssertTrue(defaults.healthIntelligenceCoachContextEnabled)
+        XCTAssertTrue(defaults.shouldCoachLoadHealthIntelligence)
         XCTAssertTrue(defaults.healthIntelligenceWeeklyReviewEnabled)
         XCTAssertTrue(defaults.healthSummaryRemoteSyncEnabled)
         XCTAssertTrue(defaults.isSyncEnabled)
         XCTAssertTrue(defaults.isRepositoryReadRoutingEnabled)
         XCTAssertTrue(defaults.shouldTodayModelLoadHealthIntelligence)
-        XCTAssertTrue(defaults.shouldCoachLoadHealthIntelligence)
     }
 
     func testDocumentedDefaultConstantsMatchSnapshot() {
@@ -68,7 +68,9 @@ final class HealthIntelligenceFeatureFlagsTests: XCTestCase {
         XCTAssertFalse(flags.shouldPlanModelLoadHealthIntelligence)
     }
 
-    func testCoachContextRequiresExplicitEnable() {
+    func testCoachContextEnabledByDefaultAndCanBeDisabledOperationally() {
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.snapshot().shouldCoachLoadHealthIntelligence)
+
         applyAbTestOverride { $0.coachContextEnabled = false }
         XCTAssertFalse(HealthIntelligenceFeatureFlags.snapshot().shouldCoachLoadHealthIntelligence)
 

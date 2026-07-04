@@ -113,8 +113,10 @@ final class CoachWorkoutAwareResponsesTests: XCTestCase {
 
         let packet = await builder.makeContext(recentMessages: [])
 
-        XCTAssertNil(packet.healthIntelligence)
+        XCTAssertNotNil(packet.healthIntelligence)
+        XCTAssertEqual(packet.healthIntelligence?.healthContextStatus, .unavailable)
         XCTAssertNotNil(packet.today)
+        XCTAssertTrue(packet.missingData.healthKitUnavailable || packet.generationMode == .degraded)
     }
 
     func testWorkoutAwareHealthIntelligenceAppearsInPromptContext() throws {

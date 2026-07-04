@@ -28,6 +28,8 @@ describe("coachContextPromptRules", () => {
   it("includes health rules for HealthKit availability", () => {
     const rules = coachContextHealthRules();
     expect(rules).toContain("healthKitDenied");
+    expect(rules).toContain("healthIntelligenceTimedOut");
+    expect(rules).toContain("healthIntelligenceFailed");
     expect(rules).toContain("missingData");
     expect(rules).toContain("do not invent those signals");
   });
