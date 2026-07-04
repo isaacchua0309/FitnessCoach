@@ -2,7 +2,7 @@
 
 This document describes how the Forma iOS app is composed today and the layering conventions established by the maintainability migration (Phases 1–6).
 
-**Related:** [JourneyArchitecture.md](./JourneyArchitecture.md) — Journey tab product contract; [FormaCalculationSpec.md](./FormaCalculationSpec.md) — canonical plan-target formulas.
+**Related:** [JourneyArchitecture.md](./JourneyArchitecture.md) — Journey tab product contract; [FormaCalculationSpec.md](./FormaCalculationSpec.md) — canonical plan-target formulas; [Production/ProductionReadinessChecklist.md](./Production/ProductionReadinessChecklist.md) — release gate checklists.
 
 **Production architecture (PRDX v1):** [Architecture/AppArchitectureOverview.md](./Architecture/AppArchitectureOverview.md) — domain map, ownership, and refactor safety. See also [Architecture/SourceOfTruthMap.md](./Architecture/SourceOfTruthMap.md), [Architecture/DependencyInjectionMap.md](./Architecture/DependencyInjectionMap.md), [Architecture/FeatureFlagRegistry.md](./Architecture/FeatureFlagRegistry.md), [Architecture/LoggingAndPrivacyContract.md](./Architecture/LoggingAndPrivacyContract.md), [Architecture/AnalyticsReadinessChecklist.md](./Architecture/AnalyticsReadinessChecklist.md), [Architecture/TestStrategy.md](./Architecture/TestStrategy.md), [TechnicalDebt/TechnicalDebtRegister.md](./TechnicalDebt/TechnicalDebtRegister.md).
 
