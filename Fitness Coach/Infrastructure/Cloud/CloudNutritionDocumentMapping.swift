@@ -88,12 +88,13 @@ enum CloudNutritionDocumentMapping {
         CloudSyncMetadataDocument(
             userId: context.userId,
             schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
-            clientSchemaVersion: AccountDataCloudSchema.currentSchemaVersion,
-            lastPushedAt: nil,
-            lastPulledAt: nil,
-            lastFullRestoreAt: nil,
-            deviceId: context.deviceId,
-            appVersion: context.appVersion,
+            lastFullPullAt: nil,
+            lastSuccessfulPushAt: nil,
+            lastSuccessfulPullAt: nil,
+            lastKnownServerUpdatedAt: nil,
+            lastMigrationAt: nil,
+            lastDeviceId: context.deviceId,
+            clientVersion: context.appVersion,
             updatedAt: context.now
         )
     }
@@ -214,6 +215,7 @@ enum CloudNutritionDocumentMapping {
             updatedAt: entry.updatedAt,
             createdAt: entry.createdAt,
             deletedAt: nil,
+            deviceId: context.deviceId,
             mutationId: context.mutationId
         )
     }
@@ -259,6 +261,8 @@ enum CloudNutritionDocumentMapping {
             updatedAt: entry.createdAt,
             createdAt: entry.createdAt,
             deletedAt: nil,
+            deviceId: context.deviceId,
+            source: AccountDataCloudSchema.clientSource,
             mutationId: context.mutationId
         )
     }
@@ -288,6 +292,8 @@ enum CloudNutritionDocumentMapping {
             updatedAt: entry.createdAt,
             createdAt: entry.createdAt,
             deletedAt: nil,
+            deviceId: context.deviceId,
+            source: AccountDataCloudSchema.clientSource,
             mutationId: context.mutationId
         )
     }
@@ -331,6 +337,8 @@ enum CloudNutritionDocumentMapping {
             updatedAt: review.createdAt,
             createdAt: review.createdAt,
             deletedAt: nil,
+            deviceId: context.deviceId,
+            source: AccountDataCloudSchema.clientSource,
             mutationId: context.mutationId
         )
     }

@@ -153,9 +153,8 @@ describe("nutrition sync firestore rules", () => {
       setDoc(ref, {
         userId: "user-a",
         schemaVersion: 1,
-        clientSchemaVersion: 1,
-        deviceId: "test-device",
-        appVersion: "1.0.0",
+        lastDeviceId: "test-device",
+        clientVersion: "1.0.0",
         updatedAt: Timestamp.now(),
       })
     );

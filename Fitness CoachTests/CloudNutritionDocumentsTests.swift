@@ -2,7 +2,7 @@
 //  CloudNutritionDocumentsTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Cloud nutrition DTO JSON round-trip tests (Phase 2).
+//  Forma — Account data cloud DTO JSON round-trip tests (Phase 2).
 //
 
 import XCTest
@@ -37,12 +37,12 @@ final class CloudNutritionDocumentsTests: XCTestCase {
             weightKg: 68.2,
             dailyReviewId: nil,
             schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
-            updatedAt: referenceDate,
             createdAt: referenceDate,
+            updatedAt: referenceDate,
             deletedAt: nil,
-            mutationId: UUID().uuidString,
             deviceId: "test-device",
-            source: AccountDataCloudSchema.clientSource
+            source: AccountDataCloudSchema.clientSource,
+            mutationId: UUID().uuidString
         )
 
         let roundTripped = try NutritionCloudTestSupport.roundTrip(document)
@@ -71,10 +71,77 @@ final class CloudNutritionDocumentsTests: XCTestCase {
             notes: "No dressing",
             componentsJSON: nil,
             schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
-            updatedAt: referenceDate,
             createdAt: referenceDate,
+            updatedAt: referenceDate,
             deletedAt: nil,
+            deviceId: "test-device",
             mutationId: UUID().uuidString
+        )
+
+        let roundTripped = try NutritionCloudTestSupport.roundTrip(document)
+        XCTAssertEqual(roundTripped, document)
+    }
+
+    func testWaterEntryDocumentRoundTripsThroughJSON() throws {
+        let document = CloudWaterEntryDocument(
+            id: UUID().uuidString,
+            userId: "signed-in-user",
+            dailyLogId: UUID().uuidString,
+            localDate: "2026-07-03",
+            amountMl: 350,
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
+            createdAt: referenceDate,
+            updatedAt: referenceDate,
+            deletedAt: nil,
+            deviceId: "test-device",
+            source: AccountDataCloudSchema.clientSource,
+            mutationId: UUID().uuidString
+        )
+
+        let roundTripped = try NutritionCloudTestSupport.roundTrip(document)
+        XCTAssertEqual(roundTripped, document)
+    }
+
+    func testWeightEntryDocumentRoundTripsThroughJSON() throws {
+        let document = CloudWeightEntryDocument(
+            id: UUID().uuidString,
+            userId: "signed-in-user",
+            localDate: "2026-07-03",
+            weightKg: 68.4,
+            note: "Morning",
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
+            createdAt: referenceDate,
+            updatedAt: referenceDate,
+            deletedAt: nil,
+            deviceId: "test-device",
+            source: AccountDataCloudSchema.clientSource,
+            mutationId: nil
+        )
+
+        let roundTripped = try NutritionCloudTestSupport.roundTrip(document)
+        XCTAssertEqual(roundTripped, document)
+    }
+
+    func testDailyReviewDocumentRoundTripsThroughJSON() throws {
+        let document = CloudDailyReviewDocument(
+            id: UUID().uuidString,
+            userId: "signed-in-user",
+            dailyLogId: UUID().uuidString,
+            localDate: "2026-07-03",
+            summaryText: "Solid day",
+            caloriesSummary: "On target",
+            proteinSummary: "High",
+            hydrationSummary: "Good",
+            workoutSummary: "Walked",
+            weightSummary: "Stable",
+            tomorrowRecommendation: "Repeat protein focus",
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
+            createdAt: referenceDate,
+            updatedAt: referenceDate,
+            deletedAt: nil,
+            deviceId: "test-device",
+            source: AccountDataCloudSchema.clientSource,
+            mutationId: nil
         )
 
         let roundTripped = try NutritionCloudTestSupport.roundTrip(document)
@@ -84,18 +151,32 @@ final class CloudNutritionDocumentsTests: XCTestCase {
     func testSyncMetadataDocumentRoundTripsThroughJSON() throws {
         let document = CloudSyncMetadataDocument(
             userId: "signed-in-user",
-            schemaVersion: 1,
-            clientSchemaVersion: 1,
-            lastPushedAt: referenceDate,
-            lastPulledAt: nil,
-            lastFullRestoreAt: nil,
-            deviceId: "test-device",
-            appVersion: "1.0.0",
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
+            lastFullPullAt: referenceDate,
+            lastSuccessfulPushAt: referenceDate,
+            lastSuccessfulPullAt: nil,
+            lastKnownServerUpdatedAt: referenceDate,
+            lastMigrationAt: nil,
+            lastDeviceId: "test-device",
+            clientVersion: "1.0.0",
             updatedAt: referenceDate
         )
 
         let roundTripped = try NutritionCloudTestSupport.roundTrip(document)
         XCTAssertEqual(roundTripped, document)
+    }
+
+    func testAccountDataEnvelopeFactoryUsesCurrentSchemaVersion() {
+        let envelope = CloudAccountDataEnvelope.make(
+            id: "entry-1",
+            userId: "signed-in-user",
+            createdAt: referenceDate,
+            updatedAt: referenceDate,
+            deviceId: "test-device"
+        )
+
+        XCTAssertEqual(envelope.schemaVersion, AccountDataCloudSchema.currentSchemaVersion)
+        XCTAssertEqual(envelope.source, AccountDataCloudSchema.clientSource)
     }
 }
 

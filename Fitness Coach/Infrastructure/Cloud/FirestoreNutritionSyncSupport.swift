@@ -32,7 +32,7 @@ enum FirestoreNutritionSyncSupport {
         }
     }
 
-    static func validate<T: CloudNutritionRemoteSyncDocument>(_ document: T, sessionUID: String) throws {
+    static func validate<T: CloudAccountDataDocument>(_ document: T, sessionUID: String) throws {
         try validateDocumentUID(document.userId, sessionUID: sessionUID)
         guard document.schemaVersion > 0 else {
             throw NutritionSyncError.invalidDocument("schemaVersion must be positive")

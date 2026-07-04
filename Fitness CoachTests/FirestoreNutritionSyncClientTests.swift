@@ -70,12 +70,13 @@ final class FirestoreNutritionSyncClientTests: XCTestCase {
         let document = CloudSyncMetadataDocument(
             userId: "other-user",
             schemaVersion: 1,
-            clientSchemaVersion: 1,
-            lastPushedAt: nil,
-            lastPulledAt: nil,
-            lastFullRestoreAt: nil,
-            deviceId: "device",
-            appVersion: "1.0.0",
+            lastFullPullAt: nil,
+            lastSuccessfulPushAt: nil,
+            lastSuccessfulPullAt: nil,
+            lastKnownServerUpdatedAt: nil,
+            lastMigrationAt: nil,
+            lastDeviceId: "device",
+            clientVersion: "1.0.0",
             updatedAt: referenceDate
         )
 
