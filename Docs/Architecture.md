@@ -2,7 +2,7 @@
 
 This document describes how the Forma iOS app is composed today and the layering conventions established by the maintainability migration (Phases 1–6).
 
-**Related:** [JourneyArchitecture.md](./JourneyArchitecture.md) — Journey tab product contract; [FormaCalculationSpec.md](./FormaCalculationSpec.md) — canonical plan-target formulas.
+**Related:** [JourneyArchitecture.md](./JourneyArchitecture.md) — Journey tab product contract; [FormaCalculationSpec.md](./FormaCalculationSpec.md) — canonical plan-target formulas; [Production/ProductionReadinessChecklist.md](./Production/ProductionReadinessChecklist.md) — release gate checklists.
 
 ---
 

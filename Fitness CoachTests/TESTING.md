@@ -2,6 +2,8 @@
 
 Tests are grouped with **Xcode Test Plans** under `TestPlans/`. The default **Fitness Coach** scheme runs the fast suite; CI should use the **Fitness Coach CI** scheme.
 
+**Production release:** After automated suites pass, run the manual script in [Docs/Production/ReleaseTestPlan.md](../Docs/Production/ReleaseTestPlan.md) and complete [Docs/Production/ProductionReadinessChecklist.md](../Docs/Production/ProductionReadinessChecklist.md).
+
 ## Test plans
 
 | Plan | Purpose | ~Classes | Typical runtime |

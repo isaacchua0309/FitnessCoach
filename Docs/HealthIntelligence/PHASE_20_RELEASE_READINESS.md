@@ -7,6 +7,9 @@
 
 **Related docs:**
 - [PHASE_19_QA_TEST_MATRIX.md](./PHASE_19_QA_TEST_MATRIX.md) — manual QA cases TC-01 … TC-30
+- [Production/ProductionReadinessChecklist.md](../Production/ProductionReadinessChecklist.md) — master release gate
+- [Production/PrivacyReviewChecklist.md](../Production/PrivacyReviewChecklist.md) — App Privacy questionnaire
+- [Production/AppStoreReadinessChecklist.md](../Production/AppStoreReadinessChecklist.md) — submission copy and flags
 - [CLEANUP_STATUS.md](./CLEANUP_STATUS.md) — removed / deprecated / remaining paths
 - [HEALTH_SUMMARY_SYNC_CONTRACT.md](./HEALTH_SUMMARY_SYNC_CONTRACT.md) — remote sync privacy contract
 - [PHASE_16_20_AUDIT.md](./PHASE_16_20_AUDIT.md) — pre-hardening audit (historical context)
