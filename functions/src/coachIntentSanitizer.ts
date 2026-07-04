@@ -1,9 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, require-jsdoc, max-len */
 
+import {applyCoachIntentPhraseGuard} from "./coachIntentPhraseGuard";
+
 const ADVICE_LOOKUP_INTENTS = new Set([
   "calorie_lookup",
   "macro_lookup",
   "meal_decision",
+  "nutrition_estimate_query",
+  "nutrition_comparison_query",
   "nutrition_advice",
   "workout_advice",
   "weight_loss_advice",
@@ -145,12 +149,16 @@ export function sanitizeCoachAction(value: unknown): Record<string, unknown> | n
   return action;
 }
 
-export function sanitizeCoachIntentResult(raw: Record<string, any>): Record<string, unknown> {
-  const confidence = Math.min(Math.max(coerceNumber(raw.confidence, 0.5), 0), 1);
-  const intent = typeof raw.intent === "string" ? raw.intent : "general_conversation";
-  const requiresAppMutation = Boolean(raw.requiresAppMutation);
+export function sanitizeCoachIntentResult(
+  raw: Record<string, any>,
+  userText = ""
+): Record<string, unknown> {
+  const guarded = applyCoachIntentPhraseGuard(raw, userText);
+  const confidence = Math.min(Math.max(coerceNumber(guarded.confidence, 0.5), 0), 1);
+  const intent = typeof guarded.intent === "string" ? guarded.intent : "general_conversation";
+  const requiresAppMutation = Boolean(guarded.requiresAppMutation);
 
-  let action = sanitizeCoachAction(raw.action);
+  let action = sanitizeCoachAction(guarded.action);
   if (!requiresAppMutation && ADVICE_LOOKUP_INTENTS.has(intent) && action) {
     action = null;
   }
@@ -158,14 +166,14 @@ export function sanitizeCoachIntentResult(raw: Record<string, any>): Record<stri
   return {
     intent,
     confidence,
-    domain: typeof raw.domain === "string" ? raw.domain : "general",
+    domain: typeof guarded.domain === "string" ? guarded.domain : "general",
     requiresAppMutation,
-    requiresUserContext: Boolean(raw.requiresUserContext),
-    canAnswerWithCheapModel: raw.canAnswerWithCheapModel !== false,
-    requiresEscalation: Boolean(raw.requiresEscalation),
-    entities: sanitizeCoachIntentEntities(raw.entities),
+    requiresUserContext: Boolean(guarded.requiresUserContext),
+    canAnswerWithCheapModel: guarded.canAnswerWithCheapModel !== false,
+    requiresEscalation: Boolean(guarded.requiresEscalation),
+    entities: sanitizeCoachIntentEntities(guarded.entities),
     action,
-    reason: nullableString(raw.reason),
+    reason: nullableString(guarded.reason),
   };
 }
 

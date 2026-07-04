@@ -119,6 +119,82 @@ final class CoachRoutingTests: XCTestCase {
         try await assertLocalGuard("how many calories left", expectedHandler: "local_command")
     }
 
+    // MARK: - Phrase guard misclassification hardening
+
+    func testMisclassifiedShouldIEatRoutesToNutritionEstimateNotLogFood() async throws {
+        try await assertCorrectedClassifierRoute(
+            "should I eat chicken rice?",
+            stub: stubIntent(.logFood),
+            expectedIntent: .mealDecision,
+            expectedHandler: "cheap_nutrition_estimate",
+            expectedTier: .cheap
+        )
+    }
+
+    func testMisclassifiedCaloriesInRoutesToNutritionEstimate() async throws {
+        try await assertCorrectedClassifierRoute(
+            "how many calories in chicken rice?",
+            stub: stubIntent(.logFood),
+            expectedIntent: .nutritionEstimateQuery,
+            expectedHandler: "cheap_nutrition_estimate",
+            expectedTier: .cheap
+        )
+    }
+
+    func testMisclassifiedSameAsBreakfastDoesNotLogFood() async throws {
+        try await assertCorrectedClassifierRoute(
+            "same as breakfast",
+            stub: stubIntent(.logFood),
+            expectedIntent: .mealDecision,
+            expectedHandler: "cheap_nutrition_estimate",
+            expectedTier: .cheap
+        )
+    }
+
+    func testExplicitLogSameAsBreakfastStillRoutesToEstimateFood() async throws {
+        try await assertClassifierRoute(
+            "log same as breakfast",
+            stub: stubIntent(.logFood),
+            expectedHandler: "ai_estimate_food",
+            expectedTier: .cheap,
+            expectedIntent: .logFood
+        )
+    }
+
+    func testExplicitIAteRoutesToEstimateFood() async throws {
+        try await assertClassifierRoute(
+            "I ate chicken rice",
+            stub: stubIntent(.logFood),
+            expectedHandler: "ai_estimate_food",
+            expectedTier: .cheap,
+            expectedIntent: .logFood
+        )
+    }
+
+    func testWhatWasBreakfastDoesNotLogFood() async throws {
+        try await assertCorrectedClassifierRoute(
+            "what was breakfast?",
+            stub: stubIntent(.logFood),
+            expectedIntent: .nutritionEstimateQuery,
+            expectedHandler: "cheap_nutrition_estimate",
+            expectedTier: .cheap
+        )
+    }
+
+    func testShouldIEatDoesNotUseLocalFoodEstimator() async throws {
+        let service = StubClassifierAIService(classifyResult: stubIntent(.mealDecision))
+        let decision = try await CoachRouteDecider().decide(
+            text: "should I eat 2 eggs",
+            context: .test,
+            aiService: service,
+            config: .default
+        )
+
+        XCTAssertEqual(service.classifyCoachIntentCallCount, 1)
+        XCTAssertNotEqual(decision.chosenHandler, "local_food_estimate")
+        XCTAssertEqual(decision.routeSource, .cheapClassifier)
+    }
+
     // MARK: - Cheap classifier routing
 
     func testVagueFoodRoutesToEstimateFood() async throws {
@@ -134,8 +210,9 @@ final class CoachRoutingTests: XCTestCase {
         try await assertClassifierRoute(
             "should I eat a kebab tonight?",
             stub: stubIntent(.mealDecision),
-            expectedHandler: "cheap_meal_advice",
-            expectedTier: .cheap
+            expectedHandler: "cheap_nutrition_estimate",
+            expectedTier: .cheap,
+            expectedIntent: .mealDecision
         )
     }
 
@@ -581,6 +658,7 @@ final class CoachRoutingTests: XCTestCase {
         stub: CoachIntentResult,
         expectedHandler: String,
         expectedTier: CoachModelTier,
+        expectedIntent: CoachIntent? = nil,
         file: StaticString = #filePath,
         line: UInt = #line
     ) async throws {
@@ -596,7 +674,7 @@ final class CoachRoutingTests: XCTestCase {
         XCTAssertEqual(service.classifyCoachIntentCallCount, 1, file: file, line: line)
         XCTAssertTrue(decision.requiresAPI, file: file, line: line)
         XCTAssertEqual(decision.routeSource, .cheapClassifier, file: file, line: line)
-        XCTAssertEqual(decision.intent, stub.intent, file: file, line: line)
+        XCTAssertEqual(decision.intent, expectedIntent ?? stub.intent, file: file, line: line)
         XCTAssertEqual(decision.modelTier, expectedTier, file: file, line: line)
         XCTAssertEqual(decision.chosenHandler, expectedHandler, file: file, line: line)
         if case .ai = decision.route {
@@ -606,6 +684,26 @@ final class CoachRoutingTests: XCTestCase {
         } else {
             XCTFail("Expected AI route for '\(text)', got \(decision.route)", file: file, line: line)
         }
+    }
+
+    private func assertCorrectedClassifierRoute(
+        _ text: String,
+        stub: CoachIntentResult,
+        expectedIntent: CoachIntent,
+        expectedHandler: String,
+        expectedTier: CoachModelTier,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async throws {
+        try await assertClassifierRoute(
+            text,
+            stub: stub,
+            expectedHandler: expectedHandler,
+            expectedTier: expectedTier,
+            expectedIntent: expectedIntent,
+            file: file,
+            line: line
+        )
     }
 
     private func stubIntent(

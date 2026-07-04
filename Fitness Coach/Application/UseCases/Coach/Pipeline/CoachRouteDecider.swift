@@ -206,7 +206,15 @@ final class CoachRouteDecider: Sendable {
             "classify intent=\(intentResult.intent.rawValue) escalation=\(intentResult.requiresEscalation)"
         )
 
-        switch CoachIntentConfidenceGate.evaluate(intentResult) {
+        let guardedIntentResult = CoachIntentPhraseGuard.applyGuards(
+            to: intentResult,
+            text: input.originalText
+        )
+
+        switch CoachIntentConfidenceGate.evaluate(
+            guardedIntentResult,
+            originalText: input.originalText
+        ) {
         case .clarify(let message):
             return CoachRouteDecision(
                 route: .clarification(message),

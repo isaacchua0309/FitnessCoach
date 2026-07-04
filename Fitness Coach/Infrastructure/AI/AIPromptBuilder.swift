@@ -75,10 +75,16 @@ enum AIPromptBuilder {
           workout_advice, weight_loss_advice, app_help, general_conversation,
           unrelated_or_unsupported.
         - Prefer nutrition_estimate_query for calorie/macro estimates, portion questions,
-          and "should I eat X today?" fit questions. Do not set requiresAppMutation.
+          and "how many calories in X?" lookup questions. Do not set requiresAppMutation.
         - Prefer nutrition_comparison_query for "X vs Y" food comparisons. Do not set requiresAppMutation.
-        - Use log_food only when the user wants to log or record food (e.g. "log a Big Mac",
-          "I ate a burger, add it"). Set requiresAppMutation true.
+        - Prefer meal_decision for "should I eat X?", "can I fit X today?", or "is X okay?".
+        - Prefer nutrition_advice for "what should I eat?" or "recommend me something".
+        - Use log_food only when the user clearly consumed food, is consuming food, or explicitly
+          asks to log/record/add food (e.g. "log a Big Mac", "I ate a burger, add it",
+          "add chicken rice to lunch"). Set requiresAppMutation true.
+        - Do not infer consumption from hypothetical or question-form language.
+        - "same as breakfast" is log_food only with explicit logging or consumption language.
+        - "what was breakfast?" is lookup/advice, never log_food.
         - Include a typed action when mutation data is clear enough to validate.
         - Set canAnswerWithCheapModel true for simple nutrition, calorie, macro,
           supplement, meal-decision, workout, or general fitness questions.

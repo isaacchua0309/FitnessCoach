@@ -39,6 +39,9 @@ describe("coachContextPromptRules", () => {
     expect(rules).toContain("Do not copy nutrition values from context.recentChatMessages");
     expect(rules).toContain("currentUserMessage");
     expect(rules).toContain("timeline.recentEvents and context.today aggregates for factual claims");
+    expect(rules).toContain("should I eat chicken rice?");
+    expect(rules).toContain("log chicken rice");
+    expect(rules).toContain("same as breakfast");
   });
 
   it("includes estimate-food endpoint rules", () => {
