@@ -15,12 +15,17 @@ struct TodayMealsPreview: View {
     let onEditEntry: (FoodEntry) -> Void
     let onDeleteEntry: (FoodEntry) -> Void
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
+
     private var section: TodayMealsSectionState {
         TodayMealsGroupingEngine.build(entries: entries, date: date)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Meals.sectionTitle)
 
             FormaPlanCard {
@@ -59,7 +64,7 @@ struct TodayMealsPreview: View {
             } label: {
                 Text(FormaProductCopy.Today.Meals.addAction)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .foregroundStyle(palette.primary)
                     .frame(minHeight: FormaTokens.Layout.minTouchTarget)
             }
             .buttonStyle(.plain)
@@ -83,7 +88,7 @@ struct TodayMealsPreview: View {
 
                 Image(systemName: "checkmark.circle.fill")
                     .font(.body)
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .foregroundStyle(palette.primary)
                     .symbolRenderingMode(.hierarchical)
                     .accessibilityHidden(true)
             }
@@ -94,7 +99,7 @@ struct TodayMealsPreview: View {
         .padding(.horizontal, FormaTokens.Spacing.md)
         .padding(.vertical, TodayLayout.cardRowVerticalPadding)
         .background(
-            FormaTokens.Theme.softBackground.opacity(0.45),
+            palette.softBackground.opacity(0.45),
             in: RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
         )
         .accessibilityElement(children: .combine)
@@ -129,23 +134,23 @@ struct TodayMealsPreview: View {
             HStack(spacing: FormaTokens.Spacing.xs) {
                 Text(display.title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .foregroundStyle(colors.textPrimary)
 
                 if display.isOptional {
                     Text(FormaProductCopy.Today.Meals.optionalLabel)
                         .font(FormaTokens.Typography.caption2)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                        .foregroundStyle(colors.textTertiary)
                 }
             }
 
             Text(display.statusLine)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(isLogged ? FormaTokens.Color.textSecondary : FormaTokens.Color.textTertiary)
+                .foregroundStyle(isLogged ? colors.textSecondary : colors.textTertiary)
 
             if let detailLine = display.detailLine {
                 Text(detailLine)
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .foregroundStyle(colors.textSecondary)
             }
         }
     }

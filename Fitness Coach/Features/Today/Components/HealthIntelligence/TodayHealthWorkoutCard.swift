@@ -53,7 +53,7 @@ struct TodayHealthWorkoutCard: View {
                 TodayHealthIntelligenceGuidanceRow(
                     text: nutritionTip,
                     iconName: "fork.knife",
-                    iconColor: FormaTokens.Theme.primary
+                    iconAccent: .primary
                 )
             }
 
@@ -61,7 +61,7 @@ struct TodayHealthWorkoutCard: View {
                 TodayHealthIntelligenceGuidanceRow(
                     text: hydrationTip,
                     iconName: "drop.fill",
-                    iconColor: FormaTokens.Theme.secondary
+                    iconAccent: .secondary
                 )
             }
         }

@@ -19,6 +19,7 @@ enum TodayHealthIntelligenceCardSupport {
 struct TodayHealthIntelligencePhaseBadge: View {
     let phase: TodayRecoveryCardPhase
 
+    @Environment(\.formaColors) private var colors
     @ScaledMetric(relativeTo: .caption) private var verticalPadding: CGFloat = 4
 
     var body: some View {
@@ -32,7 +33,6 @@ struct TodayHealthIntelligencePhaseBadge: View {
                     .fill(backgroundColor)
             )
             .accessibilityLabel(accessibilityLabel)
-            .formaThemeReactive()
     }
 
     private var label: String {
@@ -53,13 +53,13 @@ struct TodayHealthIntelligencePhaseBadge: View {
     private var foregroundColor: Color {
         switch phase {
         case .ready:
-            return FormaTokens.Color.success
+            return colors.success
         case .moderate:
-            return FormaTokens.Color.textSecondary
+            return colors.textSecondary
         case .low:
-            return FormaTokens.Color.warning
+            return colors.warning
         case .unknown, .limitedEstimate:
-            return FormaTokens.Color.textTertiary
+            return colors.textTertiary
         }
     }
 
@@ -74,15 +74,29 @@ struct TodayHealthIntelligencePhaseBadge: View {
 
 // MARK: - Guidance row
 
+enum TodayGuidanceIconAccent: Equatable {
+    case primary
+    case secondary
+    case tertiary
+}
+
 struct TodayHealthIntelligenceGuidanceRow: View {
     let text: String
     var iconName: String = "circle.fill"
-    var iconColor: Color?
+    var iconAccent: TodayGuidanceIconAccent = .primary
 
     @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
 
     private var resolvedIconColor: Color {
-        iconColor ?? palette.primary
+        switch iconAccent {
+        case .primary:
+            return palette.primary
+        case .secondary:
+            return palette.secondary
+        case .tertiary:
+            return colors.textTertiary
+        }
     }
 
     var body: some View {
@@ -96,7 +110,7 @@ struct TodayHealthIntelligenceGuidanceRow: View {
 
             Text(text)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.85)
@@ -111,6 +125,8 @@ struct TodayHealthIntelligenceGuidanceRow: View {
 struct TodayHealthIntelligenceCardNote: View {
     let text: String
     var tone: Tone = .neutral
+
+    @Environment(\.formaColors) private var colors
 
     enum Tone {
         case neutral
@@ -129,9 +145,9 @@ struct TodayHealthIntelligenceCardNote: View {
     private var foregroundColor: Color {
         switch tone {
         case .neutral:
-            return FormaTokens.Color.textTertiary
+            return colors.textTertiary
         case .caution:
-            return FormaTokens.Color.warning
+            return colors.warning
         }
     }
 }

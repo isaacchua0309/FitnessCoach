@@ -12,8 +12,12 @@ struct TodayNextBestActionCard: View {
     var isLoading: Bool = false
     var onAction: (() -> Void)?
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.formaColors) private var colors
+
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: state.sectionTitle)
 
             TodayHealthIntelligenceLoadingCard(isLoading: isLoading) {
@@ -21,7 +25,7 @@ struct TodayNextBestActionCard: View {
                     VStack(alignment: .leading, spacing: TodayHealthIntelligenceCardSupport.cardContentSpacing) {
                         Text(state.title)
                             .font(TodayHealthIntelligenceCardTypography.headline)
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .foregroundStyle(colors.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.85)
@@ -29,7 +33,7 @@ struct TodayNextBestActionCard: View {
                         if let message = state.message {
                             Text(message)
                                 .font(TodayHealthIntelligenceCardTypography.body)
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .foregroundStyle(colors.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .lineLimit(nil)
                                 .minimumScaleFactor(0.85)
@@ -52,7 +56,6 @@ struct TodayNextBestActionCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityIdentifier("today-hi-next-best-action-card")
-        .formaThemeReactive()
     }
 
     private var resolvedActionTitle: String? {

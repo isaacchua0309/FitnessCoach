@@ -11,26 +11,31 @@ struct TodayActivitySection: View {
     let activity: ActivityTodayState
     let onConnectAppleHealth: () -> Void
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
+
     private var display: TodayActivityCompactDisplayModel {
         TodayActivitySectionFormatting.displayModel(for: activity)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Activity.sectionTitle)
 
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                     Text(display.stepsLine)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(colors.textPrimary)
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
 
                     Text(display.workoutLine)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(colors.textSecondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
 
@@ -56,7 +61,7 @@ struct TodayActivitySection: View {
                 onConnectAppleHealth()
             }
             .font(FormaTokens.Typography.caption)
-            .foregroundStyle(FormaTokens.Theme.primary)
+            .foregroundStyle(palette.primary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, FormaTokens.Spacing.xs)
             .accessibilityLabel(actionTitle)
@@ -64,7 +69,7 @@ struct TodayActivitySection: View {
         } else {
             Text(note)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .foregroundStyle(colors.textTertiary)
                 .padding(.top, FormaTokens.Spacing.xs)
         }
     }

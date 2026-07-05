@@ -14,10 +14,15 @@ struct TodayMissionHero: View {
     var suppressLogMealCTA: Bool = false
     var onViewed: (() -> Void)?
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
     @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 48
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: mission.sectionTitle)
 
             metricsBlock
@@ -32,7 +37,7 @@ struct TodayMissionHero: View {
 
                     Text(FormaProductCopy.Today.QuickActions.logMealMicrocopy)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.top, FormaTokens.Spacing.xs)
@@ -42,7 +47,6 @@ struct TodayMissionHero: View {
         .onAppear {
             onViewed?()
         }
-        .formaThemeReactive()
     }
 
     private var metricsBlock: some View {
@@ -93,7 +97,7 @@ struct TodayMissionHero: View {
     private func supportingLine(_ text: String) -> some View {
         Text(text)
             .font(FormaTokens.Typography.caption)
-            .foregroundStyle(FormaTokens.Color.textTertiary)
+            .foregroundStyle(colors.textTertiary)
             .lineLimit(2)
             .minimumScaleFactor(0.85)
             .fixedSize(horizontal: false, vertical: true)
@@ -102,22 +106,22 @@ struct TodayMissionHero: View {
     private var primaryValueColor: Color {
         switch mission.primaryKind {
         case .over:
-            return FormaTokens.Color.destructive
+            return colors.destructive
         case .targetReached:
-            return FormaTokens.Theme.primary
+            return palette.primary
         case .remaining, .missingTarget:
-            return FormaTokens.Color.textPrimary
+            return colors.textPrimary
         }
     }
 
     private var statusLineColor: Color {
         switch mission.primaryKind {
         case .over:
-            return FormaTokens.Color.destructive.opacity(0.9)
+            return colors.destructive.opacity(0.9)
         case .targetReached:
-            return FormaTokens.Theme.primary
+            return palette.primary
         case .remaining, .missingTarget:
-            return FormaTokens.Color.textLegal
+            return colors.textLegal
         }
     }
 }

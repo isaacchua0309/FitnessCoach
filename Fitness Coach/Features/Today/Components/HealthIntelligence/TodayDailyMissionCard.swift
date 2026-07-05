@@ -11,6 +11,9 @@ struct TodayDailyMissionCard: View {
     let state: TodayDailyMissionState
     var isLoading: Bool = false
 
+    @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
+
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: state.sectionTitle)
@@ -20,7 +23,7 @@ struct TodayDailyMissionCard: View {
                     VStack(alignment: .leading, spacing: TodayHealthIntelligenceCardSupport.cardContentSpacing) {
                         Text(state.headline)
                             .font(TodayHealthIntelligenceCardTypography.headline)
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .foregroundStyle(colors.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.85)
@@ -31,7 +34,7 @@ struct TodayDailyMissionCard: View {
                                     TodayHealthIntelligenceGuidanceRow(
                                         text: line,
                                         iconName: "checkmark.circle.fill",
-                                        iconColor: FormaTokens.Color.textTertiary
+                                        iconAccent: .tertiary
                                     )
                                 }
                             }
@@ -58,7 +61,7 @@ struct TodayDailyMissionCard: View {
 
             Text(text)
                 .font(TodayHealthIntelligenceCardTypography.detail.weight(.medium))
-                .foregroundStyle(FormaTokens.Theme.primary)
+                .foregroundStyle(palette.primary)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.85)

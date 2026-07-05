@@ -12,6 +12,9 @@ struct TodayWaterQuickLogSection: View {
     let presetAmountsMl: [Int]
     let onAddWater: (Int) -> Bool
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var pendingAddedMl = 0
@@ -43,7 +46,8 @@ struct TodayWaterQuickLogSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Water.sectionTitle)
 
             TodayActionCard {
@@ -58,7 +62,7 @@ struct TodayWaterQuickLogSection: View {
 
                     Text(remainingText)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(colors.textSecondary)
                         .monospacedDigit()
                         .animation(valueAnimation, value: displayedWater.consumedMl)
 
@@ -68,7 +72,6 @@ struct TodayWaterQuickLogSection: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .formaThemeReactive()
         .onChange(of: water.consumedMl) { _, _ in
             pendingAddedMl = 0
         }
@@ -79,11 +82,11 @@ struct TodayWaterQuickLogSection: View {
             Image(systemName: FormaProductCopy.Today.Water.symbolName)
                 .font(.system(size: 18, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(FormaTokens.Theme.primary)
+                .foregroundStyle(palette.primary)
 
             Text(FormaProductCopy.Today.MacroBalance.water)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .foregroundStyle(colors.textPrimary)
 
             Spacer(minLength: FormaTokens.Spacing.xs)
 
@@ -92,7 +95,7 @@ struct TodayWaterQuickLogSection: View {
                 targetMl: displayedWater.targetMl
             ))
             .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
-            .foregroundStyle(FormaTokens.Color.textPrimary)
+            .foregroundStyle(colors.textPrimary)
             .monospacedDigit()
             .modifier(WaterValueTransitionModifier(reduceMotion: reduceMotion))
             .animation(valueAnimation, value: displayedWater.consumedMl)

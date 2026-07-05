@@ -11,8 +11,12 @@ struct TodayRecoveryCard: View {
     let state: TodayRecoveryCardState
     var isLoading: Bool = false
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.formaColors) private var colors
+
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: state.sectionTitle)
 
             TodayHealthIntelligenceLoadingCard(isLoading: isLoading) {
@@ -22,7 +26,7 @@ struct TodayRecoveryCard: View {
 
                         Text(state.title)
                             .font(TodayHealthIntelligenceCardTypography.headline)
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .foregroundStyle(colors.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.85)
@@ -30,7 +34,7 @@ struct TodayRecoveryCard: View {
                         if let subtitle = state.subtitle {
                             Text(subtitle)
                                 .font(TodayHealthIntelligenceCardTypography.body)
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .foregroundStyle(colors.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .lineLimit(nil)
                                 .minimumScaleFactor(0.85)
@@ -51,7 +55,6 @@ struct TodayRecoveryCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityIdentifier("today-hi-recovery-card")
-        .formaThemeReactive()
     }
 
     @ViewBuilder
@@ -61,7 +64,7 @@ struct TodayRecoveryCard: View {
                 TodayHealthIntelligenceGuidanceRow(
                     text: trainingGuidance,
                     iconName: "figure.run",
-                    iconColor: FormaTokens.Theme.primary
+                    iconAccent: .primary
                 )
             }
 
@@ -69,7 +72,7 @@ struct TodayRecoveryCard: View {
                 TodayHealthIntelligenceGuidanceRow(
                     text: nutritionGuidance,
                     iconName: "leaf.fill",
-                    iconColor: FormaTokens.Theme.secondary
+                    iconAccent: .secondary
                 )
             }
         }

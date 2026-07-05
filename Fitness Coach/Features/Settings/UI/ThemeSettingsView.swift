@@ -117,18 +117,23 @@ private struct ThemeAppearanceOptionRow: View {
     let isSelected: Bool
     let onSelect: () -> Void
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
+
     var body: some View {
-        Button(action: onSelect) {
+        let _ = themeManager.themeRevision
+        return Button(action: onSelect) {
             HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(mode.displayName)
                         .font(FormaTokens.Typography.body)
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(colors.textPrimary)
                         .multilineTextAlignment(.leading)
 
                     Text(mode.description)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(colors.textSecondary)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -137,7 +142,7 @@ private struct ThemeAppearanceOptionRow: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(FormaTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Theme.primary)
+                        .foregroundStyle(palette.primary)
                         .accessibilityHidden(true)
                 }
             }
@@ -174,6 +179,9 @@ private struct ThemePremiumPickerCard: View {
     let isSelected: Bool
     let onSelect: () -> Void
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.formaColors) private var colors
+
     @ScaledMetric(relativeTo: .body) private var minCardHeight: CGFloat = FormaTokens.Layout.minTouchTarget
 
     private let cardCornerRadius = FormaCardChrome.cornerRadius
@@ -184,7 +192,8 @@ private struct ThemePremiumPickerCard: View {
     }
 
     var body: some View {
-        Button(action: onSelect) {
+        let _ = themeManager.themeRevision
+        return Button(action: onSelect) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 gradientPreview
 
@@ -198,13 +207,13 @@ private struct ThemePremiumPickerCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(preview.displayName)
                         .font(FormaTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
 
                     Text(preview.subtitle)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(colors.textSecondary)
                         .lineLimit(2)
                         .minimumScaleFactor(0.9)
                         .multilineTextAlignment(.leading)
@@ -243,14 +252,14 @@ private struct ThemePremiumPickerCard: View {
     private var selectedCheckmark: some View {
         ZStack {
             Circle()
-                .fill(FormaTokens.Color.canvas)
+                .fill(colors.canvas)
                 .frame(
                     width: ThemeSettingsPickerAccessibility.selectedCheckmarkBackingDiameter,
                     height: ThemeSettingsPickerAccessibility.selectedCheckmarkBackingDiameter
                 )
                 .overlay {
                     Circle()
-                        .stroke(FormaTokens.Color.border.opacity(0.55), lineWidth: 0.75)
+                        .stroke(colors.border.opacity(0.55), lineWidth: 0.75)
                 }
                 .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
 
@@ -265,11 +274,11 @@ private struct ThemePremiumPickerCard: View {
     @ViewBuilder
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
-            .fill(isSelected ? preview.softBackground : FormaTokens.Color.surfaceSubtle)
+            .fill(isSelected ? preview.softBackground : colors.surfaceSubtle)
             .overlay {
                 RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
                     .stroke(
-                        isSelected ? preview.primary.opacity(0.88) : FormaTokens.Color.border.opacity(0.65),
+                        isSelected ? preview.primary.opacity(0.88) : colors.border.opacity(0.65),
                         lineWidth: isSelected
                             ? ThemeSettingsPickerAccessibility.premiumPickerSelectedBorderLineWidth
                             : ThemeSettingsPickerAccessibility.premiumPickerUnselectedBorderLineWidth

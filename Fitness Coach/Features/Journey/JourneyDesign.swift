@@ -51,8 +51,11 @@ struct JourneyCard<Content: View>: View {
     let elevation: JourneyCardElevation
     @ViewBuilder var content: Content
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
-        content
+        let _ = themeManager.themeRevision
+        return content
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -101,6 +104,8 @@ struct JourneyProgressBar: View {
     var height: CGFloat = JourneyLayout.progressBarHeight
     var prominent: Bool = false
 
+    @Environment(\.formaColors) private var colors
+
     private var clampedProgress: Double {
         min(max(progress, 0), 1)
     }
@@ -115,10 +120,10 @@ struct JourneyProgressBar: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
-                    .fill(FormaTokens.Color.progressTrack)
+                    .fill(colors.progressTrack)
 
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
-                    .fill(FormaTokens.Color.progress.opacity(prominent ? 1 : 0.88))
+                    .fill(colors.progress.opacity(prominent ? 1 : 0.88))
                     .frame(
                         width: max(
                             geometry.size.width * displayFill,
@@ -138,17 +143,20 @@ struct JourneyMomentumChip: View {
     let headline: String
     let detail: String?
 
+    @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
+
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
             Text(headline)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaTokens.Theme.primary)
+                .foregroundStyle(palette.primary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let detail {
                 Text(detail)
                     .font(FormaTokens.Typography.caption2)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .foregroundStyle(colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -157,11 +165,11 @@ struct JourneyMomentumChip: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .fill(FormaTokens.Theme.softBackground.opacity(0.72))
+                .fill(palette.softBackground.opacity(0.72))
         )
         .overlay {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .stroke(FormaTokens.Theme.borderTint.opacity(0.35), lineWidth: 0.5)
+                .stroke(palette.borderTint.opacity(0.35), lineWidth: 0.5)
         }
     }
 }
@@ -171,6 +179,7 @@ struct JourneyMomentumChip: View {
 struct JourneyMilestoneIcon: View {
     let symbol: String
 
+    @Environment(\.themePalette) private var palette
     @ScaledMetric(relativeTo: .title3) private var orbSize: CGFloat = 40
     @ScaledMetric(relativeTo: .title3) private var symbolSize: CGFloat = 22
 
@@ -180,7 +189,7 @@ struct JourneyMilestoneIcon: View {
             .frame(width: orbSize, height: orbSize)
             .background(
                 Circle()
-                    .fill(FormaTokens.Theme.softBackground.opacity(0.85))
+                    .fill(palette.softBackground.opacity(0.85))
             )
             .accessibilityHidden(true)
     }
@@ -191,13 +200,14 @@ struct JourneyMilestoneIcon: View {
 struct JourneyDayDotRow: View {
     let cells: [Bool]
 
+    @Environment(\.formaColors) private var colors
     @ScaledMetric(relativeTo: .caption) private var dotSize: CGFloat = 8
 
     var body: some View {
         HStack(spacing: 6) {
             ForEach(Array(cells.enumerated()), id: \.offset) { _, isMet in
                 Circle()
-                    .fill(isMet ? FormaTokens.Color.progress : FormaTokens.Color.progressTrack)
+                    .fill(isMet ? colors.progress : colors.progressTrack)
                     .frame(width: dotSize, height: dotSize)
             }
         }

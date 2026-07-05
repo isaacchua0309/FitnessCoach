@@ -12,12 +12,17 @@ struct CoachMessageView: View {
     var onRetryMealPhotoAnalysis: ((UUID) -> Void)?
     var onNutritionAction: ((NutritionSuggestedAction) -> Void)?
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
+
     private var presentation: CoachMessagePresentation {
         CoachMessagePresenter.presentation(for: message)
     }
 
     var body: some View {
-        Group {
+        let _ = themeManager.themeRevision
+        return Group {
             switch presentation {
             case .user(let text):
                 userMessage(text)
@@ -50,13 +55,13 @@ struct CoachMessageView: View {
             Spacer(minLength: 56)
             Text(text)
                 .font(CoachDesignTokens.Typography.messageUser)
-                .foregroundStyle(CoachDesignTokens.Color.primaryText)
+                .foregroundStyle(colors.textPrimary)
                 .padding(.horizontal, CoachDesignTokens.Spacing.md)
                 .padding(.vertical, CoachDesignTokens.Spacing.sm)
-                .background(CoachDesignTokens.Color.userBubble, in: RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous))
+                .background(colors.surfaceElevated, in: RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous)
-                        .strokeBorder(CoachDesignTokens.Color.border.opacity(0.6), lineWidth: 0.5)
+                        .strokeBorder(colors.border.opacity(0.6), lineWidth: 0.5)
                 )
                 .frame(maxWidth: 280, alignment: .trailing)
         }
@@ -67,7 +72,7 @@ struct CoachMessageView: View {
         HStack {
             Text(text)
                 .font(CoachDesignTokens.Typography.messageBody)
-                .foregroundStyle(CoachDesignTokens.Color.textLegal)
+                .foregroundStyle(colors.textLegal)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 32)
@@ -107,8 +112,8 @@ struct CoachMessageView: View {
                 .font(CoachDesignTokens.Typography.messageBody)
                 .foregroundStyle(
                     kind == .clarification ?
-                        CoachDesignTokens.Color.primaryText :
-                        CoachDesignTokens.Color.textLegal
+                        colors.textPrimary :
+                        colors.textLegal
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
@@ -118,7 +123,7 @@ struct CoachMessageView: View {
                     onRetryMealPhotoAnalysis(relatedUserMessageID)
                 }
                 .font(CoachDesignTokens.Typography.confirmationMetric.weight(.semibold))
-                .foregroundStyle(CoachDesignTokens.Color.primary)
+                .foregroundStyle(palette.primary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -129,22 +134,22 @@ struct CoachMessageView: View {
         VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.sm) {
             Text(content.title)
                 .font(CoachDesignTokens.Typography.confirmationTitle)
-                .foregroundStyle(CoachDesignTokens.Color.primaryText)
+                .foregroundStyle(colors.textPrimary)
 
             VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xxs + 2) {
                 ForEach(Array(content.metrics.enumerated()), id: \.offset) { _, metric in
                     if metric.label.isEmpty {
                         Text(metric.value)
                             .font(CoachDesignTokens.Typography.confirmationValue)
-                            .foregroundStyle(CoachDesignTokens.Color.confirmationValue)
+                            .foregroundStyle(colors.textLegal)
                     } else {
                         HStack(alignment: .firstTextBaseline, spacing: CoachDesignTokens.Spacing.xs) {
                             Text(metric.label)
                                 .font(CoachDesignTokens.Typography.confirmationMetric)
-                                .foregroundStyle(CoachDesignTokens.Color.confirmationLabel)
+                                .foregroundStyle(colors.textTertiary)
                             Text(metric.value)
                                 .font(CoachDesignTokens.Typography.confirmationValue)
-                                .foregroundStyle(CoachDesignTokens.Color.confirmationValue)
+                                .foregroundStyle(colors.textLegal)
                         }
                     }
                 }
@@ -157,7 +162,7 @@ struct CoachMessageView: View {
     private func systemMessage(_ text: String) -> some View {
         Text(text)
             .font(CoachDesignTokens.Typography.confirmationMetric)
-            .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+            .foregroundStyle(colors.textTertiary)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, CoachDesignTokens.Spacing.xxs)
     }
