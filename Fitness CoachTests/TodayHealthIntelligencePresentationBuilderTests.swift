@@ -786,4 +786,104 @@ final class TodayHealthIntelligencePresentationBuilderTests: XCTestCase {
             )
         )
     }
+
+    // MARK: - Characterization fixtures A–E
+
+    func testCharacterizationFixtureA_FullyReady_ShowsRecoveryWorkoutAndAdaptiveNutritionCards() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildTodaySection(for: .fullyReady)!
+
+        XCTAssertTrue(section.isVisible)
+        XCTAssertEqual(section.recoveryCard.title, "Moderate recovery")
+        XCTAssertEqual(section.recoveryCard.phase, .moderate)
+        XCTAssertNil(section.recoveryCard.confidenceNote)
+        XCTAssertFalse(section.recoveryCard.accessibilityLabel.isEmpty)
+        XCTAssertNotNil(section.workoutCard)
+        XCTAssertEqual(section.workoutCard?.title, FormaProductCopy.Today.HealthIntelligence.workoutComplete)
+        XCTAssertEqual(section.workoutCard?.subtitle, "Strength training")
+        XCTAssertNotNil(section.adaptiveNutritionCard)
+        XCTAssertTrue(section.adaptiveNutritionCard?.isVisible == true)
+        XCTAssertEqual(
+            section.adaptiveNutritionCard?.title,
+            FormaProductCopy.Today.HealthIntelligence.AdaptiveNutrition.postWorkoutTitle
+        )
+        XCTAssertTrue(section.nextBestAction.isVisible)
+        XCTAssertEqual(section.nextBestAction.title, "Log protein")
+        XCTAssertEqual(section.nextBestAction.ctaTitle, "Log meal")
+        XCTAssertEqual(section.nextBestAction.destination, .logMeal)
+        XCTAssertNil(section.fallbackMessage)
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertEqual(section.uiState?.kind, .ready)
+        XCTAssertEqual(
+            HealthIntelligencePresentationCharacterizationFixtures.resolvedUIState(
+                for: .fullyReady,
+                surface: .today
+            ).kind,
+            section.uiState?.kind
+        )
+    }
+
+    func testCharacterizationFixtureB_HealthKitDisconnected_ShowsConnectHealthFallbackAndCTA() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildTodaySection(for: .healthKitDisconnected)!
+
+        XCTAssertTrue(section.isVisible)
+        XCTAssertEqual(section.recoveryCard.phase, .unknown)
+        XCTAssertEqual(
+            section.fallbackMessage,
+            FormaProductCopy.Today.HealthIntelligence.connectHealthFallback
+        )
+        XCTAssertTrue(section.nextBestAction.isVisible)
+        XCTAssertEqual(section.nextBestAction.destination, .connectHealth)
+        XCTAssertEqual(section.nextBestAction.title, FormaProductCopy.Today.actionConnectAppleHealth)
+        XCTAssertNil(section.workoutCard)
+        XCTAssertNil(section.adaptiveNutritionCard)
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertTrue(
+            section.uiState?.kind == .noHealthPermission || section.uiState?.kind == .healthKitUnavailable
+        )
+        XCTAssertFalse(section.recoveryCard.accessibilityLabel.isEmpty)
+    }
+
+    func testCharacterizationFixtureC_StaleData_ShowsStaleLabelWithCachedRecovery() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildTodaySection(for: .staleData)!
+
+        XCTAssertTrue(section.isVisible)
+        XCTAssertEqual(section.uiState?.kind, .staleData)
+        XCTAssertEqual(
+            section.staleDataLabel,
+            FormaProductCopy.Today.HealthIntelligence.staleDataLabel
+        )
+        XCTAssertEqual(section.recoveryCard.title, "Moderate recovery")
+        XCTAssertEqual(section.recoveryCard.phase, .moderate)
+        XCTAssertNotNil(section.workoutCard)
+        XCTAssertNil(section.fallbackMessage)
+        XCTAssertFalse(section.recoveryCard.accessibilityLabel.isEmpty)
+    }
+
+    func testCharacterizationFixtureD_PartialSignals_ShowsPartialDataConfidenceLabel() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildTodaySection(for: .partialSignals)!
+
+        XCTAssertTrue(section.isVisible)
+        XCTAssertEqual(section.uiState?.kind, .partialPermission)
+        XCTAssertEqual(
+            section.recoveryCard.confidenceNote,
+            FormaProductCopy.HealthIntelligence.partialDataLabel
+        )
+        XCTAssertEqual(section.recoveryCard.title, "Recovery forming")
+        XCTAssertNil(section.fallbackMessage)
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertNil(section.workoutCard)
+        XCTAssertFalse(section.recoveryCard.accessibilityLabel.isEmpty)
+    }
+
+    func testCharacterizationFixtureE_WeeklyReviewUnavailable_KeepsTodaySectionStable() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildTodaySection(for: .weeklyReviewUnavailable)!
+
+        XCTAssertTrue(section.isVisible)
+        XCTAssertEqual(section.recoveryCard.title, "Moderate recovery")
+        XCTAssertNotNil(section.workoutCard)
+        XCTAssertNotNil(section.adaptiveNutritionCard)
+        XCTAssertNil(section.fallbackMessage)
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertEqual(section.uiState?.kind, .ready)
+    }
 }

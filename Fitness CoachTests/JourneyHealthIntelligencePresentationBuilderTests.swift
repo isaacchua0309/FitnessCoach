@@ -786,4 +786,90 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
             )
         }
     }
+
+    // MARK: - Characterization fixtures A–E
+
+    func testCharacterizationFixtureA_FullyReady_ShowsWeeklyReviewAndLoadedSubsections() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(for: .fullyReady)!
+
+        XCTAssertTrue(section.isVisible)
+        XCTAssertNil(section.connectHealthCTA)
+        XCTAssertEqual(section.weeklyReviewCard?.phase, .loaded)
+        XCTAssertEqual(section.weeklyReviewCard?.title, "Solid training week")
+        XCTAssertEqual(
+            section.weeklyReviewCard?.confidenceLabel,
+            FormaProductCopy.WeeklyReviewPresentation.confidenceModerate
+        )
+        XCTAssertNotNil(section.weeklyReviewDetail)
+        XCTAssertEqual(section.recoveryTimeline.phase, .loaded)
+        XCTAssertEqual(section.workoutHistory.phase, .loaded)
+        XCTAssertEqual(section.milestones.phase, .loaded)
+        XCTAssertEqual(section.progress.phase, .loaded)
+        XCTAssertNil(section.fallbackMessage)
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertNil(section.partialSignalsNote)
+        XCTAssertEqual(section.uiState?.kind, .ready)
+        XCTAssertFalse(section.weeklyReviewCard?.accessibilityLabel.isEmpty ?? true)
+    }
+
+    func testCharacterizationFixtureB_HealthKitDisconnected_ShowsConnectHealthCTA() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(for: .healthKitDisconnected)!
+
+        XCTAssertTrue(section.isVisible)
+        XCTAssertNotNil(section.connectHealthCTA)
+        XCTAssertEqual(
+            section.connectHealthCTA?.ctaTitle,
+            FormaProductCopy.Journey.HealthIntelligence.connectHealthCTA
+        )
+        XCTAssertEqual(section.workoutHistory.emptyKind, .noHealthData)
+        XCTAssertEqual(section.recoveryTimeline.phase, .empty)
+        XCTAssertNil(section.weeklyReviewCard)
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertFalse(section.connectHealthCTA?.accessibilityLabel.isEmpty ?? true)
+    }
+
+    func testCharacterizationFixtureC_StaleData_ShowsJourneyStaleLabelWithCachedTimeline() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(for: .staleData)!
+
+        XCTAssertTrue(section.isVisible)
+        XCTAssertEqual(section.uiState?.kind, .staleData)
+        XCTAssertEqual(
+            section.staleDataLabel,
+            FormaProductCopy.Journey.HealthIntelligence.staleDataLabel
+        )
+        XCTAssertEqual(section.recoveryTimeline.phase, .loaded)
+        XCTAssertEqual(section.workoutHistory.phase, .loaded)
+        XCTAssertNil(section.connectHealthCTA)
+        XCTAssertFalse(section.recoveryTimeline.days.isEmpty)
+    }
+
+    func testCharacterizationFixtureD_PartialSignals_ShowsPartialSignalsNote() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(for: .partialSignals)!
+
+        XCTAssertTrue(section.isVisible)
+        XCTAssertNotNil(section.partialSignalsNote)
+        XCTAssertEqual(section.recoveryTimeline.phase, .loaded)
+        XCTAssertNil(section.connectHealthCTA)
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertEqual(section.uiState?.kind, .partialPermission)
+    }
+
+    func testCharacterizationFixtureE_WeeklyReviewUnavailable_ShowsBuildingCardAndLoadedJourneySections() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(for: .weeklyReviewUnavailable)!
+
+        XCTAssertTrue(section.isVisible)
+        XCTAssertEqual(section.weeklyReviewCard?.phase, .empty)
+        XCTAssertEqual(
+            section.weeklyReviewCard?.title,
+            FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+        )
+        XCTAssertNil(section.weeklyReviewDetail)
+        XCTAssertEqual(section.recoveryTimeline.phase, .loaded)
+        XCTAssertEqual(section.workoutHistory.phase, .loaded)
+        XCTAssertEqual(section.milestones.phase, .loaded)
+        XCTAssertEqual(section.progress.phase, .loaded)
+        XCTAssertNil(section.connectHealthCTA)
+        XCTAssertNil(section.fallbackMessage)
+        XCTAssertFalse(section.weeklyReviewCard?.accessibilityLabel.isEmpty ?? true)
+    }
 }
