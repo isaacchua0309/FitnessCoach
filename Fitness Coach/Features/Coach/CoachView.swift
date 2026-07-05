@@ -22,6 +22,7 @@ struct CoachView: View {
 
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var presentedLibraryPickID: UUID?
+    @State private var photoLibrarySelectionTask: Task<Void, Never>?
     @State private var isRetryingCoachSession = false
 
     init(model: CoachModel, isActive: Bool = true) {
@@ -135,28 +136,11 @@ struct CoachView: View {
                     librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging()
                 )
                 #endif
-                if !isPresented {
-                    imagePickFlow.handlePhotoLibraryPickerDismissed()
-                }
+                guard !isPresented else { return }
+                imagePickFlow.handlePhotoLibraryPickerDismissed()
             }
             .onChange(of: photoPickerItem) { _, item in
-                #if DEBUG
-                CoachPhotoLibraryPickDebugLogger.log(
-                    event: "coach_view_photo_picker_item_changed",
-                    flowState: imagePickFlow.state,
-                    isPhotoPickerPresented: imagePickFlow.isPhotoPickerPresented,
-                    librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging(),
-                    hasSelectionItem: item != nil
-                )
-                #endif
-                guard let item else { return }
-                guard let presentedLibraryPickID else { return }
-                photoPickerItem = nil
-                imagePickFlow.markLibrarySelectionReceived(claimedPickID: presentedLibraryPickID)
-                guard imagePickFlow.beginPhotoLibrarySelectionHandling() else { return }
-                Task {
-                    await imagePickFlow.handlePhotoLibrarySelection(item, model: model)
-                }
+                handlePhotoPickerItemChanged(item)
             }
             .fullScreenCover(
                 isPresented: $imagePickFlow.isCameraPresented,
@@ -253,6 +237,8 @@ struct CoachView: View {
                 handleAttachmentSelection(option)
             },
             onRemoveAttachment: {
+                photoLibrarySelectionTask?.cancel()
+                photoLibrarySelectionTask = nil
                 model.removeStagedMealPhoto()
                 imagePickFlow.handleAttachmentRemoved()
             },
@@ -298,7 +284,7 @@ struct CoachView: View {
         speechService.stopRecording()
         switch prompt.behavior {
         case .openPhotoPicker:
-            presentedLibraryPickID = beginPhotoLibraryPick() ? imagePickFlow.activeLibraryPickSessionID : nil
+            requestPhotoLibraryPick()
         case .prefill:
             Task { await model.applyStarterPromptSpec(prompt) }
             isInputFocused = true
@@ -315,13 +301,87 @@ struct CoachView: View {
                 await imagePickFlow.beginCameraPick(model: model)
             }
         case .choosePhoto:
-            presentedLibraryPickID = beginPhotoLibraryPick() ? imagePickFlow.activeLibraryPickSessionID : nil
+            requestPhotoLibraryPick()
         }
     }
 
-    @discardableResult
-    private func beginPhotoLibraryPick() -> Bool {
-        imagePickFlow.beginPhotoLibraryPick(model: model)
+    private func requestPhotoLibraryPick() {
+        photoLibrarySelectionTask?.cancel()
+        photoLibrarySelectionTask = nil
+        photoPickerItem = nil
+
+        guard imagePickFlow.beginPhotoLibraryPick(model: model) else {
+            presentedLibraryPickID = nil
+            logBlockedPhotoLibraryPick()
+            return
+        }
+
+        presentedLibraryPickID = imagePickFlow.activeLibraryPickSessionID
+    }
+
+    private func handlePhotoPickerItemChanged(_ item: PhotosPickerItem?) {
+        guard let item else { return }
+
+        let selectedItem = item
+
+        #if DEBUG
+        CoachPhotoLibraryPickDebugLogger.log(
+            event: "coach_view_photo_picker_item_changed",
+            flowState: imagePickFlow.state,
+            isPhotoPickerPresented: imagePickFlow.isPhotoPickerPresented,
+            librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging(),
+            hasSelectionItem: true
+        )
+        #endif
+
+        guard let pickID = presentedLibraryPickID else {
+            photoPickerItem = nil
+            return
+        }
+
+        guard photoLibrarySelectionTask == nil else {
+            #if DEBUG
+            CoachPhotoLibraryPickDebugLogger.log(
+                event: "coach_view_photo_library_selection_task_already_active",
+                flowState: imagePickFlow.state,
+                isPhotoPickerPresented: imagePickFlow.isPhotoPickerPresented,
+                librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging(),
+                hasSelectionItem: true,
+                guardPassed: false
+            )
+            #endif
+            photoPickerItem = nil
+            return
+        }
+
+        imagePickFlow.markLibrarySelectionReceived(claimedPickID: pickID)
+        guard imagePickFlow.beginPhotoLibrarySelectionHandling() else {
+            photoPickerItem = nil
+            return
+        }
+
+        photoPickerItem = nil
+
+        photoLibrarySelectionTask = Task { @MainActor in
+            await imagePickFlow.handlePhotoLibrarySelection(selectedItem, model: model)
+            photoLibrarySelectionTask = nil
+        }
+    }
+
+    private func logBlockedPhotoLibraryPick() {
+        #if DEBUG
+        CoachPhotoLibraryPickDebugLogger.log(
+            event: "coach_view_photo_library_pick_blocked",
+            flowState: imagePickFlow.state,
+            isPhotoPickerPresented: imagePickFlow.isPhotoPickerPresented,
+            librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging(),
+            guardPassed: false,
+            extra: [
+                "composer_can_start_selection": String(model.inputState.canStartImageSelection),
+                "flow_allows_attachment_pick": String(imagePickFlow.allowsAttachmentPick)
+            ]
+        )
+        #endif
     }
 
     private func dismissKeyboard() {
