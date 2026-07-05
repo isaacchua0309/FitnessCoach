@@ -97,6 +97,8 @@ final class JourneyStreakBuilderTests: XCTestCase {
     ) -> JourneyStreakState {
         let summary = StreakSummary(
             loggingStreak: loggingStreak,
+            mealLoggingStreak: loggingStreak,
+            checkInStreak: loggingStreak,
             proteinStreak: 2,
             hydrationStreak: 1,
             workoutStreak: workoutDates.isEmpty ? 0 : 1

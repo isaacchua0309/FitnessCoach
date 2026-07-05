@@ -209,7 +209,7 @@ final class JourneyNextMilestoneBuilderTests: XCTestCase {
             previousWeekTrainingDays: 0,
             allWeights: allWeights,
             weekWeights: allWeights,
-            journeyStreaks: JourneyStreakState(
+            journeyStreaks: JourneyStreakState.legacy(
                 currentLoggingStreakDays: maturityLogs.count,
                 longestLoggingStreakDays: maturityLogs.count,
                 currentProteinStreakDays: 0,

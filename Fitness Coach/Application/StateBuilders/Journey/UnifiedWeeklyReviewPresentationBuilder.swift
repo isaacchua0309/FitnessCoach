@@ -30,6 +30,7 @@ struct UnifiedWeeklyReviewState: Equatable, Identifiable {
     let secondaryCTA: WeeklyProgressCTA?
     let isReady: Bool
     let isInsufficientData: Bool
+    let insufficientDataSummary: String?
     let freshness: WeeklyProgressFreshnessState?
 }
 
@@ -120,6 +121,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
     var goalDirection: JourneyGoalDirection?
     var dailyReviewsThisWeekCount: Int
     var freshnessInput: WeeklyProgressFreshnessInput?
+    var screenPresentation: JourneyScreenPresentationState?
     var calendar: Calendar
 
     init(
@@ -132,6 +134,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
         goalDirection: JourneyGoalDirection? = nil,
         dailyReviewsThisWeekCount: Int = 0,
         freshnessInput: WeeklyProgressFreshnessInput? = nil,
+        screenPresentation: JourneyScreenPresentationState? = nil,
         calendar: Calendar = .current
     ) {
         self.summary = summary
@@ -143,6 +146,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
         self.goalDirection = goalDirection
         self.dailyReviewsThisWeekCount = dailyReviewsThisWeekCount
         self.freshnessInput = freshnessInput
+        self.screenPresentation = screenPresentation
         self.calendar = calendar
     }
 }
@@ -167,7 +171,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             summary: summary,
             profile: input.profile
         )
-        let confidence = confidencePresentation(for: summary)
+        let confidence = confidencePresentation(for: summary, screenPresentation: input.screenPresentation)
         let caveats = mergedCaveats(
             summary: summary,
             healthReviewDetail: input.healthReviewDetail
@@ -175,7 +179,8 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         let ctas = ctas(
             summary: summary,
             recommendation: recommendation,
-            weeklyReview: input.weeklyReview
+            weeklyReview: input.weeklyReview,
+            screenPresentation: input.screenPresentation
         )
         let isInsufficientData = insufficientData(summary: summary)
         let isReady = ready(
@@ -184,15 +189,17 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             isInsufficientData: isInsufficientData
         )
         let freshness = WeeklyProgressFreshnessBuilder.build(input.freshnessInput)
-
-        return UnifiedWeeklyReviewState(
-            id: summary.id,
-            weekTitle: unifiedWeekTitle,
-            dateRangeText: dateRangeText(
+        let weekRangeText = input.screenPresentation?.weekly.dateRangeText
+            ?? dateRangeText(
                 start: summary.startDate,
                 end: summary.endDate,
                 calendar: input.calendar
-            ),
+            )
+
+        return UnifiedWeeklyReviewState(
+            id: summary.id,
+            weekTitle: input.screenPresentation?.weekly.weekTitle ?? unifiedWeekTitle,
+            dateRangeText: weekRangeText,
             headline: summary.headline,
             summary: summary.summary,
             confidenceLabel: confidence.label,
@@ -207,6 +214,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             secondaryCTA: ctas.secondary,
             isReady: isReady,
             isInsufficientData: isInsufficientData,
+            insufficientDataSummary: input.screenPresentation?.copy.insufficientDataSummary,
             freshness: freshness
         )
     }
@@ -228,6 +236,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
                 goalDirection: dashboard.baseline.goalDirection,
                 dailyReviewsThisWeekCount: dashboard.dailyReviewsThisWeekCount,
                 freshnessInput: freshnessInput,
+                screenPresentation: dashboard.screenPresentation,
                 calendar: calendar
             )
         )
@@ -249,6 +258,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             goalDirection: dashboard.baseline.goalDirection,
             dailyReviewsThisWeekCount: dashboard.dailyReviewsThisWeekCount,
             freshnessInput: freshnessInput,
+            screenPresentation: dashboard.screenPresentation,
             calendar: calendar
         )
         return buildDetail(input)
@@ -721,9 +731,11 @@ enum UnifiedWeeklyReviewPresentationBuilder {
     private static func ctas(
         summary: WeeklyProgressSummary,
         recommendation: WeeklyPlanRecommendation?,
-        weeklyReview: JourneyWeeklyReviewState?
+        weeklyReview: JourneyWeeklyReviewState?,
+        screenPresentation: JourneyScreenPresentationState? = nil
     ) -> (primary: WeeklyProgressCTA?, secondary: WeeklyProgressCTA?) {
-        var primary = cta(from: summary.nextAction, summary: summary)
+        var primary = screenPresentation.map { cta(from: $0.nextBestAction) }
+            ?? cta(from: summary.nextAction, summary: summary)
 
         if primary == nil {
             primary = keepLoggingCTA(summary: summary)
@@ -881,15 +893,70 @@ enum UnifiedWeeklyReviewPresentationBuilder {
     // MARK: Confidence & formatting
 
     private static func confidencePresentation(
-        for summary: WeeklyProgressSummary
+        for summary: WeeklyProgressSummary,
+        screenPresentation: JourneyScreenPresentationState? = nil
     ) -> (label: String, accessibility: String) {
-        (
+        if let screenPresentation {
+            return (
+                label: screenPresentation.copy.confidenceLabel,
+                accessibility: screenPresentation.copy.confidenceAccessibilityLabel
+            )
+        }
+        return (
             label: shortConfidenceLabel(for: summary.confidence),
             accessibility: WeeklyProgressConfidencePolicy.confidenceCopy(
                 for: summary.confidence,
                 hasSuddenSpike: summary.hasSuddenSpike
             )
         )
+    }
+
+    private static func cta(
+        from action: JourneyNextBestActionState
+    ) -> WeeklyProgressCTA {
+        let accessibility = action.accessibilityLabel
+        switch action.kind {
+        case .logFirstMeal, .logMealsConsistently:
+            return WeeklyProgressCTA(
+                id: "cta-log-food",
+                kind: .logFood,
+                title: action.title,
+                subtitle: action.detail,
+                accessibilityLabel: accessibility
+            )
+        case .logWeightMoreOften:
+            return WeeklyProgressCTA(
+                id: "cta-log-weight",
+                kind: .logWeight,
+                title: action.title,
+                subtitle: action.detail,
+                accessibilityLabel: accessibility
+            )
+        case .completeFirstWorkout:
+            return WeeklyProgressCTA(
+                id: "cta-connect-health",
+                kind: .connectAppleHealth,
+                title: action.title,
+                subtitle: action.detail,
+                accessibilityLabel: accessibility
+            )
+        case .syncRecoveryData:
+            return WeeklyProgressCTA(
+                id: "cta-sync-recovery",
+                kind: .connectAppleHealth,
+                title: action.title,
+                subtitle: action.detail,
+                accessibilityLabel: accessibility
+            )
+        case .keepStreakGoing:
+            return WeeklyProgressCTA(
+                id: "cta-keep-streak",
+                kind: .keepLogging,
+                title: action.title,
+                subtitle: action.detail,
+                accessibilityLabel: accessibility
+            )
+        }
     }
 
     private static func shortConfidenceLabel(
@@ -899,11 +966,11 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         case .unavailable:
             return FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
         case .low:
-            return FormaProductCopy.WeeklyReviewPresentation.confidenceLow
+            return FormaProductCopy.Journey.WeeklyConfidence.building
         case .medium:
-            return FormaProductCopy.WeeklyReviewPresentation.confidenceModerate
+            return FormaProductCopy.Journey.WeeklyConfidence.moderate
         case .high:
-            return FormaProductCopy.WeeklyReviewPresentation.confidenceHigh
+            return FormaProductCopy.Journey.WeeklyConfidence.high
         }
     }
 

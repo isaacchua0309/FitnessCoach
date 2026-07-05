@@ -377,18 +377,30 @@ final class JourneyModel: ObservableObject {
     private func makeDashboardState() async throws -> JourneyDashboardState {
         let calendar = Calendar.current
         let endDate = Date()
-        let weekStart = calendar.date(byAdding: .day, value: -6, to: endDate) ?? endDate
-        let prevWeekStart = calendar.date(byAdding: .day, value: -13, to: endDate) ?? endDate
-        let prevWeekEnd = calendar.date(byAdding: .day, value: -7, to: endDate) ?? endDate
+        let maturityLookbackStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
+        let maturityLogs = try dailyLogReader.getLogs(from: maturityLookbackStart, to: endDate)
+        let allWeights = try weightLogReader.getWeightEntries(from: maturityLookbackStart, to: endDate)
+
+        let canonicalWeek = WeeklyProgressSummaryBuilder.resolveWeekRange(
+            referenceDate: endDate,
+            dailyLogs: maturityLogs,
+            calendar: calendar
+        )
+        let previousWeek = WeeklyProgressSummaryBuilder.previousWeekRange(
+            for: canonicalWeek,
+            calendar: calendar
+        )
+
+        let weekStart = canonicalWeek.startDate
+        let weekEnd = canonicalWeek.endDate
+        let prevWeekStart = previousWeek.startDate
+        let prevWeekEnd = previousWeek.endDate
         let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: endDate)) ?? endDate
-        let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
 
         let weekLogs = try dailyLogReader.getLogs(from: weekStart, to: endDate)
         let previousWeekLogs = try dailyLogReader.getLogs(from: prevWeekStart, to: prevWeekEnd)
         let monthLogs = try dailyLogReader.getLogs(from: monthStart, to: endDate)
-        let maturityLogs = try dailyLogReader.getLogs(from: allTimeStart, to: endDate)
 
-        let allWeights = try weightLogReader.getWeightEntries(from: allTimeStart, to: endDate)
         let weekWeights = try weightLogReader.getWeightEntries(from: weekStart, to: endDate)
         let previousWeekWeights = try weightLogReader.getWeightEntries(from: prevWeekStart, to: prevWeekEnd)
 
@@ -398,7 +410,7 @@ final class JourneyModel: ObservableObject {
         let weekHealthWorkouts = try await fetchHealthWorkouts(from: weekStart, to: endDate)
         let previousWeekHealthWorkouts = try await fetchHealthWorkouts(from: prevWeekStart, to: prevWeekEnd)
         let monthHealthWorkouts = try await fetchHealthWorkouts(from: monthStart, to: endDate)
-        let allHealthWorkouts = try await fetchHealthWorkouts(from: allTimeStart, to: endDate)
+        let allHealthWorkouts = try await fetchHealthWorkouts(from: maturityLookbackStart, to: endDate)
 
         let weeklyTraining = JourneyTrainingSummaryBuilder.weeklyTrainingStatus(
             integrationState: integrationState,

@@ -20,8 +20,14 @@ enum JourneyStreakBuilder {
 
     static func build(_ input: Input) -> JourneyStreakState {
         let copy = FormaProductCopy.Journey.Streaks.self
-        let currentLogging = input.streakSummary.loggingStreak
-        let longestLogging = StreakCalculator.longestLoggingStreak(
+        let mealLoggingStreak = input.streakSummary.mealLoggingStreak
+        let checkInStreak = input.streakSummary.checkInStreak
+        let activityStreak = input.streakSummary.workoutStreak
+        let longestCheckIn = StreakCalculator.longestLoggingStreak(
+            in: input.maturityLogs,
+            calendar: input.calendar
+        )
+        let longestMeal = StreakCalculator.longestMealLoggingStreak(
             in: input.maturityLogs,
             calendar: input.calendar
         )
@@ -34,7 +40,12 @@ enum JourneyStreakBuilder {
                 calendar: input.calendar
             )
             : nil
-        let isTodayLogged = StreakCalculator.isLogged(
+        let isTodayCheckedIn = StreakCalculator.isLogged(
+            on: input.asOf,
+            in: input.maturityLogs,
+            calendar: input.calendar
+        )
+        let isTodayMealLogged = StreakCalculator.isMealLogged(
             on: input.asOf,
             in: input.maturityLogs,
             calendar: input.calendar
@@ -45,15 +56,21 @@ enum JourneyStreakBuilder {
             calendar: input.calendar
         )
 
-        let heroStreakChip = heroStreakChip(loggingStreak: currentLogging, copy: copy)
+        let heroStreakChip = heroStreakChip(
+            mealLoggingStreak: mealLoggingStreak,
+            checkInStreak: checkInStreak,
+            copy: copy
+        )
         let keepStreakAliveCopy = keepStreakAliveCopy(
-            isTodayLogged: isTodayLogged,
+            isTodayCheckedIn: isTodayCheckedIn,
             streakThroughYesterday: streakThroughYesterday,
             copy: copy
         )
         let weeklyConsistency = weeklyConsistencyCopy(
-            currentLogging: currentLogging,
-            longestLogging: longestLogging,
+            mealLoggingStreak: mealLoggingStreak,
+            checkInStreak: checkInStreak,
+            longestMeal: longestMeal,
+            longestCheckIn: longestCheckIn,
             proteinStreak: proteinStreak,
             waterStreak: waterStreak,
             trainingWeeks: trainingWeeks,
@@ -61,12 +78,17 @@ enum JourneyStreakBuilder {
         )
 
         return JourneyStreakState(
-            currentLoggingStreakDays: currentLogging,
-            longestLoggingStreakDays: longestLogging,
+            currentLoggingStreakDays: checkInStreak,
+            currentMealLoggingStreakDays: mealLoggingStreak,
+            currentCheckInStreakDays: checkInStreak,
+            currentActivityStreakDays: activityStreak,
+            longestLoggingStreakDays: longestCheckIn,
+            longestMealLoggingStreakDays: longestMeal,
             currentProteinStreakDays: proteinStreak,
             currentWaterStreakDays: waterStreak,
             currentTrainingStreakWeeks: trainingWeeks.flatMap { $0 > 0 ? $0 : nil },
-            isTodayLogged: isTodayLogged,
+            isTodayLogged: isTodayCheckedIn,
+            isTodayMealLogged: isTodayMealLogged,
             heroStreakChip: heroStreakChip,
             weeklyConsistencyHeadline: weeklyConsistency.headline,
             weeklyConsistencyDetail: weeklyConsistency.detail,
@@ -77,38 +99,58 @@ enum JourneyStreakBuilder {
     // MARK: - Copy
 
     private static func heroStreakChip(
-        loggingStreak: Int,
+        mealLoggingStreak: Int,
+        checkInStreak: Int,
         copy: FormaProductCopy.Journey.Streaks.Type
     ) -> JourneyStreakChipState {
-        guard loggingStreak > 0 else { return .hidden }
+        if mealLoggingStreak > 0 {
+            return JourneyStreakChipState(
+                isVisible: true,
+                days: mealLoggingStreak,
+                label: copy.mealLoggingStreak(days: mealLoggingStreak)
+            )
+        }
+        guard checkInStreak > 0 else { return .hidden }
         return JourneyStreakChipState(
             isVisible: true,
-            days: loggingStreak,
-            label: copy.loggingStreak(days: loggingStreak)
+            days: checkInStreak,
+            label: copy.checkInStreak(days: checkInStreak)
         )
     }
 
     private static func keepStreakAliveCopy(
-        isTodayLogged: Bool,
+        isTodayCheckedIn: Bool,
         streakThroughYesterday: Int,
         copy: FormaProductCopy.Journey.Streaks.Type
     ) -> String? {
-        guard !isTodayLogged, streakThroughYesterday > 0 else { return nil }
+        guard !isTodayCheckedIn, streakThroughYesterday > 0 else { return nil }
         return copy.keepStreakAlive(streakDays: streakThroughYesterday)
     }
 
     private static func weeklyConsistencyCopy(
-        currentLogging: Int,
-        longestLogging: Int,
+        mealLoggingStreak: Int,
+        checkInStreak: Int,
+        longestMeal: Int,
+        longestCheckIn: Int,
         proteinStreak: Int,
         waterStreak: Int,
         trainingWeeks: Int?,
         copy: FormaProductCopy.Journey.Streaks.Type
     ) -> (headline: String, detail: String?) {
-        if currentLogging > 0 {
+        let headlineStreak = mealLoggingStreak > 0 ? mealLoggingStreak : checkInStreak
+        let headlineLabel = mealLoggingStreak > 0
+            ? copy.mealLoggingStreak(days: mealLoggingStreak)
+            : copy.checkInStreak(days: checkInStreak)
+
+        if headlineStreak > 0 {
             var detailParts: [String] = []
-            if longestLogging > currentLogging {
-                detailParts.append(copy.longestLoggingStreak(days: longestLogging))
+            let longest = mealLoggingStreak > 0 ? longestMeal : longestCheckIn
+            if longest > headlineStreak {
+                detailParts.append(
+                    mealLoggingStreak > 0
+                        ? copy.longestMealLoggingStreak(days: longest)
+                        : copy.longestCheckInStreak(days: longest)
+                )
             }
             if proteinStreak > 0 {
                 detailParts.append(copy.proteinStreak(days: proteinStreak))
@@ -119,14 +161,11 @@ enum JourneyStreakBuilder {
             if let trainingWeeks, trainingWeeks > 0 {
                 detailParts.append(copy.trainingStreakWeeks(weeks: trainingWeeks))
             }
-            return (
-                copy.loggingStreak(days: currentLogging),
-                detailParts.isEmpty ? nil : detailParts.joined(separator: " ")
-            )
+            return (headlineLabel, detailParts.isEmpty ? nil : detailParts.joined(separator: " "))
         }
 
-        if longestLogging > 0 {
-            return (copy.buildingConsistency, copy.longestLoggingStreak(days: longestLogging))
+        if longestCheckIn > 0 {
+            return (copy.buildingConsistency, copy.longestCheckInStreak(days: longestCheckIn))
         }
 
         return (copy.buildingConsistency, nil)

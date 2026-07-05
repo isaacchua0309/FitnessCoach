@@ -23,6 +23,17 @@ struct JourneyDashboardContent: View {
 
     var body: some View {
         LazyVStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
+            if state.screenPresentation.sync.showsHealthSyncNotice,
+               let notice = state.screenPresentation.sync.healthSyncNotice {
+                JourneyCard(elevation: .quiet) {
+                    Text(notice)
+                        .font(JourneyTypography.cardSupporting)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .healthIntelligenceMultilineText()
+                }
+                .accessibilityIdentifier("journey-sync-notice")
+            }
+
             ForEach(visibleSections, id: \.self) { section in
                 sectionView(for: section)
             }
@@ -47,11 +58,7 @@ struct JourneyDashboardContent: View {
     }
 
     private var unifiedWeeklyReview: UnifiedWeeklyReviewState {
-        UnifiedWeeklyReviewPresentationBuilder.build(
-            dashboard: state,
-            healthIntelligence: healthIntelligenceSectionState,
-            freshnessInput: weeklyProgressFreshnessInput
-        )
+        state.unifiedWeeklyReview
     }
 
     private var visibleSections: [JourneyProductSection] {

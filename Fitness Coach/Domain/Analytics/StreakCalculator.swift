@@ -8,9 +8,15 @@
 import Foundation
 
 struct StreakSummary: Equatable, Sendable {
+    /// Consecutive days with any app check-in (meal, water, or weight). Same as `checkInStreak`.
     var loggingStreak: Int
+    /// Consecutive days with at least one meal logged (`calories > 0`).
+    var mealLoggingStreak: Int
+    /// Consecutive days with any app check-in (meal, water, or weight).
+    var checkInStreak: Int
     var proteinStreak: Int
     var hydrationStreak: Int
+    /// Consecutive days with a workout logged in-app or via HealthKit.
     var workoutStreak: Int
 }
 
@@ -26,14 +32,25 @@ enum StreakCalculator {
             (calendar.startOfDay(for: $0.date), $0)
         })
 
+        let checkInStreak = consecutiveDays(
+            startingFrom: date,
+            calendar: calendar
+        ) { day in
+            guard let log = logByDay[day] else { return false }
+            return isCheckInDay(log)
+        }
+        let mealLoggingStreak = consecutiveDays(
+            startingFrom: date,
+            calendar: calendar
+        ) { day in
+            guard let log = logByDay[day] else { return false }
+            return isMealLoggingDay(log)
+        }
+
         return StreakSummary(
-            loggingStreak: consecutiveDays(
-                startingFrom: date,
-                calendar: calendar
-            ) { day in
-                guard let log = logByDay[day] else { return false }
-                return isLoggingDay(log)
-            },
+            loggingStreak: checkInStreak,
+            mealLoggingStreak: mealLoggingStreak,
+            checkInStreak: checkInStreak,
             proteinStreak: consecutiveDays(startingFrom: date, calendar: calendar) { day in
                 guard let log = logByDay[day] else { return false }
                 return proteinGoalMet(log)
@@ -48,10 +65,21 @@ enum StreakCalculator {
         )
     }
 
-    static func isLoggingDay(_ log: DailyLog) -> Bool {
-        log.totals.calories > 0
+    /// Any app check-in: meal, water, or weight.
+    static func isCheckInDay(_ log: DailyLog) -> Bool {
+        isMealLoggingDay(log)
             || log.waterConsumedMl > 0
             || log.weightKg != nil
+    }
+
+    /// Meal calories logged for the day.
+    static func isMealLoggingDay(_ log: DailyLog) -> Bool {
+        log.totals.calories > 0
+    }
+
+    /// Backward-compatible alias for `isCheckInDay`.
+    static func isLoggingDay(_ log: DailyLog) -> Bool {
+        isCheckInDay(log)
     }
 
     static func isLogged(on day: Date, in logs: [DailyLog], calendar: Calendar) -> Bool {
@@ -59,14 +87,29 @@ enum StreakCalculator {
         guard let log = logs.first(where: { calendar.isDate($0.date, inSameDayAs: dayStart) }) else {
             return false
         }
-        return isLoggingDay(log)
+        return isCheckInDay(log)
+    }
+
+    static func isMealLogged(on day: Date, in logs: [DailyLog], calendar: Calendar) -> Bool {
+        let dayStart = calendar.startOfDay(for: day)
+        guard let log = logs.first(where: { calendar.isDate($0.date, inSameDayAs: dayStart) }) else {
+            return false
+        }
+        return isMealLoggingDay(log)
     }
 
     static func longestLoggingStreak(
         in logs: [DailyLog],
         calendar: Calendar = .current
     ) -> Int {
-        longestConsecutiveDays(in: logs, calendar: calendar, predicate: isLoggingDay)
+        longestConsecutiveDays(in: logs, calendar: calendar, predicate: isCheckInDay)
+    }
+
+    static func longestMealLoggingStreak(
+        in logs: [DailyLog],
+        calendar: Calendar = .current
+    ) -> Int {
+        longestConsecutiveDays(in: logs, calendar: calendar, predicate: isMealLoggingDay)
     }
 
     static func longestProteinStreak(
@@ -96,7 +139,7 @@ enum StreakCalculator {
         })
         return consecutiveDays(startingFrom: yesterday, calendar: calendar) { day in
             guard let log = logByDay[day] else { return false }
-            return isLoggingDay(log)
+            return isCheckInDay(log)
         }
     }
 
@@ -180,7 +223,7 @@ enum StreakCalculator {
         var loggedDays = 0
         var cursor = startDay
         while cursor <= endDay {
-            if let log = logByDay[cursor], isLoggingDay(log) {
+            if let log = logByDay[cursor], isCheckInDay(log) {
                 loggedDays += 1
             }
             guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }

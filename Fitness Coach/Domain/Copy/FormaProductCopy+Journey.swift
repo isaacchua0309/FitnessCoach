@@ -25,11 +25,11 @@ extension FormaProductCopy {
             static let keepStreakAlive = "Log today to keep your streak alive."
 
             static func activeHeadline(days: Int) -> String {
-                "\(days)-day logging streak"
+                "\(days)-day check-in streak"
             }
 
             static func longestStreakDetail(days: Int) -> String {
-                "Your longest streak is \(days) days."
+                "Your longest check-in streak is \(days) days."
             }
         }
 
@@ -668,12 +668,34 @@ extension FormaProductCopy {
             static let buildingConsistency = "You're building consistency."
             static let keepStreakAlive = "Log today to keep your streak alive."
 
-            static func loggingStreak(days: Int) -> String {
-                "\(days)-day logging streak"
+            static func mealLoggingStreak(days: Int) -> String {
+                days == 1 ? "1-day meal logging streak" : "\(days)-day meal logging streak"
             }
 
+            static func checkInStreak(days: Int) -> String {
+                days == 1 ? "1-day check-in streak" : "\(days)-day check-in streak"
+            }
+
+            static func activityStreak(days: Int) -> String {
+                days == 1 ? "1-day activity streak" : "\(days)-day activity streak"
+            }
+
+            /// Legacy label — prefer `checkInStreak(days:)`.
+            static func loggingStreak(days: Int) -> String {
+                checkInStreak(days: days)
+            }
+
+            static func longestMealLoggingStreak(days: Int) -> String {
+                "Your longest meal logging streak is \(days) days."
+            }
+
+            static func longestCheckInStreak(days: Int) -> String {
+                "Your longest check-in streak is \(days) days."
+            }
+
+            /// Legacy label — prefer `longestCheckInStreak(days:)`.
             static func longestLoggingStreak(days: Int) -> String {
-                "Your longest streak is \(days) days."
+                longestCheckInStreak(days: days)
             }
 
             static func proteinStreak(days: Int) -> String {
@@ -690,6 +712,46 @@ extension FormaProductCopy {
 
             static func keepStreakAlive(streakDays: Int) -> String {
                 "Log today to keep your \(streakDays)-day streak alive."
+            }
+        }
+
+        enum WeeklyConfidence {
+            static let building = "Confidence building"
+            static let moderate = "Moderate confidence"
+            static let high = "High confidence"
+        }
+
+        enum Sync {
+            static let healthDataSyncing = "Some health data is still syncing."
+        }
+
+        enum NextBestAction {
+            static let logFirstMeal = "Log your first meal"
+            static let logFirstMealDetail = "Start your journey by logging what you eat today."
+
+            static let logMealsConsistently = "Log meals consistently"
+            static func logMealsConsistentlyDetail(logged: Int, required: Int) -> String {
+                "You've logged meals on \(logged) of the last 7 days. Aim for \(required) to unlock your weekly review."
+            }
+
+            static let logWeightMoreOften = "Log weight more often"
+            static func logWeightMoreOftenDetail(logged: Int, required: Int) -> String {
+                "Add \(max(required - logged, 1)) more weigh-in\(required - logged == 1 ? "" : "s") this week for a clearer trend."
+            }
+
+            static let completeFirstWorkout = "Complete your first workout"
+            static let completeFirstWorkoutDetail = "Log a workout in Today or connect Apple Health to track training."
+            static let completeFirstWorkoutHealthDetail = "Your next workout will appear here automatically from Apple Health."
+
+            static let syncRecoveryData = "Keep wearing your watch"
+            static let syncRecoveryDataDetail = "Recovery insights need a few more days of sleep and heart-rate data."
+            static let connectHealthForRecoveryDetail = "Connect Apple Health to unlock recovery insights."
+
+            static let keepStreakGoing = "Keep your streak going"
+            static func keepStreakGoingDetail(days: Int) -> String {
+                days == 1
+                    ? "You're on a 1-day streak. Log today to keep it alive."
+                    : "You're on a \(days)-day streak. Log today to keep it alive."
             }
         }
 

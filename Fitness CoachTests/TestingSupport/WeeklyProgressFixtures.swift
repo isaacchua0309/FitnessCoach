@@ -52,7 +52,7 @@ enum WeeklyProgressFixtures {
         protein: Int,
         water: Int
     ) -> JourneyStreakState {
-        JourneyStreakState(
+        JourneyStreakState.legacy(
             currentLoggingStreakDays: logging,
             longestLoggingStreakDays: logging,
             currentProteinStreakDays: protein,

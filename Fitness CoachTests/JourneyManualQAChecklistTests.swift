@@ -100,7 +100,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             JourneyHeroBuilder.Input(
                 baseline: baseline,
                 loggedDays: 0,
-                journeyStreaks: JourneyStreakState(
+                journeyStreaks: JourneyStreakState.legacy(
                     currentLoggingStreakDays: 0,
                     longestLoggingStreakDays: 0,
                     currentProteinStreakDays: 0,

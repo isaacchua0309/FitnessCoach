@@ -264,6 +264,9 @@ struct WeeklyProgressHeroCard: View {
     }
 
     private var insufficientDataGuidance: [String] {
+        if let summary = state.insufficientDataSummary, !summary.isEmpty {
+            return [summary]
+        }
         let guidance = state.caveats.filter { !$0.isEmpty }
         if guidance.isEmpty {
             return [state.confidenceAccessibilityLabel]

@@ -166,7 +166,7 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
             showsWeightChart: true
         )
 
-        let streaks = JourneyStreakState(
+        let streaks = JourneyStreakState.legacy(
             currentLoggingStreakDays: min(foodLogDays, 7),
             longestLoggingStreakDays: foodLogDays,
             currentProteinStreakDays: 0,

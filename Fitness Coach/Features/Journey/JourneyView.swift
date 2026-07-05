@@ -133,7 +133,15 @@ struct JourneyView: View {
                     weeklyProgressAnalyticsCoordinator?.logRestorePending()
                 }
         case .loaded(let state):
-            dashboard(state)
+            let resolved = resolvedDashboardState(state)
+            dashboard(
+                resolved,
+                healthIntelligence: resolved.alignedHealthIntelligenceSection(
+                    healthIntelligenceUIEnabled
+                        ? model.journeyHealthIntelligenceSectionState
+                        : nil
+                )
+            )
         }
     }
 
@@ -141,14 +149,15 @@ struct JourneyView: View {
         HealthIntelligenceFeatureFlags.isUIEnabled
     }
 
-    private func dashboard(_ state: JourneyDashboardState) -> some View {
+    private func dashboard(
+        _ state: JourneyDashboardState,
+        healthIntelligence: JourneyHealthIntelligenceSectionState? = nil
+    ) -> some View {
         ScrollView {
             JourneyDashboardContent(
                 state: state,
                 healthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
-                healthIntelligenceSectionState: healthIntelligenceUIEnabled
-                    ? model.journeyHealthIntelligenceSectionState
-                    : nil,
+                healthIntelligenceSectionState: healthIntelligence,
                 analyticsCoordinator: analyticsCoordinator,
                 weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator,
                 healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
@@ -163,9 +172,7 @@ struct JourneyView: View {
                     presentedWeeklyReviewDetail = WeeklyReviewDetailPresentation(
                         detail: UnifiedWeeklyReviewPresentationBuilder.buildDetail(
                             dashboard: state,
-                            healthIntelligence: healthIntelligenceUIEnabled
-                                ? model.journeyHealthIntelligenceSectionState
-                                : nil,
+                            healthIntelligence: healthIntelligence,
                             freshnessInput: model.weeklyProgressFreshnessInput
                         )
                     )
@@ -201,13 +208,8 @@ struct JourneyView: View {
 
     private func handleWeeklyProgressCTA(_ cta: WeeklyProgressCTA) {
         if cta.kind == .reviewPlan, case .loaded(let state) = model.viewState {
-            let unified = UnifiedWeeklyReviewPresentationBuilder.build(
-                dashboard: state,
-                healthIntelligence: healthIntelligenceUIEnabled
-                    ? model.journeyHealthIntelligenceSectionState
-                    : nil,
-                freshnessInput: model.weeklyProgressFreshnessInput
-            )
+            let resolved = resolvedDashboardState(state)
+            let unified = resolved.unifiedWeeklyReview
             weeklyProgressAnalyticsCoordinator?.logPlanRecommendationTapped(
                 summary: state.weeklyProgressSummary,
                 recommendationKind: unified.planRecommendationBlock?.recommendationKind,
@@ -222,6 +224,16 @@ struct JourneyView: View {
             onOpenPlan: onOpenPlan,
             onOpenPlanForWeeklyReview: onOpenPlanForWeeklyReview,
             onOpenCoach: onOpenCoach
+        )
+    }
+
+    private func resolvedDashboardState(_ state: JourneyDashboardState) -> JourneyDashboardState {
+        state.mergingPresentationContext(
+            healthIntelligence: healthIntelligenceUIEnabled
+                ? model.journeyHealthIntelligenceSectionState
+                : nil,
+            freshnessInput: model.weeklyProgressFreshnessInput,
+            isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected
         )
     }
 
