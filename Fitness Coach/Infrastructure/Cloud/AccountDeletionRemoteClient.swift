@@ -35,6 +35,7 @@ enum AccountDeletionRemoteError: Error, Equatable, Sendable {
     case reauthenticationRequired
     case offline
     case permissionDenied
+    case endpointNotFound
     case serverUnavailable
     case timeout
     case unknown(String?)
@@ -314,6 +315,10 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
             return .permissionDenied
         }
 
+        if statusCode == 404 {
+            return .endpointNotFound
+        }
+
         if statusCode == 408 || statusCode == 504 {
             return .timeout
         }
@@ -361,6 +366,8 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
             return "offline"
         case .permissionDenied:
             return "permission_denied"
+        case .endpointNotFound:
+            return "endpoint_not_found"
         case .serverUnavailable:
             return "server_unavailable"
         case .timeout:
@@ -375,14 +382,19 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
 
 private struct DeleteAccountDataRequest: Encodable, Equatable {
     let confirmation: String
+    let dryRun: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case confirmation
+        case dryRun
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(confirmation, forKey: .confirmation)
+        if let dryRun {
+            try container.encode(dryRun, forKey: .dryRun)
+        }
     }
 }
 
@@ -407,6 +419,94 @@ private struct DeleteAccountDataResponse: Decodable {
         let healthSyncMetadata: Bool
     }
 }
+
+#if DEBUG
+// MARK: - Debug dry-run verification
+
+struct AccountDeletionDryRunVerificationResult: Equatable, Sendable {
+    let wouldDeleteGroups: [String]
+    let serverTime: String
+    let functionName: String
+}
+
+extension AccountDeletionRemoteClient {
+
+    /// Non-destructive probe of the account deletion backend endpoint (debug builds only).
+    func verifyDeleteEndpointDryRun() async throws -> AccountDeletionDryRunVerificationResult {
+        AccountDeletionRemoteLogger.requestStarted()
+
+        let url = baseURL.appendingPathComponent(Self.deleteDataEndpoint)
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let requestBody = DeleteAccountDataRequest(confirmation: "DELETE", dryRun: true)
+        do {
+            urlRequest.httpBody = try encoder.encode(requestBody)
+        } catch {
+            AccountDeletionRemoteLogger.requestFailed(category: "encoding")
+            throw AccountDeletionRemoteError.unknown("request_encoding_failed")
+        }
+
+        if let authTokenProvider {
+            do {
+                let token = try await authTokenProvider()
+                urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            } catch let error as AuthManagerError {
+                throw Self.mapAuthTokenError(error)
+            } catch {
+                throw Self.mapAuthTokenError(error)
+            }
+        }
+
+        let started = Date()
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await urlSession.data(for: urlRequest)
+        } catch {
+            throw Self.mapTransportError(error)
+        }
+
+        let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+        if !(200...299).contains(statusCode) {
+            throw Self.mapHTTPStatusError(statusCode: statusCode, data: data)
+        }
+
+        let payload: DeleteAccountDataDryRunResponse
+        do {
+            payload = try decoder.decode(DeleteAccountDataDryRunResponse.self, from: data)
+        } catch {
+            AccountDeletionRemoteLogger.requestFailed(
+                category: "decode_failure",
+                statusCode: statusCode,
+                durationMs: Self.durationMs(since: started)
+            )
+            throw AccountDeletionRemoteError.unknown("response_decode_failed")
+        }
+
+        guard payload.ok, payload.dryRun, payload.uidScoped else {
+            throw AccountDeletionRemoteError.unknown("invalid_dry_run_response")
+        }
+
+        return AccountDeletionDryRunVerificationResult(
+            wouldDeleteGroups: payload.wouldDeleteGroups,
+            serverTime: payload.serverTime,
+            functionName: payload.function
+        )
+    }
+}
+
+private struct DeleteAccountDataDryRunResponse: Decodable {
+    let ok: Bool
+    let dryRun: Bool
+    let uidScoped: Bool
+    let wouldDeleteGroups: [String]
+    let serverTime: String
+    let function: String
+}
+#endif
 
 // MARK: - Logging
 

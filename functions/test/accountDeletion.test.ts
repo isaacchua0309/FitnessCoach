@@ -47,6 +47,7 @@ jest.mock("firebase-functions/v2/https", () => ({
 }));
 
 import * as AccountDeletionService from "../src/accountDeletion/accountDeletionService";
+import * as AccountDeletionInspectService from "../src/accountDeletion/accountDeletionInspectService";
 import {handleAccountDeletionRequest} from "../src/accountDeletion/accountDeletionHandler";
 
 const DELETE_PATH = "/v1/account/delete-data";
@@ -268,6 +269,125 @@ describe("account deletion backend endpoint", () => {
   });
 });
 
+describe("account deletion dry run", () => {
+  let deleteAccountFirestoreDataMock: jest.SpiedFunction<
+    typeof AccountDeletionService.deleteAccountFirestoreData
+  >;
+  let inspectAccountFirestoreDataMock: jest.SpiedFunction<
+    typeof AccountDeletionInspectService.inspectAccountFirestoreData
+  >;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetAccountDeletionGuardrailsForTests();
+    verifyIdTokenMock.mockResolvedValue({uid: USER_A});
+    deleteAccountFirestoreDataMock = jest
+      .spyOn(AccountDeletionService, "deleteAccountFirestoreData")
+      .mockResolvedValue({
+        deleted: completedDeletion,
+        completed: true,
+      });
+    inspectAccountFirestoreDataMock = jest
+      .spyOn(AccountDeletionInspectService, "inspectAccountFirestoreData")
+      .mockResolvedValue({
+        wouldDeleteGroups: ["profile", "dailyLogs"],
+      });
+  });
+
+  afterEach(() => {
+    deleteAccountFirestoreDataMock.mockRestore();
+    inspectAccountFirestoreDataMock.mockRestore();
+  });
+
+  it("dryRunRequiresAuth", async () => {
+    const request = createMockRequest({
+      path: DELETE_PATH,
+      headers: {},
+      body: {confirmation: "DELETE", dryRun: true},
+    });
+    const response = createMockResponse();
+
+    await handleAccountDeletionRequest(request, response);
+
+    expect(response.statusCode).toBe(401);
+    expect(response.body).toEqual({
+      error: "Missing Firebase ID token.",
+      backendErrorCategory: "authentication",
+    });
+    expect(inspectAccountFirestoreDataMock).not.toHaveBeenCalled();
+    expect(deleteAccountFirestoreDataMock).not.toHaveBeenCalled();
+  });
+
+  it("dryRunRejectsWrongConfirmation", async () => {
+    const request = createMockRequest({
+      path: DELETE_PATH,
+      headers: {Authorization: "Bearer test-token"},
+      body: {confirmation: "delete", dryRun: true},
+    });
+    const response = createMockResponse();
+
+    await handleAccountDeletionRequest(request, response);
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).toEqual({
+      error: 'Confirmation phrase must be exactly "DELETE".',
+      backendErrorCategory: "validation",
+    });
+    expect(inspectAccountFirestoreDataMock).not.toHaveBeenCalled();
+    expect(deleteAccountFirestoreDataMock).not.toHaveBeenCalled();
+  });
+
+  it("dryRunReturnsSafePayloadWithoutUid", async () => {
+    const request = createMockRequest({
+      path: DELETE_PATH,
+      headers: {Authorization: "Bearer test-token"},
+      body: {confirmation: "DELETE", dryRun: true},
+    });
+    const response = createMockResponse();
+
+    await handleAccountDeletionRequest(request, response);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toMatchObject({
+      ok: true,
+      dryRun: true,
+      uidScoped: true,
+      wouldDeleteGroups: ["profile", "dailyLogs"],
+      function: "accountDataDeletion",
+    });
+    expect(typeof response.body.serverTime).toBe("string");
+    expect(response.body).not.toHaveProperty("uid");
+    expect(inspectAccountFirestoreDataMock).toHaveBeenCalledWith(USER_A);
+    expect(deleteAccountFirestoreDataMock).not.toHaveBeenCalled();
+  });
+
+  it("dryRunDoesNotConsumeDeletionQuota", async () => {
+    process.env.FORMA_ACCOUNT_DELETE_BURST_PER_MINUTE = "1";
+    process.env.FORMA_ACCOUNT_DELETE_DAILY_LIMIT = "1";
+
+    const dryRunRequest = createMockRequest({
+      path: DELETE_PATH,
+      headers: {Authorization: "Bearer test-token"},
+      body: {confirmation: "DELETE", dryRun: true},
+    });
+    const dryRunResponse = createMockResponse();
+    await handleAccountDeletionRequest(dryRunRequest, dryRunResponse);
+    expect(dryRunResponse.statusCode).toBe(200);
+
+    const deleteRequest = createMockRequest({
+      path: DELETE_PATH,
+      headers: {Authorization: "Bearer test-token"},
+      body: {confirmation: "DELETE"},
+    });
+    const deleteResponse = createMockResponse();
+    await handleAccountDeletionRequest(deleteRequest, deleteResponse);
+    expect(deleteResponse.statusCode).toBe(200);
+
+    delete process.env.FORMA_ACCOUNT_DELETE_BURST_PER_MINUTE;
+    delete process.env.FORMA_ACCOUNT_DELETE_DAILY_LIMIT;
+  });
+});
+
 describe("account deletion firestore service", () => {
   const {deleteAccountFirestoreData} = AccountDeletionService;
 
@@ -450,6 +570,41 @@ describe("account deletion firestore service", () => {
     expect(result.completed).toBe(false);
     expect(harness.documentExists(accountPersistencePaths.weightEntry(USER_A))).toBe(true);
     expect(harness.documentExists(accountPersistencePaths.profile(USER_A))).toBe(true);
+  });
+});
+
+describe("account deletion inspect service", () => {
+  const {inspectAccountFirestoreData} = AccountDeletionInspectService;
+
+  it("dryRunDoesNotDeleteFirestoreData", async () => {
+    const harness = createInMemoryFirestoreHarness();
+    seedFullUserAccountData(harness, USER_A);
+
+    const inspection = await inspectAccountFirestoreData(USER_A, harness.db);
+
+    expect(inspection.wouldDeleteGroups).toEqual(
+      expect.arrayContaining([
+        "profile",
+        "syncMetadata",
+        "dailyLogs",
+        "weightEntries",
+        "dailyReviews",
+        "healthDaily",
+        "healthWorkouts",
+        "healthRecovery",
+        "healthWeeklyReviews",
+        "healthSyncMetadata",
+      ])
+    );
+    expectUserAccountDataPresent(harness, USER_A);
+  });
+
+  it("dryRunReturnsEmptyGroupsWhenNoData", async () => {
+    const harness = createInMemoryFirestoreHarness();
+
+    const inspection = await inspectAccountFirestoreData(USER_A, harness.db);
+
+    expect(inspection.wouldDeleteGroups).toEqual([]);
   });
 });
 
