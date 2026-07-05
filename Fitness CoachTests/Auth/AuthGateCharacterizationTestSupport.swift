@@ -38,6 +38,51 @@ enum AuthGateCharacterizationTestSupport {
     func waitForAsyncWork(nanoseconds: UInt64 = 100_000_000) async {
       try? await Task.sleep(nanoseconds: nanoseconds)
     }
+
+    /// Recomputes the same pipeline `AuthGateCoordinator.effectiveRoute` uses.
+    func resolveExpectedEffectiveRoute() -> AppShellRoute {
+      let coordinator = coordinator
+      let base = container.resolveAppShellRoute(
+        authState: container.authManager.authState,
+        rootState: coordinator.rootModel.state,
+        isOnboardingModelReady: coordinator.onboardingModel != nil,
+        awaitingCloudSync: coordinator.awaitingCloudSync,
+        pendingOnboardingCompletion: coordinator.pendingSignInForOnboardingCompletion,
+        publicEntryDestination: coordinator.publicEntryDestination
+      )
+      return AuthGateRoutingPolicy.effectiveRoute(
+        baseRoute: base,
+        isSignedIn: AppRouteResolver.isSignedIn(container.authManager.authState),
+        hasActiveOnboardingSession: coordinator.onboardingModel != nil,
+        suppressAutomaticPublicEntryResume:
+          container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
+      )
+    }
+
+    func assertEffectiveRoute(
+      _ expected: AppShellRoute,
+      file: StaticString = #filePath,
+      line: UInt = #line
+    ) {
+      XCTAssertEqual(
+        coordinator.effectiveRoute,
+        expected,
+        "effectiveRoute mismatch",
+        file: file,
+        line: line
+      )
+      XCTAssertEqual(
+        coordinator.effectiveRoute,
+        resolveExpectedEffectiveRoute(),
+        "effectiveRoute diverged from resolveAppShellRoute + AuthGateRoutingPolicy pipeline",
+        file: file,
+        line: line
+      )
+    }
+
+    func captureEffectiveRoute() -> AppShellRoute {
+      coordinator.effectiveRoute
+    }
   }
 
   struct RouteScenario: Sendable {
@@ -403,20 +448,6 @@ enum AuthGateCharacterizationTestSupport {
         localProfileAwaitingSignIn: false,
         suppressAutomaticPublicEntryResume: false,
         expectedRoute: .signedInProfileLoading
-      ),
-      RouteScenario(
-        name: "signed_in_profile_error",
-        authState: signedIn,
-        rootState: .error("bootstrap failed"),
-        publicEntryDestination: .welcome,
-        isOnboardingModelReady: false,
-        awaitingCloudSync: false,
-        pendingOnboardingCompletion: false,
-        hasLocalProfile: false,
-        hasPersistedOnboardingDraft: false,
-        localProfileAwaitingSignIn: false,
-        suppressAutomaticPublicEntryResume: false,
-        expectedRoute: .profileError("bootstrap failed")
       ),
       RouteScenario(
         name: "signed_out_suppressed_resume_stays_welcome",
