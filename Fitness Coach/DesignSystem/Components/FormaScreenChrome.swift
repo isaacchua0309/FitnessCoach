@@ -25,7 +25,9 @@ extension View {
 
     func formaScrollBottomInset() -> some View {
         safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear.frame(height: FormaTokens.Layout.tabBarScrollPadding)
+            Color.clear
+                .frame(height: FormaTokens.Layout.tabBarScrollPadding)
+                .allowsHitTesting(false)
         }
     }
 
@@ -43,11 +45,7 @@ extension View {
 
     func formaSettingsRowChrome(isEnabled: Bool = true) -> some View {
         listRowInsets(FormaTokens.Layout.settingsRowInsets)
-            .listRowBackground(
-                isEnabled
-                    ? FormaTokens.Color.surface
-                    : FormaTokens.Color.surfaceSubtle
-            )
+            .listRowBackground(SettingsListRowBackground(isEnabled: isEnabled))
             .allowsHitTesting(isEnabled)
     }
 
@@ -71,5 +69,16 @@ extension View {
         .formaScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
         .formaScrollBottomInset()
+    }
+}
+
+/// Decorative settings list-row fill. Must not participate in hit testing or it blocks row taps.
+private struct SettingsListRowBackground: View {
+    let isEnabled: Bool
+
+    var body: some View {
+        Rectangle()
+            .fill(isEnabled ? FormaTokens.Color.surface : FormaTokens.Color.surfaceSubtle)
+            .allowsHitTesting(false)
     }
 }

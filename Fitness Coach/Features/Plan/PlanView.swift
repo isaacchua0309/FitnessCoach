@@ -151,6 +151,7 @@ struct PlanView: View {
                         .environment(\.appleHealthSettingsEnvironment, appleHealthSettingsEnvironment)
                         .environment(\.accountDeletionCoordinator, accountDeletionCoordinator)
                         .environment(\.settingsPrivacyDataEnvironment, settingsPrivacyDataEnvironment)
+                        .formaThemeReactive()
                     }
                 }
                 .sheet(isPresented: $model.isShowingTargetRegenerationSheet) {

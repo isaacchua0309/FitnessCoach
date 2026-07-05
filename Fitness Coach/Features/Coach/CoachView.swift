@@ -95,6 +95,7 @@ struct CoachView: View {
             .onChange(of: isActive) { _, active in
                 if !active {
                     speechService.stopRecording()
+                    imagePickFlow.dismissPresentedPickers()
                     model.handleCoachBecameInactive()
                 } else {
                     focusComposerIfRequested()

@@ -195,6 +195,17 @@ final class CoachImagePickFlowController: ObservableObject {
         isCameraPresented = false
     }
 
+    /// Dismisses any camera/photo-library UI when Coach is no longer the active tab.
+    func dismissPresentedPickers() {
+        librarySelectionReceived = false
+        cameraDeliveredResult = false
+        isPhotoPickerPresented = false
+        isCameraPresented = false
+        if case .pickerPresented = state {
+            state = .idle
+        }
+    }
+
     private func completeImport(
         _ result: Result<CoachImagePipeline.ProcessedImageImport, CoachMealPhotoError>,
         source: CoachInputAttachmentSource,

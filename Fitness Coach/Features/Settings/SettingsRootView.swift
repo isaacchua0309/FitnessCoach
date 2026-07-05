@@ -278,14 +278,10 @@ struct SettingsRootView: View {
                 FormaSettingsRowLabel(title: row.title, status: row.status)
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .formaSettingsRowChrome()
             .accessibilityLabel(SettingsRowAccessibilityFormatter.label(title: row.title, status: row.status))
             .accessibilityHint(SettingsRowAccessibilityFormatter.buttonHint(opensExternally: false))
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    analyticsCoordinator.logRowTapped(rowID: row.id, sectionType: sectionType)
-                }
-            )
         } else {
             FormaSettingsRowLabel(title: row.title, status: row.status)
                 .formaSettingsRowChrome(isEnabled: false)
@@ -311,6 +307,7 @@ struct SettingsRootView: View {
             )
         }
         .buttonStyle(.plain)
+        .contentShape(Rectangle())
         .formaSettingsRowChrome()
         .accessibilityLabel(SettingsRowAccessibilityFormatter.label(title: row.title, status: row.status))
         .accessibilityHint(accessibilityHint ?? "")
@@ -324,13 +321,19 @@ struct SettingsRootView: View {
         switch destination {
         case .account:
             AccountSettingsView()
-                .onAppear { analyticsCoordinator.logAccountViewed() }
+                .onAppear {
+                    analyticsCoordinator.logRowTapped(rowID: .account, sectionType: sectionType)
+                    analyticsCoordinator.logAccountViewed()
+                }
         case .units:
             UnitsSettingsScreen(
                 formState: $formState,
                 onSave: onSaveUnits
             )
-            .onAppear { analyticsCoordinator.logUnitsSettingsViewed() }
+            .onAppear {
+                analyticsCoordinator.logRowTapped(rowID: .units, sectionType: sectionType)
+                analyticsCoordinator.logUnitsSettingsViewed()
+            }
         case .bodyAndStats:
             PlanBodyDetailsSettingsView(
                 presentation: BodyDetailsSettingsPresentationBuilder.build(
@@ -340,13 +343,22 @@ struct SettingsRootView: View {
                     onUpdateInPlan?()
                 }
             )
-            .onAppear { analyticsCoordinator.logBodyStatsViewed() }
+            .onAppear {
+                analyticsCoordinator.logRowTapped(rowID: .bodyAndStats, sectionType: sectionType)
+                analyticsCoordinator.logBodyStatsViewed()
+            }
         case .theme:
             ThemeSettingsView()
-                .onAppear { analyticsCoordinator.logThemeSettingsViewed() }
+                .onAppear {
+                    analyticsCoordinator.logRowTapped(rowID: .theme, sectionType: sectionType)
+                    analyticsCoordinator.logThemeSettingsViewed()
+                }
         case .appleHealthIntegration:
             AppleHealthIntegrationView(insightsStore: insightsStore)
-                .onAppear { analyticsCoordinator.logAppleHealthSettingsViewed() }
+                .onAppear {
+                    analyticsCoordinator.logRowTapped(rowID: .appleHealth, sectionType: sectionType)
+                    analyticsCoordinator.logAppleHealthSettingsViewed()
+                }
         case .legalDocument(let document):
             SettingsLegalDocumentView(document: document)
                 .onAppear {
@@ -361,10 +373,19 @@ struct SettingsRootView: View {
             EmptyView()
         case .accountDataStatus:
             SettingsPrivacyDataAccountStatusView(status: privacyDataStatus)
+                .onAppear {
+                    analyticsCoordinator.logRowTapped(rowID: .accountDataStatus, sectionType: sectionType)
+                }
         case .syncStatus:
             SettingsPrivacyDataSyncStatusView(status: privacyDataStatus)
+                .onAppear {
+                    analyticsCoordinator.logRowTapped(rowID: .syncStatus, sectionType: sectionType)
+                }
         case .healthDataNote:
             SettingsPrivacyDataHealthNoteView()
+                .onAppear {
+                    analyticsCoordinator.logRowTapped(rowID: .healthDataNote, sectionType: sectionType)
+                }
         case .exportData, .deleteAccount, .deleteLocalDeviceData:
             EmptyView()
         case .authDiagnostics, .pipelineTraces:
