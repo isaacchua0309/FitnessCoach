@@ -59,4 +59,21 @@ final class AppContainerConstructionTests: XCTestCase {
         XCTAssertTrue(container.healthIntelligenceAnalyticsLogger is NoOpHealthIntelligenceAnalyticsLogger)
         XCTAssertNotNil(container.makeHealthIntelligenceAnalyticsCoordinator())
     }
+
+    func testBuildAnalyticsDependenciesDelegatesToAnalyticsDependenciesBundle() {
+        let bundle = AppContainer.buildAnalyticsDependencies(
+            onboardingAnalyticsLogger: NoOpOnboardingAnalyticsLogger(),
+            todayAnalyticsLogger: nil,
+            planAnalyticsLogger: nil,
+            journeyAnalyticsLogger: nil,
+            weeklyProgressAnalyticsLogger: nil,
+            publicEntryAnalyticsLogger: nil,
+            themeAnalyticsLogger: nil,
+            settingsAnalyticsLogger: nil,
+            healthIntelligenceAnalyticsLogger: nil
+        )
+
+        XCTAssertEqual(bundle.configuration, .current)
+        XCTAssertTrue(bundle.onboardingAnalyticsLogger is NoOpOnboardingAnalyticsLogger)
+    }
 }

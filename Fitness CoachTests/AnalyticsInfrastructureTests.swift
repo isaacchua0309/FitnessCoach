@@ -90,6 +90,49 @@ final class AnalyticsInfrastructureTests: XCTestCase {
         #endif
     }
 
+    // MARK: - AnalyticsDependencies bundle
+
+    func testAnalyticsDependenciesBuildUsesCurrentConfigurationByDefault() {
+        let dependencies = AnalyticsDependencies.build()
+
+        XCTAssertEqual(dependencies.configuration, .current)
+        #if DEBUG
+        XCTAssertTrue(dependencies.todayAnalyticsLogger is OSLogTodayAnalyticsLogger)
+        #else
+        XCTAssertTrue(dependencies.todayAnalyticsLogger is NoOpTodayAnalyticsLogger)
+        #endif
+    }
+
+    func testAnalyticsDependenciesBuildAcceptsInjectableOverrides() {
+        let onboarding = NoOpOnboardingAnalyticsLogger()
+        let today = NoOpTodayAnalyticsLogger()
+
+        let dependencies = AnalyticsDependencies.build(
+            configuration: .testing,
+            onboardingAnalyticsLogger: onboarding,
+            todayAnalyticsLogger: today
+        )
+
+        XCTAssertEqual(dependencies.configuration, .testing)
+        XCTAssertTrue(dependencies.onboardingAnalyticsLogger is NoOpOnboardingAnalyticsLogger)
+        XCTAssertTrue(dependencies.todayAnalyticsLogger is NoOpTodayAnalyticsLogger)
+        #if DEBUG
+        XCTAssertTrue(dependencies.planAnalyticsLogger is OSLogPlanAnalyticsLogger)
+        #else
+        XCTAssertTrue(dependencies.planAnalyticsLogger is NoOpPlanAnalyticsLogger)
+        #endif
+    }
+
+    func testAnalyticsDependenciesTestingConfigurationKeepsReleaseNoOp() {
+        let dependencies = AnalyticsDependencies.build(configuration: .testing)
+
+        #if DEBUG
+        XCTAssertTrue(dependencies.settingsAnalyticsLogger is OSLogSettingsAnalyticsLogger)
+        #else
+        XCTAssertTrue(dependencies.settingsAnalyticsLogger is NoOpSettingsAnalyticsLogger)
+        #endif
+    }
+
     // MARK: - AppContainer sink selection
 
     @MainActor
