@@ -44,6 +44,7 @@ final class AuthGateCoordinator: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var onboardingModelCancellable: AnyCancellable?
     private var accountRestoreRouteTask: Task<Void, Never>?
+    private let publicEntryFlowCoordinator: PublicEntryFlowCoordinator
     #if DEBUG
     private var testingSignedInUID: String?
     #endif
@@ -52,6 +53,12 @@ final class AuthGateCoordinator: ObservableObject {
         self.container = container
         self.authManager = container.authManager
         self.rootModel = container.makeRootModel()
+        self.publicEntryFlowCoordinator = PublicEntryFlowCoordinator(
+            container: container,
+            authManager: container.authManager
+        )
+
+        publicEntryFlowCoordinator.configure(delegate: self)
 
         rootModel.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
@@ -92,73 +99,39 @@ final class AuthGateCoordinator: ObservableObject {
     // MARK: - Public entry actions
 
     func beginOnboardingFromWelcome() {
-        startPreAuthOnboarding()
+        publicEntryFlowCoordinator.beginOnboardingFromWelcome()
     }
 
     func beginExistingUserSignInFromWelcome() {
-        onboardingModel = nil
-        existingUserSignInError = nil
-        publicEntryDestination = .existingUserSignIn
+        publicEntryFlowCoordinator.beginExistingUserSignInFromWelcome()
     }
 
     func returnToWelcomeFromExistingUserSignIn() {
-        pendingExistingUserSignIn = false
-        existingUserSignInSessionActive = false
-        existingUserSignInError = nil
-        publicEntryDestination = .welcome
+        publicEntryFlowCoordinator.returnToWelcomeFromExistingUserSignIn()
     }
 
     func returnToWelcomeFromOnboarding() {
-        onboardingModel = nil
-        container.onboardingDraftStore.clearDraft()
-        publicEntryDestination = .welcome
+        publicEntryFlowCoordinator.returnToWelcomeFromOnboarding()
     }
 
     func beginOnboardingFromExistingUserSignIn() {
-        pendingExistingUserSignIn = false
-        existingUserSignInSessionActive = false
-        existingUserSignInError = nil
-        startPreAuthOnboarding()
+        publicEntryFlowCoordinator.beginOnboardingFromExistingUserSignIn()
     }
 
     func startPreAuthOnboarding() {
-        pendingExistingUserSignIn = false
-        existingUserSignInSessionActive = false
-        container.publicEntrySessionStore.clearExplicitSignOut()
-        publicEntryDestination = WelcomeOnboardingHandoffPolicy.createPlanDestination
-        onboardingModel = nil
-        rootModel.resolveLocalProfile()
-        ensurePreAuthOnboardingModel()
+        publicEntryFlowCoordinator.startPreAuthOnboarding()
     }
 
     func signInAsExistingUser() {
-        existingUserSignInError = nil
-        pendingExistingUserSignIn = true
-        existingUserSignInSessionActive = true
-        logExistingUserSignIn(.existingSignInStarted)
-        Task {
-            let outcome = await authManager.signInWithGoogle()
-            applyExistingUserGoogleSignInOutcome(outcome)
-        }
+        publicEntryFlowCoordinator.signInAsExistingUser()
     }
 
     func beginOnboardingAfterNoExistingPlan() {
-        onboardingModel = nil
-        pendingExistingUserSignIn = false
-        existingUserSignInSessionActive = false
-        rootModel.continueFromMissingCloudProfile()
-        ensureOnboardingModel()
+        publicEntryFlowCoordinator.beginOnboardingAfterNoExistingPlan()
     }
 
     func useAnotherAccountAfterNoExistingPlan() {
-        returnToExistingUserSignInAfterSignOut = true
-        existingUserSignInSessionActive = false
-        pendingExistingUserSignIn = false
-        existingUserSignInError = nil
-        onboardingModel = nil
-        suppressSignOutEntrySourceAnnotation = true
-        prepareAuthenticatedSignOut(source: "no_existing_profile_use_another_account")
-        authManager.signOut()
+        publicEntryFlowCoordinator.useAnotherAccountAfterNoExistingPlan()
     }
 
     // MARK: - Pre-auth onboarding
@@ -287,14 +260,10 @@ final class AuthGateCoordinator: ObservableObject {
         clearAuthenticatedSessionPresentationState()
         signedInSessionID = UUID()
         onboardingModel = nil
-        pendingExistingUserSignIn = false
-        existingUserSignInSessionActive = false
+        publicEntryFlowCoordinator.resetPublicEntryFlagsForAccountDeletion()
         pendingSignInForOnboardingCompletion = false
         awaitingCloudSync = false
-        publicEntryDestination = AuthLogoutPolicy.publicEntryDestinationAfterSignOut(
-            returnToExistingUserSignIn: returnToExistingUserSignInAfterSignOut,
-            hasExistingUserSignInError: existingUserSignInError != nil
-        )
+        publicEntryFlowCoordinator.applyPublicEntryDestinationAfterSignOut()
         rootModel.resetForSignedOutSession()
         AuthLogoutPolicy.prepareForSignOut(
             sessionStore: container.publicEntrySessionStore,
@@ -445,27 +414,7 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func applyExistingUserGoogleSignInOutcome(_ outcome: GoogleSignInAttemptOutcome) {
-        switch outcome {
-        case .success:
-            return
-        case .cancelled:
-            guard existingUserSignInSessionActive || pendingExistingUserSignIn else { return }
-            existingUserSignInSessionActive = false
-            pendingExistingUserSignIn = false
-            existingUserSignInError = nil
-            authManager.clearTransientAuthState()
-        case .failed:
-            guard existingUserSignInSessionActive || pendingExistingUserSignIn else { return }
-            let failureKind: ExistingUserSignInFailureKind
-            if case .failed(let message) = authManager.authState,
-               message == AuthSignInUserMessage.signInFailureMessage {
-                failureKind = .networkFailed
-            } else {
-                failureKind = .authFailed
-            }
-            completeExistingUserSignInFailure(failureKind)
-            authManager.clearTransientAuthState()
-        }
+        publicEntryFlowCoordinator.applyExistingUserGoogleSignInOutcome(outcome)
     }
 
     /// Signed-in onboarding completion: probe cloud, then sync or show conflict UI.
@@ -589,7 +538,7 @@ final class AuthGateCoordinator: ObservableObject {
         case .accountOrOwnershipReconcile:
             clearProfileConflictState()
             clearStaleOnboardingDraftIfSafe()
-            completeExistingUserSignInSuccessIfNeeded()
+            publicEntryFlowCoordinator.completeExistingUserSignInSuccessIfNeeded()
         }
         awaitingCloudSync = false
         guard let uid = authManager.currentUID else { return }
@@ -605,7 +554,7 @@ final class AuthGateCoordinator: ObservableObject {
         case .accountOrOwnershipReconcile:
             clearProfileConflictState()
             clearStaleOnboardingDraftIfSafe()
-            completeExistingUserSignInSuccessIfNeeded()
+            publicEntryFlowCoordinator.completeExistingUserSignInSuccessIfNeeded()
         }
         awaitingCloudSync = false
         guard let uid = authManager.currentUID else { return }
@@ -725,7 +674,7 @@ final class AuthGateCoordinator: ObservableObject {
         let isSignedInNow = AppRouteResolver.isSignedIn(state)
 
         if isSignedInNow {
-            publicEntryDestination = .welcome
+            publicEntryFlowCoordinator.resetPublicEntryDestinationOnSignIn()
             let isFreshSignIn = AppRouteResolver.shouldRotateSignedInSession(
                 wasSignedIn: wasSignedIn,
                 isSignedIn: isSignedInNow
@@ -748,18 +697,7 @@ final class AuthGateCoordinator: ObservableObject {
         to state: AuthState,
         wasSignedIn: Bool
     ) {
-        if pendingExistingUserSignIn || existingUserSignInSessionActive,
-           didSignInAttemptFail(from: previous, to: state) {
-            if case .signedOut = state {
-                existingUserSignInSessionActive = false
-                pendingExistingUserSignIn = false
-                existingUserSignInError = nil
-                authManager.clearTransientAuthState()
-            } else if let failureKind = ExistingUserSignInPolicy.failureKind(from: previous, to: state) {
-                completeExistingUserSignInFailure(failureKind)
-                authManager.clearTransientAuthState()
-            }
-        }
+        publicEntryFlowCoordinator.handleExistingUserSignInAttemptIfNeeded(from: previous, to: state)
 
         if pendingSignInForOnboardingCompletion, didSignInAttemptFail(from: previous, to: state) {
             let wasCancelled: Bool
@@ -807,14 +745,7 @@ final class AuthGateCoordinator: ObservableObject {
                 container.publicEntrySessionStore.markSessionExpiredLogout()
             }
             suppressSignOutEntrySourceAnnotation = false
-            publicEntryDestination = AuthLogoutPolicy.publicEntryDestinationAfterSignOut(
-                returnToExistingUserSignIn: returnToExistingUserSignInAfterSignOut,
-                hasExistingUserSignInError: existingUserSignInError != nil
-            )
-            if returnToExistingUserSignInAfterSignOut {
-                returnToExistingUserSignInAfterSignOut = false
-                existingUserSignInError = nil
-            }
+            publicEntryFlowCoordinator.applyWasSignedInPublicEntryReset()
             rootModel.resetForSignedOutSession()
             AuthLogoutPolicy.prepareForSignOut(
                 sessionStore: container.publicEntrySessionStore,
@@ -824,19 +755,10 @@ final class AuthGateCoordinator: ObservableObject {
                 hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
                 publicEntryDestination: publicEntryDestination
             )
-        } else if let resumedDestination = AuthLogoutPolicy.coldLaunchPublicEntryDestination(
-            hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
-            hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
-            suppressAutomaticPublicEntryResume:
-                container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
-        ) {
-            publicEntryDestination = resumedDestination
-            rootModel.resolveLocalProfile()
+        } else if publicEntryFlowCoordinator.applyColdLaunchPublicEntryDestinationIfNeeded() {
+            // Cold-launch public entry resume handled by public-entry flow.
         } else {
-            if container.publicEntrySessionStore.suppressAutomaticPublicEntryResume {
-                publicEntryDestination = .welcome
-                onboardingModel = nil
-            }
+            publicEntryFlowCoordinator.applyExplicitSignOutWelcomeIfNeeded()
             rootModel.resetForSignedOutSession()
         }
 
@@ -857,14 +779,10 @@ final class AuthGateCoordinator: ObservableObject {
         clearAuthenticatedSessionPresentationState()
         signedInSessionID = UUID()
         onboardingModel = nil
-        pendingExistingUserSignIn = false
-        existingUserSignInSessionActive = false
+        publicEntryFlowCoordinator.resetPublicEntryFlagsForAccountDeletion()
         pendingSignInForOnboardingCompletion = false
         awaitingCloudSync = false
-        publicEntryDestination = AuthLogoutPolicy.publicEntryDestinationAfterSignOut(
-            returnToExistingUserSignIn: returnToExistingUserSignInAfterSignOut,
-            hasExistingUserSignInError: existingUserSignInError != nil
-        )
+        publicEntryFlowCoordinator.applyPublicEntryDestinationAfterSignOut()
         rootModel.resetForSignedOutSession()
         AuthLogoutPolicy.prepareForSignOut(
             sessionStore: container.publicEntrySessionStore,
@@ -931,7 +849,7 @@ final class AuthGateCoordinator: ObservableObject {
     func completeRouteToMain(uid: String, restoreSummary: AccountRestoreSummary? = nil) {
         guard isUIDStillCurrent(uid) else { return }
         awaitingCloudSync = false
-        completeExistingUserSignInSuccessIfNeeded()
+        publicEntryFlowCoordinator.completeExistingUserSignInSuccessIfNeeded()
         pendingExistingUserSignIn = false
         try? container.actionCenter.syncTodayTargetsFromProfile()
         container.onboardingCoachingContextStore.clear()
@@ -999,11 +917,11 @@ final class AuthGateCoordinator: ObservableObject {
         case .noProfileFound:
             onboardingModel = nil
             awaitingCloudSync = false
-            completeExistingUserSignInNoProfileIfNeeded()
+            publicEntryFlowCoordinator.completeExistingUserSignInNoProfileIfNeeded()
             pendingExistingUserSignIn = false
             rootModel.presentMissingCloudProfile()
         case .lookupFailed:
-            logExistingUserSignIn(
+            publicEntryFlowCoordinator.logExistingUserSignIn(
                 .existingSignInFailed,
                 reason: .profileLookupFailed,
                 profileResolutionResult: .lookupFailed
@@ -1070,7 +988,7 @@ final class AuthGateCoordinator: ObservableObject {
                         reason: isFreshSignIn ? .afterSignIn : .appLaunch
                     )
                 case .missingCloudProfile:
-                    completeExistingUserSignInNoProfileIfNeeded()
+                    publicEntryFlowCoordinator.completeExistingUserSignInNoProfileIfNeeded()
                     pendingExistingUserSignIn = false
                 default:
                     break
@@ -1088,7 +1006,7 @@ final class AuthGateCoordinator: ObservableObject {
         case .presentMissingCloudProfile:
             onboardingModel = nil
             awaitingCloudSync = false
-            completeExistingUserSignInNoProfileIfNeeded()
+            publicEntryFlowCoordinator.completeExistingUserSignInNoProfileIfNeeded()
             pendingExistingUserSignIn = false
             rootModel.presentMissingCloudProfile()
         case .skip:
@@ -1126,7 +1044,7 @@ final class AuthGateCoordinator: ObservableObject {
                 rootModel.presentProfilePlanConflict()
             case .missing, .failed:
                 if existingUserSignInSessionActive {
-                    logExistingUserSignIn(
+                    publicEntryFlowCoordinator.logExistingUserSignIn(
                         .existingSignInFailed,
                         reason: .profileLookupFailed,
                         profileResolutionResult: .lookupFailed
@@ -1142,13 +1060,12 @@ final class AuthGateCoordinator: ObservableObject {
 
     func handleRootStateChange(_ state: RootViewState) {
         if state == .main {
-            completeExistingUserSignInSuccessIfNeeded()
+            publicEntryFlowCoordinator.completeExistingUserSignInSuccessIfNeeded()
         }
 
         if state == .missingCloudProfile {
             onboardingModel = nil
-            pendingExistingUserSignIn = false
-            existingUserSignInSessionActive = false
+            publicEntryFlowCoordinator.clearExistingUserSessionForMissingCloudProfile()
         }
 
         if state == .accountProfileMismatch {
@@ -1163,10 +1080,7 @@ final class AuthGateCoordinator: ObservableObject {
 
     func handleEffectiveRouteChange(_ route: AppShellRoute) {
         logAuthGatePhaseIfNeeded(for: route)
-        if route == .welcome {
-            logWelcomeScreenAnalytics()
-        }
-        logAppShellRouteDecision(selectedRoute: route)
+        publicEntryFlowCoordinator.handleEffectiveRouteChange(route, routeInputs: routeInputs)
     }
 
     private func logAuthGatePhaseIfNeeded(for route: AppShellRoute) {
@@ -1193,20 +1107,9 @@ final class AuthGateCoordinator: ObservableObject {
     // MARK: - Public entry analytics
 
     func logAppShellRouteDecision(selectedRoute: AppShellRoute) {
-        let inputs = routeInputs
-        let base = AuthGateRoutingCoordinator.baseRoute(inputs: inputs, container: container)
-        AppShellRoutingLogger.logDecision(
-            authState: inputs.authState,
-            rootState: inputs.rootState,
-            hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
-            localProfileAwaitingSignIn: container.profileBootstrapService.localProfileAwaitingSignIn(),
-            hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
-            suppressAutomaticPublicEntryResume: inputs.suppressAutomaticPublicEntryResume,
-            publicEntryDestination: inputs.publicEntryDestination,
-            isOnboardingModelReady: inputs.isOnboardingModelReady,
-            baseRoute: base,
+        publicEntryFlowCoordinator.logAppShellRouteDecision(
             selectedRoute: selectedRoute,
-            trigger: "auth_gate_effective_route"
+            routeInputs: routeInputs
         )
     }
 
@@ -1214,41 +1117,21 @@ final class AuthGateCoordinator: ObservableObject {
         profileResolutionResult: ExistingUserSignInResolutionResult? = nil,
         reason: String? = nil
     ) -> PublicEntryAnalyticsProperties {
-        PublicEntryAnalyticsContextBuilder.properties(
-            hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
-            profileResolutionResult: profileResolutionResult ?? lastExistingUserResolutionResult,
+        publicEntryFlowCoordinator.publicEntryAnalyticsProperties(
+            profileResolutionResult: profileResolutionResult,
             reason: reason
         )
     }
 
     func logWelcomeScreenAnalytics() {
-        let base = publicEntryAnalyticsProperties()
-        if let pending = container.publicEntrySessionStore.consumePendingEntrySource() {
-            var properties = base
-            properties.entrySource = pending.rawValue
-            logPublicEntry(.welcomeViewed, properties: properties)
-            if pending == .logout {
-                logPublicEntry(.logoutCompletedPublicEntryShown, properties: properties)
-            }
-            return
-        }
-
-        guard !didLogColdStartWelcome else {
-            logPublicEntry(.welcomeViewed, properties: base)
-            return
-        }
-
-        didLogColdStartWelcome = true
-        var properties = base
-        properties.entrySource = PublicEntryEntrySource.freshInstall.rawValue
-        logPublicEntry(.welcomeViewed, properties: properties)
+        publicEntryFlowCoordinator.logWelcomeScreenAnalytics()
     }
 
     func logPublicEntry(
         _ event: PublicEntryAnalyticsEvent,
         properties: PublicEntryAnalyticsProperties
     ) {
-        container.publicEntryAnalyticsLogger.log(event, properties: properties)
+        publicEntryFlowCoordinator.logPublicEntry(event, properties: properties)
     }
 
     // MARK: - Existing user sign-in analytics
@@ -1258,49 +1141,26 @@ final class AuthGateCoordinator: ObservableObject {
         reason: ExistingUserSignInFailureKind? = nil,
         profileResolutionResult: ExistingUserSignInResolutionResult? = nil
     ) {
-        let properties = publicEntryAnalyticsProperties(
-            profileResolutionResult: profileResolutionResult,
-            reason: reason?.analyticsReason
+        publicEntryFlowCoordinator.logExistingUserSignIn(
+            event,
+            reason: reason,
+            profileResolutionResult: profileResolutionResult
         )
-        container.publicEntryAnalyticsLogger.log(event, properties: properties)
     }
 
     func completeExistingUserSignInSuccessIfNeeded() {
-        guard existingUserSignInSessionActive else { return }
-        logExistingUserSignIn(
-            .existingSignInSucceeded,
-            profileResolutionResult: lastExistingUserResolutionResult
-        )
-        existingUserSignInSessionActive = false
-        existingUserSignInError = nil
-        pendingExistingUserSignIn = false
+        publicEntryFlowCoordinator.completeExistingUserSignInSuccessIfNeeded()
     }
 
     func completeExistingUserSignInNoProfileIfNeeded() {
-        guard existingUserSignInSessionActive else { return }
-        logExistingUserSignIn(
-            .existingSignInNoProfileFound,
-            profileResolutionResult: .noProfileFound
-        )
-        existingUserSignInSessionActive = false
-        existingUserSignInError = nil
+        publicEntryFlowCoordinator.completeExistingUserSignInNoProfileIfNeeded()
     }
 
     func completeExistingUserSignInFailure(_ kind: ExistingUserSignInFailureKind) {
-        logExistingUserSignIn(.existingSignInFailed, reason: kind)
-        existingUserSignInSessionActive = false
-        pendingExistingUserSignIn = false
-        existingUserSignInError = kind
-        publicEntryDestination = .existingUserSignIn
-
-        if AppRouteResolver.isSignedIn(authManager.authState) {
-            suppressSignOutEntrySourceAnnotation = true
-            prepareAuthenticatedSignOut(source: "existing_user_sign_in_failure")
-            authManager.signOut()
-        }
+        publicEntryFlowCoordinator.completeExistingUserSignInFailure(kind)
     }
 
-    func didSignInAttemptFail(from previous: AuthState, to state: AuthState) -> Bool {
+    private func didSignInAttemptFail(from previous: AuthState, to state: AuthState) -> Bool {
         switch (previous, state) {
         case (.signingIn, .signedOut), (.signingIn, .failed):
             return true
