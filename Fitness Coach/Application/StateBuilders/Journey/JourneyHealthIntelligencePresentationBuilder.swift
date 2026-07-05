@@ -590,35 +590,24 @@ enum JourneyHealthIntelligencePresentationBuilder {
     }
 
     private static func resolveUIState(from input: JourneyHealthIntelligenceBuildInput) -> HealthIntelligenceUIState {
-        let presentationContext = HealthIntelligencePresentationCore.presentationContext(
+        HealthIntelligenceSectionLoaderCore.resolveUIState(
             snapshot: input.todaySnapshot,
             isLoading: input.isLoading,
             availability: input.availability,
             isAppleHealthConnected: input.healthConnection == .connected,
             cachedDayCount: input.cachedDayCount,
             errorMessage: input.errorMessage,
-            syncPhase: input.syncPhase
-        )
-
-        return HealthIntelligencePresentationCore.resolveUIState(
-            from: HealthIntelligenceUIResolutionInput(
-                presentationContext: presentationContext,
-                baseline: input.baseline,
-                lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
-                isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
-                remoteSyncConsentDecision: input.remoteSyncConsentDecision,
-                surface: surface
-            )
+            syncPhase: input.syncPhase,
+            surface: surface,
+            baseline: input.baseline,
+            lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
+            isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: input.remoteSyncConsentDecision
         )
     }
 
     private static func shouldShowConnectOnlySection(uiState: HealthIntelligenceUIState) -> Bool {
-        switch uiState.kind {
-        case .noHealthPermission, .healthKitUnavailable:
-            return !uiState.canShowInsight
-        default:
-            return false
-        }
+        HealthIntelligenceSectionLoaderCore.shouldShowConnectOnlySection(uiState: uiState)
     }
 
     private static func emptyDataSection(

@@ -43,7 +43,7 @@ enum TodayHealthIntelligencePresentationBuilder {
             return loadingSection()
         }
 
-        let presentationContext = HealthIntelligencePresentationCore.presentationContext(
+        let uiState = HealthIntelligenceSectionLoaderCore.resolveUIState(
             snapshot: snapshot,
             isLoading: false,
             availability: availability,
@@ -51,20 +51,13 @@ enum TodayHealthIntelligencePresentationBuilder {
             cachedDayCount: cachedDayCount,
             errorMessage: errorMessage,
             syncPhase: syncPhase,
+            surface: surface,
+            baseline: baseline,
+            lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAt,
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: remoteSyncConsentDecision,
             trainingIntegrationState: trainingIntegrationState,
-            connectionRecord: connectionRecord,
-            baseline: baseline
-        )
-
-        let uiState = HealthIntelligencePresentationCore.resolveUIState(
-            from: HealthIntelligenceUIResolutionInput(
-                presentationContext: presentationContext,
-                baseline: baseline,
-                lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAt,
-                isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled,
-                remoteSyncConsentDecision: remoteSyncConsentDecision,
-                surface: surface
-            )
+            connectionRecord: connectionRecord
         )
 
         if uiState.kind == .loading {
@@ -72,7 +65,7 @@ enum TodayHealthIntelligencePresentationBuilder {
         }
 
         guard let snapshot else {
-            let statusInput = integrationStatusInput(
+            let statusInput = HealthIntelligenceSectionLoaderCore.integrationStatusInput(
                 availability: availability,
                 trainingIntegrationState: trainingIntegrationState,
                 connectionRecord: connectionRecord,
@@ -88,7 +81,7 @@ enum TodayHealthIntelligencePresentationBuilder {
             )
         }
 
-        let statusInput = integrationStatusInput(
+        let statusInput = HealthIntelligenceSectionLoaderCore.integrationStatusInput(
             availability: availability,
             trainingIntegrationState: trainingIntegrationState,
             connectionRecord: connectionRecord,
@@ -417,25 +410,6 @@ enum TodayHealthIntelligencePresentationBuilder {
         return action
     }
 
-    private static func integrationStatusInput(
-        availability: HealthDataAvailability?,
-        trainingIntegrationState: TrainingIntegrationState,
-        connectionRecord: HealthIntegrationConnectionRecord,
-        snapshot: HealthIntelligenceSnapshot?,
-        baseline: HealthBaselineContext?,
-        cachedDayCount: Int
-    ) -> HealthIntegrationStatusInput {
-        HealthIntegrationStatusInput(
-            isHealthDataAvailable: availability?.isHealthDataAvailable ?? true,
-            permissionStatus: availability?.permissionStatus,
-            trainingIntegrationState: trainingIntegrationState,
-            connectionRecord: connectionRecord,
-            snapshot: snapshot,
-            baseline: baseline,
-            cachedDayCount: cachedDayCount
-        )
-    }
-
     private static func integrationStatus(
         availability: HealthDataAvailability?,
         trainingIntegrationState: TrainingIntegrationState,
@@ -445,7 +419,7 @@ enum TodayHealthIntelligencePresentationBuilder {
         cachedDayCount: Int
     ) -> HealthIntegrationStatus {
         HealthIntegrationStatusResolver.resolve(
-            integrationStatusInput(
+            HealthIntelligenceSectionLoaderCore.integrationStatusInput(
                 availability: availability,
                 trainingIntegrationState: trainingIntegrationState,
                 connectionRecord: connectionRecord,

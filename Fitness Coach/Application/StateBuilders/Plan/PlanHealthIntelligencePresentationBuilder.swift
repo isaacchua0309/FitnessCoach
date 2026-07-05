@@ -273,25 +273,19 @@ enum PlanHealthIntelligencePresentationBuilder {
     // MARK: - UI state
 
     private static func resolveUIState(from input: PlanHealthIntelligenceBuildInput) -> HealthIntelligenceUIState {
-        let presentationContext = HealthIntelligencePresentationCore.presentationContext(
+        HealthIntelligenceSectionLoaderCore.resolveUIState(
             snapshot: syntheticSnapshot(from: input),
             isLoading: input.isLoading,
             availability: input.healthAvailability,
             isAppleHealthConnected: input.healthConnection != .disconnected,
             cachedDayCount: input.cachedDayCount,
             errorMessage: input.errorMessage,
-            syncPhase: input.syncPhase
-        )
-
-        return HealthIntelligencePresentationCore.resolveUIState(
-            from: HealthIntelligenceUIResolutionInput(
-                presentationContext: presentationContext,
-                baseline: input.baselineContext,
-                lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
-                isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
-                remoteSyncConsentDecision: input.remoteSyncConsentDecision,
-                surface: surface
-            )
+            syncPhase: input.syncPhase,
+            surface: surface,
+            baseline: input.baselineContext,
+            lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
+            isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: input.remoteSyncConsentDecision
         )
     }
 

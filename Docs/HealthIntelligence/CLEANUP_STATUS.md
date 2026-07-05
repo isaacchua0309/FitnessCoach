@@ -1,8 +1,21 @@
 # Health Intelligence — Cleanup Status
 
-Last updated: July 2026 (post hardening + observability passes).
+Last updated: July 2026 (Health Intelligence consolidation v2).
 
 This document tracks **removed**, **deprecated**, and **remaining** cleanup items for Apple Health / Health Intelligence. Use it before deleting additional legacy paths.
+
+---
+
+## Consolidation v2 (2026-07-05)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `HealthIntelligenceSectionLoaderCore` | **Added** | Shared snapshot/availability fetch, journey connection classification, weekly-review load, UI-state gating |
+| `TodayHealthIntelligenceSectionLoader` | **Added** | Today HI load path extracted from `TodayModel` |
+| Tab `*SectionLoader` duplication | **Reduced** | Journey/Plan/Today loaders delegate to core |
+| `AppContainer+Construction.swift` | **Reduced** | Health, sync, and analytics bundles moved to `AppContainer+HealthDependencies.swift`, `+SyncDependencies.swift`, `+AnalyticsDependencies.swift` |
+| Legacy composition policies | **Deprecated** | Still required while `healthIntelligenceUIEnabled` can be off; do not delete until parity tests + flag retirement |
+| Fast-Core test plan | **Blocked (BW-101)** | `build-for-testing` fails: test target cannot resolve `FirebaseCore` / GoogleSignIn modules on CI host without full Xcode + SPM resolution |
 
 ---
 
@@ -84,6 +97,7 @@ Key test files after cleanup:
 
 - `HealthSyncServiceTests.swift`
 - `HealthActivityQueryServiceRepositoryRoutingTests.swift`
-- `JourneyHealthIntelligencePresentationBuilderTests.swift`
+- `HealthIntelligenceSectionLoaderCoreTests.swift`
+- `TodayHealthIntelligenceSectionLoaderTests.swift`
 - `HealthIntelligenceCompositionTests.swift`
 - `HealthIntelligencePhase11IntegrationTests.swift`
