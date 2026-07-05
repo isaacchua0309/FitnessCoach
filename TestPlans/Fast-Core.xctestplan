@@ -64,6 +64,7 @@
         "AccountDeletionCoordinatorTests",
         "AccountDeletionEndToEndTests",
         "AccountDeletionRemoteClientTests",
+        "AccountDeletionRemoteFailureCoordinatorTests",
         "AccountDeletionViewModelTests",
         "AccountIncrementalPullerTests",
         "AccountInitialRestoreServiceTests",

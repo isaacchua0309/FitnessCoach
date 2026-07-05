@@ -113,7 +113,10 @@ enum AccountDeletionFailureCategory: String, Codable, Equatable, Sendable, CaseI
     case reauthenticationRequired
     case offline
     case permissionDenied
+    case remoteServiceNotFound
+    case rateLimited
     case remoteDataDeleteFailed
+    case malformedResponse
     case authDeleteFailed
     case localWipeFailed
     case accountSwitched

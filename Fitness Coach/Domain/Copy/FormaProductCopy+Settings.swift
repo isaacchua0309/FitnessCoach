@@ -393,9 +393,23 @@ extension FormaProductCopy {
             static let deletionGenericErrorMessage =
                 "Account deletion could not be completed. Try again."
             static let deletionOfflineErrorMessage =
-                "Connect to the internet to delete your account data."
+                "You appear to be offline. Connect to the internet and retry."
+            static let deletionRemoteOfflineErrorMessage =
+                "You appear to be offline. Connect to the internet and retry."
+            static let deletionRemoteUnauthorizedErrorMessage =
+                "Your sign-in session expired. Sign in again and retry deletion."
+            static let deletionRemoteForbiddenErrorMessage =
+                "This account could not be verified for deletion. Sign in again and retry."
+            static let deletionRemoteNotFoundErrorMessage =
+                "Account deletion service could not be reached. Please update the app or try again later."
+            static let deletionRemoteRateLimitedErrorMessage =
+                "Too many deletion attempts. Please wait before trying again."
+            static let deletionRemoteTimeoutErrorMessage =
+                "Account data deletion is taking longer than expected. Please retry."
+            static let deletionRemoteMalformedResponseErrorMessage =
+                "Account deletion could not be completed. Please update the app or try again later."
             static let deletionPermissionDeniedErrorMessage =
-                "You do not have permission to delete this account data."
+                "This account could not be verified for deletion. Sign in again and retry."
         }
     }
     // MARK: - Profile form

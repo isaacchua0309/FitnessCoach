@@ -743,40 +743,11 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
         startedAt: Date,
         error: AccountDeletionRemoteError
     ) -> AccountDeletionSummary {
-        let category: AccountDeletionFailureCategory
-        let status: AccountDeletionStatus
-        let message: String
-
-        switch error {
-        case .unauthenticated:
-            category = .unauthenticated
-            status = .failed
-            message = "Sign in is required before deleting account data."
-        case .reauthenticationRequired:
-            category = .reauthenticationRequired
-            status = .reauthenticationRequired
-            message = "Confirm your identity to continue account deletion."
-        case .offline:
-            category = .offline
-            status = .offline
-            message = "Connect to the internet to delete your account data."
-        case .permissionDenied:
-            category = .permissionDenied
-            status = .failed
-            message = "You do not have permission to delete this account data."
-        case .serverUnavailable, .timeout:
-            category = .remoteDataDeleteFailed
-            status = .failed
-            message = "Cloud account data could not be deleted. Try again."
-        case .unknown:
-            category = .unknown
-            status = .failed
-            message = "Cloud account data could not be deleted. Try again."
-        }
-
-        AccountDeletionCoordinatorLogger.flowFailed(
+        AccountDeletionCoordinatorLogger.remoteFailure(
             scope: scope,
-            category: category.rawValue,
+            stage: "remote_delete",
+            category: error.logCategory,
+            retryable: error.isRetryable,
             uidField: AccountDeletionPolicy.privacySafeUIDField(uid)
         )
 
@@ -784,9 +755,9 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
             uid: uid,
             scope: scope,
             startedAt: startedAt,
-            status: status,
-            category: category,
-            message: message
+            status: error.terminalStatus,
+            category: error.failureCategory,
+            message: error.userFacingMessage
         )
     }
 
