@@ -15,7 +15,7 @@ struct OSLogThemeAnalyticsLogger: ThemeAnalyticsLogging {
 
     func log(_ event: ThemeAnalyticsEvent, properties: ThemeAnalyticsProperties) {
         #if DEBUG
-        ThemeAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        ThemeAnalyticsDebugLogger.event(event.rawValue, fields: properties.privacySafeParameters())
         #endif
     }
 }
@@ -29,14 +29,12 @@ enum ThemeAnalyticsDebugLogger {
 
     nonisolated static func event(_ message: String, fields: [String: String] = [:]) {
         guard isEnabled else { return }
-        let fieldLine = fields
-            .sorted { $0.key < $1.key }
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: " ")
-        let line = fieldLine.isEmpty
-            ? "[ThemeAnalytics] \(message)"
-            : "[ThemeAnalytics] \(message) \(fieldLine)"
-        logger.info("\(line, privacy: .public)")
+        LogRedactor.emitOSLogTrace(
+            prefix: "ThemeAnalytics",
+            logger: logger,
+            message: message,
+            fields: fields
+        )
     }
 }
 #endif

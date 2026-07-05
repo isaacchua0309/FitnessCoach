@@ -15,7 +15,7 @@ struct OSLogTodayAnalyticsLogger: TodayAnalyticsLogging {
 
     func log(_ event: TodayAnalyticsEvent, properties: TodayAnalyticsProperties) {
         #if DEBUG
-        TodayAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        TodayAnalyticsDebugLogger.event(event.rawValue, fields: properties.privacySafeParameters())
         #endif
     }
 }
@@ -29,14 +29,12 @@ enum TodayAnalyticsDebugLogger {
 
     nonisolated static func event(_ message: String, fields: [String: String] = [:]) {
         guard isEnabled else { return }
-        let fieldLine = fields
-            .sorted { $0.key < $1.key }
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: " ")
-        let line = fieldLine.isEmpty
-            ? "[TodayAnalytics] \(message)"
-            : "[TodayAnalytics] \(message) \(fieldLine)"
-        logger.info("\(line, privacy: .public)")
+        LogRedactor.emitOSLogTrace(
+            prefix: "TodayAnalytics",
+            logger: logger,
+            message: message,
+            fields: fields
+        )
     }
 }
 #endif

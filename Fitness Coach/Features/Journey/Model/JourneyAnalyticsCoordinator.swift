@@ -99,36 +99,6 @@ final class JourneyAnalyticsCoordinator {
         }
     }
 
-    // MARK: - Deprecated entry points (forward to revamp events)
-
-    func logScreenViewed() {
-        logViewed()
-    }
-
-    func logTransformationViewed() {
-        logHeroViewed()
-    }
-
-    func logGoalProjectionViewed() {
-        logProjectionViewed()
-    }
-
-    func logMilestoneRailViewed() {
-        logMilestoneViewed()
-    }
-
-    func logWeeklyReviewViewed() {
-        logWeeklyConsistencyViewed()
-    }
-
-    func logTimelineViewed() {
-        logStoryViewed()
-    }
-
-    func logStartingEmptyStateViewed() {
-        // Deprecated: empty-state impressions are covered by `journey_viewed`.
-    }
-
     // MARK: - Private
 
     private func resetSession() {

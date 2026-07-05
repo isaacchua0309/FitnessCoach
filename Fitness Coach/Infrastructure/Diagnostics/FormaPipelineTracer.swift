@@ -128,7 +128,7 @@ enum FormaPipelineTracer {
             stage: .coachSend,
             level: .info,
             message: "Coach message send started",
-            fields: ["userMessage": userMessage]
+            fields: ["userMessageLength": String(userMessage.count)]
         )
         return traceId
     }
@@ -206,7 +206,7 @@ enum FormaPipelineTracer {
         var lines: [String] = []
         if let summary {
             lines.append("traceId=\(summary.traceId.uuidString)")
-            lines.append("userMessage=\(summary.userMessage)")
+            lines.append("userMessageLength=\(summary.userMessage.count)")
             lines.append("startedAt=\(summary.startedAt)")
             if let endedAt = summary.endedAt {
                 lines.append("endedAt=\(endedAt)")
@@ -233,7 +233,7 @@ enum FormaPipelineTracer {
         guard isVerbose else { return nil }
         let limit = 2_048
         let raw = String(data: data.prefix(limit), encoding: .utf8) ?? "<non-utf8>"
-        let sanitized = CoachImageAnalysisDebugLogFormatter.redactSensitiveJSONFields(raw)
+        let sanitized = LogRedactor.redactSensitiveJSONFields(raw)
         if data.count > limit {
             return sanitized + "…(truncated)"
         }
@@ -241,7 +241,7 @@ enum FormaPipelineTracer {
     }
 
     static func redactSensitiveJSONFields(_ raw: String) -> String {
-        CoachImageAnalysisDebugLogFormatter.redactSensitiveJSONFields(raw)
+        LogRedactor.redactSensitiveJSONFields(raw)
     }
 
     // MARK: - Private
@@ -253,6 +253,7 @@ enum FormaPipelineTracer {
         message: String,
         fields: [String: String]
     ) {
+        let sanitizedFields = LogRedactor.sanitizeLogFields(fields)
         let event = PipelineTraceEvent(
             id: UUID(),
             traceId: traceId,
@@ -260,7 +261,7 @@ enum FormaPipelineTracer {
             stage: stage,
             level: level,
             message: message,
-            fields: fields
+            fields: sanitizedFields
         )
         events.append(event)
         if events.count > maxEvents {
@@ -269,7 +270,7 @@ enum FormaPipelineTracer {
 
         NotificationCenter.default.post(name: .pipelineTraceDidUpdate, object: nil)
 
-        let fieldLine = fields
+        let fieldLine = sanitizedFields
             .sorted { $0.key < $1.key }
             .map { "\($0.key)=\( $0.value)" }
             .joined(separator: " ")

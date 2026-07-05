@@ -10,7 +10,7 @@ import Foundation
 
 enum DailyNutritionSummaryTestFixtures {
 
-    static let referenceDate = ProfileTestFixtures.referenceDate
+    static let referenceDate = TestDateFixtures.referenceEpoch
 
     /// Mid-day log: under calorie target with typical macro progress.
     static var baselineLog: DailyLog {

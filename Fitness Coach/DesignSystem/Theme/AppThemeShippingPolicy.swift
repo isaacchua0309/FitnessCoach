@@ -4,6 +4,13 @@
 //
 //  Forma — Controls which appearance options ship in Settings vs internal previews.
 //
+//  **Theme feature flags** (via `FormaAbTest.Theme`):
+//  - `shipsLightAndSystemAppearance` — production intent: `false` until light QA passes
+//  - `supportsIncreasedContrastPaletteVariants` — production intent: `false` (not implemented)
+//  - `supportsReduceTransparencyCompositing` — production intent: `false` (not implemented)
+//
+//  Registry: `Docs/Architecture/FeatureFlagRegistry.md` § Theme.
+//
 
 import Foundation
 

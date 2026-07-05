@@ -11,29 +11,21 @@ import XCTest
 @MainActor
 final class AccountSyncCoordinatorTests: XCTestCase {
 
+    private var harness: FakeAccountSyncCoordinator.Harness!
+    private var coordinator: AccountSyncCoordinator!
     private var uploader: MockAccountSyncUploader!
     private var puller: MockAccountSyncPuller!
     private var networkChecker: MockAccountSyncNetworkChecker!
-    private var currentUID: String?
-    private var coordinator: AccountSyncCoordinator!
 
     private let ownerUID = "userA"
-    private let referenceDate = ProfileTestFixtures.referenceDate
 
     override func setUp() async throws {
         try await super.setUp()
-        uploader = MockAccountSyncUploader()
-        puller = MockAccountSyncPuller()
-        networkChecker = MockAccountSyncNetworkChecker()
-        currentUID = ownerUID
-        coordinator = AccountSyncCoordinator(
-            uploader: uploader,
-            puller: puller,
-            networkChecker: networkChecker,
-            currentUIDProvider: { [weak self] in self?.currentUID },
-            nowProvider: { self.referenceDate },
-            debounceInterval: .milliseconds(50)
-        )
+        harness = FakeAccountSyncCoordinator.makeHarness(uid: ownerUID)
+        coordinator = harness.coordinator
+        uploader = harness.uploader
+        puller = harness.puller
+        networkChecker = harness.networkChecker
     }
 
     func testCoordinatorDoesNotPullWhenPullRecentFlagDisabled() async {
@@ -63,7 +55,7 @@ final class AccountSyncCoordinatorTests: XCTestCase {
     }
 
     func testSkipsWhenCurrentUIDDoesNotMatch() async {
-        currentUID = "other-user"
+        harness.uidProvider.setUID("other-user")
 
         let summary = await coordinator.syncNow(for: ownerUID, reason: .manual)
 
@@ -103,9 +95,10 @@ final class AccountSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(summary.skipReason, AccountSyncCoordinatorSkipReason.debouncedUploadScheduled)
         XCTAssertEqual(uploader.uploadCallCount, 0)
 
-        try? await Task.sleep(nanoseconds: 120_000_000)
-
-        XCTAssertEqual(uploader.uploadCallCount, 1)
+        let uploaded = await AsyncTestSupport.waitUntilWallClock(timeout: 1.0) {
+            uploader.uploadCallCount == 1
+        }
+        XCTAssertTrue(uploaded)
     }
 
     func testAfterSignInDoesNotPullWhenPullFlagDisabled() async {
@@ -129,7 +122,7 @@ final class AccountSyncCoordinatorTests: XCTestCase {
         _ = await coordinator.uploadPendingOnly(for: ownerUID, reason: .afterLocalMutation)
         XCTAssertEqual(uploader.uploadCallCount, 0)
 
-        currentUID = "userB"
+        harness.uidProvider.setUID("userB")
         try? await Task.sleep(nanoseconds: 120_000_000)
 
         XCTAssertEqual(uploader.uploadCallCount, 0)
@@ -144,78 +137,4 @@ final class AccountSyncCoordinatorTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 120_000_000)
         XCTAssertEqual(uploader.uploadCallCount, 0)
     }
-}
-
-@MainActor
-private final class MockAccountSyncUploader: AccountSyncUploading {
-
-    var uploadCallCount = 0
-    var delayNanoseconds: UInt64 = 0
-
-    func uploadDueMutations(for uid: String, limit: Int) async -> AccountSyncUploadSummary {
-        uploadCallCount += 1
-        if delayNanoseconds > 0 {
-            try? await Task.sleep(nanoseconds: delayNanoseconds)
-        }
-        return AccountSyncUploadSummary(
-            uid: uid,
-            attempted: 0,
-            succeeded: 0,
-            failed: 0,
-            cancelled: 0
-        )
-    }
-
-    func cancelPendingWork() {}
-}
-
-@MainActor
-private final class MockAccountSyncPuller: AccountSyncPulling {
-
-    var pullCallCount = 0
-
-    func pullRecentAccountData(
-        for uid: String,
-        from startDate: String,
-        to endDate: String
-    ) async -> AccountSyncPullSummary {
-        pullCallCount += 1
-        return AccountSyncPullSummary(
-            uid: uid,
-            dailyLogsFetched: 0,
-            foodEntriesFetched: 0,
-            waterEntriesFetched: 0,
-            weightEntriesFetched: 0,
-            dailyReviewsFetched: 0,
-            inserted: 0,
-            updated: 0,
-            skippedLocalNewer: 0,
-            conflicts: 0,
-            failed: 0
-        )
-    }
-
-    func mergeFetchedDocuments(
-        for uid: String,
-        dailyLogs: [CloudDailyLogDocument],
-        foodEntries: [CloudFoodEntryDocument],
-        waterEntries: [CloudWaterEntryDocument],
-        weightEntries: [CloudWeightEntryDocument],
-        dailyReviews: [CloudDailyReviewDocument]
-    ) throws -> AccountSyncMergeBatchResult {
-        AccountSyncMergeBatchResult(
-            inserted: 0,
-            updated: 0,
-            deleted: 0,
-            skippedLocalNewer: 0,
-            conflicts: 0,
-            failed: 0
-        )
-    }
-
-    func cancelPendingWork() {}
-}
-
-private final class MockAccountSyncNetworkChecker: AccountSyncNetworkChecking, @unchecked Sendable {
-    var isNetworkAvailable = true
 }

@@ -75,6 +75,17 @@ enum JourneyFormatter {
         )
     }
 
+    /// Inclusive date range for weekly review and HI presentation, e.g. "Jun 27 – Jul 3".
+    static func timelineDateRangeLabel(
+        start: Date,
+        end: Date,
+        calendar: Calendar = .current
+    ) -> String {
+        let startLabel = timelineDayLabel(start, calendar: calendar)
+        let endLabel = timelineDayLabel(end, calendar: calendar)
+        return "\(startLabel) – \(endLabel)"
+    }
+
     static func trendDirection(_ direction: WeightTrendDirection) -> String {
         switch direction {
         case .decreasing:

@@ -200,32 +200,3 @@ final class AccountDataExportService: AccountDataExporting {
         return try store.fetch(descriptor)
     }
 }
-
-#if DEBUG
-@MainActor
-final class InMemoryAccountDataExportService: AccountDataExporting {
-
-    var configuredBundle: AccountDataExportBundle?
-    var configuredError: AccountDataExportError?
-    var configuredFileURL: URL?
-    private(set) var buildCallCount = 0
-    private(set) var writeCallCount = 0
-
-    func buildExportBundle(for uid: String) async throws -> AccountDataExportBundle {
-        buildCallCount += 1
-        if let configuredError { throw configuredError }
-        guard let configuredBundle else {
-            throw AccountDataExportError.encodingFailed
-        }
-        return configuredBundle
-    }
-
-    func writeExportFile(for uid: String) async throws -> URL {
-        writeCallCount += 1
-        if let configuredError { throw configuredError }
-        if let configuredFileURL { return configuredFileURL }
-        _ = try await buildExportBundle(for: uid)
-        return URL(fileURLWithPath: "/tmp/forma-account-export.json")
-    }
-}
-#endif

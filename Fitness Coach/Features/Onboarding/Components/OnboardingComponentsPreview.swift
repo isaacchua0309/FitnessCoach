@@ -296,13 +296,8 @@ enum OnboardingComponentsPreviewCatalog {
 
     @ViewBuilder
     static var proofCards: some View {
-        VStack(spacing: FormaTokens.Spacing.md) {
-            OnboardingWeightTrajectoryHeroChart(model: .introProofDefault)
-                .frame(height: 220)
-            OnboardingWeightMaintenanceProofCard(model: .introDefault)
-            OnboardingFormaProofComparisonCard(model: .default)
-            OnboardingComparisonBarProofCard(model: .introDefault)
-        }
+        OnboardingWeightTrajectoryHeroChart(model: .introProofDefault)
+            .frame(height: 220)
     }
 
     @ViewBuilder

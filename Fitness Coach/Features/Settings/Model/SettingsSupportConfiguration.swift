@@ -25,7 +25,7 @@ struct SettingsSupportConfiguration: Equatable, Sendable {
 
 enum SettingsSupportShippingPolicy {
 
-    // TODO: Confirm `FormaProductCopy.Legal.supportEmail` before App Store release.
+    // TD-SETTINGS-001: Confirm production support email before App Store release. See Docs/TechnicalDebt/TechnicalDebtRegister.md
     static func resolvedSupportEmail() -> String? {
         let email = FormaProductCopy.Legal.supportEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !email.isEmpty, email.contains("@") else { return nil }

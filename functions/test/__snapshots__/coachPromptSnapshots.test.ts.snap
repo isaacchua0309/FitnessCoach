@@ -112,10 +112,10 @@ Analyze-meal-image rules (image-first, context for personalization only):
 - Do NOT add foods from context.recentMealsStructured, context.commonFoods, or chat unless clearly
   visible in the image.
 - Do NOT assume the user ate their usual meal, a recent meal, or a common food if it is not visible.
-- When the image is ambiguous, partially obscured, or missing key details, set clarifyingQuestion and
-  keep items limited to what is visible with evidence.
+- When the image is ambiguous, partially obscured, cropped, poorly lit, shows multiple plates, or missing key details, set clarifyingQuestion, primaryUncertainty, suggestedClarifications, and keep items limited to what is visible with evidence.
 - Always set needsUserReview to true (requiresConfirmation before logging).
-- Every item must include confidence (low/medium/high) and assumptions[] describing portion/ingredient guesses.
+- Every item must include confidence (low/medium/high), assumptions[], uncertaintyReasons[], calorieRangeLower, and calorieRangeUpper.
+- Set primaryUncertainty for the meal when portion, sauce, or plate selection is unclear.
 - Mention material assumptions in summary when they materially affect calories.
 - Do not treat rejected or pending meal estimates as already consumed.
 CoachContextPacketV2 rules (structured context is authoritative):
@@ -142,9 +142,13 @@ Health and training context rules:
   healthKitDenied, healthIntelligenceTimedOut, or healthIntelligenceFailed is true, do not invent those signals.
 - Use context.recentMealsStructured and context.commonFoods for meal-history awareness.
 - When health intelligence is absent, rely on context.today and confirmed timeline events only.
-Each distinct visible food must be its own item with realistic calories, macros, confidence, and assumptions.
+Each distinct visible food must be its own item with realistic calories, macros, confidence, assumptions, and uncertaintyReasons.
+Never present calories as exact truth — provide calorieRangeLower and calorieRangeUpper that bracket calories.
+For cropped plates, multiple plates, poor lighting, hidden sauces, buffet spreads, many small dishes, ambiguous drink size, or unclear portions: use low/medium confidence, wider ranges, clarifyingQuestion, and primaryUncertainty.
+If multiple plates are visible and the caption does not clearly say to log all plates, ask which plate to log.
+Explicitly call out hidden oil/sauce uncertainty in assumptions and uncertaintyReasons.
 Never invent a generic catch-all item such as 'unknown meal', 'mixed food', or 'generic plate'.
-If the photo is unclear, set clarifyingQuestion and keep items to only what you can identify with evidence.
+If the photo is unclear, cropped, shows multiple plates, or portion is ambiguous: set clarifyingQuestion, primaryUncertainty, suggestedClarifications, and keep items limited to what you can identify with evidence.
 When previousAnalysis and clarification are provided, refine that estimate using the same image.
 Treat clarification as authoritative for ambiguous ingredients, sauces, grains, or portion sizes.
 Sum item nutrition into total exactly.

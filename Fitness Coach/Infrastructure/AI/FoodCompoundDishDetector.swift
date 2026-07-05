@@ -56,6 +56,13 @@ enum FoodCompoundDishDetector {
             decompositionHint: "noodles/rice if stated, meat, vegetables, oil/sauce"
         ),
         CompoundDishSpec(
+            id: "char_kway_teow",
+            label: "char kway teow",
+            patterns: [#"\bchar kway teow\b"#, #"\bchar kway\b"#],
+            minComponents: 2,
+            decompositionHint: "noodles, seafood or sausage if stated, egg, oil/sauce"
+        ),
+        CompoundDishSpec(
             id: "ban_mian",
             label: "ban mian",
             patterns: [#"\bban mian\b"#, #"\bbanmian\b"#],
@@ -133,6 +140,8 @@ enum FoodCompoundDishDetector {
             let hasProtein = ["meat", "beef", "pork", "chicken", "seafood"].contains(where: { combined.contains($0) })
             let hasVegOrBase = ["vegetable", "veg", "mushroom", "noodle", "rice"].contains(where: { combined.contains($0) })
             return hasProtein && hasVegOrBase
+        case "char_kway_teow":
+            return combined.contains("noodle") || combined.contains("kway") || combined.contains("teow")
         case "ban_mian":
             return combined.contains("noodle") || combined.contains("mian")
         case "yong_tau_foo":

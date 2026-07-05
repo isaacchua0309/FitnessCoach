@@ -95,7 +95,7 @@ enum HealthSummarySyncDebugLogger {
                 "trigger": trigger,
                 "phase": phase,
                 "failedKinds": failedKinds.map(\.rawValue).joined(separator: ","),
-                "error": error?.localizedDescription ?? "none",
+                "errorCategory": error.map { String(describing: $0) } ?? "none",
                 "durationMs": String(durationMs)
             ]
         )

@@ -200,72 +200,6 @@ final class AccountDeletionCancellationTests: XCTestCase {
 }
 
 @MainActor
-private final class DelayedMockAccountSyncUploader: AccountSyncUploading {
-
-    var uploadCallCount = 0
-    var delayNanoseconds: UInt64 = 0
-
-    func uploadDueMutations(for uid: String, limit: Int) async -> AccountSyncUploadSummary {
-        uploadCallCount += 1
-        if delayNanoseconds > 0 {
-            try? await Task.sleep(nanoseconds: delayNanoseconds)
-        }
-        return AccountSyncUploadSummary(
-            uid: uid,
-            attempted: 1,
-            succeeded: 1,
-            failed: 0,
-            cancelled: 0
-        )
-    }
-}
-
-@MainActor
-private final class DelayedMockAccountSyncPuller: AccountSyncPulling {
-
-    var pullCallCount = 0
-
-    func pullRecentAccountData(
-        for uid: String,
-        from startDate: String,
-        to endDate: String
-    ) async -> AccountSyncPullSummary {
-        pullCallCount += 1
-        return AccountSyncPullSummary(
-            uid: uid,
-            dailyLogsFetched: 0,
-            foodEntriesFetched: 0,
-            waterEntriesFetched: 0,
-            weightEntriesFetched: 0,
-            dailyReviewsFetched: 0,
-            inserted: 0,
-            updated: 0,
-            skippedLocalNewer: 0,
-            conflicts: 0,
-            failed: 0
-        )
-    }
-
-    func mergeFetchedDocuments(
-        for uid: String,
-        dailyLogs: [CloudDailyLogDocument],
-        foodEntries: [CloudFoodEntryDocument],
-        waterEntries: [CloudWaterEntryDocument],
-        weightEntries: [CloudWeightEntryDocument],
-        dailyReviews: [CloudDailyReviewDocument]
-    ) throws -> AccountSyncMergeBatchResult {
-        AccountSyncMergeBatchResult(
-            inserted: 0,
-            updated: 0,
-            deleted: 0,
-            skippedLocalNewer: 0,
-            conflicts: 0,
-            failed: 0
-        )
-    }
-}
-
-@MainActor
 private final class TrackingAccountIncrementalPuller: AccountIncrementalPulling {
 
     var pullCallCount = 0
@@ -286,7 +220,7 @@ private final class TrackingAccountIncrementalPuller: AccountIncrementalPulling 
         }
         return CrossDeviceSyncTestSupport.makePullSummary(
             uid: uid,
-            referenceDate: Date()
+            referenceDate: TestDateFixtures.referenceEpoch
         )
     }
 }
@@ -322,8 +256,8 @@ private final class RecordingAccountRestoreCoordinator: AccountRestoreCoordinati
             reason: reason,
             mode: .blockingInitial,
             status: .skipped,
-            startedAt: Date(),
-            endedAt: Date(),
+            startedAt: TestDateFixtures.referenceEpoch,
+            endedAt: TestDateFixtures.referenceEpoch,
             profileRestored: false,
             dailyLogsRestored: 0,
             foodEntriesRestored: 0,

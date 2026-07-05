@@ -5,6 +5,8 @@
 //  Forma — Typed Health Intelligence analytics events and safe property bag.
 //  Privacy: no raw HealthKit values, HRV/RHR, workout titles, or food text.
 //
+//  Contract: Docs/Architecture/AnalyticsReadinessChecklist.md
+//
 
 import Foundation
 

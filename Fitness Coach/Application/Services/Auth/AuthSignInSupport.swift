@@ -4,6 +4,14 @@
 //
 //  FitPilot — Pure sign-in policy, copy, and error classification (no Firebase).
 //
+//  **Auth feature flags** (via `FormaAbTest.Auth`):
+//  - `supportsAnonymousSignIn` — production intent: `false`
+//  - `requiresSignInBeforeOnboarding` — production intent: `true`
+//  - `preservesLocalUserDataOnSignOut` — production intent: `true`
+//  - `clearsCloudSyncMetadataOnSignOut` — production intent: `true`
+//
+//  Registry: `Docs/Architecture/FeatureFlagRegistry.md` § Auth.
+//
 
 import Foundation
 

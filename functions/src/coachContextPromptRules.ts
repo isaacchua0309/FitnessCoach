@@ -99,10 +99,10 @@ export function analyzeMealImagePromptRules(): string {
     "- Do NOT add foods from context.recentMealsStructured, context.commonFoods, or chat unless clearly",
     "  visible in the image.",
     "- Do NOT assume the user ate their usual meal, a recent meal, or a common food if it is not visible.",
-    "- When the image is ambiguous, partially obscured, or missing key details, set clarifyingQuestion and",
-    "  keep items limited to what is visible with evidence.",
+    "- When the image is ambiguous, partially obscured, cropped, poorly lit, shows multiple plates, or missing key details, set clarifyingQuestion, primaryUncertainty, suggestedClarifications, and keep items limited to what is visible with evidence.",
     "- Always set needsUserReview to true (requiresConfirmation before logging).",
-    "- Every item must include confidence (low/medium/high) and assumptions[] describing portion/ingredient guesses.",
+    "- Every item must include confidence (low/medium/high), assumptions[], uncertaintyReasons[], calorieRangeLower, and calorieRangeUpper.",
+    "- Set primaryUncertainty for the meal when portion, sauce, or plate selection is unclear.",
     "- Mention material assumptions in summary when they materially affect calories.",
     "- Do not treat rejected or pending meal estimates as already consumed.",
   ].join("\n");

@@ -36,7 +36,7 @@ enum SettingsExportDataActionHandler {
         guard SettingsDataExportCapability.isImplemented else {
             return false
         }
-        // TODO: Wire user data export when capability ships.
+        // TD-SETTINGS-002: Wire user data export when capability ships. See Docs/TechnicalDebt/TechnicalDebtRegister.md
         return false
     }
 }

@@ -87,11 +87,18 @@ enum AIFoodConfirmationFormatter {
     }
 
     static func assumptionLines(for meal: FoodLogDraft) -> [String] {
-        meal.components.compactMap { component in
+        var lines: [String] = meal.assumptions
+        lines.append(contentsOf: meal.uncertaintyReasons.map { "Uncertainty: \($0)" })
+        if let rangeLower = meal.calorieRangeLower, let rangeUpper = meal.calorieRangeUpper {
+            lines.append("Estimated range: \(rangeLower)-\(rangeUpper) kcal")
+        }
+        let componentLines = meal.components.compactMap { component -> String? in
             let assumptions = component.sourceText?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             guard !assumptions.isEmpty else { return nil }
             return "\(component.name): \(assumptions)"
         }
+        lines.append(contentsOf: componentLines)
+        return Array(Set(lines)).sorted()
     }
 }

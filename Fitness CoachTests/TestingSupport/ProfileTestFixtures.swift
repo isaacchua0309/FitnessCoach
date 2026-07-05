@@ -10,7 +10,7 @@ import Foundation
 
 enum ProfileTestFixtures {
 
-    static let referenceDate = Date(timeIntervalSince1970: 1_700_000_000)
+    static let referenceDate = TestDateFixtures.referenceEpoch
 
     static var sampleTargets: UserTargets {
         UserTargets(

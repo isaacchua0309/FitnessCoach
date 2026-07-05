@@ -1,5 +1,7 @@
 # Coach Accuracy Hardening Sprint — Final Verification Report
 
+> **Note:** For **Trust Hardening v1** (calorie ranges, assumptions, photo trust policy, regression matrix), see the successor doc: [COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md](./COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md).
+
 **Date:** 2026-07-04  
 **Baseline branch:** `main` @ `91b7e3e`  
 **Consolidation branch:** `cursor/coach-accuracy-production-hardening-194c`  

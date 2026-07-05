@@ -4,18 +4,29 @@
 //
 //  Forma — Health Intelligence rollout flags (facade over FormaAbTest).
 //
-//  ## Production defaults (safe release)
-//  | Flag | Env key | Default | Effect when off |
-//  |------|---------|---------|-----------------|
+//  ## Runtime vs production intent
+//  | Layer | Source | Notes |
+//  |-------|--------|-------|
+//  | Runtime default | `FormaAbTestSnapshot.allEnabled` | All HI gates on in internal builds |
+//  | Production intent | `FormaAbTestSnapshot.production` | UI/weekly/remote off; coach context on |
+//  | Env keys below | Documentation only | Resolver reads `FormaAbTest`, not process env |
+//
+//  **Owner:** Health Intelligence platform.
+//  **Registry:** `Docs/Architecture/FeatureFlagRegistry.md` § Health Intelligence.
+//
+//  ## Production defaults (documented ship intent)
+//  | Flag | Env key (docs only) | Production default | Effect when off |
+//  |------|---------------------|--------------------|-----------------|
 //  | Foundation | `FORMA_HEALTH_INTELLIGENCE_ENABLED` | `true` | Disables all HI wiring |
 //  | Engines | `FORMA_HEALTH_INTELLIGENCE_ENGINES_ENABLED` | `true` | No snapshot/review composition |
 //  | UI | `FORMA_HEALTH_INTELLIGENCE_UI_ENABLED` | `false` | Today/Journey/Plan HI hidden |
 //  | Coach context | `FORMA_HEALTH_INTELLIGENCE_COACH_CONTEXT_ENABLED` | `true` | Coach omits HI from context packets |
 //  | Weekly review | `FORMA_HEALTH_INTELLIGENCE_WEEKLY_REVIEW_ENABLED` | `false` | No weekly review generation |
+//  | Remote summary sync | `FORMA_HEALTH_SUMMARY_REMOTE_SYNC_ENABLED` | `false` | No Firestore health upload |
 //
-//  Coach Health Intelligence context is **on by default** when engines are enabled.
-//  Set `FORMA_HEALTH_INTELLIGENCE_COACH_CONTEXT_ENABLED=0` only as an operational
-//  rollback — not for A/B testing or user-facing toggles.
+//  Coach Health Intelligence context is **on by default** in production intent when engines are enabled.
+//  Set `FORMA_HEALTH_INTELLIGENCE_COACH_CONTEXT_ENABLED=0` only as an operational rollback — not for
+//  A/B testing or user-facing toggles.
 //
 
 import Foundation

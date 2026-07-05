@@ -461,13 +461,7 @@ enum JourneyPersonalizedInsightsBuilder {
     }
 
     private static func weekWindowStart(input: Input) -> Date {
-        input.calendar.startOfDay(
-            for: input.calendar.date(
-                byAdding: .day,
-                value: -(weekTotalDays - 1),
-                to: input.asOf
-            ) ?? input.asOf
-        )
+        JourneyLogMetrics.rollingWeekStart(asOf: input.asOf, calendar: input.calendar)
     }
 
     private static func achievedDays(for kind: JourneyHabitKind, input: Input) -> Int {

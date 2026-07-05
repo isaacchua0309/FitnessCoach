@@ -274,7 +274,7 @@ private final class WeeklyReviewServiceTestHarness {
     let userPlanProvider: PipelineMockUserPlanProvider
     let cacheStore: MemoryHealthCacheStore
     let countingEngine: CountingWeeklyReviewEngine
-    let clock: MutableTestClock
+    let clock: FakeClock
     let service: WeeklyReviewService
 
     init(
@@ -293,7 +293,7 @@ private final class WeeklyReviewServiceTestHarness {
         self.userPlanProvider = PipelineMockUserPlanProvider()
         self.cacheStore = MemoryHealthCacheStore()
         self.countingEngine = CountingWeeklyReviewEngine()
-        self.clock = MutableTestClock(now: referenceDate, calendar: calendar)
+        self.clock = FakeClock(now: referenceDate, calendar: calendar)
 
         let resolvedNutrition = nutritionProvider ?? self.nutritionProvider
         let resolvedWeight = weightProvider ?? self.weightProvider
@@ -388,30 +388,5 @@ private final class CountingWeeklyReviewEngine: WeeklyReviewProviding, @unchecke
     func evaluate(_ input: WeeklyReviewEngineInput) throws -> WeeklyHealthReview? {
         evaluateCount += 1
         return try engine.evaluate(input)
-    }
-}
-
-private final class MutableTestClock: HealthIntelligenceClockProviding, @unchecked Sendable {
-    private var nowValue: Date
-    private let calendarValue: Calendar
-    private let lock = NSLock()
-
-    init(now: Date, calendar: Calendar) {
-        self.nowValue = now
-        self.calendarValue = calendar
-    }
-
-    func now() -> Date {
-        lock.lock()
-        defer { lock.unlock() }
-        return nowValue
-    }
-
-    func calendar() -> Calendar { calendarValue }
-
-    func advance(by interval: TimeInterval) {
-        lock.lock()
-        nowValue = nowValue.addingTimeInterval(interval)
-        lock.unlock()
     }
 }

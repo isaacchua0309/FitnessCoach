@@ -29,14 +29,14 @@ enum ThemeAccessibilityAdaptationPolicy {
         FormaAbTest.Theme.supportsReduceTransparencyCompositing
     }
 
-    // MARK: - Follow-ups
+    // MARK: - Follow-ups (tracked in Docs/TechnicalDebt/TechnicalDebtRegister.md)
 
-    /// TODO: Add increased-contrast palette variants or token boosts when `colorSchemeContrast == .increased`.
-    static let increasedContrastTODO =
+    /// TD-THEME-001: Add increased-contrast palette variants when `colorSchemeContrast == .increased`.
+    static let increasedContrastFollowUp =
         "Branch resolved palette on EnvironmentValues.colorSchemeContrast and bump border/text opacities."
 
-    /// TODO: When UIAccessibility.isReduceTransparencyEnabled, flatten surface/border overlays to opaque equivalents.
-    static let reduceTransparencyTODO =
+    /// TD-THEME-002: Flatten surface/border overlays when Reduce Transparency is enabled.
+    static let reduceTransparencyFollowUp =
         "Resolve opaque surface/border fallbacks in ThemeResolver when reduce transparency is enabled."
 }
 

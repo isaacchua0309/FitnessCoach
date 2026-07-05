@@ -114,6 +114,8 @@ enum FoodEstimateResponseValidator {
                 }
                 errors.append(contentsOf: validateComponentMacros(component))
             }
+
+            errors.append(contentsOf: validateTrustFields(meal))
         }
 
         return errors.isEmpty ? .valid : .invalid(errors)
@@ -224,5 +226,34 @@ enum FoodEstimateResponseValidator {
         if delta <= absolute { return true }
         if expected == 0 { return actual == 0 }
         return delta / abs(expected) <= totalToleranceRatio
+    }
+
+    private static func validateTrustFields(_ meal: FoodLogDraft) -> [String] {
+        var errors: [String] = []
+        let confidence = AIConfidence(rawValue: meal.confidence.rawValue) ?? .medium
+        let label = "Meal \"\(meal.displayName)\""
+
+        if confidence == .low,
+           meal.uncertaintyReasons.isEmpty,
+           !meal.warnings.contains(where: { $0.lowercased().contains("assumption") || $0.lowercased().contains("unclear") }) {
+            errors.append("\(label) must include uncertainty reasons when confidence is low.")
+        }
+
+        if meal.requiresClarificationBeforeLogging, meal.suggestedClarifications.isEmpty {
+            errors.append("\(label) must include suggested clarifications before logging.")
+        }
+
+        if let lower = meal.calorieRangeLower, let upper = meal.calorieRangeUpper {
+            if !FoodCalorieRangePolicy.isWideEnough(
+                calories: meal.totalCalories,
+                lower: lower,
+                upper: upper,
+                confidence: confidence
+            ) {
+                errors.append("\(label) calorie range is too narrow for \(confidence.rawValue) confidence.")
+            }
+        }
+
+        return errors
     }
 }

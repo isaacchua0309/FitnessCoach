@@ -165,6 +165,7 @@ enum JourneyHealthIntelligencePresentationBuilder {
         calendar: Calendar = .current
     ) -> JourneyRecoveryTimelineState {
         let endDay = calendar.startOfDay(for: referenceDate)
+        // Inclusive span of `dayCount` days ending on referenceDate (oldest first in UI).
         let days = (0..<dayCount).reversed().compactMap { offset -> JourneyRecoveryDayState? in
             guard let date = calendar.date(byAdding: .day, value: -offset, to: endDay) else { return nil }
             let input = recoveryDays.first {
@@ -1125,7 +1126,11 @@ enum JourneyHealthIntelligencePresentationBuilder {
         referenceDate: Date,
         calendar: Calendar
     ) -> [JourneyHealthIntelligenceWorkoutRecordInput] {
-        let cutoff = calendar.date(byAdding: .day, value: -workoutHistoryWindowDays, to: calendar.startOfDay(for: referenceDate)) ?? referenceDate
+        let cutoff = JourneyLogMetrics.lookbackStart(
+            endingOn: referenceDate,
+            dayCount: workoutHistoryWindowDays,
+            calendar: calendar
+        )
         let source = input.workoutRecords.isEmpty
             ? JourneyHealthIntelligenceBuildInput(currentSnapshot: input.todaySnapshot, historicalSnapshots: [], calendar: calendar).workoutRecords
             : input.workoutRecords
@@ -1182,9 +1187,7 @@ enum JourneyHealthIntelligencePresentationBuilder {
     }
 
     private static func weekRangeLabel(start: Date, end: Date, calendar: Calendar) -> String {
-        let startLabel = JourneyFormatter.timelineDayLabel(start, calendar: calendar)
-        let endLabel = JourneyFormatter.timelineDayLabel(end, calendar: calendar)
-        return "\(startLabel) – \(endLabel)"
+        JourneyFormatter.timelineDateRangeLabel(start: start, end: end, calendar: calendar)
     }
 
     private static func trimmed(_ value: String?) -> String? {

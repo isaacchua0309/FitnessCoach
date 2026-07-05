@@ -16,8 +16,54 @@ final class JourneyLogMetricsTests: XCTestCase {
         XCTAssertEqual(JourneyLogMetrics.proteinGoalDays(in: [miss]), 0)
     }
 
+    func testRollingWeekStartMatchesRollingWeekDayStartsFirstDay() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let asOf = calendar.startOfDay(
+            for: calendar.date(from: DateComponents(year: 2026, month: 7, day: 4))!
+        )
+
+        let weekStart = JourneyLogMetrics.rollingWeekStart(asOf: asOf, calendar: calendar)
+        let dayStarts = JourneyLogMetrics.rollingWeekDayStarts(asOf: asOf, calendar: calendar)
+
+        XCTAssertEqual(weekStart, dayStarts.first)
+        XCTAssertEqual(dayStarts.count, JourneyLogMetrics.weekDayCount)
+        XCTAssertEqual(dayStarts.last, asOf)
+    }
+
+    func testInclusiveDaySpanStartCoversRequestedDayCount() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let end = calendar.startOfDay(
+            for: calendar.date(from: DateComponents(year: 2026, month: 7, day: 10))!
+        )
+
+        let start = JourneyLogMetrics.inclusiveDaySpanStart(
+            endingOn: end,
+            dayCount: 30,
+            calendar: calendar
+        )
+        let dayCount = calendar.dateComponents([.day], from: start, to: end).day! + 1
+
+        XCTAssertEqual(dayCount, 30)
+    }
+
+    func testLookbackStartMatchesLegacyWeightWindow() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let asOf = calendar.startOfDay(
+            for: calendar.date(from: DateComponents(year: 2026, month: 6, day: 28))!
+        )
+        let legacyStart = calendar.date(byAdding: .day, value: -14, to: asOf)!
+
+        XCTAssertEqual(
+            JourneyLogMetrics.lookbackStart(endingOn: asOf, dayCount: 14, calendar: calendar),
+            legacyStart
+        )
+    }
+
     private func makeLog(
-        date: Date = Date(),
+        date: Date = TestDateFixtures.referenceEpoch,
         protein: Double,
         target: Double
     ) -> DailyLog {

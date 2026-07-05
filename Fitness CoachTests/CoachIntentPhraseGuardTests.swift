@@ -135,4 +135,46 @@ final class CoachIntentPhraseGuardTests: XCTestCase {
         XCTAssertEqual(corrected.intent, .logFood)
         XCTAssertTrue(corrected.requiresAppMutation)
     }
+
+    func testEstimateWithoutLoggingIsDetected() {
+        XCTAssertTrue(CoachIntentPhraseGuard.isEstimateWithoutLogging("estimate pad thai but don't log"))
+        XCTAssertTrue(CoachIntentPhraseGuard.isEstimateWithoutLogging("estimate only chicken rice"))
+    }
+
+    func testGuardCorrectsMisclassifiedLogFoodForEstimateWithoutLogging() {
+        let raw = CoachIntentResult(
+            intent: .logFood,
+            confidence: 0.9,
+            domain: .nutrition,
+            requiresAppMutation: true,
+            requiresUserContext: true,
+            canAnswerWithCheapModel: true,
+            requiresEscalation: false,
+            action: .logFood(FoodDraft(
+                mealType: nil,
+                name: "pad thai",
+                quantity: 1,
+                unit: "plate",
+                calories: 600,
+                protein: 20,
+                carbs: 70,
+                fat: 22,
+                fiber: nil,
+                sodium: nil,
+                source: .manual,
+                confidence: .medium,
+                imageUrl: nil,
+                notes: nil
+            ))
+        )
+
+        let corrected = CoachIntentPhraseGuard.applyGuards(
+            to: raw,
+            text: "estimate pad thai but don't log"
+        )
+
+        XCTAssertEqual(corrected.intent, .nutritionEstimateQuery)
+        XCTAssertFalse(corrected.requiresAppMutation)
+        XCTAssertNil(corrected.action)
+    }
 }

@@ -14,8 +14,7 @@ enum ProfileBootstrapDebugLogger {
 
     /// Redacts Firebase UID for logs (suffix only).
     nonisolated static func redactedUID(_ uid: String) -> String {
-        guard uid.count > 6 else { return "***" }
-        return "***\(uid.suffix(6))"
+        LogRedactor.redactUID(uid)
     }
 
     /// Emits structured `[ProfileBootstrap]` lines to the unified log.
@@ -30,16 +29,9 @@ enum ProfileBootstrapDebugLogger {
     nonisolated static func error(_ message: String, fields: [String: String] = [:], underlying: Error? = nil) {
         var merged = sanitizeFields(fields)
         if let underlying {
-            merged["error"] = String(describing: underlying)
-            let nsError = underlying as NSError
-            if !nsError.domain.isEmpty {
-                merged["errorDomain"] = nsError.domain
-                merged["errorCode"] = String(nsError.code)
-            }
+            merged.merge(LogRedactor.safeErrorFields(from: underlying, includeDescription: false)) { _, new in new }
             #if DEBUG
-            if !nsError.localizedDescription.isEmpty {
-                merged["errorDescription"] = nsError.localizedDescription
-            }
+            merged.merge(LogRedactor.safeErrorFields(from: underlying, includeDescription: true)) { _, new in new }
             #endif
         }
         emit(levelName: "error", osLogType: .error, message: message, fields: merged)
@@ -61,7 +53,7 @@ enum ProfileBootstrapDebugLogger {
         guard isVerboseEnabled else { return }
         #endif
 
-        let sanitized = sanitizeFields(fields)
+        let sanitized = LogRedactor.sanitizeLogFields(fields)
         var merged = sanitized
         merged["level"] = levelName
 
@@ -75,13 +67,5 @@ enum ProfileBootstrapDebugLogger {
             : "[ProfileBootstrap] \(message) \(fieldLine)"
 
         logger.log(level: osLogType, "\(line, privacy: .public)")
-    }
-
-    nonisolated private static func sanitizeFields(_ fields: [String: String]) -> [String: String] {
-        var result = fields
-        if let uid = result["uid"] {
-            result["uid"] = redactedUID(uid)
-        }
-        return result
     }
 }

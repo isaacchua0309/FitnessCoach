@@ -188,7 +188,7 @@ final class TrainingSummaryAggregationStrategyTests: XCTestCase {
         let model = await MainActor.run {
             TrainingInsightsModel(
                 workoutReader: reader,
-                dateProvider: FixedStrategyDateProvider(now: referenceNow),
+                dateProvider: FakeClock(now: referenceNow),
                 calendar: calendar
             )
         }
@@ -494,14 +494,6 @@ final class JourneyDetailedAnalyticsTrainingStrategyTests: XCTestCase {
 }
 
 // MARK: - Test doubles
-
-private struct FixedStrategyDateProvider: DateProviding {
-    let now: Date
-
-    func startOfDay(for date: Date) -> Date {
-        Calendar.current.startOfDay(for: date)
-    }
-}
 
 private final class StrategyStubClassifierAIService: AIServiceProtocol, @unchecked Sendable {
     var classifyCoachIntentCallCount = 0

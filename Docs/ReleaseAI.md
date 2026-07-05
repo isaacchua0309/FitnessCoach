@@ -176,3 +176,5 @@ On failure: device Console (`subsystem:FitPilot`), Firebase `aiGateway` logs (fi
 
 - [Architecture.md](./Architecture.md) — app composition and AI boundary
 - [BackendAPI.md](./BackendAPI.md) — HTTP contract and endpoints
+- [Production/ProductionReadinessChecklist.md](./Production/ProductionReadinessChecklist.md) — pre-ship engineering gate
+- [Production/ReleaseTestPlan.md](./Production/ReleaseTestPlan.md) — manual QA script for RC builds

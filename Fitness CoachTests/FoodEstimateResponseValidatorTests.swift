@@ -82,6 +82,65 @@ final class FoodEstimateResponseValidatorTests: XCTestCase {
         XCTAssertTrue(prompt.contains("collapsed"))
     }
 
+    func testLowConfidenceMealWithoutUncertaintyFailsTrustValidation() {
+        let response = AIFoodEstimateResponse(
+            foodLogDrafts: [
+                FoodLogDraft(
+                    displayName: "hawker plate",
+                    components: [
+                        FoodComponent(
+                            name: "mixed plate",
+                            calories: 500,
+                            protein: 20,
+                            carbs: 55,
+                            fat: 18,
+                            sourceText: "hawker plate"
+                        )
+                    ],
+                    confidence: .low,
+                    source: .aiTextEstimate
+                )
+            ],
+            confidence: .low,
+            requiresConfirmation: true
+        )
+
+        let result = FoodEstimateResponseValidator.validate(response: response, prompt: "log hawker plate")
+        XCTAssertFalse(result.isValid)
+        XCTAssertTrue(result.errors.contains(where: { $0.contains("uncertainty reasons") }))
+    }
+
+    func testNarrowCalorieRangeFailsTrustValidation() {
+        let response = AIFoodEstimateResponse(
+            foodLogDrafts: [
+                FoodLogDraft(
+                    displayName: "rice bowl",
+                    components: [
+                        FoodComponent(
+                            name: "rice bowl",
+                            calories: 500,
+                            protein: 12,
+                            carbs: 80,
+                            fat: 10,
+                            sourceText: "rice bowl"
+                        )
+                    ],
+                    confidence: .low,
+                    source: .aiTextEstimate,
+                    uncertaintyReasons: ["Portion unclear."],
+                    calorieRangeLower: 498,
+                    calorieRangeUpper: 502
+                )
+            ],
+            confidence: .low,
+            requiresConfirmation: true
+        )
+
+        let result = FoodEstimateResponseValidator.validate(response: response, prompt: "log rice bowl")
+        XCTAssertFalse(result.isValid)
+        XCTAssertTrue(result.errors.contains(where: { $0.contains("calorie range is too narrow") }))
+    }
+
     private func validBowlMeal() -> FoodLogDraft {
         FoodLogDraft(
             displayName: "Chicken barley bowl",
