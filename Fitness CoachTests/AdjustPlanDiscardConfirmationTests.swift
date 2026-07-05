@@ -264,6 +264,17 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
         )
     }
 
+    func testCase10_DiscardConfirmationRendersOnSmallPhoneWithoutLayoutFailure() {
+        DiscardChangesConfirmationRenderTestSupport.assertRenders(
+            size: smallPhoneSize,
+            dynamicTypeSize: .large
+        )
+        DiscardChangesConfirmationRenderTestSupport.assertRenders(
+            size: CGSize(width: smallPhoneSize.width, height: smallPhoneSize.height),
+            dynamicTypeSize: .accessibility5
+        )
+    }
+
     // MARK: - Wiring & accessibility
 
     func testPlanEditWizardUsesSharedDiscardConfirmationStateAndView() throws {

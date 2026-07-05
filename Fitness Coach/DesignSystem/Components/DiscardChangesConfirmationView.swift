@@ -35,9 +35,15 @@ struct DiscardChangesConfirmationView: View {
                 .onTapGesture(perform: onKeepEditing)
                 .accessibilityHidden(true)
 
-            confirmationCard
-                .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
-                .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
+            ScrollView {
+                confirmationCard
+                    .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
+                    .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
+                    .frame(maxWidth: .infinity)
+            }
+            .scrollIndicators(.hidden)
+            .safeAreaPadding(.horizontal)
+            .safeAreaPadding(.vertical, FormaTokens.Spacing.md)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .contain)
@@ -177,5 +183,24 @@ struct DiscardChangesConfirmationView: View {
         )
     }
     .formaThemePreview(palette: .blossomPink, appearance: .light)
+}
+
+#Preview("Discard changes — Small iPhone") {
+    ZStack {
+        FormaTokens.Color.canvas
+            .ignoresSafeArea()
+
+        DiscardChangesConfirmationView(
+            title: FormaProductCopy.PlanEditWizardCopy.discardChangesTitle,
+            message: FormaProductCopy.PlanEditWizardCopy.discardChangesMessage,
+            keepEditingTitle: FormaProductCopy.PlanEditWizardCopy.keepEditing,
+            discardTitle: FormaProductCopy.PlanEditWizardCopy.discardChanges,
+            onKeepEditing: {},
+            onDiscard: {}
+        )
+    }
+    .formaThemePreview(palette: .oceanBlue, appearance: .dark)
+    .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
+    .environment(\.dynamicTypeSize, .accessibility3)
 }
 #endif
