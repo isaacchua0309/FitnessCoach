@@ -11,12 +11,18 @@ struct FormaPlanCard<Content: View>: View {
     var compact: Bool = false
     @ViewBuilder var content: Content
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
-        content
+        let _ = themeManager.themeRevision
+        return content
             .padding(.horizontal, compact ? FormaTokens.Spacing.sm : FormaTokens.Spacing.md)
             .padding(.vertical, compact ? FormaTokens.Spacing.xs : FormaTokens.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FormaCardChrome.background(.surface))
+            .background {
+                FormaCardChrome.background(.surface)
+            }
+            .todayLiveTheme()
     }
 }
 
@@ -25,16 +31,18 @@ struct FormaPlanDisplayRow: View {
     let value: String
     var multilineValue = false
 
+    @Environment(\.theme) private var theme
+
     var body: some View {
         Group {
             if multilineValue {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(label)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                     Text(value)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(theme.primaryText)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
@@ -42,7 +50,7 @@ struct FormaPlanDisplayRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
                     Text(label)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .frame(
                             width: SettingsChromeAccessibility.detailLabelColumnWidth,
                             alignment: .leading
@@ -51,7 +59,7 @@ struct FormaPlanDisplayRow: View {
                         .minimumScaleFactor(0.9)
                     Text(value)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(theme.primaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.leading)
@@ -64,8 +72,10 @@ struct FormaPlanDisplayRow: View {
 }
 
 struct FormaPlanRowDivider: View {
+    @Environment(\.theme) private var theme
+
     var body: some View {
         Divider()
-            .overlay(FormaTokens.Color.border)
+            .overlay(theme.inputBorder)
     }
 }

@@ -9,18 +9,27 @@ import SwiftUI
 
 struct ThemeSettingsView: View {
 
-    @EnvironmentObject private var themeStore: ThemeStore
+    @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.colorScheme) private var systemColorScheme
 
     private var resolvedPreviewColorScheme: ColorScheme {
         ThemeResolver.resolveColorScheme(
-            appearance: themeStore.appearance,
+            appearance: themeManager.appearance,
             systemColorScheme: systemColorScheme
         )
     }
 
+    private var selectedThemeBinding: Binding<AppThemePalette> {
+        Binding(
+            get: { themeManager.selectedTheme },
+            set: { themeManager.setTheme($0) }
+        )
+    }
+
     var body: some View {
-        List {
+        let _ = themeManager.themeRevision
+
+        return List {
             appearanceSection
             livePreviewSection
             colorThemeSection
@@ -29,8 +38,9 @@ struct ThemeSettingsView: View {
         .navigationTitle(FormaProductCopy.Settings.Theme.screenTitle)
         .navigationBarTitleDisplayMode(.inline)
         .formaScrollBottomInset()
+        .formaThemeReactive()
         .onAppear {
-            themeStore.recordSettingsViewed()
+            themeManager.recordSettingsViewed()
         }
     }
 
@@ -48,8 +58,8 @@ struct ThemeSettingsView: View {
             ForEach(AppAppearanceMode.settingsSelectableCases) { mode in
                 ThemeAppearanceOptionRow(
                     mode: mode,
-                    isSelected: themeStore.appearance == mode,
-                    onSelect: { themeStore.setAppearance(mode) }
+                    isSelected: themeManager.appearance == mode,
+                    onSelect: { themeManager.setAppearance(mode) }
                 )
                 .formaSettingsRowChrome()
             }
@@ -62,8 +72,8 @@ struct ThemeSettingsView: View {
         Section {
             ThemeSettingsLivePreview()
                 .formaThemeReactive()
-                .animation(.easeInOut(duration: 0.22), value: themeStore.palette)
-                .animation(.easeInOut(duration: 0.22), value: themeStore.appearance)
+                .animation(.easeInOut(duration: 0.22), value: themeManager.selectedTheme)
+                .animation(.easeInOut(duration: 0.22), value: themeManager.appearance)
                 .formaFormSection()
         } header: {
             FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.livePreviewSectionTitle)
@@ -91,8 +101,7 @@ struct ThemeSettingsView: View {
                             for: palette,
                             colorScheme: resolvedPreviewColorScheme
                         ),
-                        isSelected: themeStore.palette == palette,
-                        onSelect: { selectPalette(palette) }
+                        onSelect: { selectTheme(palette) }
                     )
                 }
             }
@@ -101,12 +110,13 @@ struct ThemeSettingsView: View {
         } header: {
             FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.colorThemeSectionTitle)
         }
+        .animation(.easeInOut(duration: 0.18), value: selectedThemeBinding.wrappedValue)
     }
 
-    private func selectPalette(_ palette: AppThemePalette) {
-        guard themeStore.palette != palette else { return }
+    private func selectTheme(_ palette: AppThemePalette) {
+        guard themeManager.selectedTheme != palette else { return }
         ThemeSettingsHaptics.selectionChanged()
-        themeStore.setPalette(palette)
+        themeManager.setTheme(palette)
     }
 }
 
@@ -117,18 +127,22 @@ private struct ThemeAppearanceOptionRow: View {
     let isSelected: Bool
     let onSelect: () -> Void
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     var body: some View {
-        Button(action: onSelect) {
+        let _ = themeManager.themeRevision
+        return Button(action: onSelect) {
             HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(mode.displayName)
                         .font(FormaTokens.Typography.body)
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(theme.primaryText)
                         .multilineTextAlignment(.leading)
 
                     Text(mode.description)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -137,7 +151,7 @@ private struct ThemeAppearanceOptionRow: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(FormaTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Theme.primary)
+                        .foregroundStyle(theme.accent)
                         .accessibilityHidden(true)
                 }
             }
@@ -147,11 +161,11 @@ private struct ThemeAppearanceOptionRow: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                        .fill(FormaTokens.Theme.softBackground)
+                        .fill(theme.accentSoftBackground)
                         .overlay {
                             RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                                 .stroke(
-                                    FormaTokens.Theme.primary.opacity(0.72),
+                                    theme.accentBorder,
                                     lineWidth: ThemeSettingsPickerAccessibility.appearanceRowSelectedBorderLineWidth
                                 )
                         }
@@ -171,20 +185,27 @@ private struct ThemeAppearanceOptionRow: View {
 private struct ThemePremiumPickerCard: View {
     let palette: AppThemePalette
     let preview: ThemePalette
-    let isSelected: Bool
     let onSelect: () -> Void
+
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.formaColors) private var colors
 
     @ScaledMetric(relativeTo: .body) private var minCardHeight: CGFloat = FormaTokens.Layout.minTouchTarget
 
     private let cardCornerRadius = FormaCardChrome.cornerRadius
     private let previewCornerRadius: CGFloat = 10
 
+    private var isSelected: Bool {
+        themeManager.selectedTheme == palette
+    }
+
     private var resolvedMinCardHeight: CGFloat {
         max(minCardHeight, ThemeSettingsPickerAccessibility.minimumCardTouchTarget)
     }
 
     var body: some View {
-        Button(action: onSelect) {
+        let _ = themeManager.themeRevision
+        return Button(action: onSelect) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 gradientPreview
 
@@ -198,13 +219,13 @@ private struct ThemePremiumPickerCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(preview.displayName)
                         .font(FormaTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
 
                     Text(preview.subtitle)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(colors.textSecondary)
                         .lineLimit(2)
                         .minimumScaleFactor(0.9)
                         .multilineTextAlignment(.leading)
@@ -243,14 +264,14 @@ private struct ThemePremiumPickerCard: View {
     private var selectedCheckmark: some View {
         ZStack {
             Circle()
-                .fill(FormaTokens.Color.canvas)
+                .fill(colors.canvas)
                 .frame(
                     width: ThemeSettingsPickerAccessibility.selectedCheckmarkBackingDiameter,
                     height: ThemeSettingsPickerAccessibility.selectedCheckmarkBackingDiameter
                 )
                 .overlay {
                     Circle()
-                        .stroke(FormaTokens.Color.border.opacity(0.55), lineWidth: 0.75)
+                        .stroke(colors.border.opacity(0.55), lineWidth: 0.75)
                 }
                 .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
 
@@ -265,11 +286,11 @@ private struct ThemePremiumPickerCard: View {
     @ViewBuilder
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
-            .fill(isSelected ? preview.softBackground : FormaTokens.Color.surfaceSubtle)
+            .fill(isSelected ? preview.softBackground : colors.surfaceSubtle)
             .overlay {
                 RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
                     .stroke(
-                        isSelected ? preview.primary.opacity(0.88) : FormaTokens.Color.border.opacity(0.65),
+                        isSelected ? preview.primary.opacity(0.88) : colors.border.opacity(0.65),
                         lineWidth: isSelected
                             ? ThemeSettingsPickerAccessibility.premiumPickerSelectedBorderLineWidth
                             : ThemeSettingsPickerAccessibility.premiumPickerUnselectedBorderLineWidth
@@ -346,7 +367,7 @@ private struct ThemeSettingsPreviewHost: View {
         let defaults = UserDefaults(suiteName: "ThemeSettingsPreview.\(UUID().uuidString)")!
         let store = ThemeStore(userDefaults: defaults)
         store.setAppearance(appearance)
-        store.setPalette(palette)
+        store.setTheme(palette)
         _store = StateObject(wrappedValue: store)
     }
 

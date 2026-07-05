@@ -63,6 +63,12 @@ final class PremiumWeightRulerScrollView: UIView {
         scrollView.setContentOffset(CGPoint(x: offset, y: 0), animated: animated)
     }
 
+    /// Re-applies ruler chrome when the app theme changes.
+    func applyTheme() {
+        centerIndicatorView.applyTheme()
+        refreshTickAppearance(forceFullPass: true)
+    }
+
     // MARK: - Private state
 
     fileprivate enum TickTier {

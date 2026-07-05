@@ -13,6 +13,7 @@ struct AppleHealthIntegrationView: View {
     @EnvironmentObject private var healthSyncStateStore: HealthSyncStateStore
     @EnvironmentObject private var consentStore: HealthSummarySyncConsentStore
     @Environment(\.appleHealthSettingsEnvironment) private var settingsEnvironment
+    @Environment(\.theme) private var theme
 
     @StateObject private var viewModel: AppleHealthSettingsViewModel
     @State private var didInitialLoad = false
@@ -117,10 +118,10 @@ struct AppleHealthIntegrationView: View {
     private var loadingSection: some View {
         VStack(spacing: FormaTokens.Spacing.md) {
             ProgressView()
-                .tint(FormaTokens.Color.accent)
+                .tint(theme.accent)
             Text(FormaProductCopy.Loading.settings)
                 .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(theme.secondaryText)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, FormaTokens.Spacing.xl)
@@ -129,7 +130,7 @@ struct AppleHealthIntegrationView: View {
     private func emptyStateSection(_ message: String) -> some View {
         Text(message)
             .font(FormaTokens.Typography.sectionSubtitle)
-            .foregroundStyle(FormaTokens.Color.textSecondary)
+            .foregroundStyle(theme.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -137,7 +138,7 @@ struct AppleHealthIntegrationView: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
             Text(message)
                 .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.warning)
+                .foregroundStyle(theme.warning)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button(FormaProductCopy.Common.tryAgain) {
@@ -150,7 +151,7 @@ struct AppleHealthIntegrationView: View {
                 }
             }
             .font(FormaTokens.Typography.body.weight(.medium))
-            .foregroundStyle(FormaTokens.Color.accent)
+            .foregroundStyle(theme.accent)
         }
     }
 
@@ -161,8 +162,8 @@ struct AppleHealthIntegrationView: View {
             .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
             .foregroundStyle(
                 presentation.heroShowsConnected
-                    ? FormaTokens.Color.success
-                    : FormaTokens.Color.textPrimary
+                    ? theme.success
+                    : theme.primaryText
             )
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityAddTraits(.isHeader)
@@ -173,7 +174,7 @@ struct AppleHealthIntegrationView: View {
             ForEach(presentation.privacyBullets, id: \.self) { line in
                 Text(line)
                     .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textLegal)
+                    .foregroundStyle(theme.secondaryText.opacity(0.62))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -217,7 +218,7 @@ struct AppleHealthIntegrationView: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(title)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(theme.secondaryText)
                 .accessibilityAddTraits(.isHeader)
 
             FormaPlanCard(compact: true) {
@@ -241,7 +242,7 @@ struct AppleHealthIntegrationView: View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
             Text(label)
                 .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(theme.secondaryText)
                 .frame(
                     width: SettingsChromeAccessibility.connectionLabelColumnWidth,
                     alignment: .leading
@@ -250,7 +251,7 @@ struct AppleHealthIntegrationView: View {
 
             Text(value)
                 .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .foregroundStyle(theme.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.leading)
@@ -262,7 +263,7 @@ struct AppleHealthIntegrationView: View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
             Text(row.title)
                 .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .foregroundStyle(theme.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -279,20 +280,20 @@ struct AppleHealthIntegrationView: View {
 
     private var rowDivider: some View {
         Divider()
-            .overlay(FormaTokens.Color.border)
+            .overlay(theme.inputBorder)
             .padding(.vertical, FormaTokens.Spacing.xs)
     }
 
     private func statusColor(for status: AppleHealthSettingsPermissionDisplayStatus) -> Color {
         switch status {
         case .connected:
-            return FormaTokens.Color.success
+            return theme.success
         case .notShared, .unknown:
-            return FormaTokens.Color.textTertiary
+            return theme.tertiaryText
         case .denied:
-            return FormaTokens.Color.warning
+            return theme.warning
         case .unavailable:
-            return FormaTokens.Color.textSecondary
+            return theme.secondaryText
         }
     }
 
@@ -311,10 +312,10 @@ struct AppleHealthIntegrationView: View {
         .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                .fill(FormaTokens.Color.surface)
+                .fill(theme.cardBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                        .stroke(FormaTokens.Color.border, lineWidth: 1)
+                        .stroke(theme.inputBorder, lineWidth: 1)
                 )
         )
         .disabled(!action.isEnabled)
@@ -325,12 +326,12 @@ struct AppleHealthIntegrationView: View {
 
     private func actionTitleColor(for action: AppleHealthSettingsActionModel) -> Color {
         guard action.isEnabled else {
-            return FormaTokens.Color.textTertiary
+            return theme.tertiaryText
         }
         if action.isDestructive {
-            return FormaTokens.Color.destructive
+            return theme.destructive
         }
-        return FormaTokens.Color.accent
+        return theme.accent
     }
 
     private func handleAction(_ action: AppleHealthSettingsActionModel) async {

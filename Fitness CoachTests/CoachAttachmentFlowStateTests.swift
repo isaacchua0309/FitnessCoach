@@ -368,7 +368,7 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub", confidence: .medium)
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
@@ -384,11 +384,11 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub", confidence: .medium)
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
-    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub", confidence: .medium)
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> DailyReviewAIResponse {
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {

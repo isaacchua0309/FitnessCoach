@@ -14,6 +14,8 @@ struct AppleHealthRemoteSyncSettingsView: View {
     let healthSyncStateStore: HealthSyncStateStore
     let settingsEnvironment: AppleHealthSettingsEnvironment
 
+    @Environment(\.theme) private var theme
+
     @State private var showsDeleteConfirmation = false
     @State private var showsEnableConfirmation = false
     @State private var showsDisableConfirmation = false
@@ -129,7 +131,7 @@ struct AppleHealthRemoteSyncSettingsView: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(presentation.consentTitle)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(theme.secondaryText)
                 .accessibilityAddTraits(.isHeader)
 
             FormaPlanCard(compact: true) {
@@ -138,19 +140,19 @@ struct AppleHealthRemoteSyncSettingsView: View {
                         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                             Text(presentation.consentTitle)
                                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                                .foregroundStyle(FormaTokens.Color.textPrimary)
+                                .foregroundStyle(theme.primaryText)
 
                             Text(presentation.consentStatusLabel)
                                 .font(FormaTokens.Typography.caption)
-                                .foregroundStyle(FormaTokens.Color.textTertiary)
+                                .foregroundStyle(theme.tertiaryText)
                         }
                     }
                     .disabled(!presentation.isConsentToggleEnabled)
-                    .tint(FormaTokens.Color.accent)
+                    .tint(theme.accent)
 
                     Text(presentation.consentDescription)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textLegal)
+                        .foregroundStyle(theme.secondaryText.opacity(0.62))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.vertical, FormaTokens.Spacing.xs)
@@ -178,7 +180,7 @@ struct AppleHealthRemoteSyncSettingsView: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(title)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(theme.secondaryText)
                 .accessibilityAddTraits(.isHeader)
 
             FormaPlanCard(compact: true) {
@@ -192,13 +194,13 @@ struct AppleHealthRemoteSyncSettingsView: View {
             ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                 if index > 0 {
                     Divider()
-                        .overlay(FormaTokens.Color.border)
+                        .overlay(theme.inputBorder)
                         .padding(.vertical, FormaTokens.Spacing.xs)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
                     Text(row.label)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .frame(
                             width: SettingsChromeAccessibility.connectionLabelColumnWidth,
                             alignment: .leading
@@ -207,7 +209,7 @@ struct AppleHealthRemoteSyncSettingsView: View {
 
                     Text(row.value)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(theme.primaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -227,8 +229,8 @@ struct AppleHealthRemoteSyncSettingsView: View {
                 .font(FormaTokens.Typography.body.weight(.medium))
                 .foregroundStyle(
                     isEnabled
-                        ? (isDestructive ? FormaTokens.Color.destructive : FormaTokens.Color.accent)
-                        : FormaTokens.Color.textTertiary
+                        ? (isDestructive ? theme.destructive : theme.accent)
+                        : theme.tertiaryText
                 )
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: SettingsChromeAccessibility.minimumActionButtonHeight)
@@ -236,10 +238,10 @@ struct AppleHealthRemoteSyncSettingsView: View {
         .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                .fill(FormaTokens.Color.surface)
+                .fill(theme.cardBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                        .stroke(FormaTokens.Color.border, lineWidth: 1)
+                        .stroke(theme.inputBorder, lineWidth: 1)
                 )
         )
         .disabled(!isEnabled)

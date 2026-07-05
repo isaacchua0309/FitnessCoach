@@ -13,17 +13,19 @@ struct TodayGoalConnectionRow: View {
     let onOpenPlan: () -> Void
     var onTapped: ((TodayGoalConnectionDestination) -> Void)?
 
+    @Environment(\.theme) private var theme
+
     var body: some View {
         Button(action: handleTap) {
             HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
                 Image(systemName: "arrow.up.forward")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Theme.primary.opacity(0.85))
+                    .foregroundStyle(theme.accent.opacity(0.85))
                     .accessibilityHidden(true)
 
                 Text(connection.message)
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .foregroundStyle(theme.secondaryText)
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
                     .minimumScaleFactor(0.9)
@@ -31,22 +33,22 @@ struct TodayGoalConnectionRow: View {
 
                 Image(systemName: "chevron.right")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .foregroundStyle(theme.tertiaryText)
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.sm)
-            .background(
+            .background {
                 RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                    .fill(FormaTokens.Color.surfaceSubtle)
+                    .fill(theme.accentSoftBackground)
                     .overlay {
                         RoundedRectangle(
                             cornerRadius: FormaCardChrome.cornerRadius,
                             style: .continuous
                         )
-                        .stroke(FormaTokens.Color.border.opacity(0.45), lineWidth: 0.5)
+                        .stroke(theme.inputBorder.opacity(0.45), lineWidth: 0.5)
                     }
-            )
+            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(connection.accessibilityLabel)

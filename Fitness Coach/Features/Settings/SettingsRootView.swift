@@ -13,7 +13,7 @@ struct SettingsRootView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.settingsAnalyticsCoordinator) private var analyticsCoordinator
     @EnvironmentObject private var insightsStore: TrainingInsightsStore
-    @EnvironmentObject private var themeStore: ThemeStore
+    @EnvironmentObject private var themeManager: ThemeManager
 
     @Binding var formState: PlanFormState
     let errorMessage: String?
@@ -43,7 +43,7 @@ struct SettingsRootView: View {
             input: SettingsPresentationInput(
                 integrationState: insightsStore.integrationState,
                 unitSystem: formState.unitSystem,
-                themePalette: themeStore.palette,
+                themePalette: themeManager.selectedTheme,
                 appVersion: FormaAppMetadata.versionDisplayString(),
                 featureAvailability: featureAvailability,
                 legalAvailability: .production,
@@ -55,7 +55,9 @@ struct SettingsRootView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        let _ = themeManager.themeRevision
+
+        return NavigationStack {
             List {
                 section(presentationState.account)
                 section(presentationState.preferences)
@@ -100,10 +102,11 @@ struct SettingsRootView: View {
                 }
             }
             .formaScrollBottomInset()
+            .formaThemeReactive()
             .onAppear {
                 analyticsCoordinator.updateContext(
                     unitSystem: formState.unitSystem,
-                    themePalette: themeStore.palette,
+                    themePalette: themeManager.selectedTheme,
                     integrationState: insightsStore.integrationState
                 )
                 analyticsCoordinator.logSettingsViewed()

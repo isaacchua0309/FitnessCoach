@@ -45,11 +45,24 @@ enum TodayNutritionProgressFormatting {
         calorieSummary.target <= 0
     }
 
+    static func showsWaterRow(
+        water: WaterSummary,
+        includesDedicatedWaterCard: Bool = true
+    ) -> Bool {
+        guard includesDedicatedWaterCard else { return true }
+        return water.targetMl <= 0
+    }
+
     static func displayModel(
         macros: MacroSummary,
         water: WaterSummary,
-        calorieSummary: CalorieSummary
+        calorieSummary: CalorieSummary,
+        includesDedicatedWaterCard: Bool = true
     ) -> TodayNutritionProgressCardDisplayModel {
+        let shouldShowWaterRow = showsWaterRow(
+            water: water,
+            includesDedicatedWaterCard: includesDedicatedWaterCard
+        )
         var rows: [TodayNutritionProgressRowDisplayModel] = [
             macroRow(
                 name: FormaProductCopy.Today.MacroBalance.protein,
@@ -73,10 +86,13 @@ enum TodayNutritionProgressFormatting {
                     name: FormaProductCopy.Today.MacroBalance.fat,
                     progress: macros.fat,
                     emphasis: .secondary
-                ),
-                waterRow(from: water)
+                )
             ]
         )
+
+        if shouldShowWaterRow {
+            rows.append(waterRow(from: water))
+        }
 
         return TodayNutritionProgressCardDisplayModel(
             rows: rows,

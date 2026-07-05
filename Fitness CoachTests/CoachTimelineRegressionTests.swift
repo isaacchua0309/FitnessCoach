@@ -232,7 +232,7 @@ private final class RegressionTimelineFoodEstimateAIService: AIServiceProtocol, 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -306,7 +306,7 @@ private final class UnreachableTimelineAIService: AIServiceProtocol, @unchecked 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -389,7 +389,7 @@ private final class FailingEstimateTimelineAIService: AIServiceProtocol, @unchec
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -463,7 +463,7 @@ private final class LocalGreetingTimelineAIService: AIServiceProtocol, @unchecke
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 

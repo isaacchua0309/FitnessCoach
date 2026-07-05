@@ -79,7 +79,7 @@ struct CoachView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
-                CoachDesignTokens.Color.background
+                CoachCanvasBackground()
                     .ignoresSafeArea()
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -155,6 +155,7 @@ struct CoachView: View {
             .sheet(isPresented: $model.isShowingFoodEditSheet) {
                 foodEditSheet
             }
+            .formaThemeReactive()
         }
     }
 
@@ -359,6 +360,14 @@ struct CoachView: View {
                 }
             )
         }
+    }
+}
+
+private struct CoachCanvasBackground: View {
+    @Environment(\.formaColors) private var colors
+
+    var body: some View {
+        colors.canvas
     }
 }
 

@@ -13,6 +13,7 @@ import UIKit
 /// Keeps the scroll/snap behavior while presenting a dark graphite card surface,
 /// edge fades, and a fixed UIKit center indicator (line + marker + glow).
 struct PremiumWeightRulerView: View {
+    @Environment(\.theme) private var theme
     @Binding var value: Double
     let config: HorizontalRulerConfig
     var height: CGFloat = OnboardingLayout.premiumRulerHeight
@@ -41,6 +42,7 @@ struct PremiumWeightRulerView: View {
         .accessibilityLabel(accessibilityLabel ?? "")
         .accessibilityValue(accessibilityValue ?? "")
         .accessibilityHint(accessibilityHint ?? "")
+        .formaThemeReactive()
     }
 
     // MARK: - Chrome
@@ -93,7 +95,7 @@ struct PremiumWeightRulerView: View {
 
     @MainActor
     private var fadeEdgeColor: Color {
-        OnboardingTheme.cardElevated
+        theme.elevatedCardBackground
     }
 
     /// Shared ruler configuration for onboarding target-weight selection.
@@ -118,6 +120,7 @@ struct PremiumWeightRulerView: View {
 // MARK: - UIViewRepresentable
 
 private struct PremiumWeightRulerScrollViewRepresentable: UIViewRepresentable {
+    @EnvironmentObject private var themeManager: ThemeManager
     @Binding var value: Double
     let config: HorizontalRulerConfig
 
@@ -136,6 +139,8 @@ private struct PremiumWeightRulerScrollViewRepresentable: UIViewRepresentable {
 
     func updateUIView(_ host: PremiumWeightRulerHostView, context: Context) {
         context.coordinator.parent = self
+        let _ = themeManager.themeRevision
+        host.ruler.applyTheme()
 
         let isInteracting = host.ruler.isDragging || host.ruler.isDecelerating
         guard !isInteracting else { return }

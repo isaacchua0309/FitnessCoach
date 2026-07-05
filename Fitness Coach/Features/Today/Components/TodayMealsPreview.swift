@@ -12,23 +12,76 @@ struct TodayMealsPreview: View {
     let date: Date
     let mealsEmptyKind: TodayMealsEmptyKind
     let onAddMeal: (MealType) -> Void
+    let onLogFirstMeal: () -> Void
     let onEditEntry: (FoodEntry) -> Void
     let onDeleteEntry: (FoodEntry) -> Void
+
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
 
     private var section: TodayMealsSectionState {
         TodayMealsGroupingEngine.build(entries: entries, date: date)
     }
 
     var body: some View {
+        let _ = themeManager.themeRevision
+
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Meals.sectionTitle)
 
-            FormaPlanCard {
-                VStack(spacing: 0) {
-                    ForEach(section.groups) { group in
+            if section.isFullyEmpty {
+                emptyDayCard
+            } else {
+                loggedMealsCard
+            }
+        }
+        .todayLiveTheme()
+    }
+
+    private var emptyDayCard: some View {
+        FormaPlanCard {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                Text(FormaProductCopy.Today.Meals.emptyDayMessage)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(theme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button(FormaProductCopy.Today.Meals.logFirstMealCTA, action: onLogFirstMeal)
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(theme.accent)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
+                    .accessibilityLabel(FormaProductCopy.Today.Meals.logFirstMealCTA)
+                    .accessibilityHint(FormaProductCopy.Today.Meals.logFirstMealAccessibilityHint)
+            }
+            .padding(.vertical, FormaTokens.Spacing.sm)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var loggedMealsCard: some View {
+        FormaPlanCard {
+            VStack(spacing: 0) {
+                ForEach(section.groups) { group in
+                    if group.isLogged {
                         mealGroupRow(group)
 
                         if group.mealType != section.groups.last?.mealType {
+                            FormaPlanRowDivider()
+                        }
+                    }
+                }
+
+                let unloggedGroups = section.groups.filter { !$0.isLogged }
+                if !unloggedGroups.isEmpty {
+                    if section.groups.contains(where: \.isLogged) {
+                        FormaPlanRowDivider()
+                    }
+
+                    ForEach(unloggedGroups) { group in
+                        mealGroupRow(group)
+
+                        if group.mealType != unloggedGroups.last?.mealType {
                             FormaPlanRowDivider()
                         }
                     }
@@ -58,8 +111,8 @@ struct TodayMealsPreview: View {
                 onAddMeal(group.mealType)
             } label: {
                 Text(FormaProductCopy.Today.Meals.addAction)
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .font(FormaTokens.Typography.caption2.weight(.semibold))
+                    .foregroundStyle(theme.accent)
                     .frame(minHeight: FormaTokens.Layout.minTouchTarget)
             }
             .buttonStyle(.plain)
@@ -67,7 +120,7 @@ struct TodayMealsPreview: View {
             .accessibilityHint(display.accessibilityHint ?? "")
         }
         .padding(.horizontal, FormaTokens.Spacing.md)
-        .padding(.vertical, TodayLayout.cardRowVerticalPadding)
+        .padding(.vertical, TodayLayout.compactSpacing)
     }
 
     private func loggedMealRow(group: TodayMealGroupState, display: TodayMealRowDisplayModel) -> some View {
@@ -83,7 +136,7 @@ struct TodayMealsPreview: View {
 
                 Image(systemName: "checkmark.circle.fill")
                     .font(.body)
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .foregroundStyle(theme.accent)
                     .symbolRenderingMode(.hierarchical)
                     .accessibilityHidden(true)
             }
@@ -94,7 +147,7 @@ struct TodayMealsPreview: View {
         .padding(.horizontal, FormaTokens.Spacing.md)
         .padding(.vertical, TodayLayout.cardRowVerticalPadding)
         .background(
-            FormaTokens.Theme.softBackground.opacity(0.45),
+            theme.accentSoftBackground.opacity(0.45),
             in: RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
         )
         .accessibilityElement(children: .combine)
@@ -129,23 +182,23 @@ struct TodayMealsPreview: View {
             HStack(spacing: FormaTokens.Spacing.xs) {
                 Text(display.title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .foregroundStyle(theme.primaryText)
 
                 if display.isOptional {
                     Text(FormaProductCopy.Today.Meals.optionalLabel)
                         .font(FormaTokens.Typography.caption2)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                        .foregroundStyle(theme.tertiaryText)
                 }
             }
 
             Text(display.statusLine)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(isLogged ? FormaTokens.Color.textSecondary : FormaTokens.Color.textTertiary)
+                .foregroundStyle(isLogged ? theme.secondaryText : theme.tertiaryText)
 
             if let detailLine = display.detailLine {
                 Text(detailLine)
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .foregroundStyle(theme.secondaryText)
             }
         }
     }
@@ -157,6 +210,7 @@ struct TodayMealsPreview: View {
         date: Date(),
         mealsEmptyKind: .newDayNoMeals,
         onAddMeal: { _ in },
+        onLogFirstMeal: {},
         onEditEntry: { _ in },
         onDeleteEntry: { _ in }
     )
@@ -171,6 +225,7 @@ struct TodayMealsPreview: View {
         date: Date(),
         mealsEmptyKind: .hasMeals,
         onAddMeal: { _ in },
+        onLogFirstMeal: {},
         onEditEntry: { _ in },
         onDeleteEntry: { _ in }
     )
@@ -185,6 +240,7 @@ struct TodayMealsPreview: View {
         date: Date(),
         mealsEmptyKind: .hasMeals,
         onAddMeal: { _ in },
+        onLogFirstMeal: {},
         onEditEntry: { _ in },
         onDeleteEntry: { _ in }
     )

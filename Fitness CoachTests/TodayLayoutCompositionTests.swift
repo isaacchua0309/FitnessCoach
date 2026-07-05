@@ -16,11 +16,14 @@ final class TodayLayoutCompositionTests: XCTestCase {
             [
                 "header",
                 "missionHero",
-                "nextBestAction",
                 "quickActions",
+                "waterQuickLog",
                 "meals",
                 "macroHydration",
+                "recovery",
                 "activity",
+                "appleHealthSetup",
+                "yesterdayReview",
                 "dailyVictory",
                 "smartCoach",
                 "endOfDayWrapUp"
@@ -91,16 +94,13 @@ final class TodayLayoutCompositionTests: XCTestCase {
         XCTAssertTrue(state.activity.showsConnectCTA)
     }
 
-    func testBrandNewDaySuppressesHeroLogMealWhenNextActionLogsMeal() {
+    func testBrandNewDaySuppressesHeroLogMealChipInFavorOfQuickActions() {
         let state = TodayPreviewData.brandNewDay
 
         XCTAssertTrue(state.mission.showsLogMealCTA)
-        XCTAssertTrue(
-            state.nextBestAction.primaryCTA == .scanFood
-                || {
-                    if case .logMeal = state.nextBestAction.primaryCTA { return true }
-                    return false
-                }()
+        XCTAssertEqual(
+            FormaProductCopy.Today.QuickActions.title(for: .logMeal),
+            "Log meal with Coach"
         )
     }
 

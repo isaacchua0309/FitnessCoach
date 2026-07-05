@@ -29,7 +29,7 @@ struct PlanEditWizard: View {
     @State private var showExpertAdjustments = false
     @State private var targetPreview: CalorieTargetResult?
     @State private var didInitialize = false
-    @State private var showsDiscardChangesConfirmation = false
+    @State private var discardConfirmationState = PlanEditDiscardConfirmationState()
     @State private var isStepTransitionInFlight = false
     @State private var stepTransitionGeneration = 0
 
@@ -76,12 +76,34 @@ struct PlanEditWizard: View {
                     formState.syncMaintainGoalWeightFromCurrent()
                 }
             }
+            .overlay {
+                if saveSuccessState == nil, discardConfirmationState.isShowingConfirmation {
+                    DiscardChangesConfirmationView(
+                        title: FormaProductCopy.PlanEditWizardCopy.discardChangesTitle,
+                        message: FormaProductCopy.PlanEditWizardCopy.discardChangesMessage,
+                        keepEditingTitle: FormaProductCopy.PlanEditWizardCopy.keepEditing,
+                        discardTitle: FormaProductCopy.PlanEditWizardCopy.discardChanges,
+                        onKeepEditing: {
+                            discardConfirmationState.keepEditing()
+                        },
+                        onDiscard: {
+                            discardConfirmationState.dismissConfirmation()
+                            discardDraftChanges()
+                        }
+                    )
+                    .zIndex(1)
+                }
+            }
+            .animation(
+                PlanEditMotion.animation(PlanEditMotion.modalPresentation, reduceMotion: reduceMotion),
+                value: discardConfirmationState.isShowingConfirmation
+            )
             .formaThemeReactive()
         }
     }
 
     private var wizardContent: some View {
-        PlanEditShell(
+        AdjustPlanView(
                 title: FormaProductCopy.PlanEditHero.shellTitle,
                 stepCount: flow.count,
                 currentStepIndex: stepIndex,
@@ -123,18 +145,6 @@ struct PlanEditWizard: View {
         }
         .interactiveDismissDisabled(hasUnsavedChanges)
         .planEditSupportsDynamicType()
-        .confirmationDialog(
-            FormaProductCopy.PlanEditWizardCopy.discardChangesTitle,
-            isPresented: $showsDiscardChangesConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(FormaProductCopy.PlanEditWizardCopy.discardChanges, role: .destructive) {
-                performCancel()
-            }
-            Button(FormaProductCopy.PlanEditWizardCopy.keepEditing, role: .cancel) {}
-        } message: {
-            Text(FormaProductCopy.PlanEditWizardCopy.discardChangesMessage)
-        }
     }
 
     @ViewBuilder
@@ -267,7 +277,7 @@ struct PlanEditWizard: View {
     private var goalAndTargetWeightStep: some View {
         Group {
             Section {
-                PlanGoalSelectionView(
+                GoalOptionSelector(
                     selection: $goalType,
                     recommendedGoal: PlanGoalSelectionBuilder.recommendedGoal(for: baselineProfile),
                     onSelect: applyGoalType
@@ -276,10 +286,11 @@ struct PlanEditWizard: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             }
+            .listSectionSpacing(FormaTokens.Spacing.md)
 
             Section {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
-                    PlanTransformationSummaryCard(state: transformationSummary)
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                    GoalPathPreviewCard(state: transformationSummary)
 
                     if goalType == .maintain {
                         maintainGoalSummary
@@ -589,14 +600,22 @@ struct PlanEditWizard: View {
     }
 
     private func requestCancel() {
-        if hasUnsavedChanges {
-            showsDiscardChangesConfirmation = true
-        } else {
-            performCancel()
+        switch discardConfirmationState.handleCancelRequest(
+            hasUnsavedChanges: hasUnsavedChanges
+        ) {
+        case .dismissImmediately:
+            dismissAdjustPlan()
+        case .presentConfirmation:
+            break
         }
     }
 
-    private func performCancel() {
+    private func discardDraftChanges() {
+        onCancel()
+        dismiss()
+    }
+
+    private func dismissAdjustPlan() {
         onCancel()
         dismiss()
     }
@@ -691,7 +710,7 @@ struct PlanEditWizard: View {
                 }
                 isSaving = false
                 try? await Task.sleep(nanoseconds: PlanEditSaveSuccessBuilder.displayDurationNanoseconds)
-                performCancel()
+                dismissAdjustPlan()
             } catch {
                 isSaving = false
             }

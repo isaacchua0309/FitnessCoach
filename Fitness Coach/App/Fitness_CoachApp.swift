@@ -40,7 +40,7 @@ struct Fitness_CoachApp: App {
         WindowGroup {
             AuthGateView(container: container)
                 .environmentObject(container.themeStore)
-                .formaRootTheme(store: container.themeStore)
+                .formaRootTheme()
                 .onOpenURL { url in
                     _ = container.authManager.handleIncomingURL(url)
                 }

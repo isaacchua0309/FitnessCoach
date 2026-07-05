@@ -14,6 +14,8 @@ struct TodayYesterdayReviewSection: View {
     let onGenerateReview: (Date) -> Void
     var onViewed: (() -> Void)?
 
+    @Environment(\.theme) private var theme
+
     var body: some View {
         if state.isVisible {
             VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
@@ -24,7 +26,7 @@ struct TodayYesterdayReviewSection: View {
                         ForEach(Array(state.previewLines.enumerated()), id: \.offset) { _, line in
                             Text(line)
                                 .font(FormaTokens.Typography.caption)
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .foregroundStyle(theme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .lineLimit(3)
                         }

@@ -2,106 +2,25 @@
 //  PlanGoalSelectionCard.swift
 //  Fitness Coach
 //
-//  Forma — Theme-aware selectable goal card for the Edit Plan wizard.
+//  Forma — Legacy alias for Adjust Plan goal option cards.
 //
 
 import SwiftUI
 
-struct PlanGoalSelectionCard: View {
-    let presentation: PlanGoalOptionPresentation
-    let isSelected: Bool
-    let action: () -> Void
+typealias PlanGoalSelectionCard = GoalOptionCard
 
-    var body: some View {
-        PlanSelectableCard(
+extension GoalOptionCard {
+
+    init(
+        presentation: PlanGoalOption,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) {
+        self.init(
+            goal: presentation,
             isSelected: isSelected,
-            accessibilityLabel: accessibilityLabel,
-            action: action
-        ) {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                headerRow
-                explanationBlock
-            }
-        }
-    }
-
-    private var headerRow: some View {
-        HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
-            Image(systemName: presentation.iconSystemName)
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(
-                    isSelected
-                        ? FormaPlanTokens.Color.planAccent
-                        : FormaPlanTokens.Color.planSecondaryText
-                )
-                .frame(width: 30, height: 30)
-                .accessibilityHidden(true)
-
-            HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xs) {
-                Text(presentation.title)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.9)
-
-                if presentation.isRecommended {
-                    PlanMetricPill(text: FormaProductCopy.PlanEditGoal.recommendedBadge)
-                }
-
-                Spacer(minLength: 0)
-            }
-
-            PlanSelectableCardAccessory.selectionCheckmark(isSelected: isSelected)
-        }
-    }
-
-    private var explanationBlock: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(presentation.explanation)
-                .font(FormaTokens.Typography.body)
-                .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(presentation.outcomePreview)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.leading, 30 + FormaTokens.Spacing.md)
-    }
-
-    private var accessibilityLabel: String {
-        var parts = [presentation.title, presentation.explanation, presentation.outcomePreview]
-        if presentation.isRecommended {
-            parts.append(FormaProductCopy.PlanEditGoal.recommendedBadge)
-        }
-        return parts.joined(separator: ". ")
+            isRecommended: presentation.isRecommended,
+            onSelect: action
+        )
     }
 }
-
-#if DEBUG
-#Preview("Goal Cards") {
-    ScrollView {
-        VStack(spacing: 12) {
-            PlanGoalSelectionCard(
-                presentation: PlanGoalSelectionBuilder.options(recommendedGoal: .loseFat)[0],
-                isSelected: true,
-                action: {}
-            )
-            PlanGoalSelectionCard(
-                presentation: PlanGoalSelectionBuilder.options(recommendedGoal: .loseFat)[1],
-                isSelected: false,
-                action: {}
-            )
-            PlanGoalSelectionCard(
-                presentation: PlanGoalSelectionBuilder.options(recommendedGoal: .loseFat)[2],
-                isSelected: false,
-                action: {}
-            )
-        }
-        .padding()
-    }
-    .background(FormaPlanTokens.Color.planBackground)
-    .formaThemePreview()
-}
-#endif

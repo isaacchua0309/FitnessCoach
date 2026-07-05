@@ -20,4 +20,15 @@ enum TodayDashboardHeaderFormatting {
         dateFormatter.calendar = calendar
         return dateFormatter.string(from: date)
     }
+
+    static func planStatusChip(for status: TodayMissionStatus) -> String? {
+        switch status {
+        case .onTrack:
+            return nil
+        case .needsFocus:
+            return FormaProductCopy.Today.Header.planStatusNeedsFocus
+        case .overBudget:
+            return FormaProductCopy.Today.Header.planStatusOverTarget
+        }
+    }
 }

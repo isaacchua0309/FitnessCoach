@@ -120,4 +120,71 @@ final class CoachConversationScrollCoordinatorTests: XCTestCase {
             accuracy: 0.001
         )
     }
+
+    func testStructuredAssistantInsertUsesLayoutDelay() {
+        let payload = DailyReviewPayload(
+            title: "Daily Review",
+            timezoneLabel: nil,
+            generatedAt: Date(),
+            snapshot: DailyReviewSnapshot(
+                calories: ProgressMetric(
+                    label: "Calories",
+                    current: 1_500,
+                    target: 2_000,
+                    unit: "kcal",
+                    remainingText: "500 kcal remaining",
+                    progress: 0.75
+                ),
+                protein: ProgressMetric(
+                    label: "Protein",
+                    current: 90,
+                    target: 140,
+                    unit: "g",
+                    remainingText: "50g to go",
+                    progress: 0.64
+                ),
+                water: ProgressMetric(
+                    label: "Water",
+                    current: 1_000,
+                    target: 2_500,
+                    unit: "ml",
+                    remainingText: "1,500 ml remaining",
+                    progress: 0.4
+                )
+            ),
+            statusSummary: "Within target.",
+            bestNextMove: "Prioritize protein.",
+            tomorrowFocus: nil,
+            missingSignals: [],
+            detailNote: nil
+        )
+        let structured = ChatMessage(
+            role: .assistant,
+            text: "Daily review",
+            structuredContent: .dailyReview(payload)
+        )
+        let plain = ChatMessage(role: .assistant, text: "Hello")
+
+        XCTAssertEqual(
+            CoachConversationScrollCoordinator.scrollDelayAfterMessageInsert(
+                reason: .assistantResponseArrived,
+                lastMessage: structured
+            ),
+            CoachConversationScrollMetrics.structuredCardLayoutDelay
+        )
+        XCTAssertEqual(
+            CoachConversationScrollCoordinator.scrollDelayAfterMessageInsert(
+                reason: .assistantResponseArrived,
+                lastMessage: plain
+            ),
+            0
+        )
+        XCTAssertEqual(
+            CoachConversationScrollCoordinator.scrollDelayAfterMessageInsert(
+                reason: .userMessageSent,
+                lastMessage: structured
+            ),
+            0
+        )
+    }
 }

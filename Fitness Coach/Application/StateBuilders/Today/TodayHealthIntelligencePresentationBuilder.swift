@@ -27,6 +27,8 @@ enum TodayHealthIntelligencePresentationBuilder {
         isUIEnabled: Bool = HealthIntelligenceFeatureFlags.isUIEnabled,
         availability: HealthDataAvailability? = nil,
         isAppleHealthConnected: Bool = false,
+        trainingIntegrationState: TrainingIntegrationState = .notConnected,
+        connectionRecord: HealthIntegrationConnectionRecord = .empty,
         cachedDayCount: Int = 0,
         errorMessage: String? = nil,
         syncPhase: HealthSyncPhase? = nil,
@@ -48,7 +50,10 @@ enum TodayHealthIntelligencePresentationBuilder {
             isAppleHealthConnected: isAppleHealthConnected,
             cachedDayCount: cachedDayCount,
             errorMessage: errorMessage,
-            syncPhase: syncPhase
+            syncPhase: syncPhase,
+            trainingIntegrationState: trainingIntegrationState,
+            connectionRecord: connectionRecord,
+            baseline: baseline
         )
 
         let uiState = HealthIntelligencePresentationCore.resolveUIState(
@@ -67,16 +72,40 @@ enum TodayHealthIntelligencePresentationBuilder {
         }
 
         guard let snapshot else {
+            let statusInput = integrationStatusInput(
+                availability: availability,
+                trainingIntegrationState: trainingIntegrationState,
+                connectionRecord: connectionRecord,
+                snapshot: nil,
+                baseline: baseline,
+                cachedDayCount: cachedDayCount
+            )
             return unavailableSection(
                 uiState: uiState,
-                nutritionProgress: nutritionProgress
+                nutritionProgress: nutritionProgress,
+                integrationStatus: HealthIntegrationStatusResolver.resolve(statusInput),
+                statusInput: statusInput
             )
         }
+
+        let statusInput = integrationStatusInput(
+            availability: availability,
+            trainingIntegrationState: trainingIntegrationState,
+            connectionRecord: connectionRecord,
+            snapshot: snapshot,
+            baseline: baseline,
+            cachedDayCount: cachedDayCount
+        )
+        let integrationStatus = HealthIntegrationStatusResolver.resolve(statusInput)
+        let signalAvailability = HealthIntegrationStatusResolver.resolveSignalAvailability(from: statusInput)
 
         return loadedSection(
             snapshot: snapshot,
             nutritionProgress: nutritionProgress,
-            uiState: uiState
+            uiState: uiState,
+            integrationStatus: integrationStatus,
+            signalAvailability: signalAvailability,
+            statusInput: statusInput
         )
     }
 
@@ -85,7 +114,10 @@ enum TodayHealthIntelligencePresentationBuilder {
     private static func loadedSection(
         snapshot: HealthIntelligenceSnapshot,
         nutritionProgress: TodayHealthIntelligenceNutritionProgress,
-        uiState: HealthIntelligenceUIState
+        uiState: HealthIntelligenceUIState,
+        integrationStatus: HealthIntegrationStatus,
+        signalAvailability: HealthSignalAvailability,
+        statusInput: HealthIntegrationStatusInput
     ) -> TodayHealthIntelligenceSectionState {
         let staleLabel = HealthIntelligencePresentationCore.staleDataLabel(for: uiState, surface: surface)
         let recoveryForCards = uiState.kind == .healthKitUnavailable ? RecoverySummary.unknown : snapshot.recovery
@@ -105,7 +137,12 @@ enum TodayHealthIntelligencePresentationBuilder {
             nutritionAdjustment: snapshot.nutritionAdjustment,
             hasVisibleAdaptiveNutritionCard: adaptiveNutritionCard?.isVisible == true
         )
-        let mappedNextBestAction = nextBestAction(from: snapshot.nextBestAction)
+        let mappedNextBestAction = resolvedNextBestAction(
+            snapshot: snapshot,
+            integrationStatus: integrationStatus,
+            signalAvailability: signalAvailability,
+            statusInput: statusInput
+        )
         let workoutCard = workoutCard(from: snapshot.workout, uiState: uiState)
 
         return TodayHealthIntelligenceSectionState(
@@ -113,7 +150,9 @@ enum TodayHealthIntelligencePresentationBuilder {
             dailyMission: dailyMission,
             nextBestAction: supplementalActionIfNeeded(
                 healthAction: mappedNextBestAction,
-                uiState: uiState
+                uiState: uiState,
+                integrationStatus: integrationStatus,
+                statusInput: statusInput
             ),
             workoutCard: workoutCard,
             adaptiveNutritionCard: adaptiveNutritionCard,
@@ -277,7 +316,9 @@ enum TodayHealthIntelligencePresentationBuilder {
 
     private static func unavailableSection(
         uiState: HealthIntelligenceUIState,
-        nutritionProgress: TodayHealthIntelligenceNutritionProgress
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
+        integrationStatus: HealthIntegrationStatus,
+        statusInput: HealthIntegrationStatusInput
     ) -> TodayHealthIntelligenceSectionState {
         let recoveryCard = placeholderRecoveryCard(for: uiState)
         let dailyMission = dailyMission(
@@ -291,7 +332,9 @@ enum TodayHealthIntelligencePresentationBuilder {
             dailyMission: dailyMission,
             nextBestAction: supplementalActionIfNeeded(
                 healthAction: .hidden,
-                uiState: uiState
+                uiState: uiState,
+                integrationStatus: integrationStatus,
+                statusInput: statusInput
             ),
             workoutCard: workoutCard(from: nil, uiState: uiState),
             adaptiveNutritionCard: nil,
@@ -304,40 +347,113 @@ enum TodayHealthIntelligencePresentationBuilder {
 
     private static func supplementalActionIfNeeded(
         healthAction: TodayHealthNextBestActionState,
-        uiState: HealthIntelligenceUIState
+        uiState: HealthIntelligenceUIState,
+        integrationStatus: HealthIntegrationStatus,
+        statusInput: HealthIntegrationStatusInput
     ) -> TodayHealthNextBestActionState {
         guard !healthAction.isVisible else { return healthAction }
 
-        let copy = HealthIntelligencePresentationCore.normalizeUIStateCTACopy(
-            for: uiState,
-            surface: surface
-        )
+        if integrationStatus.requiresInitialConnection(
+            hasPriorConnectionEvidence: statusInput.hasPriorConnectionEvidence
+        ) {
+            return TodayHealthIntegrationNextStepResolver.resolve(
+                integrationStatus: integrationStatus,
+                signalAvailability: HealthIntegrationStatusResolver.resolveSignalAvailability(from: statusInput),
+                behavioralAction: .none,
+                hasPriorConnectionEvidence: statusInput.hasPriorConnectionEvidence
+            )
+        }
+
+        if integrationStatus.isConnected {
+            return healthAction
+        }
 
         switch uiState.primaryAction {
         case .connectAppleHealth, .manageHealthPermissions, .manageHealthDataSync:
             return supplementalActionState(
-                title: copy.primaryActionTitle ?? copy.title,
+                title: uiState.title,
                 message: uiState.message,
-                ctaTitle: copy.primaryActionTitle,
+                ctaTitle: uiState.primaryActionTitle,
                 destination: .connectHealth
             )
         case .askCoach:
             return supplementalActionState(
-                title: copy.secondaryActionTitle ?? copy.title,
+                title: uiState.secondaryActionTitle ?? uiState.title,
                 message: uiState.message,
-                ctaTitle: copy.secondaryActionTitle,
+                ctaTitle: uiState.secondaryActionTitle,
                 destination: .askCoach
             )
         case .retrySync, .refreshHealthData:
             return supplementalActionState(
-                title: copy.primaryActionTitle ?? copy.title,
+                title: uiState.primaryActionTitle ?? uiState.title,
                 message: uiState.message,
-                ctaTitle: copy.primaryActionTitle,
-                destination: .connectHealth
+                ctaTitle: uiState.primaryActionTitle,
+                destination: .refreshHealthData
             )
         case .continueLogging, .openPlan, .none:
             return healthAction
         }
+    }
+
+    private static func resolvedNextBestAction(
+        snapshot: HealthIntelligenceSnapshot,
+        integrationStatus: HealthIntegrationStatus,
+        signalAvailability: HealthSignalAvailability,
+        statusInput: HealthIntegrationStatusInput
+    ) -> TodayHealthNextBestActionState {
+        let behavioralAction = sanitizedBehavioralAction(snapshot.nextBestAction)
+        return TodayHealthIntegrationNextStepResolver.resolve(
+            integrationStatus: integrationStatus,
+            signalAvailability: signalAvailability,
+            behavioralAction: behavioralAction,
+            hasPriorConnectionEvidence: statusInput.hasPriorConnectionEvidence
+        )
+    }
+
+    private static func sanitizedBehavioralAction(_ action: NextBestAction) -> NextBestAction {
+        guard action.reason != .connectHealth else {
+            return .none
+        }
+        return action
+    }
+
+    private static func integrationStatusInput(
+        availability: HealthDataAvailability?,
+        trainingIntegrationState: TrainingIntegrationState,
+        connectionRecord: HealthIntegrationConnectionRecord,
+        snapshot: HealthIntelligenceSnapshot?,
+        baseline: HealthBaselineContext?,
+        cachedDayCount: Int
+    ) -> HealthIntegrationStatusInput {
+        HealthIntegrationStatusInput(
+            isHealthDataAvailable: availability?.isHealthDataAvailable ?? true,
+            permissionStatus: availability?.permissionStatus,
+            trainingIntegrationState: trainingIntegrationState,
+            connectionRecord: connectionRecord,
+            snapshot: snapshot,
+            baseline: baseline,
+            cachedDayCount: cachedDayCount
+        )
+    }
+
+    private static func integrationStatus(
+        availability: HealthDataAvailability?,
+        trainingIntegrationState: TrainingIntegrationState,
+        connectionRecord: HealthIntegrationConnectionRecord,
+        snapshot: HealthIntelligenceSnapshot?,
+        baseline: HealthBaselineContext?,
+        cachedDayCount: Int
+    ) -> HealthIntegrationStatus {
+        HealthIntegrationStatusResolver.resolve(
+            integrationStatusInput(
+                availability: availability,
+                trainingIntegrationState: trainingIntegrationState,
+                connectionRecord: connectionRecord,
+                snapshot: snapshot,
+                baseline: baseline,
+                cachedDayCount: cachedDayCount
+            )
+        )
     }
 
     private static func supplementalActionState(
@@ -361,6 +477,8 @@ enum TodayHealthIntelligencePresentationBuilder {
             )
         )
     }
+
+    // MARK: - Recovery
 
     private static func placeholderRecoveryCard(
         for uiState: HealthIntelligenceUIState

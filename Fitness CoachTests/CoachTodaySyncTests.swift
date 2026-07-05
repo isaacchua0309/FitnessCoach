@@ -267,7 +267,7 @@ private final class CoachTodaySyncFoodEstimateService: AIServiceProtocol, @unche
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 

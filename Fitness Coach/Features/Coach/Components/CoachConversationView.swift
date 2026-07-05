@@ -73,7 +73,14 @@ struct CoachConversationView<BottomAccessory: View>: View {
                     newCount: newCount,
                     lastMessageRole: messages.last?.role
                 ) else { return }
-                requestScroll(reason: reason, proxy: proxy)
+                requestScroll(
+                    reason: reason,
+                    proxy: proxy,
+                    delay: CoachConversationScrollCoordinator.scrollDelayAfterMessageInsert(
+                        reason: reason,
+                        lastMessage: messages.last
+                    )
+                )
             }
             .onChange(of: isSending) { wasSending, isSendingNow in
                 if isSendingNow {

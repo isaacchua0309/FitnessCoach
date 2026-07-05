@@ -12,6 +12,12 @@
 import Foundation
 import SwiftData
 
+struct DailyReviewGenerationResult: Equatable, Sendable {
+    let review: DailyReview
+    let summary: DailyReviewSummary
+    let aiResponse: DailyReviewAIResponse?
+}
+
 @MainActor
 final class ReviewService {
 
@@ -66,11 +72,24 @@ final class ReviewService {
         for date: Date,
         forceRegenerate: Bool = false
     ) async throws -> DailyReview {
+        try await generateDailyReviewWithSummary(for: date, forceRegenerate: forceRegenerate).review
+    }
+
+    func generateDailyReviewWithSummary(
+        for date: Date,
+        forceRegenerate: Bool = false
+    ) async throws -> DailyReviewGenerationResult {
         let dailyLogEntity = try dailyLogService.getOrCreateLogEntity(for: date)
 
         if !forceRegenerate, let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id),
            AccountDataSyncReadFilter.isVisible(existing) {
-            return existing.toModel()
+            let dailyLog = try dailyLogService.recalculateDailyTotals(for: dailyLogEntity.date)
+            let summary = try await buildSummary(for: dailyLog)
+            return DailyReviewGenerationResult(
+                review: existing.toModel(),
+                summary: summary,
+                aiResponse: nil
+            )
         }
 
         let dailyLog = try dailyLogService.recalculateDailyTotals(for: dailyLogEntity.date)
@@ -78,10 +97,13 @@ final class ReviewService {
         let aiInput = DailyReviewFormatter.dailyReviewAIInput(from: summary)
         let aiContext = makeReviewContext(from: summary)
 
-        let aiResponse = try? await aiService.generateDailyReviewText(
+        let rawAIResponse = try? await aiService.generateDailyReviewText(
             input: aiInput,
             context: aiContext
         )
+        let aiResponse = rawAIResponse.flatMap {
+            DailyReviewAIResponseNormalizer.normalize($0, summary: summary)
+        }
 
         let review = makeReview(
             dailyLog: dailyLog,
@@ -89,10 +111,21 @@ final class ReviewService {
             aiResponse: aiResponse
         )
 
-        return try persist(review, dailyLogEntity: dailyLogEntity)
+        let persisted = try persist(review, dailyLogEntity: dailyLogEntity)
+        return DailyReviewGenerationResult(
+            review: persisted,
+            summary: summary,
+            aiResponse: aiResponse
+        )
     }
 
     // MARK: Summary
+
+    func buildDailyReviewSummary(for date: Date) async throws -> DailyReviewSummary {
+        let dailyLogEntity = try dailyLogService.getOrCreateLogEntity(for: date)
+        let dailyLog = try dailyLogService.recalculateDailyTotals(for: dailyLogEntity.date)
+        return try await buildSummary(for: dailyLog)
+    }
 
     private func buildSummary(for dailyLog: DailyLog) async throws -> DailyReviewSummary {
         let foodEntries = try foodLogService.getFoodEntries(for: dailyLog.date)
@@ -126,18 +159,24 @@ final class ReviewService {
     private func makeReview(
         dailyLog: DailyLog,
         summary: DailyReviewSummary,
-        aiResponse: AICoachResponse?
+        aiResponse: DailyReviewAIResponse?
     ) -> DailyReview {
         DailyReview(
             id: UUID(),
             dailyLogId: dailyLog.id,
-            summaryText: aiResponse?.message ?? DailyReviewFormatter.fallbackSummaryText(),
+            summaryText: {
+                if let aiResponse {
+                    return aiResponse.detailNote ?? ""
+                }
+                return DailyReviewFormatter.fallbackSummaryText()
+            }(),
             caloriesSummary: DailyReviewFormatter.caloriesSummary(from: summary),
             proteinSummary: DailyReviewFormatter.proteinSummary(from: summary),
             hydrationSummary: DailyReviewFormatter.hydrationSummary(from: summary),
             workoutSummary: DailyReviewFormatter.workoutSummary(from: summary),
             weightSummary: DailyReviewFormatter.weightSummary(from: summary),
-            tomorrowRecommendation: DailyReviewFormatter.tomorrowRecommendation(from: summary),
+            tomorrowRecommendation: aiResponse?.tomorrowFocus
+                ?? DailyReviewFormatter.tomorrowRecommendation(from: summary),
             createdAt: Date()
         )
     }

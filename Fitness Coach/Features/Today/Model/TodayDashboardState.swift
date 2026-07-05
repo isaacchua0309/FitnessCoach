@@ -88,6 +88,8 @@ struct TodayMissionState: Equatable {
     var goalLine: String
     var consumedLine: String
     var proteinRemainingLine: String
+    var waterRemainingLine: String
+    var nextStepLine: String
     var statusLine: String
     var showsLogMealCTA: Bool
     var accessibilityLabel: String

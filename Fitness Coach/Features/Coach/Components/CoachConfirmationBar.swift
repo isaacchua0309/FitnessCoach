@@ -17,6 +17,8 @@ struct CoachConfirmationBar: View {
     let onRetryPhotoAnalysis: (() -> Void)?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
 
     private var presentation: CoachPendingFoodCardPresentation {
         CoachPendingFoodCardPresentationResolver.presentation(
@@ -30,7 +32,8 @@ struct CoachConfirmationBar: View {
     }
 
     var body: some View {
-        Group {
+        let _ = themeManager.themeRevision
+        return Group {
             if usesCompactPresentation {
                 compactBar
             } else {
@@ -219,14 +222,15 @@ struct CoachConfirmationBar: View {
 
 private struct CoachConfirmationPrimaryButtonStyle: ButtonStyle {
     var compact: Bool = false
+    @Environment(\.theme) private var theme
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(CoachDesignTokens.Typography.confirmationMetric.weight(.semibold))
-            .foregroundStyle(CoachDesignTokens.Color.textOnAccent)
+            .foregroundStyle(theme.buttonText)
             .padding(.horizontal, compact ? CoachDesignTokens.Spacing.sm : CoachDesignTokens.Spacing.md)
             .padding(.vertical, CoachDesignTokens.Spacing.xs)
-            .background(FormaTokens.Theme.primaryButtonBackground, in: Capsule())
+            .background(theme.buttonBackground, in: Capsule())
             .opacity(configuration.isPressed ? 0.85 : 1)
     }
 }

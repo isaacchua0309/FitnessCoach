@@ -90,6 +90,7 @@ final class CoachSendFlowCoordinator: CoachProcessingPhaseControlling {
     func send(_ text: String, managesProcessingLock: Bool = true) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        inputCoordinator.discardStagedAttachmentForTextSend()
         if managesProcessingLock {
             guard bindings?.isSending() == false else { return }
             beginProcessing(.text)
