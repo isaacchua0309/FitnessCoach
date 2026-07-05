@@ -1,7 +1,7 @@
 # Source of Truth Map
 
 **Last updated:** 2026-07-04  
-**Related:** [AppArchitectureOverview.md](./AppArchitectureOverview.md), [../../USER_DATA_STORAGE_CONTEXT_PACKET.md](../../USER_DATA_STORAGE_CONTEXT_PACKET.md) (partially stale — see §12), [../../ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md](../../ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md)
+**Related:** [AppArchitectureOverview.md](./AppArchitectureOverview.md), [../Archive/ContextPackets/USER_DATA_STORAGE_CONTEXT_PACKET.md](../Archive/ContextPackets/USER_DATA_STORAGE_CONTEXT_PACKET.md) (partially stale — see §12), [../Archive/SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md](../Archive/SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md)
 
 ---
 
@@ -207,7 +207,7 @@ Full registry: [FeatureFlagRegistry.md](./FeatureFlagRegistry.md).
 - Account delete stub — **stale**; `AccountDeletionCoordinator` implemented
 - Settings delete not implemented — **stale**; gated by `FormaAbTest.Settings.dataDeletionEnabled`
 
-Use **this document** and `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md` for current persistence truth.
+Use **this document** and [ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md](../Archive/SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md) for current persistence truth.
 
 ---
 

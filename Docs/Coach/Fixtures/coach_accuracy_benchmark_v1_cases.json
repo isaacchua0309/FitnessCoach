@@ -1348,6 +1348,10 @@
             "confidence": "low",
             "assumptions": [
               "Multiple plates in frame; clarify which plate"
+            ],
+            "suggestedClarifications": [
+              "Which plate is yours?",
+              "Should I log only the front plate?"
             ]
           }
         ],
@@ -1401,6 +1405,10 @@
             "confidence": "low",
             "assumptions": [
               "Sauce/oil hidden under toppings; estimate includes typical hawker oil"
+            ],
+            "suggestedClarifications": [
+              "Was there extra chili oil or gravy I can't see?",
+              "How much sauce was on the noodles?"
             ]
           }
         ],
@@ -1454,6 +1462,10 @@
             "confidence": "low",
             "assumptions": [
               "Buffet portions vary; estimate is one medium plate"
+            ],
+            "suggestedClarifications": [
+              "Which items from the buffet did you take?",
+              "Was this one full plate or a small sample?"
             ]
           }
         ],
@@ -1519,6 +1531,10 @@
             "confidence": "low",
             "assumptions": [
               "Sweet drink; sugar level unknown; drink on the side"
+            ],
+            "suggestedClarifications": [
+              "What sugar level was the drink?",
+              "Was the drink included in your meal log?"
             ]
           }
         ],
@@ -1585,6 +1601,10 @@
             "confidence": "low",
             "assumptions": [
               "Oil in stir-fry unknown; economy rice portion"
+            ],
+            "suggestedClarifications": [
+              "How oily was the stir-fried meat?",
+              "Was this a standard cai fan portion?"
             ]
           },
           {
@@ -1597,6 +1617,10 @@
             "confidence": "low",
             "assumptions": [
               "Mixed veg with sauce"
+            ],
+            "suggestedClarifications": [
+              "Was the vegetable dish in gravy or lightly stir-fried?",
+              "How large was the vegetable portion?"
             ]
           }
         ],

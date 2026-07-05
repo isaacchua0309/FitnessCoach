@@ -154,7 +154,11 @@ final class AccountDeletionEndToEndTests: XCTestCase {
         harness.remoteClient.configuredResult = harness.remoteSuccess(for: AccountDeletionEndToEndHarness.userA)
 
         async let deletionTask = harness.coordinator.deleteAccount(confirmation: "DELETE")
-        try await Task.sleep(nanoseconds: 20_000_000)
+        let deletionStarted = await AsyncTestSupport.waitUntilWallClock(timeout: 0.15) {
+            harness.coordinator.isDeletionInProgress(for: AccountDeletionEndToEndHarness.userA)
+                || harness.remoteClient.callCount > 0
+        }
+        XCTAssertTrue(deletionStarted)
         harness.sessionUID = AccountDeletionEndToEndHarness.userB
 
         let summary = await deletionTask

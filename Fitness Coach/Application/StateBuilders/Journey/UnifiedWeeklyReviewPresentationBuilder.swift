@@ -568,7 +568,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
 
         let goalDirection = input.goalDirection
             ?? JourneyGoalDirection.resolve(
-                currentWeightKg: input.profile?.currentWeightKg,
+                startWeightKg: input.profile?.currentWeightKg,
                 goalWeightKg: input.profile?.goalWeightKg
             )
 

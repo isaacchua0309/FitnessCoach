@@ -45,4 +45,16 @@ enum FakeAnalyticsLogger {
     static func healthIntelligence() -> CapturingHealthIntelligenceAnalyticsLogger {
         CapturingHealthIntelligenceAnalyticsLogger()
     }
+
+    static func weeklyProgress() -> CapturingWeeklyProgressAnalyticsLogger {
+        CapturingWeeklyProgressAnalyticsLogger()
+    }
+
+    static func makeCapturingLoggers() -> (
+        onboarding: CapturingOnboardingAnalyticsLogger,
+        today: CapturingTodayAnalyticsLogger,
+        coach: CapturingCoachAnalyticsLogger
+    ) {
+        (onboarding(), today(), coach())
+    }
 }

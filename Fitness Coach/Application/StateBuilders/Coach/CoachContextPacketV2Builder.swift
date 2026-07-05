@@ -216,7 +216,7 @@ struct CoachContextPacketV2Builder {
             from: correctionEntries
         )
 
-        var missingData = makeMissingData(
+        let missingData = makeMissingData(
             stepsResult: stepsResult,
             workoutsResult: workoutsResult,
             healthAccessDenied: healthAccessDenied,

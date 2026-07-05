@@ -3,11 +3,12 @@
 //  Fitness Coach
 //
 //  Feature model and coordinator factories for AppContainer.
+//  Grouped by tab/domain; construction lives in AppContainer+Construction.swift.
 //
 
 import Foundation
 
-// MARK: - Feature model factories
+// MARK: - Health Intelligence dependencies
 
 extension AppContainer {
 
@@ -19,6 +20,15 @@ extension AppContainer {
         guard HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled else { return }
         await healthIntelligenceSnapshotService.refreshTodaySnapshot(calendar: .current)
     }
+
+    func makeHealthIntelligenceAnalyticsCoordinator() -> HealthIntelligenceAnalyticsCoordinator {
+        HealthIntelligenceAnalyticsCoordinator(analyticsLogger: healthIntelligenceAnalyticsLogger)
+    }
+}
+
+// MARK: - Today dependencies
+
+extension AppContainer {
 
     func makeTodayActionCoordinator(
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
@@ -61,6 +71,11 @@ extension AppContainer {
             crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
         )
     }
+}
+
+// MARK: - Coach dependencies
+
+extension AppContainer {
 
     func makeCoachModel(
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
@@ -113,10 +128,28 @@ extension AppContainer {
             foodCorrectionMemoryStore: foodCorrectionMemoryStore
         )
     }
+}
+
+// MARK: - Journey dependencies
+
+extension AppContainer {
 
     func makeJourneyAnalyticsCoordinator() -> JourneyAnalyticsCoordinator {
         JourneyAnalyticsCoordinator(analyticsLogger: journeyAnalyticsLogger)
     }
+
+    func makeJourneyModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> JourneyModel {
+        buildJourneyDependencies(
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+        )
+    }
+}
+
+// MARK: - Plan dependencies
+
+extension AppContainer {
 
     func makeWeeklyProgressAnalyticsCoordinator() -> WeeklyProgressAnalyticsCoordinator {
         WeeklyProgressAnalyticsCoordinator(analyticsLogger: weeklyProgressAnalyticsLogger)
@@ -129,6 +162,21 @@ extension AppContainer {
             weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator
         )
     }
+
+    func makePlanModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        planAnalyticsCoordinator: PlanAnalyticsCoordinator? = nil
+    ) -> PlanModel {
+        buildPlanDependencies(
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            planAnalyticsCoordinator: planAnalyticsCoordinator
+        )
+    }
+}
+
+// MARK: - Settings dependencies
+
+extension AppContainer {
 
     func makeSettingsPrivacyDataEnvironment() -> SettingsPrivacyDataEnvironment {
         let provider = SettingsPrivacyDataStatusProvider(
@@ -148,84 +196,11 @@ extension AppContainer {
     func makeSettingsAnalyticsCoordinator() -> SettingsAnalyticsCoordinator {
         SettingsAnalyticsCoordinator(analyticsLogger: settingsAnalyticsLogger)
     }
+}
 
-    func makeHealthIntelligenceAnalyticsCoordinator() -> HealthIntelligenceAnalyticsCoordinator {
-        HealthIntelligenceAnalyticsCoordinator(analyticsLogger: healthIntelligenceAnalyticsLogger)
-    }
+// MARK: - App shell / onboarding
 
-    func makeJourneyModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> JourneyModel {
-        JourneyModel(
-            dailyLogReader: dailyLogService,
-            weightLogReader: weightLogService,
-            userProfileReader: userProfileService,
-            trainingInsightsStore: trainingInsightsStore,
-            workoutReader: healthKitWorkoutReader,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            weeklyReviewService: weeklyReviewService,
-            healthIntelligenceEngine: healthIntelligenceEngine,
-            healthCacheStore: healthCacheStore,
-            healthActivityQuery: healthActivityQueryService,
-            healthDataRepository: healthDataRepository,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            },
-            restoreSessionState: accountRestoreSessionState,
-            localDataInspector: accountLocalDataInspector,
-            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
-            accountDataRefreshEventBus: accountDataRefreshEventBus,
-            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator,
-            accountSyncCursorStore: accountSyncCursorStore,
-            accountSyncOutboxStore: accountSyncOutboxStore,
-            accountRestoreStateStore: accountRestoreStateStore
-        )
-    }
-
-    func makePlanModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
-        planAnalyticsCoordinator: PlanAnalyticsCoordinator? = nil
-    ) -> PlanModel {
-        PlanModel(
-            actionCenter: actionCenter,
-            userProfileReader: userProfileService,
-            planTargetCalculator: targetService,
-            dailyLogReader: dailyLogService,
-            weightLogReader: weightLogService,
-            trainingInsightsStore: trainingInsightsStore,
-            analyticsLogger: planAnalyticsLogger,
-            planAnalyticsCoordinator: planAnalyticsCoordinator,
-            healthBaselineService: healthBaselineService,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            healthDataRepository: healthDataRepository,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            },
-            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
-            accountDataRefreshEventBus: accountDataRefreshEventBus,
-            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
-        )
-    }
+extension AppContainer {
 
     func makeRootModel() -> RootModel {
         RootModel(profileBootstrapService: profileBootstrapService)

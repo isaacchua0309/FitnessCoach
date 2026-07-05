@@ -11,10 +11,10 @@ import Foundation
 enum WeeklyProgressFixtures {
 
     static var calendar: Calendar {
-        TestDateFixtures.utcCalendar(firstWeekday: 2)
+        WeightFixtures.calendar
     }
 
-    static var asOf: Date { TestDateFixtures.referenceEpoch }
+    static var asOf: Date { DailyLogFixtures.referenceDate }
 
     static func dayOffset(_ offset: Int, from anchor: Date = asOf) -> Date {
         calendar.date(byAdding: .day, value: offset, to: anchor)!
@@ -30,46 +30,21 @@ enum WeeklyProgressFixtures {
         calorieTarget: Int = 2_000,
         asOf: Date = asOf
     ) -> DailyLog {
-        let date = calendar.date(byAdding: .day, value: -daysAgo, to: asOf)!
-        return DailyLog(
-            id: UUID(),
-            date: date,
-            weightKg: nil,
-            targets: UserTargets(
-                calorieTarget: calorieTarget,
-                proteinTarget: proteinTarget,
-                carbTarget: 200,
-                fatTarget: 60,
-                waterTargetMl: waterTargetMl,
-                expectedWeeklyWeightLossKg: 0.5,
-                aggressiveness: .moderate
-            ),
-            totals: MacroTotals(
-                calories: calories,
-                protein: protein,
-                carbs: 0,
-                fat: 0,
-                fiber: nil,
-                sodium: nil
-            ),
-            waterConsumedMl: waterMl,
-            steps: nil,
-            workoutCaloriesBurned: 0,
-            dailyReviewId: nil,
-            createdAt: date,
-            updatedAt: date
+        DailyLogFixtures.rollingWeekLog(
+            daysAgo: daysAgo,
+            asOf: asOf,
+            calendar: calendar,
+            calories: calories,
+            protein: protein,
+            waterMl: waterMl,
+            proteinTarget: proteinTarget,
+            waterTargetMl: waterTargetMl,
+            calorieTarget: calorieTarget
         )
     }
 
     static func makeWeight(daysAgo: Int, kg: Double, asOf: Date = asOf) -> WeightEntry {
-        let date = calendar.date(byAdding: .day, value: -daysAgo, to: asOf)!
-        return WeightEntry(
-            id: UUID(),
-            date: date,
-            weightKg: kg,
-            note: nil,
-            createdAt: date
-        )
+        WeightFixtures.entry(daysAgo: daysAgo, kg: kg, asOf: asOf, calendar: calendar)
     }
 
     static func makeStreaks(

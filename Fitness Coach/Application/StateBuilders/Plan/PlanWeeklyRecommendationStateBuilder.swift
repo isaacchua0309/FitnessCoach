@@ -12,10 +12,10 @@ enum PlanWeeklyRecommendationStateBuilder {
     static func weeklyProgressSummary(
         context: PlanDashboardContext,
         referenceDate: Date,
-        weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding = WeeklyProgressSummaryBuilder(
-            calendar: context.calendar
-        )
+        weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding? = nil
     ) -> WeeklyProgressSummary {
+        let weeklyProgressSummaryBuilder = weeklyProgressSummaryBuilder
+            ?? WeeklyProgressSummaryBuilder(calendar: context.calendar)
         let logs = context.maturityLogs.isEmpty ? context.weekLogs : context.maturityLogs
         let trainingDays = context.healthWorkoutDayStarts.isEmpty
             ? nil
@@ -34,10 +34,10 @@ enum PlanWeeklyRecommendationStateBuilder {
         context: PlanDashboardContext,
         planResult: PlanCalculationResult?,
         referenceDate: Date,
-        weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding = WeeklyProgressSummaryBuilder(
-            calendar: context.calendar
-        )
+        weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding? = nil
     ) -> PlanWeeklyRecommendationState {
+        let weeklyProgressSummaryBuilder = weeklyProgressSummaryBuilder
+            ?? WeeklyProgressSummaryBuilder(calendar: context.calendar)
         let profile = context.profile
         let logs = context.maturityLogs.isEmpty ? context.weekLogs : context.maturityLogs
         let trainingDays = context.healthWorkoutDayStarts.isEmpty
@@ -112,7 +112,7 @@ enum PlanWeeklyRecommendationStateBuilder {
         }
 
         let goalDirection = JourneyGoalDirection.resolve(
-            currentWeightKg: profile.currentWeightKg,
+            startWeightKg: profile.currentWeightKg,
             goalWeightKg: profile.goalWeightKg
         )
 

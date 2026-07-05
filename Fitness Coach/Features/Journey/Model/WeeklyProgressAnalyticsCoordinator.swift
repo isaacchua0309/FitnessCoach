@@ -54,7 +54,7 @@ final class WeeklyProgressAnalyticsCoordinator {
             return
         }
 
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             from: summary,
             surface: .journeyCard
         )
@@ -70,7 +70,7 @@ final class WeeklyProgressAnalyticsCoordinator {
     }
 
     func logReviewOpened(summary: WeeklyProgressSummary) {
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             from: summary,
             surface: .journeyDetail,
             entryPoint: .journeyCard
@@ -79,7 +79,7 @@ final class WeeklyProgressAnalyticsCoordinator {
     }
 
     func logReviewCompleted(summary: WeeklyProgressSummary) {
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             from: summary,
             surface: .journeyDetail
         )
@@ -100,7 +100,7 @@ final class WeeklyProgressAnalyticsCoordinator {
             return
         }
 
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             from: summary,
             surface: surface
         )
@@ -120,7 +120,7 @@ final class WeeklyProgressAnalyticsCoordinator {
             return
         }
 
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             from: summary,
             surface: surface
         )
@@ -149,7 +149,7 @@ final class WeeklyProgressAnalyticsCoordinator {
             return
         }
 
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             from: summary,
             recommendationKind: recommendationKind,
             surface: surface
@@ -163,7 +163,7 @@ final class WeeklyProgressAnalyticsCoordinator {
         surface: WeeklyProgressAnalyticsSurface,
         entryPoint: WeeklyProgressAnalyticsEntryPoint
     ) {
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             from: summary,
             recommendationKind: recommendationKind,
             surface: surface,
@@ -177,7 +177,7 @@ final class WeeklyProgressAnalyticsCoordinator {
         entryPoint: WeeklyProgressAnalyticsEntryPoint,
         recommendationKind: WeeklyPlanRecommendationKind? = nil
     ) {
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             from: summary,
             recommendationKind: recommendationKind,
             surface: .planDashboard,
@@ -196,7 +196,7 @@ final class WeeklyProgressAnalyticsCoordinator {
         hasWeightSpike: Bool = false,
         hasMaintenanceEstimate: Bool = false
     ) {
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             foodLoggedDays: foodLoggedDays,
             weightEntryCount: weightEntryCount,
             calendarSpanDays: calendarSpanDays,
@@ -223,7 +223,7 @@ final class WeeklyProgressAnalyticsCoordinator {
             return
         }
 
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             from: summary,
             surface: surface
         )
@@ -241,7 +241,7 @@ final class WeeklyProgressAnalyticsCoordinator {
             return
         }
 
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             foodLoggedDays: foodLoggedDays,
             weightEntryCount: weightEntryCount,
             calendarSpanDays: calendarSpanDays,
@@ -252,7 +252,7 @@ final class WeeklyProgressAnalyticsCoordinator {
     }
 
     func logDailyReviewOpenedFromToday(foodLoggedDays: Int) {
-        var properties = WeeklyProgressAnalyticsContextBuilder.properties(
+        let properties = WeeklyProgressAnalyticsContextBuilder.properties(
             foodLoggedDays: foodLoggedDays,
             weightEntryCount: 0,
             calendarSpanDays: 1,

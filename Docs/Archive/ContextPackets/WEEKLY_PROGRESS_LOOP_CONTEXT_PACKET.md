@@ -1,6 +1,6 @@
 # Weekly Progress Loop Context Packet
 
-> **Implementation note (2026-07):** Weekly Progress Loop **v1 is implemented** on branch `cursor/unified-weekly-review-presentation-027b`. Post-implementation documentation lives in [`Docs/WeeklyProgress/WeeklyProgressLoopV1.md`](Docs/WeeklyProgress/WeeklyProgressLoopV1.md). The audit below remains as the pre-sprint baseline record.
+> **Implementation note (2026-07):** Weekly Progress Loop **v1 is implemented** on branch `cursor/unified-weekly-review-presentation-027b`. Post-implementation documentation lives in [`Docs/WeeklyProgress/WeeklyProgressLoopV1.md`](../../WeeklyProgress/WeeklyProgressLoopV1.md). The audit below remains as the pre-sprint baseline record.
 
 **Generated:** 2026-07-05  
 **Sprint scope target:** Weekly Progress Loop v1 — Learned Maintenance, Unified Weekly Review, and Plan Recommendations  
@@ -11,10 +11,10 @@
 - `PRD.md` (§9.11 Maintenance Calculator, §9.12 Daily Review, §9.13 Weekly Review)
 - `FULL_APP_PRODUCT_LOOP_GAP_CONTEXT_PACKET.md`
 - `USER_DATA_STORAGE_CONTEXT_PACKET.md`
-- `ACCOUNT_PERSISTENCE_EXECUTION_MAP.md`
-- `ACCOUNT_PERSISTENCE_PHASE_READINESS.md`
+- `../SprintReports/ACCOUNT_PERSISTENCE_EXECUTION_MAP.md`
+- `../SprintReports/ACCOUNT_PERSISTENCE_PHASE_READINESS.md`
 - `ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`
-- `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`
+- `../SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`
 - `Docs/JourneyArchitecture.md`
 - `Docs/FormaCalculationSpec.md` (referenced by `EnergyCalculator`, `FormaCalculationConstants`)
 - `Docs/AccountPersistence/PHASE_2` through `PHASE_5`

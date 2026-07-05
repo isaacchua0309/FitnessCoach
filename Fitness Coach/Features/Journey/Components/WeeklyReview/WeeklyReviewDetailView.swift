@@ -26,10 +26,14 @@ struct WeeklyReviewDetailView: View {
 
     init(
         detail: WeeklyProgressDetailState,
-        weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator?
+        weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator?,
+        onPrimaryCTA: ((WeeklyProgressCTA) -> Void)? = nil,
+        onSecondaryCTA: ((WeeklyProgressCTA) -> Void)? = nil
     ) {
         self.presentation = .loaded(detail)
         self.weeklyProgressAnalyticsCoordinator = weeklyProgressAnalyticsCoordinator
+        self.onPrimaryCTA = onPrimaryCTA
+        self.onSecondaryCTA = onSecondaryCTA
     }
 
     init(presentation: Presentation, isLoading: Bool = false) {

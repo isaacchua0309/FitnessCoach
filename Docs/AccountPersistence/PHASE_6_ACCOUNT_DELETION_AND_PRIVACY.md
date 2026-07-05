@@ -4,7 +4,7 @@ Production documentation for **account deletion**, **local device wipe**, and **
 
 **Status:** Phase 6 **implemented (code + tests)** — verify with `xcodebuild test` (iOS) and `npm --prefix functions test` (backend) before production rollout.  
 **Depends on:** [Phase 2](./PHASE_2_CLOUD_SCHEMA_AND_RULES.md), [Phase 3](./PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md), [Phase 4](./PHASE_4_FRESH_INSTALL_RESTORE.md), [Phase 5](./PHASE_5_CROSS_DEVICE_REFRESH.md)  
-**Companion:** `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md` § Phase 6  
+**Companion:** [ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md](../Archive/SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md) § Phase 6  
 **Release checklists:** [Production/PrivacyReviewChecklist.md](../Production/PrivacyReviewChecklist.md), [Production/AppStoreReadinessChecklist.md](../Production/AppStoreReadinessChecklist.md) § Account deletion
 
 ---

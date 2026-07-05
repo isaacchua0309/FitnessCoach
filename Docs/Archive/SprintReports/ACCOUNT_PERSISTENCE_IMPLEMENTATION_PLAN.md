@@ -1,6 +1,6 @@
 # Account Persistence — Implementation Plan
 
-**Companion to:** `ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`  
+**Companion to:** `../ContextPackets/ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`  
 **Status:** Phases 2–6 foundation **implemented** — see `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md`, `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`, `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`, `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`, and `Docs/AccountPersistence/PHASE_6_ACCOUNT_DELETION_AND_PRIVACY.md`  
 **Generated:** 2026-07-04 · **Updated:** 2026-07-05
 

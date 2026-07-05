@@ -5,7 +5,7 @@
     "build": "tsc",
     "test": "jest --testPathIgnorePatterns='accountPersistenceFirestoreRules|nutritionSyncContract'",
     "test:all": "jest",
-    "test:coach": "jest --testPathPatterns=coach",
+    "test:coach": "jest --testPathPatterns='test/coach' --testPathIgnorePatterns='accountPersistenceFirestoreRules|nutritionSyncContract'",
     "test:food": "jest --testPathPatterns=food",
     "test:account-persistence": "jest --testPathPatterns='accountPersistence|accountDeletion|nutritionSyncContract'",
     "test:gateway": "jest --testPathPatterns='gatewayGuardrails|aiGateway'",

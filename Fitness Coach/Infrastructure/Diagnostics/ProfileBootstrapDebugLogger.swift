@@ -27,7 +27,7 @@ enum ProfileBootstrapDebugLogger {
     }
 
     nonisolated static func error(_ message: String, fields: [String: String] = [:], underlying: Error? = nil) {
-        var merged = sanitizeFields(fields)
+        var merged = LogRedactor.sanitizeLogFields(fields)
         if let underlying {
             merged.merge(LogRedactor.safeErrorFields(from: underlying, includeDescription: false)) { _, new in new }
             #if DEBUG

@@ -194,7 +194,7 @@ private final class CoachTodaySyncFoodEstimateService: AIServiceProtocol, @unche
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         CoachIntentResult(
@@ -211,7 +211,7 @@ private final class CoachTodaySyncFoodEstimateService: AIServiceProtocol, @unche
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         response
@@ -219,22 +219,22 @@ private final class CoachTodaySyncFoodEstimateService: AIServiceProtocol, @unche
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AIDailyReviewResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AIDailyReviewResponse {
         throw AIServiceError.backendUnavailable
     }
 }

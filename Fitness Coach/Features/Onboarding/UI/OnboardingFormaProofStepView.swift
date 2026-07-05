@@ -156,7 +156,7 @@ struct OnboardingFormaProofStepView: View {
     .dynamicTypeSize(.accessibility2)
 }
 
-#Preview("Forma Proof — Landscape") {
+#Preview("Forma Proof — Landscape", traits: .landscapeLeft) {
     OnboardingFormaProofStepView(
         formState: {
             var state = OnboardingFormState()
@@ -167,6 +167,5 @@ struct OnboardingFormaProofStepView: View {
     )
     .background(OnboardingTheme.background)
     .formaThemePreview()
-    .previewInterfaceOrientation(.landscapeLeft)
 }
 #endif

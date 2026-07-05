@@ -1,7 +1,7 @@
 # Test Strategy
 
 **Last updated:** 2026-07-04  
-**Related:** `Fitness CoachTests/TESTING.md`, [AppArchitectureOverview.md](./AppArchitectureOverview.md), [../../PRDX_V1_IMPLEMENTATION_MAP.md](../../PRDX_V1_IMPLEMENTATION_MAP.md)
+**Related:** `Fitness CoachTests/TESTING.md`, [AppArchitectureOverview.md](./AppArchitectureOverview.md), [../Archive/SprintReports/PRDX_V1_IMPLEMENTATION_MAP.md](../Archive/SprintReports/PRDX_V1_IMPLEMENTATION_MAP.md)
 
 ---
 

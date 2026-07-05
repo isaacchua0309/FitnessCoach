@@ -64,7 +64,8 @@ final class CoachMealPhotoAnalyzer {
             recommission: recommission,
             recentMessages: recentMessages,
             preparedContext: preparedContext,
-            currentUserMessage: currentUserMessage
+            currentUserMessage: currentUserMessage,
+            userCaption: session.userCaption
         )
     }
 
@@ -74,7 +75,8 @@ final class CoachMealPhotoAnalyzer {
         recommission: ImageAnalysisRecommissionContext?,
         recentMessages: [ChatMessage],
         preparedContext: CoachContextPacketV2?,
-        currentUserMessage: String?
+        currentUserMessage: String?,
+        userCaption: String
     ) async -> MealPhotoAnalysisOutcome {
         FormaPipelineTracer.event(
             stage: .coachSend,
@@ -105,7 +107,7 @@ final class CoachMealPhotoAnalyzer {
                 prompt: prompt,
                 recommission: recommission,
                 context: context,
-                userCaption: session.userCaption
+                userCaption: userCaption
             )
             return MealPhotoAnalysisOutcome(
                 result: presentation.actionResult,

@@ -1,8 +1,8 @@
 # Analytics Readiness Checklist
 
-**Last updated:** 2026-07-04  
+**Last updated:** 2026-07-05  
 **Related:** [LoggingAndPrivacyContract.md](./LoggingAndPrivacyContract.md), [FeatureFlagRegistry.md](./FeatureFlagRegistry.md)  
-**Implementation:** `Fitness Coach/Infrastructure/Diagnostics/AnalyticsLoggingSupport.swift`
+**Implementation:** `Fitness Coach/Infrastructure/Diagnostics/AnalyticsLoggingSupport.swift`, `Fitness Coach/App/AnalyticsLoggerFactory.swift`
 
 ---
 
@@ -123,13 +123,20 @@ All sinks should call `properties.privacySafeParameters()` (via `AnalyticsLoggin
 
 ## 7. AppContainer Wiring
 
+Sink selection is centralized in `AnalyticsLoggerFactory`:
+
 ```swift
-#if DEBUG
-  OSLog*AnalyticsLogger()  // per domain
-#else
-  NoOp*AnalyticsLogger()    // intentional Release default
-#endif
+let loggers = AnalyticsLoggerFactory.makeAppLoggers(
+    today: injectedTodayLogger,  // optional test override
+    ...
+)
+// DEBUG → OSLog*AnalyticsLogger per domain
+// Release → NoOp*AnalyticsLogger per domain (intentional)
 ```
+
+`AppContainer.buildAnalyticsDependencies` maps `AppAnalyticsLoggers` into `AnalyticsDependenciesBundle`.
+
+Coach nutrition-card analytics use `AnalyticsLoggerFactory.coach(_:)` at `CoachModel` init (not container-wired).
 
 Factory methods:
 - `makeSettingsAnalyticsCoordinator()` → `settingsAnalyticsLogger`
@@ -185,5 +192,6 @@ Inject test doubles via `AppContainer(inMemory: true, todayAnalyticsLogger: Capt
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Centralized sink selection in `AnalyticsLoggerFactory` |
 | 2026-07-04 | Initial analytics readiness checklist |
 | 2026-07-04 | Added `AnalyticsLoggingSupport`, fixed Plan OSLog sink, wired HI logger in AppContainer |

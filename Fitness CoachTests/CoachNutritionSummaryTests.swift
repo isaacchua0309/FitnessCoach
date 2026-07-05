@@ -13,7 +13,7 @@ final class CoachNutritionSummaryTests: XCTestCase {
     private let accuracy = 0.000_1
 
     func testCoachAIContextTodaySummaryMatchesSharedBuilder() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = TestFixtureFactory.nutritionLog(.baseline)
         let expected = RuntimeNutritionSummaryCharacterization.snapshot(from: log)
         let summary = TodayAISummaryMapper.from(dailyLog: log, workoutsToday: 2, recentMeals: ["200 g chicken"])
 
@@ -40,7 +40,7 @@ final class CoachNutritionSummaryTests: XCTestCase {
     }
 
     func testDailyReviewAIInputUsesSharedStatusFlags() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = TestFixtureFactory.nutritionLog(.baseline)
         let nutrition = DailyNutritionSummaryBuilder.build(from: log)
         let summary = TodayAISummaryMapper.from(
             nutrition: nutrition,
@@ -56,7 +56,7 @@ final class CoachNutritionSummaryTests: XCTestCase {
     }
 
     func testReviewAIContextIncludesRemainingMacroFields() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = TestFixtureFactory.nutritionLog(.baseline)
         let reviewSummary = RuntimeNutritionSummaryCharacterization.reviewSummary(from: log)
         let aiSummary = TodayAISummaryMapper.from(reviewSummary: reviewSummary)
 
@@ -71,7 +71,7 @@ final class CoachNutritionSummaryTests: XCTestCase {
     }
 
     func testStatusResponseUsesSharedRemainingValues() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = TestFixtureFactory.nutritionLog(.baseline)
         let nutrition = DailyNutritionSummaryBuilder.build(from: log)
         let message = CoachResponseBuilder.status(log)
 
@@ -83,11 +83,11 @@ final class CoachNutritionSummaryTests: XCTestCase {
     }
 
     func testMealAdviceUsesSharedCalorieProteinAndWaterValues() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = TestFixtureFactory.nutritionLog(.baseline)
         let nutrition = DailyNutritionSummaryBuilder.build(from: log)
         let message = CoachResponseBuilder.mealAdvice(
             log: log,
-            profile: ProfileTestFixtures.sampleProfile,
+            profile: ProfileFixtures.sampleProfile,
             hasWorkoutToday: false,
             assistantMessage: nil
         )
@@ -100,7 +100,7 @@ final class CoachNutritionSummaryTests: XCTestCase {
     }
 
     func testFoodResponseUsesClampedProteinRemaining() {
-        let log = DailyNutritionSummaryTestFixtures.caloriesOverTargetLog
+        let log = TestFixtureFactory.nutritionLog(.caloriesOverTarget)
         let nutrition = DailyNutritionSummaryBuilder.build(from: log)
         let entry = CoachMutationTestFixtures.chickenFoodEntry
         let message = CoachResponseBuilder.food(entry, log: log)

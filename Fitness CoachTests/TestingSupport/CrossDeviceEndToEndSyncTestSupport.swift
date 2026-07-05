@@ -35,6 +35,26 @@ final class CrossDeviceEndToEndSimulation {
     let referenceDate: Date
     let localDate: String
 
+    init(
+        uid: String,
+        otherUID: String,
+        remoteStore: InMemoryAccountDataRemoteStore,
+        deviceA: SimulatedCrossDevice,
+        deviceB: SimulatedCrossDevice,
+        calendar: Calendar,
+        referenceDate: Date,
+        localDate: String
+    ) {
+        self.uid = uid
+        self.otherUID = otherUID
+        self.remoteStore = remoteStore
+        self.deviceA = deviceA
+        self.deviceB = deviceB
+        self.calendar = calendar
+        self.referenceDate = referenceDate
+        self.localDate = localDate
+    }
+
     static func make(
         uid: String = "shared-user",
         otherUID: String = "other-user",
@@ -134,6 +154,50 @@ final class SimulatedCrossDevice {
     let localDate: String
 
     private let profileBootstrapService: ProfileBootstrapService
+
+    init(
+        name: String,
+        uid: String,
+        clock: FakeTestClock,
+        store: SwiftDataStore,
+        profileService: UserProfileService,
+        dailyLogService: DailyLogService,
+        foodLogService: FoodLogService,
+        waterLogService: WaterLogService,
+        weightLogService: WeightLogService,
+        actionCenter: FitnessActionCenter,
+        accountSyncCoordinator: AccountSyncCoordinator,
+        crossDeviceSyncCoordinator: CrossDeviceSyncCoordinator,
+        refreshEventBus: AccountDataRefreshEventBus,
+        refreshCenter: AppRefreshCenter,
+        profileCloudSyncStore: ProfileCloudSyncStore,
+        networkChecker: CrossDeviceSyncNetworkCheckerMock,
+        healthActivityQuery: HealthActivityQueryService,
+        calendar: Calendar,
+        localDate: String,
+        profileBootstrapService: ProfileBootstrapService
+    ) {
+        self.name = name
+        self.uid = uid
+        self.clock = clock
+        self.store = store
+        self.profileService = profileService
+        self.dailyLogService = dailyLogService
+        self.foodLogService = foodLogService
+        self.waterLogService = waterLogService
+        self.weightLogService = weightLogService
+        self.actionCenter = actionCenter
+        self.accountSyncCoordinator = accountSyncCoordinator
+        self.crossDeviceSyncCoordinator = crossDeviceSyncCoordinator
+        self.refreshEventBus = refreshEventBus
+        self.refreshCenter = refreshCenter
+        self.profileCloudSyncStore = profileCloudSyncStore
+        self.networkChecker = networkChecker
+        self.healthActivityQuery = healthActivityQuery
+        self.calendar = calendar
+        self.localDate = localDate
+        self.profileBootstrapService = profileBootstrapService
+    }
 
     static func make(
         name: String,

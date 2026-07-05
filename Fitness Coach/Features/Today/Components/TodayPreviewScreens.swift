@@ -50,12 +50,10 @@ enum TodayPreviewScreens {
 
 #Preview("Brand new day — iPhone SE") {
     TodayPreviewScreens.dashboard(TodayPreviewData.brandNewDay)
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
 }
 
 #Preview("Calories exceeded — Pro Max") {
     TodayPreviewScreens.dashboard(TodayPreviewData.caloriesExceeded)
-        .previewDevice(PreviewDevice(rawValue: "iPhone 15 Pro Max"))
 }
 
 #Preview("Protein behind — large text") {

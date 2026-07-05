@@ -110,7 +110,7 @@ enum PlanWeeklyRecommendationTestFixtures {
     static func reviewPlanSummary() -> WeeklyProgressSummary {
         let base = strongSummary
         let maintenance = maintenanceEstimate(
-            base: base,
+            base: base.maintenanceEstimate,
             confidence: .medium,
             trendDirection: .losingFasterThanExpected
         )

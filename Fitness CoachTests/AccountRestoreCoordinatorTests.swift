@@ -123,7 +123,10 @@ final class AccountRestoreCoordinatorTests: XCTestCase {
         )
 
         XCTAssertTrue(summary.allowsContinuedEntry)
-        try await Task.sleep(nanoseconds: 200_000_000)
+        let backfillRan = await AsyncTestSupport.waitUntilWallClock(timeout: 0.3) {
+            harness.initialRestore.backgroundCallCount == 1
+        }
+        XCTAssertTrue(backfillRan)
         XCTAssertEqual(harness.initialRestore.backgroundCallCount, 1)
     }
 

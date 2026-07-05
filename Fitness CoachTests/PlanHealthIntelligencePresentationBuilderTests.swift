@@ -213,6 +213,55 @@ final class PlanHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertEqual(decoded, section)
     }
 
+    // MARK: - Core delegation parity
+
+    func testSectionFallbackMessageUsesPlanPresentationPolicy() {
+        let section = PlanHealthIntelligencePresentationBuilder.buildSection(
+            input: PlanHealthIntelligenceBuildInput(
+                planConfidence: .unknown,
+                baselineContext: .empty(for: referenceDay),
+                recovery: .unknown,
+                userPlan: connectedPlan(),
+                healthConnection: .disconnected,
+                hasNutritionLogging: false,
+                hasRecentWeightLog: false
+            ),
+            calendar: calendar
+        )
+
+        guard let uiState = section.uiState else {
+            XCTFail("Expected uiState")
+            return
+        }
+
+        XCTAssertEqual(
+            section.fallbackMessage,
+            HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: .plan)
+        )
+    }
+
+    func testStaleDataLabelUsesPlanPresentationPolicy() {
+        let uiState = HealthIntelligenceUIState(
+            kind: .staleData,
+            title: "Stale",
+            message: "Cached data may be outdated.",
+            primaryActionTitle: nil,
+            secondaryActionTitle: nil,
+            primaryAction: .none,
+            secondaryAction: .none,
+            severity: .warning,
+            canShowInsight: true,
+            confidenceLabel: nil,
+            missingSignals: [],
+            fallbackReason: .staleLocalCache
+        )
+
+        XCTAssertEqual(
+            HealthIntelligencePresentationCore.staleDataLabel(for: uiState, surface: .plan),
+            FormaProductCopy.Today.HealthIntelligence.staleDataLabel
+        )
+    }
+
     // MARK: - Fixtures
 
     private func makeStrongInput() -> PlanHealthIntelligenceBuildInput {

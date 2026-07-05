@@ -34,27 +34,27 @@ enum CoachLayoutGuard {
         ),
         (
             "CoachConversationView.swift",
-            CoachAccessibilityIdentifier.chatScroll,
+            "coach.chat.scroll",
             "Coach transcript scroll must expose a stable accessibility identifier."
         ),
         (
             "CoachComposer.swift",
-            CoachAccessibilityIdentifier.inputTextField,
+            "coach.input.textfield",
             "Coach composer must expose a stable input accessibility identifier."
         ),
         (
             "CoachConfirmationBar.swift",
-            CoachAccessibilityIdentifier.pendingFoodCard,
+            "coach.pendingFoodCard",
             "Pending food card must expose a stable accessibility identifier."
         ),
         (
             "CoachConfirmationBar.swift",
-            CoachAccessibilityIdentifier.pendingFoodCardLogButton,
+            "coach.pendingFoodCard.logButton",
             "Pending food card Log action must remain discoverable to UI tests."
         ),
         (
             "CoachConfirmationBar.swift",
-            CoachAccessibilityIdentifier.pendingFoodCardDiscardButton,
+            "coach.pendingFoodCard.discardButton",
             "Pending food card Discard action must remain discoverable to UI tests."
         ),
     ]

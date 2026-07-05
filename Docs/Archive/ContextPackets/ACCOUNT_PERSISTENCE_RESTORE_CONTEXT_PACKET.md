@@ -685,7 +685,7 @@ Options: Attach / Not now / Delete local history
 
 ## 15. Implementation Phases
 
-See **`ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`** for file-level tasks, tests, and Cursor workflow.
+See **`../SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`** for file-level tasks, tests, and Cursor workflow.
 
 Summary:
 
@@ -769,7 +769,7 @@ Summary:
 | # | Deliverable | Location |
 |---|-------------|----------|
 | 1 | Context packet | This file |
-| 2 | Implementation plan | `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md` |
+| 2 | Implementation plan | `../SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md` |
 | 3 | Prioritized gap table | §15 + Implementation Plan §1 |
 | 4 | Firestore schema | §7 |
 | 5 | SwiftData migration plan | §8 |

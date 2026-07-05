@@ -121,7 +121,6 @@ final class TodayHealthIntelligenceCompositionTests: XCTestCase {
             appleHealthWorkoutCount: 1,
             stepsToday: 9_120,
             stepGoalAssumption: 8_000,
-            displayLine: FormaProductCopy.Today.Activity.workoutCompletedLine,
             showsConnectCTA: false,
             date: Date(),
             trainingFrequencyPerWeek: 3
@@ -142,7 +141,6 @@ final class TodayHealthIntelligenceCompositionTests: XCTestCase {
             appleHealthWorkoutCount: nil,
             stepsToday: 8_450,
             stepGoalAssumption: 8_000,
-            displayLine: FormaProductCopy.Today.Activity.stepsToday(8_450),
             showsConnectCTA: false,
             date: Date(),
             trainingFrequencyPerWeek: 3

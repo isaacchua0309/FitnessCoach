@@ -26,7 +26,7 @@ final class HealthIntelligencePipelineTestHarness {
 
     init(
         calendar: Calendar = HealthIntelligencePipelineFixtures.makeCalendar(),
-        clockDay: Date = HealthIntelligencePipelineFixtures.day(2026, 7, 8, hour: 14),
+        clockDay: Date = HealthIntelligenceFixtures.pipelineWeekDay,
         dependencies: HealthIntelligenceEngineDependencies = .production()
     ) {
         self.calendar = calendar
@@ -41,7 +41,7 @@ final class HealthIntelligencePipelineTestHarness {
             nutritionProvider: nutritionProvider,
             weightProvider: weightProvider,
             userPlanProvider: userPlanProvider,
-            clock: FakeClock(now: clockDay, calendar: calendar)
+            clock: FakeHealthIntelligenceClock(clock: FakeClock(now: clockDay, calendar: calendar))
         )
         self.engine = HealthIntelligenceEngine(
             contextBuilder: contextBuilder,
@@ -73,11 +73,7 @@ final class HealthIntelligencePipelineTestHarness {
 
 enum HealthIntelligencePipelineFixtures {
 
-    static func makeCalendar() -> Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
-        return calendar
-    }
+    static func makeCalendar() -> Calendar { HealthIntelligenceFixtures.calendar }
 
     static func day(
         _ year: Int,
@@ -86,7 +82,7 @@ enum HealthIntelligencePipelineFixtures {
         hour: Int = 0,
         calendar: Calendar = makeCalendar()
     ) -> Date {
-        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+        HealthIntelligenceFixtures.day(year, month, day, hour: hour, calendar: calendar)
     }
 
     static func connectedAvailability(cachedDays: Int = 28) -> HealthDataAvailability {
@@ -382,12 +378,7 @@ enum HealthIntelligencePipelineFixtures {
     }
 
     static func defaultPlan() -> HealthIntelligenceUserPlanSnapshot {
-        HealthIntelligenceUserPlanSnapshot(
-            goal: .maintain,
-            calorieTarget: 2_200,
-            proteinTargetGrams: 150,
-            waterTargetMl: 2_500
-        )
+        HealthIntelligenceFixtures.defaultPlan()
     }
 }
 

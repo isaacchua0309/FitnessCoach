@@ -78,7 +78,7 @@ final class AccountSyncCoordinatorTests: XCTestCase {
         uploader.delayNanoseconds = 200_000_000
 
         async let first = coordinator.syncNow(for: ownerUID, reason: .manual)
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        await AsyncTestSupport.drainMainActorTasks(maxYields: 10)
         let second = await coordinator.syncNow(for: ownerUID, reason: .manual)
         let firstSummary = await first
 
@@ -123,8 +123,10 @@ final class AccountSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(uploader.uploadCallCount, 0)
 
         harness.uidProvider.setUID("userB")
-        try? await Task.sleep(nanoseconds: 120_000_000)
-
+        let uploadFired = await AsyncTestSupport.waitUntilWallClock(timeout: 0.15, interval: 0.025) {
+            uploader.uploadCallCount > 0
+        }
+        XCTAssertFalse(uploadFired)
         XCTAssertEqual(uploader.uploadCallCount, 0)
     }
 
@@ -134,7 +136,10 @@ final class AccountSyncCoordinatorTests: XCTestCase {
 
         coordinator.cancelPendingWork()
 
-        try? await Task.sleep(nanoseconds: 120_000_000)
+        let uploadFired = await AsyncTestSupport.waitUntilWallClock(timeout: 0.15, interval: 0.025) {
+            uploader.uploadCallCount > 0
+        }
+        XCTAssertFalse(uploadFired)
         XCTAssertEqual(uploader.uploadCallCount, 0)
     }
 }

@@ -33,7 +33,6 @@ final class AccountSyncLifecycleWiringTests: XCTestCase {
         )
         XCTAssertFalse(due.isEmpty)
 
-        try? await Task.sleep(nanoseconds: 120_000_000)
         await AsyncTestSupport.drainMainActorTasks(maxYields: 30)
     }
 
@@ -49,7 +48,10 @@ final class AccountSyncLifecycleWiringTests: XCTestCase {
         context.state.currentUID = "other-user"
         context.coordinator.cancelPendingWork()
 
-        try? await Task.sleep(nanoseconds: 120_000_000)
+        let uploadFired = await AsyncTestSupport.waitUntilWallClock(timeout: 0.15, interval: 0.025) {
+            context.uploader.uploadCallCount > 0
+        }
+        XCTAssertFalse(uploadFired)
         await AsyncTestSupport.drainMainActorTasks(maxYields: 30)
 
         let localDate = CloudAccountDataDateCodec.localDateString(

@@ -194,7 +194,10 @@ final class AccountDeletionCoordinatorTests: XCTestCase {
         remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
 
         async let deletionTask = coordinator.deleteAccount(confirmation: "DELETE")
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        let deletionStarted = await AsyncTestSupport.waitUntilWallClock(timeout: 0.15) {
+            coordinator.isDeletionInProgress(for: ownerUID) || remoteClient.callCount > 0
+        }
+        XCTAssertTrue(deletionStarted)
         sessionUID = "user-b"
 
         let summary = await deletionTask
@@ -209,7 +212,10 @@ final class AccountDeletionCoordinatorTests: XCTestCase {
         remoteClient.configuredResult = Self.remoteResult(uid: ownerUID)
 
         async let deletionTask = coordinator.deleteAccount(confirmation: "DELETE")
-        try? await Task.sleep(nanoseconds: 30_000_000)
+        let deletionStarted = await AsyncTestSupport.waitUntilWallClock(timeout: 0.15) {
+            coordinator.isDeletionInProgress(for: ownerUID) || remoteClient.callCount > 0
+        }
+        XCTAssertTrue(deletionStarted)
         coordinator.cancelDeletion()
 
         let summary = await deletionTask

@@ -344,6 +344,7 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
         themeAnalyticsTrace: false,
         publicEntryAnalyticsTrace: false,
         healthIntelligenceAnalyticsTrace: false,
+        weeklyProgressAnalyticsTrace: false,
         healthTrainingTrace: false,
         profileBootstrapTrace: false,
         authSignInTrace: false,

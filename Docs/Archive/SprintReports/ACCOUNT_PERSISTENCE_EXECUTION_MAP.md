@@ -3,7 +3,7 @@
 **Branch:** `feature/account-persistence-restore`  
 **Generated:** 2026-07-04  
 **Status:** Planning only — no application code changes in this deliverable  
-**Sources:** `USER_DATA_STORAGE_CONTEXT_PACKET.md`, `ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`, `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`
+**Sources:** `../ContextPackets/USER_DATA_STORAGE_CONTEXT_PACKET.md`, `../ContextPackets/ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`, `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`
 
 ---
 

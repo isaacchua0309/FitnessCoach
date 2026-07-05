@@ -150,7 +150,7 @@ enum WeeklyProgressConfidencePolicy {
         hasProfile: Bool,
         hasTargets: Bool
     ) -> WeeklyProgressDataSufficiency {
-        var result = evaluate(
+        let result = evaluate(
             foodLoggedDays: foodLoggedDays,
             weightEntryCount: weightEntryCount,
             calendarSpanDays: calendarSpanDays,

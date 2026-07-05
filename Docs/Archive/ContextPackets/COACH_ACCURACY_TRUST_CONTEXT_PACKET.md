@@ -965,7 +965,7 @@ No `parse-plan-change` endpoint found. Plan adjustments likely require Plan tab 
 80 `Fitness CoachTests/Coach*.swift` files; 21 `functions/test/*.test.ts` files; `SingaporeFoodEstimationFixtureTests.swift`, `FoodLoggingGoldenTests.swift`
 
 ### Docs
-`COACH_ACCURACY_HARDENING_FINAL_REPORT.md`, `COACH_ACCURACY_HARDENING_SPRINT_AUDIT.md`, `COACH_FULL_CONTEXT_PACKET.md`, `Docs/CoachNutritionEstimateCards.md`, `Docs/BackendAPI.md`, `FORMA_AI_API_SERVER_CONTEXT_PACKET.md`, `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md` (referenced)
+`COACH_ACCURACY_HARDENING_FINAL_REPORT.md`, `COACH_ACCURACY_HARDENING_SPRINT_AUDIT.md`, `COACH_FULL_CONTEXT_PACKET.md`, `Docs/CoachNutritionEstimateCards.md`, `Docs/BackendAPI.md`, `FORMA_AI_API_SERVER_CONTEXT_PACKET.md`, `../SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md` (referenced)
 
 ---
 

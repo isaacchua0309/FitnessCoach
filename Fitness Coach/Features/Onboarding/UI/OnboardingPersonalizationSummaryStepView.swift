@@ -155,14 +155,13 @@ struct OnboardingPersonalizationSummaryStepView: View {
     .formaThemePreview()
 }
 
-#Preview("Landscape") {
+#Preview("Landscape", traits: .landscapeLeft) {
     OnboardingPersonalizationSummaryStepView(
         formState: OnboardingPreviewData.formState,
         validationMessage: nil
     )
     .background(OnboardingTheme.background)
     .formaThemePreview()
-    .previewInterfaceOrientation(.landscapeLeft)
 }
 
 #Preview("Accessibility Type") {

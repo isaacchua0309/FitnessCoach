@@ -10,6 +10,7 @@ import Foundation
 
 enum JourneyHealthIntelligencePresentationBuilder {
 
+    private static let surface: HealthIntelligenceSurface = .journey
     private static let defaultTimelineDayCount = 7
     private static let maxTimelineDayCount = 14
     private static let workoutHistoryWindowDays = 30
@@ -31,7 +32,10 @@ enum JourneyHealthIntelligencePresentationBuilder {
         }
 
         if uiState.kind == .syncFailed, !uiState.canShowInsight {
-            return errorSection(from: uiState, message: trimmed(input.errorMessage))
+            return errorSection(
+                from: uiState,
+                message: HealthIntelligencePresentationCore.trimmed(input.errorMessage)
+            )
         }
 
         if shouldShowConnectOnlySection(uiState: uiState) {
@@ -52,7 +56,7 @@ enum JourneyHealthIntelligencePresentationBuilder {
             return emptyDataSection(connection: connection, uiState: uiState)
         }
 
-        let staleLabel = staleDataLabel(for: uiState)
+        let staleLabel = HealthIntelligencePresentationCore.staleDataLabel(for: uiState, surface: surface)
         let weeklyPresentation = weeklyReviewPresentation(
             from: input.weeklyReview,
             isLoading: false,
@@ -92,10 +96,10 @@ enum JourneyHealthIntelligencePresentationBuilder {
             ),
             connectHealthCTA: connectHealthCTA(from: uiState),
             isLoading: false,
-            errorMessage: syncFailureSectionMessage(for: uiState),
-            fallbackMessage: fallbackMessage(for: uiState),
+            errorMessage: HealthIntelligencePresentationPolicy.syncFailureSectionMessage(for: uiState),
+            fallbackMessage: HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: surface),
             staleDataLabel: staleLabel,
-            partialSignalsNote: partialSignalsNote(for: uiState),
+            partialSignalsNote: HealthIntelligencePresentationCore.partialSignalsNote(for: uiState, surface: surface),
             uiState: uiState
         )
     }
@@ -131,27 +135,18 @@ enum JourneyHealthIntelligencePresentationBuilder {
     private static func weeklyReviewBuildingCard(
         uiState: HealthIntelligenceUIState?
     ) -> WeeklyReviewCardState {
+        let content = HealthIntelligencePresentationCore.buildWeeklyReviewBuildingContent(uiState: uiState)
         let copy = FormaProductCopy.WeeklyReviewPresentation.self
-        let usesNotEnoughData = uiState?.kind == .notEnoughBaseline
-            || uiState?.kind == .unknown
-            || uiState?.kind == .noWorkoutHistory
-
-        let title = usesNotEnoughData ? copy.notEnoughDataTitle : copy.emptyTitle
-        let summary = usesNotEnoughData
-            ? "\(copy.notEnoughDataSummary) \(copy.notEnoughDataRequirements)"
-            : copy.emptySummary
 
         return WeeklyReviewCardState(
             phase: .empty,
             sectionTitle: copy.sectionTitle,
-            dateRangeLabel: "",
-            title: title,
-            summary: summary,
-            confidenceLabel: copy.confidenceLow,
+            dateRangeLabel: content.dateRangeLabel,
+            title: content.title,
+            summary: content.summary,
+            confidenceLabel: content.confidenceLabel,
             headlineStatLabel: nil,
-            accessibilityLabel: usesNotEnoughData
-                ? "\(title). \(summary)"
-                : copy.emptyAccessibilityLabel
+            accessibilityLabel: content.accessibilityLabel
         )
     }
 
@@ -213,13 +208,17 @@ enum JourneyHealthIntelligencePresentationBuilder {
         calendar: Calendar
     ) -> JourneyRecoveryDayState {
         let recovery = input?.recovery ?? .unknown
-        let statusKind = recoveryStatusKind(from: recovery)
-        let statusLabel = recoveryStatusLabel(for: statusKind)
-        let statusColorToken = recoveryStatusColorToken(for: statusKind)
+        let phase = HealthIntelligencePresentationCore.recoveryPhase(from: recovery)
+        let statusKind = journeyStatusKind(from: phase)
+        let statusLabel = HealthIntelligencePresentationCore.journeyRecoveryStatusLabel(for: phase)
+        let statusColorToken = HealthIntelligencePresentationCore.journeyRecoveryStatusColorToken(for: phase)
         let limited = statusKind == .limitedEstimate
         let limitedEstimateLabel = limited ? FormaProductCopy.Journey.HealthIntelligence.limitedEstimate : nil
-        let score = coachSafeRecoveryScore(from: recovery)
-        let explanation = coachSafeRecoveryExplanation(from: recovery)
+        let score = HealthIntelligencePresentationCore.coachSafeRecoveryScore(from: recovery)
+        let explanation = HealthIntelligencePresentationCore.recoverySubtitle(
+            from: recovery,
+            surface: surface
+        )
         let dateLabel = JourneyFormatter.timelineDayLabel(date, calendar: calendar)
         let weekdayLabel = weekdayLabel(for: date, calendar: calendar)
         let id = dayIdentifier(for: date, calendar: calendar)
@@ -301,9 +300,10 @@ enum JourneyHealthIntelligencePresentationBuilder {
     ) -> JourneyWorkoutHistoryItemState {
         let day = calendar.startOfDay(for: record.date)
         let dateLabel = JourneyFormatter.timelineDayLabel(day, calendar: calendar)
-        let title = trimmed(record.title) ?? FormaProductCopy.Today.HealthIntelligence.workoutComplete
+        let title = HealthIntelligencePresentationCore.trimmed(record.title)
+            ?? FormaProductCopy.Today.HealthIntelligence.workoutComplete
         let durationLabel = FormaProductCopy.Journey.HealthIntelligence.durationLabel(minutes: record.durationMinutes)
-        let caloriesLabel = coachSafeCaloriesLabel(from: record.activeCalories)
+        let caloriesLabel = HealthIntelligencePresentationCore.coachSafeCaloriesLabel(from: record.activeCalories)
         let demandLabel = record.demand == .unknown
             ? nil
             : FormaProductCopy.Journey.HealthIntelligence.demandLabel(record.demand.rawValue)
@@ -421,7 +421,7 @@ enum JourneyHealthIntelligencePresentationBuilder {
 
         if let review = weeklyReview {
             for (index, win) in review.wins.enumerated() {
-                let title = sanitizedText(win) ?? win
+                let title = HealthIntelligencePresentationCore.sanitizedText(win) ?? win
                 guard !title.isEmpty else { continue }
                 items.append(
                     JourneyHealthMilestoneState(
@@ -590,16 +590,26 @@ enum JourneyHealthIntelligencePresentationBuilder {
     }
 
     private static func resolveUIState(from input: JourneyHealthIntelligenceBuildInput) -> HealthIntelligenceUIState {
-        let presentationContext = presentationContext(from: input)
-        let uiContext = HealthIntelligenceUIContext.from(
-            presentationContext: presentationContext,
-            baseline: input.baseline,
-            lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
-            isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
-            remoteSyncConsentDecision: input.remoteSyncConsentDecision,
-            surface: .journey
+        let presentationContext = HealthIntelligencePresentationCore.presentationContext(
+            snapshot: input.todaySnapshot,
+            isLoading: input.isLoading,
+            availability: input.availability,
+            isAppleHealthConnected: input.healthConnection == .connected,
+            cachedDayCount: input.cachedDayCount,
+            errorMessage: input.errorMessage,
+            syncPhase: input.syncPhase
         )
-        return HealthIntelligenceUIStateMapper.resolve(uiContext)
+
+        return HealthIntelligencePresentationCore.resolveUIState(
+            from: HealthIntelligenceUIResolutionInput(
+                presentationContext: presentationContext,
+                baseline: input.baseline,
+                lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
+                isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
+                remoteSyncConsentDecision: input.remoteSyncConsentDecision,
+                surface: surface
+            )
+        )
     }
 
     private static func shouldShowConnectOnlySection(uiState: HealthIntelligenceUIState) -> Bool {
@@ -680,9 +690,9 @@ enum JourneyHealthIntelligencePresentationBuilder {
             connectHealthCTA: cta,
             isLoading: false,
             errorMessage: nil,
-            fallbackMessage: fallbackMessage(for: uiState),
+            fallbackMessage: HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: surface),
             staleDataLabel: nil,
-            partialSignalsNote: partialSignalsNote(for: uiState),
+            partialSignalsNote: HealthIntelligencePresentationCore.partialSignalsNote(for: uiState, surface: surface),
             uiState: uiState
         )
     }
@@ -750,7 +760,7 @@ enum JourneyHealthIntelligencePresentationBuilder {
             connectHealthCTA: cta,
             isLoading: false,
             errorMessage: nil,
-            fallbackMessage: fallbackMessage(for: uiState),
+            fallbackMessage: HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: surface),
             staleDataLabel: nil,
             partialSignalsNote: nil,
             uiState: uiState
@@ -815,7 +825,7 @@ enum JourneyHealthIntelligencePresentationBuilder {
             connectHealthCTA: nil,
             isLoading: false,
             errorMessage: resolvedMessage,
-            fallbackMessage: fallbackMessage(for: uiState),
+            fallbackMessage: HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: surface),
             staleDataLabel: nil,
             partialSignalsNote: nil,
             uiState: uiState
@@ -825,72 +835,20 @@ enum JourneyHealthIntelligencePresentationBuilder {
     private static func connectHealthCTA(
         from uiState: HealthIntelligenceUIState
     ) -> JourneyHealthConnectCTAState? {
-        let copy = FormaProductCopy.HealthIntelligence.UIState.message(
-            for: uiState.kind,
-            surface: .journey,
-            explicitErrorMessage: nil
+        guard let copy = HealthIntelligencePresentationCore.connectCTACopy(
+            for: uiState,
+            surface: surface,
+            defaultCTATitle: FormaProductCopy.Journey.HealthIntelligence.connectHealthCTA
+        ) else {
+            return nil
+        }
+
+        return JourneyHealthConnectCTAState(
+            title: copy.title,
+            message: copy.message,
+            ctaTitle: copy.ctaTitle ?? FormaProductCopy.Journey.HealthIntelligence.connectHealthCTA,
+            accessibilityLabel: copy.accessibilityLabel
         )
-
-        switch uiState.primaryAction {
-        case .connectAppleHealth, .manageHealthPermissions:
-            return JourneyHealthConnectCTAState(
-                title: copy.title,
-                message: copy.message,
-                ctaTitle: copy.primaryActionTitle ?? FormaProductCopy.Journey.HealthIntelligence.connectHealthCTA,
-                accessibilityLabel: "\(copy.title). \(copy.message)"
-            )
-        case .retrySync, .refreshHealthData:
-            return JourneyHealthConnectCTAState(
-                title: copy.title,
-                message: copy.message,
-                ctaTitle: copy.primaryActionTitle ?? FormaProductCopy.Journey.HealthIntelligence.connectHealthCTA,
-                accessibilityLabel: "\(copy.title). \(copy.message)"
-            )
-        case .continueLogging, .askCoach, .manageHealthDataSync, .openPlan, .none:
-            return nil
-        }
-    }
-
-    private static func fallbackMessage(for uiState: HealthIntelligenceUIState) -> String? {
-        switch uiState.kind {
-        case .ready, .loading, .staleData, .noHealthPermission, .healthKitUnavailable:
-            return nil
-        case .partialPermission, .noSleepData, .noHeartData, .noWorkoutHistory, .notEnoughBaseline:
-            return uiState.canShowInsight ? uiState.message : nil
-        case .syncFailed:
-            return uiState.canShowInsight ? nil : uiState.message
-        case .remoteSyncDisabled, .unknown:
-            return uiState.canShowInsight ? uiState.message : uiState.message
-        }
-    }
-
-    private static func staleDataLabel(for uiState: HealthIntelligenceUIState) -> String? {
-        switch uiState.kind {
-        case .staleData:
-            return FormaProductCopy.Journey.HealthIntelligence.staleDataLabel
-        case .syncFailed where uiState.canShowInsight:
-            return FormaProductCopy.Journey.HealthIntelligence.syncFailedWithCacheLabel
-        default:
-            return nil
-        }
-    }
-
-    private static func partialSignalsNote(for uiState: HealthIntelligenceUIState) -> String? {
-        guard uiState.kind == .partialPermission || !uiState.missingInsightKinds.isEmpty else {
-            return nil
-        }
-        guard uiState.canShowInsight else { return nil }
-
-        let labels = uiState.missingInsightKinds.map(insightLabel(for:)).sorted()
-        guard !labels.isEmpty else {
-            return uiState.kind == .partialPermission ? uiState.message : nil
-        }
-        return "Missing signals: \(labels.joined(separator: ", "))."
-    }
-
-    private static func syncFailureSectionMessage(for uiState: HealthIntelligenceUIState) -> String? {
-        guard uiState.kind == .syncFailed, uiState.canShowInsight else { return nil }
-        return uiState.message
     }
 
     private static func limitedTimelineNote(
@@ -925,34 +883,6 @@ enum JourneyHealthIntelligencePresentationBuilder {
             return FormaProductCopy.Journey.HealthIntelligence.connectedNoWorkoutsMessage
         }
         return FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.emptyMessage
-    }
-
-    private static func insightLabel(for kind: HealthInsightKind) -> String {
-        switch kind {
-        case .workouts: return "workouts"
-        case .steps: return "steps"
-        case .sleep: return "sleep"
-        case .restingHeartRate, .hrv: return "heart"
-        case .weight: return "weight"
-        case .activeEnergy: return "active energy"
-        case .exerciseMinutes: return "exercise minutes"
-        case .recoveryBaseline: return "recovery baseline"
-        case .remoteSync: return "remote sync"
-        }
-    }
-
-    private static func presentationContext(
-        from input: JourneyHealthIntelligenceBuildInput
-    ) -> HealthIntelligencePresentationContext {
-        HealthIntelligencePresentationContext(
-            isLoading: input.isLoading,
-            explicitErrorMessage: input.errorMessage,
-            syncPhase: input.syncPhase,
-            availability: input.availability,
-            snapshot: input.todaySnapshot,
-            isAppleHealthConnected: input.healthConnection == .connected,
-            cachedDayCount: input.cachedDayCount
-        )
     }
 
     // MARK: - Milestone calculations
@@ -999,98 +929,16 @@ enum JourneyHealthIntelligencePresentationBuilder {
 
     // MARK: - Recovery mapping
 
-    private static func recoveryStatusKind(from recovery: RecoverySummary) -> JourneyRecoveryDayStatusKind {
-        if recovery.confidence == .low || recovery.confidence == .unknown {
-            switch recovery.status {
-            case .ready, .moderate:
-                return .limitedEstimate
-            case .low:
-                return .low
-            case .unknown:
-                return .unknown
-            }
-        }
-
-        switch recovery.status {
+    private static func journeyStatusKind(
+        from phase: HealthIntelligenceRecoveryPhase
+    ) -> JourneyRecoveryDayStatusKind {
+        switch phase {
         case .ready: return .ready
         case .moderate: return .moderate
         case .low: return .low
+        case .limitedEstimate: return .limitedEstimate
         case .unknown: return .unknown
         }
-    }
-
-    private static func recoveryStatusLabel(for kind: JourneyRecoveryDayStatusKind) -> String {
-        switch kind {
-        case .ready: return "Ready"
-        case .moderate: return "Moderate"
-        case .low: return "Low"
-        case .limitedEstimate: return FormaProductCopy.Journey.HealthIntelligence.limitedEstimate
-        case .unknown: return "Unknown"
-        }
-    }
-
-    private static func recoveryStatusColorToken(for kind: JourneyRecoveryDayStatusKind) -> String {
-        switch kind {
-        case .ready: return "recoveryReady"
-        case .moderate: return "recoveryModerate"
-        case .low: return "recoveryLow"
-        case .limitedEstimate: return "recoveryLimited"
-        case .unknown: return "recoveryUnknown"
-        }
-    }
-
-    private static func coachSafeRecoveryScore(from recovery: RecoverySummary) -> Int? {
-        guard let score = recovery.score else { return nil }
-        guard recovery.confidence == .moderate || recovery.confidence == .high else { return nil }
-        guard recoveryStatusKind(from: recovery) != .limitedEstimate else { return nil }
-        guard recovery.status != .unknown else { return nil }
-        return score
-    }
-
-    private static func coachSafeRecoveryExplanation(from recovery: RecoverySummary) -> String? {
-        if shouldPreferLimitedRecoveryWording(for: recovery) {
-            return limitedRecoveryExplanation(for: recovery)
-        }
-
-        if let sanitized = sanitizedText(recovery.explanation) {
-            return sanitized
-        }
-
-        if let title = sanitizedText(recovery.title) {
-            return title
-        }
-
-        return recoveryStatusLabel(for: recoveryStatusKind(from: recovery))
-    }
-
-    private static func shouldPreferLimitedRecoveryWording(for recovery: RecoverySummary) -> Bool {
-        if recovery.confidence == .low || recovery.confidence == .unknown {
-            return true
-        }
-        if recovery.status == .unknown {
-            return true
-        }
-        return hasMissingHeartOrSleepSignals(recovery.missingSignals)
-    }
-
-    private static func limitedRecoveryExplanation(for recovery: RecoverySummary) -> String {
-        if hasMissingHeartOrSleepSignals(recovery.missingSignals) {
-            return "Limited estimate because key recovery signals are missing."
-        }
-        if recovery.status == .unknown {
-            return "Not enough recovery signals yet."
-        }
-        return "Limited estimate from partial recovery signals."
-    }
-
-    private static func hasMissingHeartOrSleepSignals(_ signals: Set<RecoveryMissingSignal>) -> Bool {
-        signals.contains(.sleep)
-            && (signals.contains(.hrv) || signals.contains(.restingHeartRate))
-    }
-
-    private static func coachSafeCaloriesLabel(from calories: Int?) -> String? {
-        guard let calories, calories > 0 else { return nil }
-        return "\(calories.formatted()) kcal est."
     }
 
     // MARK: - Normalization
@@ -1188,36 +1036,6 @@ enum JourneyHealthIntelligencePresentationBuilder {
 
     private static func weekRangeLabel(start: Date, end: Date, calendar: Calendar) -> String {
         JourneyFormatter.timelineDateRangeLabel(start: start, end: end, calendar: calendar)
-    }
-
-    private static func trimmed(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
-
-    private static let riskyMetricSubstrings = [
-        "hrv",
-        "heart rate",
-        "resting heart",
-        "bpm",
-        " ms",
-        "millisecond",
-        "baseline",
-        "below your recent",
-        "above your recent"
-    ]
-
-    private static func sanitizedText(_ text: String) -> String? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        guard !containsRiskyMetricLanguage(trimmed) else { return nil }
-        return trimmed
-    }
-
-    private static func containsRiskyMetricLanguage(_ text: String) -> Bool {
-        let lower = text.lowercased()
-        return riskyMetricSubstrings.contains { lower.contains($0) }
     }
 
     // MARK: - Accessibility

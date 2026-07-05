@@ -181,11 +181,7 @@ final class CoachModel: ObservableObject {
         self.transcriptStore = transcriptStore
         self.foodCorrectionMemoryStore = foodCorrectionMemoryStore
         self.timelineRecorder = resolvedTimelineRecorder
-        #if DEBUG
-        self.coachAnalyticsLogger = coachAnalyticsLogger ?? OSLogCoachAnalyticsLogger()
-        #else
-        self.coachAnalyticsLogger = coachAnalyticsLogger ?? NoOpCoachAnalyticsLogger()
-        #endif
+        self.coachAnalyticsLogger = AnalyticsLoggerFactory.coach(coachAnalyticsLogger)
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
         self.messages = transcriptStore.loadMessages()
     }

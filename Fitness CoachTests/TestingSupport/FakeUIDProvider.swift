@@ -17,6 +17,10 @@ final class FakeUIDProvider: @unchecked Sendable {
         self.uid = uid
     }
 
+    static func userA() -> FakeUIDProvider { FakeUIDProvider(uid: "test-user-a") }
+    static func userB() -> FakeUIDProvider { FakeUIDProvider(uid: "test-user-b") }
+    static func signedOut() -> FakeUIDProvider { FakeUIDProvider(uid: nil) }
+
     var currentUID: String? {
         lock.lock()
         defer { lock.unlock() }

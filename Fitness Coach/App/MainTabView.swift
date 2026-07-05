@@ -55,9 +55,10 @@ struct MainTabView: View {
         self.container = container
         self.journeyAnalyticsCoordinator = container.makeJourneyAnalyticsCoordinator()
         self.weeklyProgressAnalyticsCoordinator = container.makeWeeklyProgressAnalyticsCoordinator()
-        self.planAnalyticsCoordinator = container.makePlanAnalyticsCoordinator(
+        let planAnalyticsCoordinator = container.makePlanAnalyticsCoordinator(
             weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator
         )
+        self.planAnalyticsCoordinator = planAnalyticsCoordinator
         self.settingsAnalyticsCoordinator = container.makeSettingsAnalyticsCoordinator()
         let healthIntelligenceAnalyticsCoordinator = container.makeHealthIntelligenceAnalyticsCoordinator()
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator

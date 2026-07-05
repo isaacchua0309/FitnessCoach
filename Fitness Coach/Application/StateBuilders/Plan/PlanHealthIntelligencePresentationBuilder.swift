@@ -10,6 +10,8 @@ import Foundation
 
 enum PlanHealthIntelligencePresentationBuilder {
 
+    private static let surface: HealthIntelligenceSurface = .plan
+
     // MARK: - Section
 
     static func buildSection(
@@ -35,8 +37,8 @@ enum PlanHealthIntelligencePresentationBuilder {
             coreSignals: coreSignals,
             missingDataActions: missingDataActions,
             isLoading: false,
-            fallbackMessage: fallbackMessage(for: uiState),
-            staleDataLabel: staleDataLabel(for: uiState),
+            fallbackMessage: HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: surface),
+            staleDataLabel: HealthIntelligencePresentationCore.staleDataLabel(for: uiState, surface: surface),
             uiState: uiState,
             accessibilityLabel: sectionAccessibilityLabel(
                 confidenceCard: confidenceCard,
@@ -271,26 +273,26 @@ enum PlanHealthIntelligencePresentationBuilder {
     // MARK: - UI state
 
     private static func resolveUIState(from input: PlanHealthIntelligenceBuildInput) -> HealthIntelligenceUIState {
-        let presentationContext = HealthIntelligencePresentationContext(
-            isLoading: input.isLoading,
-            explicitErrorMessage: input.errorMessage,
-            syncPhase: input.syncPhase,
-            availability: input.healthAvailability,
+        let presentationContext = HealthIntelligencePresentationCore.presentationContext(
             snapshot: syntheticSnapshot(from: input),
+            isLoading: input.isLoading,
+            availability: input.healthAvailability,
             isAppleHealthConnected: input.healthConnection != .disconnected,
-            cachedDayCount: input.cachedDayCount
+            cachedDayCount: input.cachedDayCount,
+            errorMessage: input.errorMessage,
+            syncPhase: input.syncPhase
         )
 
-        let uiContext = HealthIntelligenceUIContext.from(
-            presentationContext: presentationContext,
-            baseline: input.baselineContext,
-            lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
-            isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
-            remoteSyncConsentDecision: input.remoteSyncConsentDecision,
-            surface: .plan
+        return HealthIntelligencePresentationCore.resolveUIState(
+            from: HealthIntelligenceUIResolutionInput(
+                presentationContext: presentationContext,
+                baseline: input.baselineContext,
+                lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
+                isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
+                remoteSyncConsentDecision: input.remoteSyncConsentDecision,
+                surface: surface
+            )
         )
-
-        return HealthIntelligenceUIStateMapper.resolve(uiContext)
     }
 
     private static func syntheticSnapshot(from input: PlanHealthIntelligenceBuildInput) -> HealthIntelligenceSnapshot {
@@ -363,32 +365,6 @@ enum PlanHealthIntelligencePresentationBuilder {
                 return PlanHealthConfidence(score: 0, label: "Unknown")
             }
             return PlanHealthConfidence(score: 0.35, label: "Limited")
-        }
-    }
-
-    private static func fallbackMessage(for uiState: HealthIntelligenceUIState) -> String? {
-        switch uiState.kind {
-        case .ready, .loading, .staleData:
-            return nil
-        case .partialPermission, .noSleepData, .noHeartData, .noWorkoutHistory, .notEnoughBaseline:
-            return uiState.message
-        case .syncFailed:
-            return uiState.canShowInsight ? nil : uiState.message
-        case .noHealthPermission, .healthKitUnavailable:
-            return uiState.message
-        case .remoteSyncDisabled, .unknown:
-            return uiState.message
-        }
-    }
-
-    private static func staleDataLabel(for uiState: HealthIntelligenceUIState) -> String? {
-        switch uiState.kind {
-        case .staleData:
-            return FormaProductCopy.Today.HealthIntelligence.staleDataLabel
-        case .syncFailed where uiState.canShowInsight:
-            return FormaProductCopy.Today.HealthIntelligence.syncFailedWithCacheLabel
-        default:
-            return nil
         }
     }
 
@@ -640,7 +616,7 @@ enum PlanHealthIntelligencePresentationBuilder {
 
         if let uiState {
             for availability in uiState.missingSignals where availability.isMissing {
-                let label = coreSignalLabel(for: availability.kind)
+                let label = planSignalLabel(for: availability.kind)
                 guard !rows.contains(where: { $0.1 == label }) else { continue }
                 rows.append((
                     "missing-\(availability.kind.rawValue)",
@@ -662,24 +638,6 @@ enum PlanHealthIntelligencePresentationBuilder {
                         ? ". \(copy.limitedStatAccessibilitySuffix)"
                         : "")
             )
-        }
-    }
-
-    private static func coreSignalLabel(for kind: HealthInsightKind) -> String {
-        let copy = FormaProductCopy.PlanHealthIntelligencePresentation.self
-        switch kind {
-        case .workouts:
-            return copy.signalAppleHealthWorkouts
-        case .steps, .activeEnergy, .exerciseMinutes:
-            return copy.signalStepHistory
-        case .sleep:
-            return copy.signalSleep
-        case .restingHeartRate, .hrv:
-            return copy.signalHeartMetrics
-        case .weight:
-            return copy.signalWeight
-        case .recoveryBaseline, .remoteSync:
-            return copy.dataQualitySectionTitle
         }
     }
 
@@ -739,7 +697,7 @@ enum PlanHealthIntelligencePresentationBuilder {
         }
 
         if let uiState, !uiState.missingInsightKinds.isEmpty {
-            let missingLabels = uiState.missingInsightKinds.map(coreSignalLabel(for:)).sorted()
+            let missingLabels = uiState.missingInsightKinds.map(planSignalLabel(for:)).sorted()
             reasons.append("Optional improvements: \(missingLabels.joined(separator: ", ")).")
         }
 
@@ -852,19 +810,27 @@ enum PlanHealthIntelligencePresentationBuilder {
         return hasValue ? .limited : .missing
     }
 
+    private static func planSignalLabel(for kind: HealthInsightKind) -> String {
+        let copy = FormaProductCopy.PlanHealthIntelligencePresentation.self
+        switch kind {
+        case .workouts:
+            return copy.signalAppleHealthWorkouts
+        case .steps, .activeEnergy, .exerciseMinutes:
+            return copy.signalStepHistory
+        case .sleep:
+            return copy.signalSleep
+        case .restingHeartRate, .hrv:
+            return copy.signalHeartMetrics
+        case .weight:
+            return copy.signalWeight
+        case .recoveryBaseline, .remoteSync:
+            return copy.dataQualitySectionTitle
+        }
+    }
+
     private static func isLowConfidence(label: String, score: Double) -> Bool {
         label == FormaProductCopy.PlanHealthIntelligencePresentation.confidenceLow
             || score > 0 && score < 0.45
-    }
-
-    private static func hasRenderableSignals(_ input: PlanHealthIntelligenceBuildInput) -> Bool {
-        let baseline = input.baselineContext
-        return input.healthConnection != .disconnected
-            || !baseline.availableSignals.isEmpty
-            || baseline.workoutDays7d != nil
-            || input.recovery?.score != nil
-            || input.hasNutritionLogging
-            || input.hasRecentWeightLog
     }
 
     private static func loadingSection() -> PlanHealthIntelligenceSectionState {

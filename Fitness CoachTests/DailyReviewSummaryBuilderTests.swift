@@ -13,7 +13,7 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
     private let accuracy = 0.000_1
 
     func testNormalDayMatchesSharedNutritionSummary() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = TestFixtureFactory.nutritionLog(.baseline)
         let nutrition = DailyNutritionSummaryBuilder.build(from: log)
         let review = buildReviewSummary(for: log)
 
@@ -21,7 +21,7 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
     }
 
     func testDailyReviewMatchesTodayDashboardNutrition() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = TestFixtureFactory.nutritionLog(.baseline)
         let review = buildReviewSummary(for: log)
         let (calorie, macro, water) = TodayDashboardNutritionMapper.maps(from: log)
 
@@ -40,7 +40,7 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
     }
 
     func testOverTargetDay() {
-        let log = DailyNutritionSummaryTestFixtures.caloriesOverTargetLog
+        let log = TestFixtureFactory.nutritionLog(.caloriesOverTarget)
         let nutrition = DailyNutritionSummaryBuilder.build(from: log)
         let review = buildReviewSummary(for: log)
 
@@ -54,7 +54,7 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
     }
 
     func testWaterOneMilliliterBelowTargetNotes() {
-        let log = DailyNutritionSummaryTestFixtures.waterOneMlBelowTargetLog
+        let log = TestFixtureFactory.nutritionLog(.waterOneMlBelowTarget)
         let review = buildReviewSummary(for: log)
 
         XCTAssertFalse(review.hasMetWaterTarget)
@@ -63,7 +63,7 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
     }
 
     func testReviewAIContextDoesNotDefaultRemainingFieldsToZero() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = TestFixtureFactory.nutritionLog(.baseline)
         let review = buildReviewSummary(for: log)
         let aiSummary = TodayAISummaryMapper.from(reviewSummary: review)
 
@@ -80,14 +80,15 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
     }
 
     func testParityWithCharacterizedRuntimeOutputs() {
-        let logs = [
-            DailyNutritionSummaryTestFixtures.baselineLog,
-            DailyNutritionSummaryTestFixtures.waterExactlyAtTargetLog,
-            DailyNutritionSummaryTestFixtures.zeroProteinTargetLog,
-            DailyNutritionSummaryTestFixtures.caloriesOverTargetLog
+        let scenarios: [DailyLogFixtures.NutritionScenario] = [
+            .baseline,
+            .waterExactlyAtTarget,
+            .zeroProteinTarget,
+            .caloriesOverTarget
         ]
 
-        for log in logs {
+        for scenario in scenarios {
+            let log = TestFixtureFactory.nutritionLog(scenario)
             let review = buildReviewSummary(for: log)
             let expected = RuntimeNutritionSummaryCharacterization.snapshot(from: log)
 

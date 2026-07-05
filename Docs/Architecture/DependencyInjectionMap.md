@@ -1,6 +1,6 @@
 # Dependency Injection Map
 
-**Last updated:** 2026-07-04  
+**Last updated:** 2026-07-05  
 **Related:** [AppArchitectureOverview.md](./AppArchitectureOverview.md), `Fitness Coach/App/AppContainer.swift`, `AppContainer+Construction.swift`, `AppContainer+FeatureFactories.swift`
 
 ---
@@ -17,24 +17,45 @@ The app uses **manual constructor injection** via a single composition root:
 | `FormaAbTest.testOverride` | Unit test flag injection |
 | No global service locator | Except `UserDefaults.standard` in a few places (`MainTabView`, migration gate) |
 
-**Construction layout:** Domain-grouped private bundles and static factories live in `AppContainer+Construction.swift`. Feature `make*Model()` factories live in `AppContainer+FeatureFactories.swift`. Public `AppContainer` properties and init parameters are unchanged.
+**Construction layout:** Domain-grouped private bundles and `build*Dependencies()` factories live in `AppContainer+Construction.swift` (init-time services plus Journey/Plan model wiring). Feature `make*Model()` factories are thin delegates grouped by tab in `AppContainer+FeatureFactories.swift`. Public `AppContainer` properties and init parameters are unchanged.
 
 ---
 
 ## 2. AppContainer Construction Order
 
-`AppContainer.init` runs on `@MainActor` and delegates to private `build*` factories. Order matters for dependencies that reference `authManager` weakly or need `store` first.
+`AppContainer.init` runs on `@MainActor` and delegates to private `build*Dependencies()` factories. Order matters for dependencies that reference `authManager` weakly or need `store` first.
 
 | Factory | Domain bundle | File |
 |---------|---------------|------|
-| `buildSession` | Auth, onboarding prefs, refresh bus | `AppContainer+Construction.swift` |
-| `buildAnalytics` | Analytics loggers | `AppContainer+Construction.swift` |
-| `buildHealth` | HealthKit, sync, training insights | `AppContainer+Construction.swift` |
-| `buildPersistence` | SwiftData, account sync core, log services | `AppContainer+Construction.swift` |
-| `buildHealthIntelligence` | HI engine, snapshot, weekly review | `AppContainer+Construction.swift` |
-| `buildCoachPlatform` | Coach timeline stores, backfill | `AppContainer+Construction.swift` |
+| `buildAuthDependencies` | Auth, onboarding prefs, refresh bus | `AppContainer+Construction.swift` |
+| `buildAnalyticsDependencies` | Analytics loggers via `AnalyticsLoggerFactory` | `AppContainer+Construction.swift` |
+| `buildHealth` | HealthKit, sync, training insights (shared) | `AppContainer+Construction.swift` |
+| `buildPersistenceDependencies` | SwiftData, account sync core, log services | `AppContainer+Construction.swift` |
+| `buildHealthIntelligenceDependencies` | HI engine, snapshot, weekly review | `AppContainer+Construction.swift` |
+| `buildCoachDependencies` | Coach timeline stores, backfill | `AppContainer+Construction.swift` |
 | `buildAI` | LLM client, AIService | `AppContainer+Construction.swift` |
-| `buildAccountLifecycle` | Restore, cross-device, deletion, export | `AppContainer+Construction.swift` |
+| `buildSyncDependencies` | Restore, cross-device, deletion, export | `AppContainer+Construction.swift` |
+| `buildSettingsDependencies` | Theme store | `AppContainer+Construction.swift` |
+| `buildTodayDependencies` | ReviewService, FitnessActionCenter | `AppContainer+Construction.swift` |
+| `buildJourneyDependencies` | JourneyModel wiring (feature factory) | `AppContainer+Construction.swift` |
+| `buildPlanDependencies` | PlanModel wiring (feature factory) | `AppContainer+Construction.swift` |
+
+### Init call sequence
+
+```
+buildAuthDependencies
+  → buildAnalyticsDependencies
+  → buildHealth
+  → buildPersistenceDependencies
+  → buildHealthIntelligenceDependencies
+  → buildCoachDependencies
+  → buildAI
+  → buildSyncDependencies
+  → buildSettingsDependencies
+  → buildTodayDependencies
+```
+
+`makeJourneyModel()` and `makePlanModel()` delegate to `buildJourneyDependencies()` / `buildPlanDependencies()` in `AppContainer+Construction.swift`. Other feature factories remain in `AppContainer+FeatureFactories.swift`.
 
 ### Phase A — Session and preferences
 
@@ -123,18 +144,25 @@ The app uses **manual constructor injection** via a single composition root:
 
 ## 3. Factory Methods (feature models)
 
-| Factory | Returns | Key injections |
-|---------|---------|----------------|
-| `makeTodayModel()` | `TodayModel` | Log readers, HI snapshot, restore session, analytics |
-| `makeCoachModel()` | `CoachModel` | `actionCenter`, `aiService`, transcript store, pipeline deps |
-| `makeJourneyModel()` | `JourneyModel` | Log readers, HI section loader, training store |
-| `makePlanModel()` | `PlanModel` | Profile, target service, HI, training |
-| `makeOnboardingModel(onCompletion:)` | `OnboardingModel` | Draft store, plan generation, auth |
-| `makeRootModel()` | `RootModel` | Shell state |
-| `makeTodayActionCoordinator()` | `TodayActionCoordinator` | `FitnessActionCenter` |
-| `makeJourneyAnalyticsCoordinator()` | `JourneyAnalyticsCoordinator` | Journey analytics logger |
-| `makeSettingsAnalyticsCoordinator()` | `SettingsAnalyticsCoordinator` | Settings analytics |
-| `makeHealthIntelligenceAnalyticsCoordinator()` | `HealthIntelligenceAnalyticsCoordinator` | HI analytics |
+Grouped in `AppContainer+FeatureFactories.swift`:
+
+| Section | Factory | Returns |
+|---------|---------|---------|
+| Health Intelligence | `makeHealthIntelligenceEngine()`, `refreshHealthIntelligenceSnapshotIfNeeded()`, `makeHealthIntelligenceAnalyticsCoordinator()` | HI engine / refresh / analytics |
+| Today | `makeTodayModel()`, `makeTodayActionCoordinator()` | `TodayModel`, `TodayActionCoordinator` |
+| Coach | `makeCoachModel()` | `CoachModel` |
+| Journey | `makeJourneyModel()`, `makeJourneyAnalyticsCoordinator()` | `JourneyModel`, analytics |
+| Plan | `makePlanModel()`, `makePlanAnalyticsCoordinator()`, `makeWeeklyProgressAnalyticsCoordinator()` | `PlanModel`, analytics |
+| Settings | `makeSettingsPrivacyDataEnvironment()`, `makeSettingsAnalyticsCoordinator()` | Settings env / analytics |
+| App shell | `makeRootModel()`, `makeOnboardingModel(onCompletion:)`, `resolveAppShellRoute(...)` | Shell / onboarding |
+
+### Key injections (unchanged)
+
+- **Today:** log readers, HI snapshot, restore session, cross-device sync, analytics
+- **Coach:** `actionCenter`, `aiService`, transcript store, timeline recorder, HI context
+- **Journey:** log readers, HI section loader inputs, weekly review service, training store
+- **Plan:** profile, target service, HI, training, weekly progress analytics
+- **Onboarding:** draft store, plan generation, auth, health training integration
 
 ---
 
@@ -229,4 +257,5 @@ No shared DI container — module-level imports.
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Renamed construction factories to `build*Dependencies()`; grouped feature factories by tab |
 | 2026-07-04 | Initial DI map for PRDX v1 |

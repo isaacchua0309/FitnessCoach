@@ -3,7 +3,7 @@
 **Generated:** 2026-07-04  
 **Branch:** `feature/account-persistence-restore`  
 **Status:** Readiness summary only — no application code changes in this deliverable  
-**Sources:** `USER_DATA_STORAGE_CONTEXT_PACKET.md`, `ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`, `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`
+**Sources:** `../ContextPackets/USER_DATA_STORAGE_CONTEXT_PACKET.md`, `../ContextPackets/ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`, `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`
 
 ---
 
@@ -310,8 +310,8 @@ Specifically, before any `FirestoreDailyLogSyncClient` (or similar) is wired int
 
 ## 8. Readiness Checklist (Before Phase 1 Coding)
 
-- [x] Storage audit complete (`USER_DATA_STORAGE_CONTEXT_PACKET.md`)
-- [x] Restore behavior documented (`ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`)
+- [x] Storage audit complete (`../ContextPackets/USER_DATA_STORAGE_CONTEXT_PACKET.md`)
+- [x] Restore behavior documented (`../ContextPackets/ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`)
 - [x] Phased plan defined (`ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`)
 - [x] Execution map available (`ACCOUNT_PERSISTENCE_EXECUTION_MAP.md`)
 - [ ] Phase 1 branch created

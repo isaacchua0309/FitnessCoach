@@ -26,7 +26,10 @@ enum CoachRoutingIntegrationTestSupport {
         func makeCoach(
             aiService: AIServiceProtocol,
             includeTrainingInsights: Bool = false,
-            timelineStore: FakeCoachTimelineStore? = nil
+            timelineStore: FakeCoachTimelineStore? = nil,
+            transcriptStore: CoachChatTranscriptStore = CoachInMemoryChatTranscriptStore(),
+            foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)? = nil,
+            coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil
         ) -> CoachModel {
             let recorder: (any CoachTimelineRecording)? = timelineStore.map {
                 DefaultCoachTimelineRecorder(store: $0)
@@ -39,7 +42,8 @@ enum CoachRoutingIntegrationTestSupport {
                 userProfileService: userProfileService,
                 healthActivityQuery: healthActivityQuery,
                 timelineStore: timelineStore,
-                timelineRecorder: recorder
+                timelineRecorder: recorder,
+                foodCorrectionMemoryStore: foodCorrectionMemoryStore
             )
             return CoachModel(
                 actionCenter: actionCenter,
@@ -50,8 +54,11 @@ enum CoachRoutingIntegrationTestSupport {
                 userProfileReader: userProfileService,
                 aiCommandParsingEnabled: true,
                 trainingInsightsStore: includeTrainingInsights ? trainingInsightsStore : nil,
+                transcriptStore: transcriptStore,
+                coachAnalyticsLogger: coachAnalyticsLogger,
                 timelineRecorder: recorder,
-                timelineStore: timelineStore
+                timelineStore: timelineStore,
+                foodCorrectionMemoryStore: foodCorrectionMemoryStore
             )
         }
     }

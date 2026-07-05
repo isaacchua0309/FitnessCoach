@@ -299,6 +299,118 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
     }
 
+    // MARK: - Core delegation parity
+
+    func testSectionFallbackMessageUsesJourneyPresentationPolicy() {
+        let section = JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                todaySnapshot: makeCurrentSnapshot(includeWorkout: false),
+                recoveryDays: makeRecoveryDays(count: 3),
+                workoutRecords: [],
+                healthConnection: .connected,
+                cachedDayCount: 3
+            ),
+            calendar: calendar,
+            isUIEnabled: true
+        )
+
+        guard let uiState = section?.uiState else {
+            XCTFail("Expected uiState")
+            return
+        }
+
+        XCTAssertEqual(
+            section?.fallbackMessage,
+            HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: .journey)
+        )
+    }
+
+    func testStaleDataLabelUsesJourneyPresentationPolicy() {
+        let uiState = HealthIntelligenceUIState(
+            kind: .staleData,
+            title: "Stale",
+            message: "Cached data may be outdated.",
+            primaryActionTitle: nil,
+            secondaryActionTitle: nil,
+            primaryAction: .none,
+            secondaryAction: .none,
+            severity: .warning,
+            canShowInsight: true,
+            confidenceLabel: nil,
+            missingSignals: [],
+            fallbackReason: .staleLocalCache
+        )
+
+        XCTAssertEqual(
+            HealthIntelligencePresentationCore.staleDataLabel(for: uiState, surface: .journey),
+            FormaProductCopy.Journey.HealthIntelligence.staleDataLabel
+        )
+    }
+
+    func testWeeklyReviewBuildingCardDelegatesToPresentationCore() {
+        let uiState = HealthIntelligenceUIStateMapper.resolve(
+            HealthIntelligenceUIContext(
+                availability: nil,
+                snapshot: makeCurrentSnapshot(includeWorkout: false),
+                isAppleHealthConnected: true,
+                cachedDayCount: 3,
+                surface: .journey
+            )
+        )
+        let presentation = JourneyHealthIntelligencePresentationBuilder.weeklyReviewPresentation(
+            from: nil,
+            isLoading: false,
+            showBuildingWhenMissing: true,
+            uiState: uiState,
+            calendar: calendar
+        )
+        let coreContent = HealthIntelligencePresentationCore.buildWeeklyReviewBuildingContent(uiState: uiState)
+
+        XCTAssertEqual(presentation.card?.title, coreContent.title)
+        XCTAssertEqual(presentation.card?.summary, coreContent.summary)
+        XCTAssertEqual(presentation.card?.confidenceLabel, coreContent.confidenceLabel)
+        XCTAssertEqual(presentation.card?.accessibilityLabel, coreContent.accessibilityLabel)
+    }
+
+    func testRecoveryDayDelegatesToPresentationCore() {
+        let recovery = RecoverySummary(
+            score: 84,
+            status: .ready,
+            title: "Ready to train",
+            explanation: "Sleep and recovery signals look supportive.",
+            recommendedTraining: "Your usual training plan looks reasonable today.",
+            recommendedNutrition: "Stick with your normal protein rhythm.",
+            confidence: .high,
+            contributingFactors: [],
+            missingSignals: []
+        )
+
+        let day = JourneyHealthIntelligencePresentationBuilder.recoveryDay(
+            for: referenceDay,
+            input: JourneyHealthIntelligenceRecoveryDayInput(
+                date: referenceDay,
+                recovery: recovery,
+                steps: 8_000
+            ),
+            calendar: calendar
+        )
+        let phase = HealthIntelligencePresentationCore.recoveryPhase(from: recovery)
+
+        XCTAssertEqual(day.statusLabel, HealthIntelligencePresentationCore.journeyRecoveryStatusLabel(for: phase))
+        XCTAssertEqual(
+            day.statusColorToken,
+            HealthIntelligencePresentationCore.journeyRecoveryStatusColorToken(for: phase)
+        )
+        XCTAssertEqual(
+            day.recoveryScore,
+            HealthIntelligencePresentationCore.coachSafeRecoveryScore(from: recovery)
+        )
+        XCTAssertEqual(
+            day.shortExplanation,
+            HealthIntelligencePresentationCore.recoverySubtitle(from: recovery, surface: .journey)
+        )
+    }
+
     // MARK: - Recovery timeline
 
     func testRecoveryTimelineMapsDisplayFriendlyDayStates() {

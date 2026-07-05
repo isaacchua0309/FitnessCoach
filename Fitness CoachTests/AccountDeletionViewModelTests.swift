@@ -99,10 +99,8 @@ final class AccountDeletionViewModelTests: XCTestCase {
         viewModel.confirmationText = "DELETE"
         viewModel.confirmDeletion()
 
-        try? await Task.sleep(nanoseconds: 5_000_000)
-        XCTAssertTrue(viewModel.isPerformingDeletion || viewModel.showsProgress)
-
-        try? await Task.sleep(nanoseconds: 200_000_000)
+        await waitUntilPerformingDeletion()
+        await waitUntilFinished()
 
         XCTAssertFalse(viewModel.isPerformingDeletion)
         if case .finished(_, let summary) = viewModel.phase {
@@ -120,7 +118,7 @@ final class AccountDeletionViewModelTests: XCTestCase {
         viewModel.confirmationText = "DELETE"
         viewModel.confirmDeletion()
 
-        try? await Task.sleep(nanoseconds: 150_000_000)
+        await waitUntilFinished()
 
         XCTAssertTrue(viewModel.requiresReauthentication)
         XCTAssertTrue(viewModel.allowsRetry)
@@ -134,7 +132,7 @@ final class AccountDeletionViewModelTests: XCTestCase {
         viewModel.confirmationText = "DELETE"
         viewModel.confirmDeletion()
 
-        try? await Task.sleep(nanoseconds: 150_000_000)
+        await waitUntilFinished()
 
         XCTAssertEqual(viewModel.terminalSummary?.status, .offline)
         XCTAssertEqual(
@@ -151,7 +149,7 @@ final class AccountDeletionViewModelTests: XCTestCase {
         viewModel.confirmationText = "DELETE"
         viewModel.confirmDeletion()
 
-        try? await Task.sleep(nanoseconds: 150_000_000)
+        await waitUntilFinished()
 
         XCTAssertEqual(viewModel.terminalSummary?.status, .partial)
         XCTAssertTrue(viewModel.allowsRetry)
@@ -166,7 +164,7 @@ final class AccountDeletionViewModelTests: XCTestCase {
         viewModel.confirmationText = "DELETE"
         viewModel.confirmDeletion()
 
-        try? await Task.sleep(nanoseconds: 200_000_000)
+        await waitUntilFinished()
 
         XCTAssertEqual(router.fullDeletionRouteCount, 1)
         if case .finished(_, let summary) = viewModel.phase {
@@ -194,12 +192,12 @@ final class AccountDeletionViewModelTests: XCTestCase {
         viewModel.beginConfirmation(scope: .fullAccount)
         viewModel.confirmationText = "DELETE"
         viewModel.confirmDeletion()
-        try? await Task.sleep(nanoseconds: 150_000_000)
+        await waitUntilFinished()
 
         viewModel.confirmationText = "DELETE"
         viewModel.retryDeletion()
         authDeleting.configuredReauthError = .cancelled
-        try? await Task.sleep(nanoseconds: 150_000_000)
+        await waitUntilFinished()
 
         XCTAssertFalse(viewModel.isPerformingDeletion)
         XCTAssertNotNil(viewModel.terminalSummary)
@@ -217,6 +215,21 @@ final class AccountDeletionViewModelTests: XCTestCase {
             syncMetadataDeleted: true,
             healthSummariesDeleted: true
         )
+    }
+
+    private func waitUntilPerformingDeletion() async {
+        let started = await AsyncTestSupport.waitUntil(maxYields: 50) {
+            viewModel.isPerformingDeletion || viewModel.showsProgress
+        }
+        XCTAssertTrue(started, "Expected deletion to enter performing/progress state.")
+    }
+
+    private func waitUntilFinished(timeout: TimeInterval = 0.5) async {
+        let finished = await AsyncTestSupport.waitUntilWallClock(timeout: timeout) {
+            if case .finished = viewModel.phase { return true }
+            return viewModel.terminalSummary != nil
+        }
+        XCTAssertTrue(finished, "Expected deletion to reach a terminal phase.")
     }
 
     private static func completedLocalSummary(uid: String) -> AccountDeletionSummary {

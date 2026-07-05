@@ -12,7 +12,7 @@
 - `FULL_APP_PRODUCT_LOOP_GAP_CONTEXT_PACKET.md`
 - `WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md` (referenced in search; product-loop overlap)
 - `COACH_ACCURACY_TRUST_CONTEXT_PACKET.md` (referenced)
-- `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`, `ACCOUNT_PERSISTENCE_EXECUTION_MAP.md`, `ACCOUNT_PERSISTENCE_PHASE_READINESS.md`
+- `../SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`, `../SprintReports/ACCOUNT_PERSISTENCE_EXECUTION_MAP.md`, `../SprintReports/ACCOUNT_PERSISTENCE_PHASE_READINESS.md`
 - `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md` through `PHASE_6_ACCOUNT_DELETION_AND_PRIVACY.md`
 - `Docs/JourneyArchitecture.md`, `Docs/FormaCalculationSpec.md`, `Docs/Architecture.md`, `Docs/DeadCodeAudit.md`, `Docs/PersistenceCleanupNotes.md`
 - `Docs/Coach/COACH_CONTEXT_PACKET_V2.md`
@@ -1496,9 +1496,9 @@ Complete Swift file inventory from `Fitness Coach/` (1,133 files). Grouped by to
 
 ### Docs
 
-- `ACCOUNT_PERSISTENCE_EXECUTION_MAP.md`
-- `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`
-- `ACCOUNT_PERSISTENCE_PHASE_READINESS.md`
+- `../SprintReports/ACCOUNT_PERSISTENCE_EXECUTION_MAP.md`
+- `../SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`
+- `../SprintReports/ACCOUNT_PERSISTENCE_PHASE_READINESS.md`
 - `ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`
 - `COACH_ACCURACY_TRUST_CONTEXT_PACKET.md`
 - `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md`
@@ -1549,7 +1549,7 @@ Complete Swift file inventory from `Fitness Coach/` (1,133 files). Grouped by to
 - `PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md`
 - `USER_DATA_STORAGE_CONTEXT_PACKET.md`
 - `WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md`
-- `arch.md`
+- `../SprintReports/arch.md`
 
 ### Additional modules reviewed
 

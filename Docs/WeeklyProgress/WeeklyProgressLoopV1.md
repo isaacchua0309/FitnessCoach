@@ -1,7 +1,7 @@
 # Weekly Progress Loop v1
 
 **Status:** Implemented (domain + Journey/Plan/Today surfaces)  
-**Related:** [ANALYTICS.md](./ANALYTICS.md), [WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md](../../WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md), [JourneyArchitecture.md](../JourneyArchitecture.md), [PHASE_5_CROSS_DEVICE_REFRESH.md](../AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md)
+**Related:** [ANALYTICS.md](./ANALYTICS.md), [WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md](../Archive/ContextPackets/WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md), [JourneyArchitecture.md](../JourneyArchitecture.md), [PHASE_5_CROSS_DEVICE_REFRESH.md](../AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md)
 
 ---
 

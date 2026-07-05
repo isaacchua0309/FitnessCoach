@@ -255,6 +255,7 @@ xcodebuild -scheme "Fitness Coach" \
 | `FormaThemeScreenModifier.swift` | `formaThemeScreen(store:)` | Deprecated wrapper with zero callers |
 | `OnboardingBirthdayTrustCard.swift` | `typealias OnboardingBirthdayTrustCard` | Production uses `OnboardingBirthdayTrustNote` |
 | `CoachAIContextBuilder.swift` | **Deleted** — replaced by `CoachContextPacketV2Builder` |
+| `AIContext.swift` | **Deleted** — legacy Coach transport; `TodayAISummary` moved to `Application/StateBuilders/Nutrition/TodayAISummary.swift` |
 | `OnboardingDailyStepsBand.swift` | `typealias OnboardingTrainingDaysOption` | Zero references |
 | `FitnessActionCenter.swift` | `logWorkout`, `deleteWorkout` | Coach redirects workouts to Apple Health |
 | `WorkoutLogService.swift` | `addWorkout`, `deleteWorkout` | Write path retired; reads remain for historical rows |
@@ -268,6 +269,7 @@ xcodebuild -scheme "Fitness Coach" \
 
 | Test | Change |
 |------|--------|
+| `CoachRoutingTests`, `CoachPhotoLibraryImportTests`, `CoachAttachmentFlowStateTests`, `CoachInputAttachmentStateTests`, `CoachMessageAttachmentSendTests`, `CoachTodaySyncTests`, `TodayLoggingFlowTests` | `AIServiceProtocol` stubs migrated from legacy `AIContext` to `CoachContextPacketV2` |
 | `DailyLogServiceTests` | `seedWorkoutCaloriesBurned()` sets `workoutCaloriesBurned` directly (no legacy workout rows) |
 | `CoachRoutingTests`, `AppleHealthTrainingStrategyTests` | Assert reject via `decision(for: AICommandAction)` |
 | `CoachPendingCopyTests` | Removed `testWorkoutPendingOmitsBarHint` |
@@ -315,7 +317,7 @@ xcodebuild -scheme "Fitness Coach" \
 | Doc | Change |
 |-----|--------|
 | `Docs/Architecture.md` | Cleared stale dead-preview table (items already removed) |
-| `arch.md`, `rules.mdc` | Added canonical pointer to `Docs/Architecture.md` |
+| `arch.md` | Added canonical pointer to `Docs/Architecture.md` — now at `Docs/Archive/SprintReports/arch.md` |
 | `Docs/BackendAPI.md` | Removed `PipelineTracePersistence` reference |
 
 ### Batch 5 validation
@@ -329,7 +331,7 @@ xcodebuild -scheme "Fitness Coach" \
 
 ## Batch 6 deletions (2026-07-04)
 
-Dead-code pass per `PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md` §15. Open TODOs moved to [TechnicalDebt/TechnicalDebtRegister.md](./TechnicalDebt/TechnicalDebtRegister.md).
+Dead-code pass per [PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md](./Archive/ContextPackets/PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md) §15. Open TODOs moved to [TechnicalDebt/TechnicalDebtRegister.md](./TechnicalDebt/TechnicalDebtRegister.md).
 
 ### Deleted symbols
 
@@ -353,7 +355,6 @@ Dead-code pass per `PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md` §15
 
 | Item | Reason |
 |------|--------|
-| `AIContext` | Test mocks still reference — tracked as TD-AI-001 |
 | Migration entities (`WeeklyReviewEntity`, etc.) | Schema migration required |
 | `SettingsExportDataActionHandler` | Active hide-until-ship gate — TD-SETTINGS-002 |
 | Weekly review Journey/HI duplication | Live product surfaces — TD-HI-001 |
@@ -366,3 +367,84 @@ Dead-code pass per `PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md` §15
 | `Docs/TechnicalDebt/TechnicalDebtRegister.md` | **Created** — tracked debt registry |
 | `USER_DATA_STORAGE_CONTEXT_PACKET.md` | Staleness banner → `SourceOfTruthMap` |
 | `Docs/Architecture/AnalyticsReadinessChecklist.md` | Removed deprecated Journey events section |
+
+---
+
+## Batch 7 — Code Bloat Reduction v2 (2026-07-05)
+
+Sprint plan: [CODE_DEPTH_ANTI_PATTERNS_BLOAT_CONTEXT_PACKET.md](./Archive/ContextPackets/CODE_DEPTH_ANTI_PATTERNS_BLOAT_CONTEXT_PACKET.md). Hygiene tracking: [TechnicalDebt/BuildWarningsRegister.md](./TechnicalDebt/BuildWarningsRegister.md), [TechnicalDebt/ProjectHygieneRegister.md](./TechnicalDebt/ProjectHygieneRegister.md).
+
+**Hard constraints verified:** no SwiftData schema changes; no `FormaCalculationEngine` edits; no Coach routing/mutation/prompt changes; no user-facing copy string changes (equivalence tests).
+
+### Deleted / removed
+
+| Item | Why safe |
+|------|----------|
+| `Infrastructure/AI/AIContext.swift` | Zero production Coach path; `CoachContextPacketV2` is transport. TD-AI-001 closed. |
+| Root-level context packets (8 files) | Archived to `Docs/Archive/ContextPackets/` — not deleted |
+| `arch.md`, `PRDX_V1_IMPLEMENTATION_MAP.md`, sprint plans (4 files) | Archived to `Docs/Archive/SprintReports/` |
+| Duplicate `GoogleService-Info.plist` Resources entry | Folder-sync already includes plist (BW-106) |
+
+### Split / extracted (behavior-neutral)
+
+| Area | Change |
+|------|--------|
+| `FormaProductCopy` | 9 `FormaProductCopy+*.swift` domain extensions; hub file retains namespace |
+| `TodayAISummary` | Extracted from deleted `AIContext` for nutrition AI summary transport |
+| `HealthIntelligencePresentationCore` | Shared models/policy for Today/Journey/Plan HI presentation builders (TD-HI-002 partial) |
+| `AnalyticsLoggerFactory` | Centralizes DEBUG vs release coach analytics logger selection (no routing change) |
+
+### Test infrastructure consolidated
+
+| Canonical helper | Replaces / aliases |
+|------------------|-------------------|
+| `TestFixtureFactory` | Central clocks, harnesses, nutrition scenarios |
+| `ProfileFixtures` | `ProfileTestFixtures` (typealias) |
+| `DailyLogFixtures` | `DailyNutritionSummaryTestFixtures` (typealias) |
+| `FoodLogFixtures` | `CoachFoodFixtures` (typealias) |
+| `WeightFixtures`, `HealthIntelligenceFixtures` | New shared builders |
+
+**Migrated test areas:** nutrition summary/review (`DailyNutritionSummaryBuilderTests`, `DailyReviewSummaryBuilderTests`, `CoachNutritionSummaryTests`), `TestInfrastructureTests`.
+
+**Async polling:** account deletion, restore, sync lifecycle tests use `AsyncTestSupport.waitUntil` / `waitUntilWallClock` instead of fixed sleeps where safe. Remaining `Task.sleep` in mocks (`FakeAccountSyncCoordinator`), health-sync timing tests, and `AsyncTestSupport` internals — intentional.
+
+### Backend (snapshots)
+
+| Item | Resolution |
+|------|------------|
+| `coachPromptSnapshots.test.ts.snap` | Updated for `foodCorrectionMemory` prompt rules |
+| `coach_accuracy_benchmark_v1_cases.json` | Added `suggestedClarifications` for low-confidence photo items |
+| `test:coach` script | Anchored to `test/coach` (BW-204) |
+
+### Preserved (intentional — not bloat)
+
+| Item | Reason |
+|------|--------|
+| Migration SwiftData entities | Schema migration required |
+| `CoachModel` (~1600 LOC) | TD-COACH-001 — split deferred |
+| `functions/src/index.ts` monolith | TD-BACKEND-001 |
+| Legacy fixture typealiases | ~90 test files still import `ProfileTestFixtures` etc. — safe gradual migration |
+| `Task.sleep` in health-sync / realtime listener tests | Timing-dependent integration behavior |
+
+### Validation (2026-07-05)
+
+| Check | Result |
+|-------|--------|
+| `xcodebuild build` (iPhone 17) | **PASS** |
+| `xcodebuild test` (copy, fixture, account suites) | **BLOCKED** — `Fitness CoachTests` SPM module resolution (BW-101 / PH-001) |
+| `npm test` (`functions`) | **PASS** — 679 tests, 14 snapshots |
+| `npm run test:coach` | **PASS** — 325 tests |
+| Swift `TODO`/`FIXME` in `Fitness Coach/` | **0** |
+| `FormaCalculationEngine.swift` diff | **None** |
+| SwiftData entity registration diff | **None** |
+
+### Documentation
+
+| Doc | Change |
+|-----|--------|
+| `Docs/Archive/` | Created index + `ContextPackets/`, `SprintReports/` |
+| `Docs/Sprints/README.md` | Points to canonical domain docs + archive |
+| `Docs/TechnicalDebt/BuildWarningsRegister.md` | Live build capture |
+| `Docs/TechnicalDebt/ProjectHygieneRegister.md` | Repo hygiene inventory |
+| `Docs/Testing/TestCommandCheatsheet.md` | Fixture helpers + `AsyncTestSupport` conventions |
+| Canonical architecture docs | Links updated to archive paths |

@@ -168,7 +168,7 @@ struct FoodLogEditFormState: Equatable {
             }
         }
 
-        var meal = FoodLogDraft(
+        let meal = FoodLogDraft(
             id: original.id,
             displayName: trimmedName,
             mealType: mealType,

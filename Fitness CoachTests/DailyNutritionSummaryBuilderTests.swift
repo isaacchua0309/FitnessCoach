@@ -13,7 +13,7 @@ final class DailyNutritionSummaryBuilderTests: XCTestCase {
     private let accuracy = 0.000_1
 
     func testNormalDayBelowTarget() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = TestFixtureFactory.nutritionLog(.baseline)
         let summary = DailyNutritionSummaryBuilder.build(from: log)
 
         XCTAssertEqual(summary.targets.calories, 2_000)
@@ -28,7 +28,7 @@ final class DailyNutritionSummaryBuilderTests: XCTestCase {
     }
 
     func testOverCalories() {
-        let log = DailyNutritionSummaryTestFixtures.caloriesOverTargetLog
+        let log = TestFixtureFactory.nutritionLog(.caloriesOverTarget)
         let summary = DailyNutritionSummaryBuilder.build(from: log)
 
         XCTAssertTrue(summary.isOverCalories)
@@ -37,26 +37,7 @@ final class DailyNutritionSummaryBuilderTests: XCTestCase {
     }
 
     func testProteinTargetMet() {
-        let log = DailyNutritionSummaryTestFixtures.dailyLog(
-            targets: UserTargets(
-                calorieTarget: 2_000,
-                proteinTarget: 150,
-                carbTarget: 200,
-                fatTarget: 65,
-                waterTargetMl: 2_500,
-                expectedWeeklyWeightLossKg: nil,
-                aggressiveness: .moderate
-            ),
-            totals: MacroTotals(
-                calories: 1_800,
-                protein: 150,
-                carbs: 180,
-                fat: 60,
-                fiber: nil,
-                sodium: nil
-            ),
-            waterConsumedMl: 1_000
-        )
+        let log = TestFixtureFactory.nutritionLog(.proteinTargetMet)
         let summary = DailyNutritionSummaryBuilder.build(from: log)
 
         XCTAssertTrue(summary.hasMetProteinTarget)
@@ -65,7 +46,7 @@ final class DailyNutritionSummaryBuilderTests: XCTestCase {
     }
 
     func testWaterExactlyAtTarget() {
-        let log = DailyNutritionSummaryTestFixtures.waterExactlyAtTargetLog
+        let log = TestFixtureFactory.nutritionLog(.waterExactlyAtTarget)
         let summary = DailyNutritionSummaryBuilder.build(from: log)
 
         XCTAssertEqual(summary.water.consumedMl, 2_500)
@@ -76,7 +57,7 @@ final class DailyNutritionSummaryBuilderTests: XCTestCase {
     }
 
     func testWaterAboveTarget() {
-        let log = DailyNutritionSummaryTestFixtures.caloriesOverTargetLog
+        let log = TestFixtureFactory.nutritionLog(.caloriesOverTarget)
         let summary = DailyNutritionSummaryBuilder.build(from: log)
 
         XCTAssertEqual(summary.water.consumedMl, 2_600)
@@ -88,26 +69,7 @@ final class DailyNutritionSummaryBuilderTests: XCTestCase {
     }
 
     func testZeroMacroTargets() {
-        let log = DailyNutritionSummaryTestFixtures.dailyLog(
-            targets: UserTargets(
-                calorieTarget: 0,
-                proteinTarget: 0,
-                carbTarget: 0,
-                fatTarget: 0,
-                waterTargetMl: 0,
-                expectedWeeklyWeightLossKg: nil,
-                aggressiveness: .moderate
-            ),
-            totals: MacroTotals(
-                calories: 100,
-                protein: 10,
-                carbs: 20,
-                fat: 5,
-                fiber: nil,
-                sodium: nil
-            ),
-            waterConsumedMl: 250
-        )
+        let log = TestFixtureFactory.nutritionLog(.zeroMacroTargets)
         let summary = DailyNutritionSummaryBuilder.build(from: log)
 
         XCTAssertEqual(summary.calorieProgress, 0, accuracy: accuracy)
@@ -122,15 +84,7 @@ final class DailyNutritionSummaryBuilderTests: XCTestCase {
     }
 
     func testParityWithCharacterizedRuntimeOutputs() {
-        let logs = [
-            DailyNutritionSummaryTestFixtures.baselineLog,
-            DailyNutritionSummaryTestFixtures.waterExactlyAtTargetLog,
-            DailyNutritionSummaryTestFixtures.waterOneMlBelowTargetLog,
-            DailyNutritionSummaryTestFixtures.zeroProteinTargetLog,
-            DailyNutritionSummaryTestFixtures.caloriesOverTargetLog
-        ]
-
-        for log in logs {
+        for log in TestFixtureFactory.allNutritionScenarioLogs() {
             let summary = DailyNutritionSummaryBuilder.build(from: log)
             let expected = RuntimeNutritionSummaryCharacterization.snapshot(from: log)
             assertParity(summary: summary, expected: expected, log: log)

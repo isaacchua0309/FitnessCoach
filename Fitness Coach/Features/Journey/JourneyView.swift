@@ -148,7 +148,6 @@ struct JourneyView: View {
                 analyticsCoordinator: analyticsCoordinator,
                 weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator,
                 healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-                weeklyProgressFreshnessInput: model.weeklyProgressFreshnessInput,
                 onCTA: handleCTA,
                 onWeeklyProgressCTA: handleWeeklyProgressCTA,
                 onGoToToday: { onOpenToday?() },
@@ -166,7 +165,8 @@ struct JourneyView: View {
                             freshnessInput: model.weeklyProgressFreshnessInput
                         )
                     )
-                }
+                },
+                weeklyProgressFreshnessInput: model.weeklyProgressFreshnessInput
             )
         }
         .formaMainTabScrollInsets()

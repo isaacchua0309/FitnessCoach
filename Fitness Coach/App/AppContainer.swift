@@ -158,12 +158,12 @@ final class AppContainer {
         onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil,
         accountDataRemoteStore: (any AccountDataRemoteStore)? = nil
     ) throws {
-        let session = Self.buildSession(
+        let auth = Self.buildAuthDependencies(
             inMemory: inMemory,
             onboardingUserDefaults: onboardingUserDefaults,
             onboardingRoutingConfiguration: onboardingRoutingConfiguration
         )
-        let analytics = Self.buildAnalytics(
+        let analytics = Self.buildAnalyticsDependencies(
             onboardingAnalyticsLogger: onboardingAnalyticsLogger,
             todayAnalyticsLogger: todayAnalyticsLogger,
             planAnalyticsLogger: planAnalyticsLogger,
@@ -174,31 +174,39 @@ final class AppContainer {
             settingsAnalyticsLogger: settingsAnalyticsLogger,
             healthIntelligenceAnalyticsLogger: healthIntelligenceAnalyticsLogger
         )
-        let health = Self.buildHealth(session: session, inMemory: inMemory)
-        let persistence = try Self.buildPersistence(
-            session: session,
+        let health = Self.buildHealth(session: auth, inMemory: inMemory)
+        let persistence = try Self.buildPersistenceDependencies(
+            session: auth,
             inMemory: inMemory,
             accountDataRemoteStore: accountDataRemoteStore
         )
-        let healthIntelligence = Self.buildHealthIntelligence(
+        let healthIntelligence = Self.buildHealthIntelligenceDependencies(
             health: health,
             persistence: persistence
         )
-        let coach = Self.buildCoachPlatform(
-            session: session,
+        let coach = Self.buildCoachDependencies(
+            session: auth,
             persistence: persistence,
             health: health
         )
-        let ai = Self.buildAI(session: session, inMemory: inMemory)
-        let accountLifecycle = Self.buildAccountLifecycle(
-            session: session,
+        let ai = Self.buildAI(session: auth, inMemory: inMemory)
+        let sync = Self.buildSyncDependencies(
+            session: auth,
             persistence: persistence,
             health: health,
             inMemory: inMemory
         )
+        let settings = Self.buildSettingsDependencies(analytics: analytics)
+        let today = Self.buildTodayDependencies(
+            auth: auth,
+            persistence: persistence,
+            health: health,
+            ai: ai,
+            refreshCenter: auth.refreshCenter
+        )
 
         // App shell
-        refreshCenter = session.refreshCenter
+        refreshCenter = auth.refreshCenter
 
         // Persistence & sync core
         modelContainer = persistence.modelContainer
@@ -209,28 +217,28 @@ final class AppContainer {
         accountSyncPuller = persistence.accountSyncPuller
         accountSyncCoordinator = persistence.accountSyncCoordinator
         accountSyncDiagnostics = persistence.accountSyncDiagnostics
-        accountSyncCursorStore = accountLifecycle.accountSyncCursorStore
-        accountIncrementalPuller = accountLifecycle.accountIncrementalPuller
-        crossDeviceSyncCoordinator = accountLifecycle.crossDeviceSyncCoordinator
-        accountDataRefreshEventBus = accountLifecycle.accountDataRefreshEventBus
-        accountRealtimeChangeListener = accountLifecycle.accountRealtimeChangeListener
+        accountSyncCursorStore = sync.accountSyncCursorStore
+        accountIncrementalPuller = sync.accountIncrementalPuller
+        crossDeviceSyncCoordinator = sync.crossDeviceSyncCoordinator
+        accountDataRefreshEventBus = sync.accountDataRefreshEventBus
+        accountRealtimeChangeListener = sync.accountRealtimeChangeListener
 
         // Account lifecycle
-        accountRestoreStateStore = accountLifecycle.accountRestoreStateStore
-        accountLocalDataInspector = accountLifecycle.accountLocalDataInspector
-        accountRemoteDataInspector = accountLifecycle.accountRemoteDataInspector
-        accountDataNamespaceService = accountLifecycle.accountDataNamespaceService
-        accountMigrationService = accountLifecycle.accountMigrationService
-        accountInitialRestoreService = accountLifecycle.accountInitialRestoreService
-        accountRestoreCoordinator = accountLifecycle.accountRestoreCoordinator
-        accountRestoreDiagnostics = accountLifecycle.accountRestoreDiagnostics
-        accountRestoreSessionState = session.accountRestoreSessionState
+        accountRestoreStateStore = sync.accountRestoreStateStore
+        accountLocalDataInspector = sync.accountLocalDataInspector
+        accountRemoteDataInspector = sync.accountRemoteDataInspector
+        accountDataNamespaceService = sync.accountDataNamespaceService
+        accountMigrationService = sync.accountMigrationService
+        accountInitialRestoreService = sync.accountInitialRestoreService
+        accountRestoreCoordinator = sync.accountRestoreCoordinator
+        accountRestoreDiagnostics = sync.accountRestoreDiagnostics
+        accountRestoreSessionState = auth.accountRestoreSessionState
         accountDeletionGuard = persistence.accountDeletionGuard
-        accountDeletionRemoteClient = accountLifecycle.accountDeletionRemoteClient
-        localAccountDataWipeService = accountLifecycle.localAccountDataWipeService
-        accountDeletionRouter = accountLifecycle.accountDeletionRouter
-        accountDeletionCoordinator = accountLifecycle.accountDeletionCoordinator
-        accountDataExportService = accountLifecycle.accountDataExportService
+        accountDeletionRemoteClient = sync.accountDeletionRemoteClient
+        localAccountDataWipeService = sync.localAccountDataWipeService
+        accountDeletionRouter = sync.accountDeletionRouter
+        accountDeletionCoordinator = sync.accountDeletionCoordinator
+        accountDataExportService = sync.accountDataExportService
 
         // Domain services
         userProfileService = persistence.userProfileService
@@ -241,14 +249,14 @@ final class AppContainer {
         weightLogService = persistence.weightLogService
 
         // Auth & profile bootstrap
-        authManager = session.authManager
+        authManager = auth.authManager
         cloudUserProfileStore = persistence.cloudUserProfileStore
         self.accountDataRemoteStore = persistence.accountDataRemoteStore
         profileBootstrapService = persistence.profileBootstrapService
         profileCloudSyncStore = persistence.profileCloudSyncStore
         profileBootstrapCoordinatorService = persistence.profileBootstrapCoordinatorService
         cloudUploadFailureNotifier = persistence.cloudUploadFailureNotifier
-        authUIDCache = session.authUIDCache
+        authUIDCache = auth.authUIDCache
 
         // AI
         llmClient = ai.llmClient
@@ -292,57 +300,28 @@ final class AppContainer {
         foodCorrectionMemoryStore = coach.foodCorrectionMemoryStore
 
         // Onboarding & session preferences
-        onboardingUserDefaults = session.onboardingUserDefaults
-        onboardingDraftStore = session.onboardingDraftStore
-        publicEntrySessionStore = session.publicEntrySessionStore
-        onboardingCoachingContextStore = session.onboardingCoachingContextStore
-        self.onboardingRoutingConfiguration = session.onboardingRoutingConfiguration
+        self.onboardingUserDefaults = auth.onboardingUserDefaults
+        onboardingDraftStore = auth.onboardingDraftStore
+        publicEntrySessionStore = auth.publicEntrySessionStore
+        onboardingCoachingContextStore = auth.onboardingCoachingContextStore
+        self.onboardingRoutingConfiguration = auth.onboardingRoutingConfiguration
 
         // Analytics
-        onboardingAnalyticsLogger = analytics.onboardingAnalyticsLogger
-        todayAnalyticsLogger = analytics.todayAnalyticsLogger
-        planAnalyticsLogger = analytics.planAnalyticsLogger
-        journeyAnalyticsLogger = analytics.journeyAnalyticsLogger
-        weeklyProgressAnalyticsLogger = analytics.weeklyProgressAnalyticsLogger
-        publicEntryAnalyticsLogger = analytics.publicEntryAnalyticsLogger
-        themeAnalyticsLogger = analytics.themeAnalyticsLogger
-        settingsAnalyticsLogger = analytics.settingsAnalyticsLogger
-        healthIntelligenceAnalyticsLogger = analytics.healthIntelligenceAnalyticsLogger
+        self.onboardingAnalyticsLogger = analytics.onboardingAnalyticsLogger
+        self.todayAnalyticsLogger = analytics.todayAnalyticsLogger
+        self.planAnalyticsLogger = analytics.planAnalyticsLogger
+        self.journeyAnalyticsLogger = analytics.journeyAnalyticsLogger
+        self.weeklyProgressAnalyticsLogger = analytics.weeklyProgressAnalyticsLogger
+        self.publicEntryAnalyticsLogger = analytics.publicEntryAnalyticsLogger
+        self.themeAnalyticsLogger = analytics.themeAnalyticsLogger
+        self.settingsAnalyticsLogger = analytics.settingsAnalyticsLogger
+        self.healthIntelligenceAnalyticsLogger = analytics.healthIntelligenceAnalyticsLogger
 
         // Settings / theme
-        themeStore = ThemeStore(analyticsLogger: analytics.themeAnalyticsLogger)
+        themeStore = settings.themeStore
 
-        reviewService = ReviewService(
-            store: store,
-            dailyLogService: dailyLogService,
-            foodLogService: foodLogService,
-            waterLogService: waterLogService,
-            weightLogService: weightLogService,
-            healthActivityQuery: healthActivityQueryService,
-            userProfileService: userProfileService,
-            aiService: aiService,
-            mutationTracker: accountLocalMutationTracker
-        )
-
-        actionCenter = FitnessActionCenter(
-            foodLogService: foodLogService,
-            waterLogService: waterLogService,
-            weightLogService: weightLogService,
-            dailyLogService: dailyLogService,
-            targetService: targetService,
-            userProfileService: userProfileService,
-            reviewService: reviewService,
-            refreshCenter: refreshCenter,
-            profileBootstrapService: profileBootstrapService,
-            cloudUploadFailureNotifier: cloudUploadFailureNotifier,
-            currentUIDProvider: { [authManager = session.authManager] in authManager.currentUID },
-            scheduleAccountSyncAfterMutation: { [authManager = session.authManager, accountSyncCoordinator] in
-                AccountSyncLifecycle.scheduleAfterLocalMutation(
-                    coordinator: accountSyncCoordinator,
-                    uidProvider: { authManager.currentUID }
-                )
-            }
-        )
+        reviewService = today.reviewService
+        actionCenter = today.actionCenter
 
         #if DEBUG
         Self.logAIBackendURLDetection()

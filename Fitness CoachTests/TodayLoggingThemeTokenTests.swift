@@ -29,7 +29,7 @@ final class TodayLoggingThemeTokenTests: XCTestCase {
     }
 
     func testNoHardcodedColorsInTodayLoggingSurfaces() {
-        let violations = HardcodedColorGuard.scan(repositoryRoot: ThemeTestSupport.repositoryRoot)
+        let violations = HardcodedColorGuard.scan(repositoryRoot: ThemeTestSupport.repositoryRoot())
         let loggingViolations = violations.filter { violation in
             todayLoggingSourcePrefixes.contains(violation.relativePath)
         }

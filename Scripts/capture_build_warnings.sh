@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-DESTINATION="${1:-platform=iOS Simulator,name=iPhone 16}"
+DESTINATION="${1:-platform=iOS Simulator,name=iPhone 17}"
 LOG_DIR="${LOG_DIR:-/tmp/forma-build-logs}"
 mkdir -p "$LOG_DIR"
 

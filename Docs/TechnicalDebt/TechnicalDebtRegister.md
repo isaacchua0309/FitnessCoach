@@ -1,9 +1,9 @@
 # Technical Debt Register
 
-**Last updated:** 2026-07-04  
+**Last updated:** 2026-07-05  
 **Purpose:** Track intentional gaps that are not safe to delete or fix in a dead-code pass. Each item has an owner domain, reason, and unblock criteria.
 
-**Related:** [DeadCodeAudit.md](../DeadCodeAudit.md), [PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md](../../PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md) §15
+**Related:** [DeadCodeAudit.md](../DeadCodeAudit.md), [BuildWarningsRegister.md](./BuildWarningsRegister.md), [ProjectHygieneRegister.md](./ProjectHygieneRegister.md), [PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md](../Archive/ContextPackets/PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md) §15
 
 ---
 
@@ -35,7 +35,6 @@ When closing an item, remove the source `TD-*` comment and update this register 
 |----|--------|------|----------|-----------------|---------|
 | TD-SETTINGS-002 | Settings / Privacy | User data export row gated but not wired | `SettingsExportDataActionHandler.swift`, `SettingsDataExportCapability` | `AccountDataExportService` exists; UI flow not shipped | Implement export presentation + share sheet; enable `SettingsDataExportCapability` |
 | TD-DATA-001 | Data | `WeightLogService` has no delete API | `WeightLogService.swift` | Tombstone sync path not implemented | Add delete + mutation tracker wiring per account persistence phase docs |
-| TD-AI-001 | AI | Deprecated `AIContext` struct retained | `Infrastructure/AI/AIContext.swift` | Test mocks and `CoachContextV2ContractTests` still reference shape | Migrate test doubles to V2-only; delete struct when zero references |
 
 ---
 
@@ -56,7 +55,21 @@ When closing an item, remove the source `TD-*` comment and update this register 
 | TD-HI-002 | Health Intelligence | `*SectionLoader` triplicated across tabs | Today / Journey / Plan HI loaders | Extraction planned in PRDX P1 | `Application/StateBuilders/HealthIntelligence/` module |
 | TD-COACH-001 | Coach | `CoachModel` size (~1600 LOC) | `CoachModel.swift` | Behavior-neutral split deferred | Extract pipeline coordinator without behavior change |
 | TD-BACKEND-001 | Backend | Monolithic `functions/src/index.ts` | Firebase Functions | Route modularization deferred | Extract `routes/` per PRDX P1 |
-| TD-COPY-001 | Domain | `FormaProductCopy.swift` monolith | `Domain/Copy/` | Split by domain deferred | Decompose into feature-scoped copy files |
+
+---
+
+## Closed — Code Bloat Reduction v2 (2026-07-05)
+
+| ID | Item | Resolution |
+|----|------|------------|
+| TD-AI-001 | Deprecated `AIContext` transport struct | **Deleted** `Infrastructure/AI/AIContext.swift`. Production Coach path already used `CoachContextPacketV2`. Extracted `TodayAISummary` for nutrition AI summaries. Six test stubs migrated to `CoachContextPacketV2`. |
+| TD-COPY-001 | `FormaProductCopy` monolith | **Split** into 9 domain extension files under `Domain/Copy/`. Strings unchanged. Guarded by `FormaProductCopyEquivalenceTests`. |
+
+Partial progress (not closed):
+
+| ID | Item | Status |
+|----|------|--------|
+| TD-HI-002 | `*SectionLoader` / HI presentation duplication | **Started** — shared `Application/StateBuilders/HealthIntelligence/` presentation core; tab builders delegate to shared policy/models. Further loader extraction deferred. |
 
 ---
 
@@ -94,8 +107,8 @@ See `Docs/PersistenceCleanupNotes.md` and entity file headers.
 
 | Document | Status | Canonical replacement |
 |----------|--------|----------------------|
-| `USER_DATA_STORAGE_CONTEXT_PACKET.md` | Stale vs V7+ account persistence | `Docs/Architecture/SourceOfTruthMap.md`, `Docs/AccountPersistence/` |
-| `arch.md`, `rules.mdc` | Legacy snapshots | `Docs/Architecture.md` |
+| `USER_DATA_STORAGE_CONTEXT_PACKET.md` | Stale vs V7+ account persistence | `Docs/Architecture/SourceOfTruthMap.md`, `Docs/AccountPersistence/` — archived at `Docs/Archive/ContextPackets/` |
+| `arch.md`, `rules.mdc` | Legacy snapshots | `Docs/Architecture.md` — `arch.md` at `Docs/Archive/SprintReports/` |
 | `Docs/Coach/archive/COACH_FULL_CONTEXT_PACKET_PRE_V2_2026-07-04.md` | Intentional archive | `Docs/Coach/COACH_FULL_CONTEXT_PACKET.md` |
 
 ---
@@ -104,4 +117,7 @@ See `Docs/PersistenceCleanupNotes.md` and entity file headers.
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | **Code Bloat Reduction v2 finalized** — closed TD-AI-001, TD-COPY-001; doc archive; fixture consolidation; account-test polling; build/hygiene registers |
+| 2026-07-05 | Added links to BuildWarningsRegister + ProjectHygieneRegister |
+| 2026-07-05 | Closed TD-AI-001 — deleted `AIContext.swift`; migrated 6 test stubs to `CoachContextPacketV2`; extracted `TodayAISummary` |
 | 2026-07-04 | Initial register created during dead-code cleanup pass (Batch 6) |

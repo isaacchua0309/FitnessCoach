@@ -8,6 +8,8 @@ Quick reference for focused test runs during development and pre-merge checks.
 export DESTINATION='platform=iOS Simulator,name=iPhone 17'
 ```
 
+> **Note:** iPhone 16 may not be installed on all machines. App builds on iPhone 17 (iOS 26.5). If `xcodebuild test` fails with `Unable to resolve module dependency: 'FirebaseCore'` in `Fitness CoachTests`, see BW-101 in [BuildWarningsRegister.md](../TechnicalDebt/BuildWarningsRegister.md).
+
 Full suite layout and test-plan details: [`Fitness CoachTests/TESTING.md`](../Fitness%20CoachTests/TESTING.md).
 
 ---
@@ -159,7 +161,7 @@ cd functions && npm test
 | Focus | Command |
 |-------|---------|
 | All unit tests | `npm test` |
-| Coach prompts & context | `npm test -- --testPathPatterns='coach'` |
+| Coach prompts & context | `npm run test:coach` (or `npm test -- --testPathPatterns='test/coach'`) |
 | Account persistence rules | `npm run test:firestore-rules` |
 | Food estimation | `npm test -- --testPathPatterns='food'` |
 | Nutrition sync contract | `npm test -- --testPathPatterns='nutritionSyncContract'` |
@@ -171,18 +173,63 @@ cd functions && npm test
 
 | Helper | Purpose |
 |--------|---------|
+| `TestFixtureFactory` | Central factory for clocks, SwiftData harnesses, nutrition scenarios, HI harness |
 | `TestDateFixtures` | Canonical fixed dates and UTC calendars |
+| `ProfileFixtures` | Profile drafts, models, and cloud documents (`ProfileTestFixtures` alias) |
+| `DailyLogFixtures` | Pure `DailyLog` scenarios for nutrition/review tests (`DailyNutritionSummaryTestFixtures` alias) |
+| `FoodLogFixtures` | Food drafts, entries, water logs (`CoachFoodFixtures` alias) |
+| `WeightFixtures` | Deterministic `WeightEntry` builders for Journey tests |
+| `WeeklyProgressFixtures` | Journey rolling-week logs and habit builder inputs |
+| `HealthIntelligenceFixtures` | HI calendar anchors and default plan snapshots |
 | `FakeClock` | Injectable `DateProviding` + `HealthIntelligenceClockProviding` |
 | `FakeUIDProvider` | Mutable session UID for sync/restore tests |
 | `FakeAnalyticsLogger` | Factory for capturing analytics loggers |
 | `InMemorySwiftDataTestStore` | In-memory `ModelContainer` / `SwiftDataStore` |
 | `FakeAccountSyncCoordinator` | Sync mocks + coordinator harness |
-| `WeeklyProgressFixtures` | Journey rolling-week logs and habit builder inputs |
-| `CoachFoodFixtures` | Food drafts and sample entries for coach/logging tests |
 | `AsyncTestSupport` | `waitUntil` / `drainMainActorTasks` / `waitUntilWallClock` |
 
 **Conventions**
 
-- Prefer `TestDateFixtures` or `FakeClock` over bare `Date()` in assertions.
+- Prefer `TestFixtureFactory` or `TestDateFixtures` over bare `Date()` in assertions.
+- Use `DailyLogFixtures.NutritionScenario` for shared nutrition characterization logs.
 - Use `AsyncTestSupport.waitUntil` or `waitUntilWallClock` instead of fixed `Task.sleep` when polling for async side effects.
-- Use `InMemorySwiftDataTestStore` instead of duplicating `FormaModelContainer.makeContainer(inMemory: true)` setup.
+- Use `InMemorySwiftDataTestStore` or `TestFixtureFactory.dailyLogHarness()` instead of duplicating container setup.
+
+### Nutrition summary / review / coach mapper
+
+```bash
+xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core \
+  -only-testing:"Fitness CoachTests/DailyNutritionSummaryBuilderTests" \
+  -only-testing:"Fitness CoachTests/DailyReviewSummaryBuilderTests" \
+  -only-testing:"Fitness CoachTests/CoachNutritionSummaryTests" \
+  -only-testing:"Fitness CoachTests/TestInfrastructureTests"
+```
+
+**Helpers:** `TestFixtureFactory.nutritionLog()`, `DailyLogFixtures`, `ProfileFixtures`, `FoodLogFixtures`.
+
+---
+
+## Code Bloat Reduction v2 smoke
+
+Copy split equivalence, consolidated fixtures, and account persistence polling.
+
+```bash
+xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -parallel-testing-enabled NO \
+  -only-testing:"Fitness CoachTests/FormaProductCopyEquivalenceTests" \
+  -only-testing:"Fitness CoachTests/TestInfrastructureTests" \
+  -only-testing:"Fitness CoachTests/DailyNutritionSummaryBuilderTests" \
+  -only-testing:"Fitness CoachTests/DailyReviewSummaryBuilderTests" \
+  -only-testing:"Fitness CoachTests/CoachNutritionSummaryTests" \
+  -only-testing:"Fitness CoachTests/AccountDeletionViewModelTests" \
+  -only-testing:"Fitness CoachTests/AccountDeletionCoordinatorTests" \
+  -only-testing:"Fitness CoachTests/AccountDeletionEndToEndTests" \
+  -only-testing:"Fitness CoachTests/AccountDeletionCancellationTests" \
+  -only-testing:"Fitness CoachTests/AccountRestoreCoordinatorTests" \
+  -only-testing:"Fitness CoachTests/AccountSyncCoordinatorTests"
+```
+
+Backend coach prompt snapshots:
+
+```bash
+cd functions && npm run test:coach
+```

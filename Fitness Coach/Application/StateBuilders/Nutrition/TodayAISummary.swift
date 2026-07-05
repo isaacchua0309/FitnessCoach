@@ -1,57 +1,12 @@
 //
-//  AIContext.swift
+//  TodayAISummary.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Shared summary types for daily review and mapper pipelines.
-//
-//  Coach AI gateway transport uses CoachContextPacketV2. The legacy compact
-//  AIContext transport shape has been removed from the active Coach flow.
+//  Compact same-day nutrition snapshot for daily review AI input mapping.
+//  Coach gateway transport uses CoachContextPacketV2 — not this type.
 //
 
 import Foundation
-
-@available(*, deprecated, message: "Coach AI transport uses CoachContextPacketV2. Retained only for Codable compatibility during cleanup.")
-/// TD-AI-001: Retained for test mocks until V2-only doubles. See Docs/TechnicalDebt/TechnicalDebtRegister.md
-struct AIContext: Codable, Equatable, Sendable {
-    var date: Date
-    var timezoneIdentifier: String
-    var userProfileSummary: UserProfileSummary?
-    var todaySummary: TodayAISummary?
-    var commonFoods: [String]
-    var recentMessages: [AIMessageContext]
-    var healthIntelligence: CoachHealthIntelligenceContext?
-    var healthIntelligenceAwarenessAvailable: Bool
-
-    init(
-        date: Date,
-        timezoneIdentifier: String,
-        userProfileSummary: UserProfileSummary? = nil,
-        todaySummary: TodayAISummary? = nil,
-        commonFoods: [String] = [],
-        recentMessages: [AIMessageContext] = [],
-        healthIntelligence: CoachHealthIntelligenceContext? = nil,
-        healthIntelligenceAwarenessAvailable: Bool = false
-    ) {
-        self.date = date
-        self.timezoneIdentifier = timezoneIdentifier
-        self.userProfileSummary = userProfileSummary
-        self.todaySummary = todaySummary
-        self.commonFoods = commonFoods
-        self.recentMessages = recentMessages
-        self.healthIntelligence = healthIntelligence
-        self.healthIntelligenceAwarenessAvailable = healthIntelligenceAwarenessAvailable
-    }
-}
-
-struct UserProfileSummary: Codable, Equatable, Sendable {
-    var age: Int?
-    var sex: Sex?
-    var heightCm: Double?
-    var currentWeightKg: Double?
-    var goalWeightKg: Double?
-    var activityLevel: ActivityLevel?
-    var trainingFrequencyPerWeek: Int?
-}
 
 struct TodayAISummary: Codable, Equatable, Sendable {
     var calorieTarget: Int
@@ -127,9 +82,4 @@ struct TodayAISummary: Codable, Equatable, Sendable {
         self.workoutsToday = workoutsToday
         self.recentMeals = recentMeals
     }
-}
-
-struct AIMessageContext: Codable, Equatable, Sendable {
-    var role: ChatMessageRole
-    var text: String
 }

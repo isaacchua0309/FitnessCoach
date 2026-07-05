@@ -272,8 +272,7 @@ struct WeeklyProgressHeroCard: View {
     }
 
     private var insufficientDataAccessibilityLabel: String {
-        [insufficientDataGuidanceTitle]
-            .appending(insufficientDataGuidance)
+        ([insufficientDataGuidanceTitle] + insufficientDataGuidance)
             .joined(separator: ". ")
     }
 

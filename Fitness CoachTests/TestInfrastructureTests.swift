@@ -60,8 +60,30 @@ final class TestInfrastructureTests: XCTestCase {
     }
 
     func testCoachFoodFixturesChickenEntryHasMacros() {
-        let entry = CoachFoodFixtures.chickenFoodEntry
+        let entry = FoodLogFixtures.chickenFoodEntry
         XCTAssertGreaterThan(entry.protein, 0)
         XCTAssertGreaterThan(entry.calories, 0)
+    }
+
+    func testTestFixtureFactoryNutritionScenariosAreDeterministic() {
+        let first = TestFixtureFactory.nutritionLog(.baseline)
+        let second = DailyLogFixtures.log(for: .baseline)
+        XCTAssertEqual(first.date, second.date)
+        XCTAssertEqual(first.targets.calorieTarget, second.targets.calorieTarget)
+        XCTAssertEqual(first.totals.calories, second.totals.calories)
+        XCTAssertEqual(first.waterConsumedMl, second.waterConsumedMl)
+    }
+
+    func testTestFixtureFactoryRollingWeekSpanMatchesWeeklyProgress() {
+        let logs = TestFixtureFactory.rollingWeekLogs()
+        XCTAssertEqual(logs.count, 7)
+        XCTAssertEqual(logs.first?.date, WeeklyProgressFixtures.makeLog(daysAgo: 6).date)
+        XCTAssertEqual(logs.last?.date, WeeklyProgressFixtures.makeLog(daysAgo: 0).date)
+    }
+
+    func testWeightFixturesWeekTrendIsMonotonic() {
+        let trend = WeightFixtures.weekLossTrend()
+        XCTAssertEqual(trend.count, 7)
+        XCTAssertGreaterThan(trend.first?.weightKg ?? 0, trend.last?.weightKg ?? 0)
     }
 }

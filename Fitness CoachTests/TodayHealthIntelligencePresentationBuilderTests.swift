@@ -464,6 +464,81 @@ final class TodayHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertNil(card)
     }
 
+    // MARK: - Core delegation parity
+
+    func testRecoveryCardDelegatesToPresentationCore() {
+        let recovery = RecoverySummary(
+            score: 84,
+            status: .ready,
+            title: "Ready to train",
+            explanation: "Sleep and recovery signals look supportive for your usual plan today.",
+            recommendedTraining: "Your usual training plan looks reasonable today.",
+            recommendedNutrition: "Stick with your normal protein and hydration rhythm.",
+            confidence: .high,
+            contributingFactors: [],
+            missingSignals: []
+        )
+
+        let card = TodayHealthIntelligencePresentationBuilder.recoveryCard(from: recovery)
+        let coreContent = HealthIntelligencePresentationCore.buildRecoveryCardContent(
+            from: recovery,
+            uiState: nil,
+            staleDataLabel: nil,
+            surface: .today
+        )
+
+        XCTAssertEqual(card.title, coreContent.title)
+        XCTAssertEqual(card.subtitle, coreContent.subtitle)
+        XCTAssertEqual(card.trainingGuidance, coreContent.trainingGuidance)
+        XCTAssertEqual(card.nutritionGuidance, coreContent.nutritionGuidance)
+        XCTAssertEqual(card.confidenceNote, coreContent.confidenceNote)
+        XCTAssertEqual(card.missingDataNote, coreContent.missingDataNote)
+    }
+
+    func testWorkoutCardDelegatesToPresentationCore() {
+        let workout = WorkoutSummary(
+            hasWorkout: true,
+            primaryWorkoutType: .strength,
+            title: "Strength training",
+            workoutCount: 1,
+            totalDurationMinutes: 50,
+            totalActiveCalories: 320,
+            intensity: .moderate,
+            demand: .high,
+            latestWorkoutStart: referenceDay,
+            latestWorkoutEnd: referenceDay,
+            nutritionAdvice: "Aim for 30–40g protein in your next meal.",
+            hydrationAdviceMl: 700,
+            explanation: "Strength training added meaningful load today.",
+            confidence: .high,
+            sourceSummary: "Synced workout."
+        )
+
+        let card = TodayHealthIntelligencePresentationBuilder.workoutCard(from: workout)
+        let coreContent = HealthIntelligencePresentationCore.buildWorkoutCardContent(from: workout)
+
+        XCTAssertNotNil(card)
+        XCTAssertNotNil(coreContent)
+        XCTAssertEqual(card?.title, coreContent?.title)
+        XCTAssertEqual(card?.subtitle, coreContent?.subtitle)
+        XCTAssertEqual(card?.nutritionTip, coreContent?.nutritionTip)
+        XCTAssertEqual(card?.hydrationTip, coreContent?.hydrationTip)
+    }
+
+    func testSectionFallbackMessageUsesTodayPresentationPolicy() {
+        let snapshot = makeNoHealthDataSnapshot()
+        let section = build(snapshot: snapshot)
+        guard let uiState = section.uiState else {
+            XCTFail("Expected uiState")
+            return
+        }
+
+        XCTAssertEqual(
+            section.fallbackMessage,
+            HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: .today)
+        )
+    }
+
     // MARK: - Helpers
 
     private var sampleNutritionProgress: TodayHealthIntelligenceNutritionProgress {

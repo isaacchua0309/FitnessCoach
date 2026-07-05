@@ -25,14 +25,14 @@ enum DailyLogServiceTestSupport {
         var today: Date { dateProvider.now }
 
         func day(offset: Int) -> Date {
-            dateProvider.calendar.date(byAdding: .day, value: offset, to: today)!
+            dateProvider.calendar().date(byAdding: .day, value: offset, to: today)!
         }
 
         @discardableResult
         func seedProfile(
-            targets: UserTargets = ProfileTestFixtures.sampleTargets
+            targets: UserTargets = ProfileFixtures.sampleTargets
         ) throws -> UserProfile {
-            var draft = ProfileTestFixtures.sampleDraft
+            var draft = ProfileFixtures.sampleDraft
             draft.targets = targets
             return try profileService.createProfile(draft)
         }
@@ -52,17 +52,7 @@ enum DailyLogServiceTestSupport {
 
     static let referenceNow = TestDateFixtures.referenceEpoch
 
-    static var alternateTargets: UserTargets {
-        UserTargets(
-            calorieTarget: 2_100,
-            proteinTarget: 145,
-            carbTarget: 185,
-            fatTarget: 62,
-            waterTargetMl: 2_800,
-            expectedWeeklyWeightLossKg: 0.52,
-            aggressiveness: .aggressive
-        )
-    }
+    static var alternateTargets: UserTargets { ProfileFixtures.alternateTargets }
 
     static func makeHarness(
         referenceNow: Date = DailyLogServiceTestSupport.referenceNow,
@@ -117,7 +107,7 @@ enum DailyLogServiceTestSupport {
         fiber: Double? = nil,
         sodium: Double? = nil
     ) -> FoodDraft {
-        CoachFoodFixtures.foodDraft(
+        FoodLogFixtures.foodDraft(
             name: name,
             calories: calories,
             protein: protein,

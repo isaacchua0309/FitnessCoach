@@ -1,6 +1,6 @@
 # User Data Storage Context Packet
 
-> **Staleness notice (2026-07-04):** This packet is a point-in-time audit snapshot. For current account persistence ownership, sync/restore paths, and schema version, use **[Docs/Architecture/SourceOfTruthMap.md](Docs/Architecture/SourceOfTruthMap.md)** and **[Docs/AccountPersistence/](Docs/AccountPersistence/)**. Do not delete this file — it is referenced by PRDX and audit docs.
+> **Staleness notice (2026-07-04):** This packet is a point-in-time audit snapshot. For current account persistence ownership, sync/restore paths, and schema version, use **[SourceOfTruthMap.md](../../Architecture/SourceOfTruthMap.md)** and **[AccountPersistence/](../../AccountPersistence/)**. Archived at `Docs/Archive/ContextPackets/` — do not delete; referenced by audit history.
 
 **Repository:** FitnessCoach (iOS app `Fitness Coach/` + Firebase `functions/`)  
 **Generated:** 2026-07-04  

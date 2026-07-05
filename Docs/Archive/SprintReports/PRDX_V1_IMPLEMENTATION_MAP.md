@@ -3,7 +3,7 @@
 **Sprint:** Production Readiness + Developer Experience Refactor v1  
 **Generated:** 2026-07-04  
 **Status:** Planning only — **no code changes in this deliverable**  
-**Sources:** `PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md`, `WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md`, `FULL_APP_PRODUCT_LOOP_GAP_CONTEXT_PACKET.md`, `USER_DATA_STORAGE_CONTEXT_PACKET.md`, `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`, plus live code verification on `main`.
+**Sources:** `../ContextPackets/PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md`, `../ContextPackets/WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md`, `../ContextPackets/FULL_APP_PRODUCT_LOOP_GAP_CONTEXT_PACKET.md`, `../ContextPackets/USER_DATA_STORAGE_CONTEXT_PACKET.md`, `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`, plus live code verification on `main`.
 
 **Governing constraints (non-negotiable):**
 
@@ -103,7 +103,7 @@ P0 = infrastructure, documentation, and production-safety prep with **zero or ex
 
 | Item | Detail |
 |------|--------|
-| **Work** | Add staleness banner to `USER_DATA_STORAGE_CONTEXT_PACKET.md` — V7+ `ownerUID`, account sync, deletion implemented; link `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`. |
+| **Work** | Add staleness banner to `../ContextPackets/USER_DATA_STORAGE_CONTEXT_PACKET.md` — V7+ `ownerUID`, account sync, deletion implemented; link `ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md`. |
 | **Work** | Add `Docs/PRDX_V1_SPRINT.md` — this map + safety rules + ownership. |
 | **Work** | Remove or deprecate unused `FormaAbTest.Settings.dataExportEnabled` (**Confirmed** zero call sites outside `FormaAbTest.swift`). Settings already uses `AccountDataExportPolicy.isEnabled`. |
 | **Behavior change** | **None**. |
@@ -211,7 +211,7 @@ P1 = structural maintainability after P0 gates are green. Each task requires **p
 
 | Exclusion | Reason |
 |-----------|--------|
-| Weekly Progress Loop v1 (learned maintenance, unified weekly review, plan recommendations) | Separate sprint per `WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md`; **no** `JourneyWeeklyReview*` / `WeeklyReview*` / `PlanAdjustment*` behavior changes |
+| Weekly Progress Loop v1 (learned maintenance, unified weekly review, plan recommendations) | Separate sprint per `../ContextPackets/WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md`; **no** `JourneyWeeklyReview*` / `WeeklyReview*` / `PlanAdjustment*` behavior changes |
 | Coach AI behavior (routing, prompts, context packet, meal photo, intents) | User rule + `CoachRoutingTests` safety net |
 | `CoachModel` split / image pipeline extraction | Coach boundary |
 | Onboarding flow, steps, or copy | Out of scope |
@@ -271,7 +271,7 @@ P1 = structural maintainability after P0 gates are green. Each task requires **p
 | Logging | `Fitness Coach/Infrastructure/Diagnostics/FormaLogRedactor.swift` (new), audit `AccountSyncLogger.swift`, `AccountRestoreLogger.swift`, `AccountDeletionCoordinatorLogger.swift`, `FormaAIBackendClient.swift`, `CoachFoodEstimateDebugLogger.swift` |
 | Analytics | `Fitness Coach/App/AppContainer.swift` (logger wiring only), `Fitness Coach/Infrastructure/Diagnostics/*Analytics*`, `Fitness CoachTests/TestingSupport/CapturingAnalyticsLoggers.swift` |
 | CI | `.github/workflows/prdx-ci.yml` (new), `Fitness CoachTests/TESTING.md` |
-| Docs | `USER_DATA_STORAGE_CONTEXT_PACKET.md`, `Docs/PRDX_V1_SPRINT.md` (new), `Docs/PRDX_V1_FLAG_MATRIX.md` (new) |
+| Docs | `../ContextPackets/USER_DATA_STORAGE_CONTEXT_PACKET.md`, `Docs/PRDX_V1_SPRINT.md` (new), `Docs/PRDX_V1_FLAG_MATRIX.md` (new) |
 | Tests | `Fitness CoachTests/FormaAbTestProductionSnapshotTests.swift` (new), `Fitness CoachTests/FormaLogRedactorTests.swift` (new), `Fitness CoachTests/ReleaseLoggingGuardTests.swift` (new), `Fitness CoachTests/AnalyticsSinkConfigurationTests.swift` (new) |
 
 ### P1 files
@@ -397,7 +397,7 @@ Each commit = one PR preference; land in order.
 
 - `feat(flags): wire Release to FormaAbTestSnapshot.production` — requires QA sign-off (risk RX)
 - `feat(analytics): enable Firebase Analytics sink` — privacy review
-- Weekly Progress Loop v1 — per `WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md`
+- Weekly Progress Loop v1 — per `../ContextPackets/WEEKLY_PROGRESS_LOOP_CONTEXT_PACKET.md`
 
 ---
 

@@ -76,9 +76,11 @@ final class TodayMainPageCopyGuardrailTests: XCTestCase {
             state.endOfDay.journeyActionTitle
         ]
 
-        samples.append(contentsOf: state.quickActions.items.map {
-            FormaProductCopy.Today.QuickActions.title(for: $0.kind)
-        })
+        samples.append(FormaProductCopy.Today.QuickActions.title(for: .logMeal))
+        samples.append(FormaProductCopy.Today.QuickActions.logMealMicrocopy)
+        if state.quickActions.showsScanMeal {
+            samples.append(FormaProductCopy.Today.QuickActions.title(for: .scanFood))
+        }
 
         let nutrition = TodayNutritionProgressFormatting.displayModel(
             macros: state.macroHydration.macroSummary,

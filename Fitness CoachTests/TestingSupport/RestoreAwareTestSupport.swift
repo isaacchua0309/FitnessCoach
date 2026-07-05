@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import XCTest
 @testable import Fitness_Coach
 
 @MainActor
@@ -39,12 +40,6 @@ enum RestoreAwareTestSupport {
 
     static let ownerUID = "test-user-1"
 
-    private struct StubHealthBaselineProvider: HealthBaselineProviding {
-        func buildContext(for targetDate: Date, calendar: Calendar) async -> HealthBaselineContext {
-            .empty(for: targetDate)
-        }
-    }
-
     static func makeRestoreSummary(
         uid: String = ownerUID,
         status: AccountRestoreStatus,
@@ -76,11 +71,14 @@ enum RestoreAwareTestSupport {
         harness: FitnessActionCenterTestSupport.Harness,
         ownerUID: String = ownerUID
     ) throws -> TodayHydrationContext {
-        TodayHydrationGate.resolve(
-            authState: .signedIn(uid: ownerUID),
-            profile: try harness.profileService.getCurrentProfile(),
-            calendar: Calendar.current,
-            now: harness.today
+        try XCTUnwrap(
+            TodayHydrationGate.resolve(
+                authState: .signedIn(uid: ownerUID),
+                profile: try harness.profileService.getCurrentProfile(),
+                calendar: Calendar.current,
+                now: harness.today
+            ),
+            "Expected signed-in hydration context"
         )
     }
 

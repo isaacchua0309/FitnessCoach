@@ -13,7 +13,7 @@ import SwiftData
 
 extension AppContainer {
 
-    struct SessionBundle {
+    struct AuthDependenciesBundle {
         let refreshCenter: AppRefreshCenter
         let accountRestoreSessionState: AccountRestoreSessionState
         let authManager: AuthManager
@@ -25,7 +25,7 @@ extension AppContainer {
         let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
     }
 
-    struct AnalyticsBundle {
+    struct AnalyticsDependenciesBundle {
         let onboardingAnalyticsLogger: any OnboardingAnalyticsLogging
         let todayAnalyticsLogger: any TodayAnalyticsLogging
         let planAnalyticsLogger: any PlanAnalyticsLogging
@@ -61,7 +61,7 @@ extension AppContainer {
         let trainingInsightsModel: TrainingInsightsModel
     }
 
-    struct PersistenceBundle {
+    struct PersistenceDependenciesBundle {
         let modelContainer: ModelContainer
         let store: SwiftDataStore
         let accountSyncOutboxStore: SwiftDataAccountSyncOutboxStore
@@ -85,14 +85,14 @@ extension AppContainer {
         let weightLogService: WeightLogService
     }
 
-    struct HealthIntelligenceBundle {
+    struct HealthIntelligenceDependenciesBundle {
         let healthIntelligenceContextBuilder: HealthIntelligenceContextBuilder
         let healthIntelligenceEngine: any HealthIntelligenceEngineing
         let healthIntelligenceSnapshotService: any HealthIntelligenceSnapshotServing
         let weeklyReviewService: any WeeklyReviewServing
     }
 
-    struct CoachPlatformBundle {
+    struct CoachDependenciesBundle {
         let coachTimelineStore: SwiftDataCoachTimelineStore
         let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
         let coachTimelineBackfillService: CoachTimelineBackfillService
@@ -109,7 +109,7 @@ extension AppContainer {
         #endif
     }
 
-    struct AccountLifecycleBundle {
+    struct SyncDependenciesBundle {
         let accountRestoreStateStore: AccountRestoreStateStore
         let accountLocalDataInspector: AccountLocalDataInspector
         let accountSyncCursorStore: AccountSyncCursorStore
@@ -129,24 +129,33 @@ extension AppContainer {
         let accountDeletionCoordinator: AccountDeletionCoordinator
         let accountDataExportService: AccountDataExportService
     }
+
+    struct SettingsDependenciesBundle {
+        let themeStore: ThemeStore
+    }
+
+    struct TodayDependenciesBundle {
+        let reviewService: ReviewService
+        let actionCenter: FitnessActionCenter
+    }
 }
 
-// MARK: - Session / auth / onboarding
+// MARK: - Auth dependencies
 
 extension AppContainer {
 
-    static func buildSession(
+    static func buildAuthDependencies(
         inMemory: Bool,
         onboardingUserDefaults: UserDefaults?,
         onboardingRoutingConfiguration: OnboardingRoutingConfiguration?
-    ) -> SessionBundle {
+    ) -> AuthDependenciesBundle {
         let authManager = AuthManager()
         let authUIDCache = AuthUIDCache()
         authUIDCache.update(uid: authManager.currentUID)
 
         let userDefaults = makeOnboardingUserDefaults(inMemory: inMemory, override: onboardingUserDefaults)
 
-        return SessionBundle(
+        return AuthDependenciesBundle(
             refreshCenter: AppRefreshCenter(),
             accountRestoreSessionState: AccountRestoreSessionState(),
             authManager: authManager,
@@ -158,8 +167,13 @@ extension AppContainer {
             onboardingRoutingConfiguration: onboardingRoutingConfiguration ?? .production
         )
     }
+}
 
-    static func buildAnalytics(
+// MARK: - Analytics dependencies
+
+extension AppContainer {
+
+    static func buildAnalyticsDependencies(
         onboardingAnalyticsLogger: (any OnboardingAnalyticsLogging)?,
         todayAnalyticsLogger: (any TodayAnalyticsLogging)?,
         planAnalyticsLogger: (any PlanAnalyticsLogging)?,
@@ -169,43 +183,39 @@ extension AppContainer {
         themeAnalyticsLogger: (any ThemeAnalyticsLogging)?,
         settingsAnalyticsLogger: (any SettingsAnalyticsLogging)?,
         healthIntelligenceAnalyticsLogger: (any HealthIntelligenceAnalyticsLogging)?
-    ) -> AnalyticsBundle {
-        #if DEBUG
-        return AnalyticsBundle(
-            onboardingAnalyticsLogger: onboardingAnalyticsLogger ?? OSLogOnboardingAnalyticsLogger(),
-            todayAnalyticsLogger: todayAnalyticsLogger ?? OSLogTodayAnalyticsLogger(),
-            planAnalyticsLogger: planAnalyticsLogger ?? OSLogPlanAnalyticsLogger(),
-            journeyAnalyticsLogger: journeyAnalyticsLogger ?? OSLogJourneyAnalyticsLogger(),
-            weeklyProgressAnalyticsLogger: weeklyProgressAnalyticsLogger ?? OSLogWeeklyProgressAnalyticsLogger(),
-            publicEntryAnalyticsLogger: publicEntryAnalyticsLogger ?? OSLogPublicEntryAnalyticsLogger(),
-            themeAnalyticsLogger: themeAnalyticsLogger ?? OSLogThemeAnalyticsLogger(),
-            settingsAnalyticsLogger: settingsAnalyticsLogger ?? OSLogSettingsAnalyticsLogger(),
-            healthIntelligenceAnalyticsLogger: healthIntelligenceAnalyticsLogger
-                ?? OSLogHealthIntelligenceAnalyticsLogger()
+    ) -> AnalyticsDependenciesBundle {
+        let loggers = AnalyticsLoggerFactory.makeAppLoggers(
+            onboarding: onboardingAnalyticsLogger,
+            today: todayAnalyticsLogger,
+            plan: planAnalyticsLogger,
+            journey: journeyAnalyticsLogger,
+            weeklyProgress: weeklyProgressAnalyticsLogger,
+            publicEntry: publicEntryAnalyticsLogger,
+            theme: themeAnalyticsLogger,
+            settings: settingsAnalyticsLogger,
+            healthIntelligence: healthIntelligenceAnalyticsLogger
         )
-        #else
-        return AnalyticsBundle(
-            onboardingAnalyticsLogger: onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger(),
-            todayAnalyticsLogger: todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger(),
-            planAnalyticsLogger: planAnalyticsLogger ?? NoOpPlanAnalyticsLogger(),
-            journeyAnalyticsLogger: journeyAnalyticsLogger ?? NoOpJourneyAnalyticsLogger(),
-            weeklyProgressAnalyticsLogger: weeklyProgressAnalyticsLogger ?? NoOpWeeklyProgressAnalyticsLogger(),
-            publicEntryAnalyticsLogger: publicEntryAnalyticsLogger ?? NoOpPublicEntryAnalyticsLogger(),
-            themeAnalyticsLogger: themeAnalyticsLogger ?? NoOpThemeAnalyticsLogger(),
-            settingsAnalyticsLogger: settingsAnalyticsLogger ?? NoOpSettingsAnalyticsLogger(),
-            healthIntelligenceAnalyticsLogger: healthIntelligenceAnalyticsLogger
-                ?? NoOpHealthIntelligenceAnalyticsLogger()
+
+        return AnalyticsDependenciesBundle(
+            onboardingAnalyticsLogger: loggers.onboarding,
+            todayAnalyticsLogger: loggers.today,
+            planAnalyticsLogger: loggers.plan,
+            journeyAnalyticsLogger: loggers.journey,
+            weeklyProgressAnalyticsLogger: loggers.weeklyProgress,
+            publicEntryAnalyticsLogger: loggers.publicEntry,
+            themeAnalyticsLogger: loggers.theme,
+            settingsAnalyticsLogger: loggers.settings,
+            healthIntelligenceAnalyticsLogger: loggers.healthIntelligence
         )
-        #endif
     }
 }
 
-// MARK: - Health
+// MARK: - Health & training (shared infrastructure)
 
 extension AppContainer {
 
     static func buildHealth(
-        session: SessionBundle,
+        session: AuthDependenciesBundle,
         inMemory: Bool
     ) -> HealthBundle {
         let healthTrainingService = HealthTrainingService()
@@ -319,15 +329,15 @@ extension AppContainer {
     }
 }
 
-// MARK: - Persistence & sync core
+// MARK: - Persistence dependencies
 
 extension AppContainer {
 
-    static func buildPersistence(
-        session: SessionBundle,
+    static func buildPersistenceDependencies(
+        session: AuthDependenciesBundle,
         inMemory: Bool,
         accountDataRemoteStore: (any AccountDataRemoteStore)?
-    ) throws -> PersistenceBundle {
+    ) throws -> PersistenceDependenciesBundle {
         let modelContainer = try FormaModelContainer.makeContainer(inMemory: inMemory)
         let store = SwiftDataStore(container: modelContainer)
         let authManager = session.authManager
@@ -411,7 +421,7 @@ extension AppContainer {
             mutationTracker: accountLocalMutationTracker
         )
 
-        return PersistenceBundle(
+        return PersistenceDependenciesBundle(
             modelContainer: modelContainer,
             store: store,
             accountSyncOutboxStore: accountSyncOutboxStore,
@@ -437,14 +447,14 @@ extension AppContainer {
     }
 }
 
-// MARK: - Health Intelligence
+// MARK: - Health Intelligence dependencies
 
 extension AppContainer {
 
-    static func buildHealthIntelligence(
+    static func buildHealthIntelligenceDependencies(
         health: HealthBundle,
-        persistence: PersistenceBundle
-    ) -> HealthIntelligenceBundle {
+        persistence: PersistenceDependenciesBundle
+    ) -> HealthIntelligenceDependenciesBundle {
         let healthIntelligenceContextBuilder = HealthIntelligenceContextBuilder(
             repository: health.healthDataRepository,
             nutritionProvider: DailyLogNutritionProvider(reader: persistence.dailyLogService),
@@ -489,7 +499,7 @@ extension AppContainer {
         )
         #endif
 
-        return HealthIntelligenceBundle(
+        return HealthIntelligenceDependenciesBundle(
             healthIntelligenceContextBuilder: healthIntelligenceContextBuilder,
             healthIntelligenceEngine: healthIntelligenceEngine,
             healthIntelligenceSnapshotService: healthIntelligenceSnapshotService,
@@ -498,15 +508,15 @@ extension AppContainer {
     }
 }
 
-// MARK: - Coach platform
+// MARK: - Coach dependencies
 
 extension AppContainer {
 
-    static func buildCoachPlatform(
-        session: SessionBundle,
-        persistence: PersistenceBundle,
+    static func buildCoachDependencies(
+        session: AuthDependenciesBundle,
+        persistence: PersistenceDependenciesBundle,
         health: HealthBundle
-    ) -> CoachPlatformBundle {
+    ) -> CoachDependenciesBundle {
         let authManager = session.authManager
         let coachTimelineStore = SwiftDataCoachTimelineStore(
             store: persistence.store,
@@ -532,7 +542,7 @@ extension AppContainer {
             await coachTimelineBackfillService.runBackfill()
         }
 
-        return CoachPlatformBundle(
+        return CoachDependenciesBundle(
             coachTimelineStore: coachTimelineStore,
             coachChatTranscriptStore: coachChatTranscriptStore,
             coachTimelineBackfillService: coachTimelineBackfillService,
@@ -542,12 +552,12 @@ extension AppContainer {
     }
 }
 
-// MARK: - AI
+// MARK: - AI (Coach / onboarding)
 
 extension AppContainer {
 
     static func buildAI(
-        session: SessionBundle,
+        session: AuthDependenciesBundle,
         inMemory: Bool
     ) -> AIBundle {
         #if DEBUG
@@ -580,27 +590,33 @@ extension AppContainer {
             #endif
         }
 
+        #if DEBUG
+        return AIBundle(
+            llmClient: llmClient,
+            aiService: AIService(llmClient: llmClient),
+            aiCommandParsingEnabled: FormaAbTest.Coach.aiCommandParsingEnabled,
+            wiring: wiring
+        )
+        #else
         return AIBundle(
             llmClient: llmClient,
             aiService: AIService(llmClient: llmClient),
             aiCommandParsingEnabled: FormaAbTest.Coach.aiCommandParsingEnabled
-            #if DEBUG
-            , wiring: wiring
-            #endif
         )
+        #endif
     }
 }
 
-// MARK: - Account lifecycle (restore / cross-device / deletion)
+// MARK: - Sync dependencies (account restore / cross-device / deletion)
 
 extension AppContainer {
 
-    static func buildAccountLifecycle(
-        session: SessionBundle,
-        persistence: PersistenceBundle,
+    static func buildSyncDependencies(
+        session: AuthDependenciesBundle,
+        persistence: PersistenceDependenciesBundle,
         health: HealthBundle,
         inMemory: Bool
-    ) -> AccountLifecycleBundle {
+    ) -> SyncDependenciesBundle {
         let authManager = session.authManager
 
         let accountRestoreStateStore = AccountRestoreStateStore(
@@ -736,7 +752,7 @@ extension AppContainer {
             currentSessionUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
 
-        return AccountLifecycleBundle(
+        return SyncDependenciesBundle(
             accountRestoreStateStore: accountRestoreStateStore,
             accountLocalDataInspector: accountLocalDataInspector,
             accountSyncCursorStore: accountSyncCursorStore,
@@ -755,6 +771,153 @@ extension AppContainer {
             accountDeletionRouter: accountDeletionRouter,
             accountDeletionCoordinator: accountDeletionCoordinator,
             accountDataExportService: accountDataExportService
+        )
+    }
+}
+
+// MARK: - Settings dependencies
+
+extension AppContainer {
+
+    static func buildSettingsDependencies(
+        analytics: AnalyticsDependenciesBundle
+    ) -> SettingsDependenciesBundle {
+        SettingsDependenciesBundle(
+            themeStore: ThemeStore(analyticsLogger: analytics.themeAnalyticsLogger)
+        )
+    }
+}
+
+// MARK: - Today dependencies (shared action surface)
+
+extension AppContainer {
+
+    static func buildTodayDependencies(
+        auth: AuthDependenciesBundle,
+        persistence: PersistenceDependenciesBundle,
+        health: HealthBundle,
+        ai: AIBundle,
+        refreshCenter: AppRefreshCenter
+    ) -> TodayDependenciesBundle {
+        let reviewService = ReviewService(
+            store: persistence.store,
+            dailyLogService: persistence.dailyLogService,
+            foodLogService: persistence.foodLogService,
+            waterLogService: persistence.waterLogService,
+            weightLogService: persistence.weightLogService,
+            healthActivityQuery: health.healthActivityQueryService,
+            userProfileService: persistence.userProfileService,
+            aiService: ai.aiService,
+            mutationTracker: persistence.accountLocalMutationTracker
+        )
+
+        let actionCenter = FitnessActionCenter(
+            foodLogService: persistence.foodLogService,
+            waterLogService: persistence.waterLogService,
+            weightLogService: persistence.weightLogService,
+            dailyLogService: persistence.dailyLogService,
+            targetService: persistence.targetService,
+            userProfileService: persistence.userProfileService,
+            reviewService: reviewService,
+            refreshCenter: refreshCenter,
+            profileBootstrapService: persistence.profileBootstrapService,
+            cloudUploadFailureNotifier: persistence.cloudUploadFailureNotifier,
+            currentUIDProvider: { [authManager = auth.authManager] in authManager.currentUID },
+            scheduleAccountSyncAfterMutation: { [authManager = auth.authManager, accountSyncCoordinator = persistence.accountSyncCoordinator] in
+                AccountSyncLifecycle.scheduleAfterLocalMutation(
+                    coordinator: accountSyncCoordinator,
+                    uidProvider: { authManager.currentUID }
+                )
+            }
+        )
+
+        return TodayDependenciesBundle(
+            reviewService: reviewService,
+            actionCenter: actionCenter
+        )
+    }
+}
+
+// MARK: - Journey dependencies (feature wiring)
+
+extension AppContainer {
+
+    func buildJourneyDependencies(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> JourneyModel {
+        JourneyModel(
+            dailyLogReader: dailyLogService,
+            weightLogReader: weightLogService,
+            userProfileReader: userProfileService,
+            trainingInsightsStore: trainingInsightsStore,
+            workoutReader: healthKitWorkoutReader,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            weeklyReviewService: weeklyReviewService,
+            healthIntelligenceEngine: healthIntelligenceEngine,
+            healthCacheStore: healthCacheStore,
+            healthActivityQuery: healthActivityQueryService,
+            healthDataRepository: healthDataRepository,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            },
+            restoreSessionState: accountRestoreSessionState,
+            localDataInspector: accountLocalDataInspector,
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator,
+            accountSyncCursorStore: accountSyncCursorStore,
+            accountSyncOutboxStore: accountSyncOutboxStore,
+            accountRestoreStateStore: accountRestoreStateStore
+        )
+    }
+}
+
+// MARK: - Plan dependencies (feature wiring)
+
+extension AppContainer {
+
+    func buildPlanDependencies(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        planAnalyticsCoordinator: PlanAnalyticsCoordinator? = nil
+    ) -> PlanModel {
+        PlanModel(
+            actionCenter: actionCenter,
+            userProfileReader: userProfileService,
+            planTargetCalculator: targetService,
+            dailyLogReader: dailyLogService,
+            weightLogReader: weightLogService,
+            trainingInsightsStore: trainingInsightsStore,
+            analyticsLogger: planAnalyticsLogger,
+            planAnalyticsCoordinator: planAnalyticsCoordinator,
+            healthBaselineService: healthBaselineService,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            healthDataRepository: healthDataRepository,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            },
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
         )
     }
 }

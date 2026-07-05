@@ -159,7 +159,7 @@ Fitness_CoachApp (@main)
 |--------|--------|
 | **Ownership** | `Application/Sync/`, `Application/Restore/`, `Infrastructure/Cloud/AccountData/` |
 | **Local-first** | SwiftData is primary; outbox uploads to Firestore when signed in |
-| **Phases** | 1–6 implemented — see [../../ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md](../../ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md) |
+| **Phases** | 1–6 implemented — see [ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md](../Archive/SprintReports/ACCOUNT_PERSISTENCE_IMPLEMENTATION_PLAN.md) |
 | **Flags** | `AccountPersistenceFeatureFlags` (compile-time constants) |
 
 ### 4.10 Training insights

@@ -1,8 +1,8 @@
 # FitPilot AI Architecture Document
 
-> **Canonical architecture (2026-07):** This file is a legacy snapshot. For current structure, paths, and cleanup status, see **[Docs/Architecture.md](./Docs/Architecture.md)**.
+> **Canonical architecture (2026-07):** This file is a legacy snapshot. For current structure, paths, and cleanup status, see **[Docs/Architecture.md](../../Architecture.md)**.
 
-> **Journey tab (2026-06):** Product name is **Journey** (“your fitness story”). Implementation still uses `ProgressView`, `ProgressModel`, and `Features/Journey/`. For the current Journey contract (sections, baseline, XP, analytics, read-only rule), see **[Docs/JourneyArchitecture.md](./Docs/JourneyArchitecture.md)** — it supersedes Journey/Progress sections in this legacy document.
+> **Journey tab (2026-06):** Product name is **Journey** (“your fitness story”). Implementation still uses `ProgressView`, `ProgressModel`, and `Features/Journey/`. For the current Journey contract (sections, baseline, XP, analytics, read-only rule), see **[Docs/JourneyArchitecture.md](../../JourneyArchitecture.md)** — it supersedes Journey/Progress sections in this legacy document.
 
 ## 1. Document Purpose
 

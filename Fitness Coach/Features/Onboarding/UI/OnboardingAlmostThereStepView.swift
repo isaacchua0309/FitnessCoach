@@ -78,11 +78,10 @@ struct OnboardingAlmostThereStepView: View {
         .dynamicTypeSize(.accessibility2)
 }
 
-#Preview("Almost There — Landscape") {
+#Preview("Almost There — Landscape", traits: .landscapeLeft) {
     OnboardingAlmostThereStepView()
         .background(OnboardingTheme.background)
         .formaThemePreview()
-        .previewInterfaceOrientation(.landscapeLeft)
 }
 
 #Preview("Almost There — Dark Mode") {

@@ -9,7 +9,7 @@ import Foundation
 @testable import Fitness_Coach
 
 /// Thread-safe fixed clock for deterministic tests. Normalizes `DateProviding.now` to start-of-day.
-final class FakeClock: DateProviding, HealthIntelligenceClockProviding, @unchecked Sendable {
+final class FakeClock: DateProviding, @unchecked Sendable {
 
     private let lock = NSLock()
     private var nowValue: Date
@@ -31,10 +31,6 @@ final class FakeClock: DateProviding, HealthIntelligenceClockProviding, @uncheck
         defer { lock.unlock() }
         return nowValue
     }
-
-    func now() -> Date { now }
-
-    func calendar() -> Calendar { calendarValue }
 
     func startOfDay(for date: Date) -> Date {
         calendarValue.startOfDay(for: date)
@@ -59,10 +55,25 @@ final class FakeClock: DateProviding, HealthIntelligenceClockProviding, @uncheck
         nowValue = normalizeToStartOfDay ? calendarValue.startOfDay(for: date) : date
         lock.unlock()
     }
+
+    func calendar() -> Calendar { calendarValue }
+}
+
+/// HI pipeline clock witness without colliding with `DateProviding.now`.
+struct FakeHealthIntelligenceClock: HealthIntelligenceClockProviding {
+    private let clock: FakeClock
+
+    init(clock: FakeClock) {
+        self.clock = clock
+    }
+
+    func now() -> Date { clock.now }
+
+    func calendar() -> Calendar { clock.calendar() }
 }
 
 /// Backward-compatible name used across SwiftData service tests.
 typealias FixedDailyLogTestDateProvider = FakeClock
 
 /// Backward-compatible name used by the HI pipeline harness.
-typealias FixedPipelineClock = FakeClock
+typealias FixedPipelineClock = FakeHealthIntelligenceClock

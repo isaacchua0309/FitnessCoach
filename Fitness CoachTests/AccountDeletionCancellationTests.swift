@@ -148,18 +148,14 @@ final class AccountDeletionCancellationTests: XCTestCase {
         deletionGuard.beginDeletion(for: ownerUID)
 
         _ = await crossDeviceCoordinator.handleRealtimeHint(uid: ownerUID)
-        try? await Task.sleep(nanoseconds: 300_000_000)
-
-        XCTAssertEqual(incrementalPuller.pullCallCount, 0)
+        await assertNoIncrementalPullWithinWindow()
     }
 
     func testListenerLifecycleDoesNotRouteHintsDuringDeletion() async {
         deletionGuard.beginDeletion(for: ownerUID)
 
         realtimeListener.onRemoteChangeHint?(ownerUID)
-        try? await Task.sleep(nanoseconds: 300_000_000)
-
-        XCTAssertEqual(incrementalPuller.pullCallCount, 0)
+        await assertNoIncrementalPullWithinWindow()
     }
 
     func testPrepareForDeletionStopsListenerSyncAndRestore() async {
@@ -196,6 +192,15 @@ final class AccountDeletionCancellationTests: XCTestCase {
         let summary = await syncCoordinator.syncNow(for: ownerUID, reason: .manual)
         XCTAssertFalse(summary.didSkip)
         XCTAssertEqual(uploader.uploadCallCount, 1)
+    }
+
+    private func assertNoIncrementalPullWithinWindow() async {
+        await AsyncTestSupport.drainMainActorTasks()
+        let pulled = await AsyncTestSupport.waitUntilWallClock(timeout: 0.3, interval: 0.02) {
+            incrementalPuller.pullCallCount > 0
+        }
+        XCTAssertFalse(pulled)
+        XCTAssertEqual(incrementalPuller.pullCallCount, 0)
     }
 }
 
