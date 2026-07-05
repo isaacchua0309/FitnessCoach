@@ -24,7 +24,7 @@ enum TodayReadOnlyCompositionPolicy {
         false
     }
 
-    /// Legacy next best action card — folded into mission hero + quick actions.
+    /// Legacy next best action card — folded into mission hero.
     static func showsLegacyNextBestAction(
         isUIEnabled: Bool,
         sectionState: TodayHealthIntelligenceSectionState?

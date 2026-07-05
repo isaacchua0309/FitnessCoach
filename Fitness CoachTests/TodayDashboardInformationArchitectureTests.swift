@@ -18,8 +18,7 @@ final class TodayDashboardInformationArchitectureTests: XCTestCase {
 
         XCTAssertEqual(sections.first, "header")
         XCTAssertEqual(sections[1], "missionHero")
-        XCTAssertEqual(sections[2], "quickActions")
-        XCTAssertEqual(sections[3], "waterQuickLog")
+        XCTAssertEqual(sections[2], "waterQuickLog")
         XCTAssertLessThan(missionIndex!, recoveryIndex!)
         XCTAssertLessThan(recoveryIndex!, appleHealthIndex!)
     }

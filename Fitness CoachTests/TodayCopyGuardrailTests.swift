@@ -61,7 +61,6 @@ final class TodayCopyGuardrailTests: XCTestCase {
             FormaProductCopy.Today.Activity.healthConnectNote,
             FormaProductCopy.Today.Activity.stepsUnavailable,
             FormaProductCopy.Today.Activity.workoutNotLoggedLine,
-            FormaProductCopy.Today.QuickActions.sectionTitle,
             FormaProductCopy.Today.QuickActions.logMealMicrocopy,
             FormaProductCopy.Today.Water.sectionTitle,
             FormaProductCopy.Today.Victory.startEncouragement,

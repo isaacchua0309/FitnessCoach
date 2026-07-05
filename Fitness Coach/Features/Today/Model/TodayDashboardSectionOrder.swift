@@ -12,7 +12,6 @@ enum TodayDashboardSectionOrder {
     static let sections: [TodayDashboardSection] = [
         .header,
         .missionHero,
-        .quickActions,
         .waterQuickLog,
         .meals,
         .macroHydration,
@@ -29,7 +28,6 @@ enum TodayDashboardSectionOrder {
 enum TodayDashboardSection: String, CaseIterable, Equatable {
     case header
     case missionHero
-    case quickActions
     case waterQuickLog
     case meals
     case macroHydration
