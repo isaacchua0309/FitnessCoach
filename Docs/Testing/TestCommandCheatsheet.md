@@ -8,7 +8,7 @@ Quick reference for focused test runs during development and pre-merge checks.
 export DESTINATION='platform=iOS Simulator,name=iPhone 17'
 ```
 
-> **Note:** iPhone 16 may not be installed on all machines. App builds on iPhone 17 (iOS 26.5). If `xcodebuild test` fails with `Unable to resolve module dependency: 'FirebaseCore'` in `Fitness CoachTests`, see BW-101 in [BuildWarningsRegister.md](../TechnicalDebt/BuildWarningsRegister.md).
+> **Note:** iPhone 16 may not be installed on all machines. App builds on iPhone 17 (iOS 26.5). Fast-Core runs serially via `./Scripts/run-fast-core-serial.sh` (falls back to the nearest iPhone simulator when iPhone 17 is missing).
 
 Full suite layout and test-plan details: [`Fitness CoachTests/TESTING.md`](../Fitness%20CoachTests/TESTING.md).
 
@@ -18,7 +18,8 @@ Full suite layout and test-plan details: [`Fitness CoachTests/TESTING.md`](../Fi
 
 | Command | When to use |
 |---------|-------------|
-| `xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core` | Everyday local dev (~3–4 min) |
+| `./Scripts/run-fast-core-serial.sh` | Everyday local dev (~3–4 min, serial, simulator fallback) |
+| `xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core -parallel-testing-enabled NO` | Same as script when `DESTINATION` is set explicitly |
 | `xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Integration` | SwiftData, cloud, auth handoff |
 | `xcodebuild test -scheme "Fitness Coach CI" -destination "$DESTINATION"` | Pre-merge full regression |
 
