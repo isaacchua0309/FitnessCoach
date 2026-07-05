@@ -79,8 +79,26 @@ final class CoachInputCoordinator {
 
     @discardableResult
     func beginPendingImageProcessing(source: CoachInputAttachmentSource) -> Bool {
-        guard state.canStartImageSelection else { return false }
+        guard state.canStartImageSelection else {
+            #if DEBUG
+            CoachPhotoLibraryPickDebugLogger.log(
+                event: "begin_pending_image_processing_rejected",
+                beganPendingProcessing: false,
+                pendingImageStatus: state.pendingImage?.status,
+                extra: ["source": source == .library ? "library" : "camera"]
+            )
+            #endif
+            return false
+        }
         mutateState { $0.beginProcessingNewSelection(source: source) }
+        #if DEBUG
+        CoachPhotoLibraryPickDebugLogger.log(
+            event: "begin_pending_image_processing",
+            beganPendingProcessing: true,
+            pendingImageStatus: state.pendingImage?.status,
+            extra: ["source": source == .library ? "library" : "camera"]
+        )
+        #endif
         return true
     }
 
@@ -120,9 +138,28 @@ final class CoachInputCoordinator {
             return true
         }
 
-        guard staged else { return false }
+        guard staged else {
+            #if DEBUG
+            CoachPhotoLibraryPickDebugLogger.log(
+                event: "stage_pipeline_processed_photo_rejected",
+                pendingImageStatus: state.pendingImage?.status,
+                extra: ["source": source == .library ? "library" : "camera"]
+            )
+            #endif
+            return false
+        }
 
         CoachMealPhotoPipeline.assertImagePayloadPresent(processed.uploadData)
+        #if DEBUG
+        CoachPhotoLibraryPickDebugLogger.log(
+            event: "stage_pipeline_processed_photo",
+            pendingImageStatus: state.pendingImage?.status,
+            extra: [
+                "source": source == .library ? "library" : "camera",
+                "is_ready": String(state.pendingImage?.isReady == true)
+            ]
+        )
+        #endif
         return true
     }
 

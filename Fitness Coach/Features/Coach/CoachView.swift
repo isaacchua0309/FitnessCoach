@@ -126,14 +126,32 @@ struct CoachView: View {
                 matching: .images
             )
             .onChange(of: imagePickFlow.isPhotoPickerPresented) { _, isPresented in
+                #if DEBUG
+                CoachPhotoLibraryPickDebugLogger.log(
+                    event: "coach_view_photo_picker_presented_changed",
+                    flowState: imagePickFlow.state,
+                    isPhotoPickerPresented: isPresented,
+                    librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging()
+                )
+                #endif
                 if !isPresented {
                     imagePickFlow.handlePhotoLibraryPickerDismissed()
                 }
             }
             .onChange(of: photoPickerItem) { _, item in
+                #if DEBUG
+                CoachPhotoLibraryPickDebugLogger.log(
+                    event: "coach_view_photo_picker_item_changed",
+                    flowState: imagePickFlow.state,
+                    isPhotoPickerPresented: imagePickFlow.isPhotoPickerPresented,
+                    librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging(),
+                    hasSelectionItem: item != nil
+                )
+                #endif
                 guard let item else { return }
                 photoPickerItem = nil
                 imagePickFlow.markLibrarySelectionReceived()
+                guard imagePickFlow.beginPhotoLibrarySelectionHandling() else { return }
                 Task {
                     await imagePickFlow.handlePhotoLibrarySelection(item, model: model)
                 }
