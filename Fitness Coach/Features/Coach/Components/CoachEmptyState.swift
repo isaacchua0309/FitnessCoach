@@ -72,12 +72,7 @@ struct CoachEmptyState: View {
         onTap: @escaping (CoachLaunchChip) -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xs) {
-            Text(FormaProductCopy.Coach.Launch.chipSectionTitle)
-                .font(CoachDesignTokens.Typography.hintLabel)
-                .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
-                .textCase(.uppercase)
-                .tracking(0.4)
-                .accessibilityAddTraits(.isHeader)
+            SectionLabel(title: FormaProductCopy.Coach.Launch.chipSectionTitle)
 
             CoachLaunchChips(chips: chips, isDisabled: isDisabled, onTap: onTap)
         }
@@ -85,12 +80,7 @@ struct CoachEmptyState: View {
 
     private var defaultQuickActionsSection: some View {
         VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xs) {
-            Text(FormaProductCopy.Coach.quickActionsSectionTitle)
-                .font(CoachDesignTokens.Typography.hintLabel)
-                .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
-                .textCase(.uppercase)
-                .tracking(0.4)
-                .accessibilityAddTraits(.isHeader)
+            SectionLabel(title: FormaProductCopy.Coach.quickActionsSectionTitle)
 
             CoachStarterChips(
                 prompts: starterPrompts,

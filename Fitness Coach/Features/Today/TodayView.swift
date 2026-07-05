@@ -256,8 +256,7 @@ struct TodayView: View {
         case .pendingAccountRestore(let message):
             MainTabPageScaffold(
                 title: FormaProductCopy.Today.Header.title,
-                scrollMode: .embedded,
-                reservesTabBarScrollInset: false
+                scrollMode: .embedded
             ) {
                 AccountRestorePendingStateView(message: message)
             }

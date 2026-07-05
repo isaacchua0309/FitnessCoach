@@ -144,8 +144,7 @@ struct JourneyView: View {
         case .pendingAccountRestore(let message):
             MainTabPageScaffold(
                 title: FormaProductCopy.Journey.Header.title,
-                scrollMode: .embedded,
-                reservesTabBarScrollInset: false
+                scrollMode: .embedded
             ) {
                 AccountRestorePendingStateView(message: message)
             }

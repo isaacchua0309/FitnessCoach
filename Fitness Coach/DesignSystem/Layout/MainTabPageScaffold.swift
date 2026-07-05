@@ -30,7 +30,6 @@ struct MainTabPageScaffold<
     var subtitle: String?
     var scrollMode: MainTabPageScaffoldScrollMode
     var sectionSpacing: CGFloat
-    var reservesTabBarScrollInset: Bool
     var showsCrossDeviceRefreshBanner: Bool
     var scrollTarget: MainTabScrollTarget?
 
@@ -40,13 +39,14 @@ struct MainTabPageScaffold<
 
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.theme) private var theme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var measuredSafeAreaBottom = FormaMainTabLayout.defaultBottomSafeAreaFallback
 
     init(
         title: String,
         subtitle: String? = nil,
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
-        reservesTabBarScrollInset: Bool = true,
         showsCrossDeviceRefreshBanner: Bool = false,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder trailingAction: @escaping () -> TrailingAction,
@@ -57,7 +57,6 @@ struct MainTabPageScaffold<
         self.subtitle = subtitle
         self.scrollMode = scrollMode
         self.sectionSpacing = sectionSpacing
-        self.reservesTabBarScrollInset = reservesTabBarScrollInset
         self.showsCrossDeviceRefreshBanner = showsCrossDeviceRefreshBanner
         self.scrollTarget = scrollTarget
         self.trailingAction = trailingAction
@@ -77,6 +76,21 @@ struct MainTabPageScaffold<
             scrollBody
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background {
+            GeometryReader { geometry in
+                Color.clear
+                    .preference(
+                        key: MainTabSafeAreaBottomPreferenceKey.self,
+                        value: geometry.safeAreaInsets.bottom
+                    )
+            }
+        }
+        .onPreferenceChange(MainTabSafeAreaBottomPreferenceKey.self) { measured in
+            let resolved = measured > 0 ? measured : FormaMainTabLayout.defaultBottomSafeAreaFallback
+            if measuredSafeAreaBottom != resolved {
+                measuredSafeAreaBottom = resolved
+            }
+        }
         .background(theme.appBackground.ignoresSafeArea())
         .overlay(alignment: .top) {
             if showsCrossDeviceRefreshBanner {
@@ -84,7 +98,10 @@ struct MainTabPageScaffold<
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            bottomAccessory()
+            VStack(spacing: 0) {
+                bottomAccessory()
+                MainTabTabBarClearanceSpacer(safeAreaBottom: measuredSafeAreaBottom)
+            }
         }
     }
 
@@ -102,7 +119,7 @@ struct MainTabPageScaffold<
     @ViewBuilder
     private var scrollViewContent: some View {
         ScrollViewReader { proxy in
-            let scroll = ScrollView {
+            ScrollView {
                 VStack(alignment: .leading, spacing: sectionSpacing) {
                     content()
                 }
@@ -110,14 +127,6 @@ struct MainTabPageScaffold<
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
                 .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
-            }
-
-            Group {
-                if reservesTabBarScrollInset {
-                    scroll.formaMainTabScrollInsets()
-                } else {
-                    scroll
-                }
             }
             .onChange(of: scrollTarget?.trigger) { _, _ in
                 guard let scrollTarget else { return }
@@ -148,7 +157,6 @@ extension MainTabPageScaffold where TrailingAction == EmptyView, BottomAccessory
         subtitle: String? = nil,
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
-        reservesTabBarScrollInset: Bool = true,
         showsCrossDeviceRefreshBanner: Bool = false,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder content: @escaping () -> Content
@@ -158,7 +166,6 @@ extension MainTabPageScaffold where TrailingAction == EmptyView, BottomAccessory
             subtitle: subtitle,
             scrollMode: scrollMode,
             sectionSpacing: sectionSpacing,
-            reservesTabBarScrollInset: reservesTabBarScrollInset,
             showsCrossDeviceRefreshBanner: showsCrossDeviceRefreshBanner,
             scrollTarget: scrollTarget,
             trailingAction: { EmptyView() },
@@ -174,7 +181,6 @@ extension MainTabPageScaffold where BottomAccessory == EmptyView {
         subtitle: String? = nil,
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
-        reservesTabBarScrollInset: Bool = true,
         showsCrossDeviceRefreshBanner: Bool = false,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder trailingAction: @escaping () -> TrailingAction,
@@ -185,7 +191,6 @@ extension MainTabPageScaffold where BottomAccessory == EmptyView {
             subtitle: subtitle,
             scrollMode: scrollMode,
             sectionSpacing: sectionSpacing,
-            reservesTabBarScrollInset: reservesTabBarScrollInset,
             showsCrossDeviceRefreshBanner: showsCrossDeviceRefreshBanner,
             scrollTarget: scrollTarget,
             trailingAction: trailingAction,
@@ -201,7 +206,6 @@ extension MainTabPageScaffold where TrailingAction == EmptyView {
         subtitle: String? = nil,
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
-        reservesTabBarScrollInset: Bool = true,
         showsCrossDeviceRefreshBanner: Bool = false,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder bottomAccessory: @escaping () -> BottomAccessory,
@@ -212,7 +216,6 @@ extension MainTabPageScaffold where TrailingAction == EmptyView {
             subtitle: subtitle,
             scrollMode: scrollMode,
             sectionSpacing: sectionSpacing,
-            reservesTabBarScrollInset: reservesTabBarScrollInset,
             showsCrossDeviceRefreshBanner: showsCrossDeviceRefreshBanner,
             scrollTarget: scrollTarget,
             trailingAction: { EmptyView() },
