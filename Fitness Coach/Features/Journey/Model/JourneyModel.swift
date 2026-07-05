@@ -15,6 +15,8 @@ final class JourneyModel: ObservableObject {
     @Published private(set) var journeyHealthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
     @Published private(set) var isCrossDeviceRefreshing = false
     @Published private(set) var weeklyProgressFreshnessInput: WeeklyProgressFreshnessInput?
+    /// Presentation-ready dashboard merged once per refresh (not recomputed in SwiftUI body).
+    @Published private(set) var presentationReadyDashboard: JourneyDashboardState?
 
     private let dailyLogReader: any DailyLogReading
     private let weightLogReader: any WeightLogReading
@@ -197,6 +199,7 @@ final class JourneyModel: ObservableObject {
         weeklyProgressFreshnessInput = nil
         lastAppliedDataRefreshAt = nil
         journeyHealthIntelligenceSectionState = nil
+        presentationReadyDashboard = nil
         viewState = .loading
     }
 
@@ -239,7 +242,13 @@ final class JourneyModel: ObservableObject {
                     return
                 }
 
-                viewState = state.hasProfile ? .loaded(state) : .empty
+                if state.hasProfile {
+                    viewState = .loaded(state)
+                    refreshPresentationReadyDashboard()
+                } else {
+                    viewState = .empty
+                    presentationReadyDashboard = nil
+                }
             } catch is CancellationError {
                 return
             } catch ServiceError.missingUserProfile {
@@ -539,9 +548,25 @@ final class JourneyModel: ObservableObject {
         return logDays.union(weightDays).count
     }
 
+    private func refreshPresentationReadyDashboard() {
+        guard case .loaded(let state) = viewState else {
+            presentationReadyDashboard = nil
+            return
+        }
+
+        presentationReadyDashboard = state.mergingPresentationContext(
+            healthIntelligence: healthIntelligenceUIEnabled()
+                ? journeyHealthIntelligenceSectionState
+                : nil,
+            freshnessInput: weeklyProgressFreshnessInput,
+            isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected
+        )
+    }
+
     private func refreshFreshnessInput() async {
         guard let uid = ownerUIDProvider() else {
             weeklyProgressFreshnessInput = nil
+            refreshPresentationReadyDashboard()
             return
         }
 
@@ -591,16 +616,19 @@ final class JourneyModel: ObservableObject {
             recentlyRestoredAt: recentlyRestoredAt,
             now: now
         )
+        refreshPresentationReadyDashboard()
     }
 
 #if DEBUG
     /// Applies a static dashboard for SwiftUI previews without loading services.
     func applyPreviewState(_ state: JourneyDashboardState) {
         viewState = .loaded(state)
+        refreshPresentationReadyDashboard()
     }
 
     func applyPreviewHealthIntelligenceState(_ state: JourneyHealthIntelligenceSectionState?) {
         journeyHealthIntelligenceSectionState = state
+        refreshPresentationReadyDashboard()
     }
 
     static func preview(

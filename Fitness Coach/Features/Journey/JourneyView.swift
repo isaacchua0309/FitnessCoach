@@ -132,16 +132,19 @@ struct JourneyView: View {
                 .onAppear {
                     weeklyProgressAnalyticsCoordinator?.logRestorePending()
                 }
-        case .loaded(let state):
-            let resolved = resolvedDashboardState(state)
-            dashboard(
-                resolved,
-                healthIntelligence: resolved.alignedHealthIntelligenceSection(
-                    healthIntelligenceUIEnabled
-                        ? model.journeyHealthIntelligenceSectionState
-                        : nil
+        case .loaded:
+            if let resolved = model.presentationReadyDashboard {
+                dashboard(
+                    resolved,
+                    healthIntelligence: resolved.alignedHealthIntelligenceSection(
+                        healthIntelligenceUIEnabled
+                            ? model.journeyHealthIntelligenceSectionState
+                            : nil
+                    )
                 )
-            )
+            } else {
+                FormaScreenLoadingView(message: FormaProductCopy.Loading.journey)
+            }
         }
     }
 
@@ -207,11 +210,10 @@ struct JourneyView: View {
     }
 
     private func handleWeeklyProgressCTA(_ cta: WeeklyProgressCTA) {
-        if cta.kind == .reviewPlan, case .loaded(let state) = model.viewState {
-            let resolved = resolvedDashboardState(state)
+        if cta.kind == .reviewPlan, let resolved = model.presentationReadyDashboard {
             let unified = resolved.unifiedWeeklyReview
             weeklyProgressAnalyticsCoordinator?.logPlanRecommendationTapped(
-                summary: state.weeklyProgressSummary,
+                summary: resolved.weeklyProgressSummary,
                 recommendationKind: unified.planRecommendationBlock?.recommendationKind,
                 surface: presentedWeeklyReviewDetail == nil ? .journeyCard : .journeyDetail,
                 entryPoint: presentedWeeklyReviewDetail == nil ? .journeyCard : .journeyDetail
@@ -224,16 +226,6 @@ struct JourneyView: View {
             onOpenPlan: onOpenPlan,
             onOpenPlanForWeeklyReview: onOpenPlanForWeeklyReview,
             onOpenCoach: onOpenCoach
-        )
-    }
-
-    private func resolvedDashboardState(_ state: JourneyDashboardState) -> JourneyDashboardState {
-        state.mergingPresentationContext(
-            healthIntelligence: healthIntelligenceUIEnabled
-                ? model.journeyHealthIntelligenceSectionState
-                : nil,
-            freshnessInput: model.weeklyProgressFreshnessInput,
-            isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected
         )
     }
 

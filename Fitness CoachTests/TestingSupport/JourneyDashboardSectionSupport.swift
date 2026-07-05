@@ -1,3 +1,14 @@
+//
+//  JourneyDashboardSectionSupport.swift
+//  Fitness CoachTests
+//
+//  Mirrors Journey dashboard section visibility for deterministic QA.
+//
+
+import Foundation
+@testable import Fitness_Coach
+
+enum JourneyDashboardSectionSupport {
     /// Mirrors `JourneyDashboardContent.visibleSections` for deterministic QA.
     static func visibleSections(
         for state: JourneyDashboardState,
@@ -26,3 +37,4 @@
             }
         }
     }
+}
