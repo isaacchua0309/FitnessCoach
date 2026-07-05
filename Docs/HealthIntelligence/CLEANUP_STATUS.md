@@ -1,6 +1,6 @@
 # Health Intelligence — Cleanup Status
 
-Last updated: July 2026 (Health Intelligence consolidation v2 — composition policy stub retirement).
+Last updated: July 2026 (Health Intelligence consolidation v2 — `NormalizedWorkout+HealthWorkoutRecord` audit).
 
 This document tracks **removed**, **deprecated**, and **remaining** cleanup items for Apple Health / Health Intelligence. Use it before deleting additional legacy paths.
 
@@ -45,7 +45,7 @@ This document tracks **removed**, **deprecated**, and **remaining** cleanup item
 | Workout calorie `max(manual, HealthKit)` merge | `TodayModel`, `DailyReviewSummaryBuilder` | HI workout display owns Today activity calories |
 | Legacy dashboard sections + composition policy files | `*CompositionPolicy.swift` | `healthIntelligenceUIEnabled` permanently on; legacy UI removed. **Active methods kept:** `showsLegacyPlanConfidenceSection`, `showsLegacyInsightsSection`, `showsLegacyWeeklyReviewSection`, and all `showsHealthIntelligenceSection` / activity / recovery gating |
 | FITPILOT_* legacy env keys | `HealthIntelligenceFeatureFlags` | Documented migration to FORMA_* only |
-| `NormalizedWorkout+HealthWorkoutRecord` shim | `Health/Compatibility/` | All app queries consume `NormalizedWorkout` |
+| `NormalizedWorkout+HealthWorkoutRecord` shim | `Health/Compatibility/` | **Blocked** — see [Blocked deletions](#blocked-deletions) below. Requires `HealthActivityQueryService` and all `HealthWorkoutRecord` consumers to migrate to `NormalizedWorkout` first |
 
 ---
 
@@ -59,6 +59,44 @@ This document tracks **removed**, **deprecated**, and **remaining** cleanup item
 | `NoOpHealthIntelligenceSnapshotService` | Previews and flag-off model defaults |
 | `NoOpHealthIntelligenceEngine` | Journey preview defaults |
 | Legacy Today/Journey/Plan composition policy files | Hide duplicate sections when HI UI enabled; required while `healthIntelligenceUIEnabled` can be off |
+| `NormalizedWorkout+HealthWorkoutRecord` | Maps repository `NormalizedWorkout` → app-query `HealthWorkoutRecord` at `HealthActivityQueryService` repository-routing boundary |
+
+---
+
+## Blocked deletions
+
+### `NormalizedWorkout+HealthWorkoutRecord` shim (audited 2026-07-05)
+
+**Verdict: not safe to delete.** The shim has one production caller and many downstream dependents on its output type.
+
+| Check | Result |
+|-------|--------|
+| Production references to `asHealthWorkoutRecord` | **1** — `HealthActivityQueryService.readWorkouts` (repository-routing path) |
+| Test references to `asHealthWorkoutRecord` | **0** (tests use `HealthWorkoutRecord` mocks directly) |
+| `HealthActivityQueryService` public API | Still returns `[HealthWorkoutRecord]` — app-facing query boundary unchanged |
+| `HealthDataRepository` | Returns `[NormalizedWorkout]` — HI canonical storage type |
+| Legacy HK reader path | Returns `[HealthWorkoutRecord]` via `HealthKitWorkoutReading` — no shim involved |
+
+**Production consumers still typed on `HealthWorkoutRecord`** (via query service, aggregators, or direct readers):
+
+- `DailyTrainingActivity` — Today workout count / calorie burn
+- `TrainingInsightsAggregator` / `TrainingInsightsModel` — weekly summaries, consistency, coach notes
+- `JourneyHealthIntelligenceSectionLoader` — workout history inputs for HI presentation
+- `JourneyTrainingSummaryBuilder` / `JourneyTimelineBuilder` / `JourneyDashboardBuilder` — training summaries and analytics
+- `CoachContextPacketV2Builder` / `CoachTimelineBackfillService` — Coach training context
+- `JourneyModel.fetchHealthWorkouts` — still uses direct `workoutReader` (separate from shim, same output type)
+- `SystemHealthKitWorkoutReader` / `MockHealthKitWorkoutReader` — HK ingestion returns `HealthWorkoutRecord`
+
+**Why inlining the mapping is not sufficient:** Moving `asHealthWorkoutRecord` into `HealthActivityQueryService` would delete the file but preserve the dual-type boundary. Removal criteria require callers to consume `NormalizedWorkout` directly.
+
+**Unblock sequence (future PR):**
+
+1. Extend or replace `HealthActivityQueryService` workout APIs to expose `NormalizedWorkout` (or a single shared query record type).
+2. Migrate aggregators/builders listed above; preserve calorie rounding (`activeEnergyKcal` → `activeCalories`) and training-day semantics via characterization tests.
+3. Retire `HealthWorkoutRecord` at the query boundary once Coach, Journey, Today, and Training Insights paths are migrated.
+4. Delete shim only when `rg asHealthWorkoutRecord` returns zero production matches.
+
+**Direct HealthKit access note:** `HealthKitWorkoutReading` still returns `HealthWorkoutRecord` on the legacy reader fallback path inside `HealthActivityQueryService`. That path is separate from the shim and remains required while `isRepositoryReadRoutingEnabled` can be off.
 
 ---
 
@@ -70,7 +108,7 @@ HealthKitManager (single shared instance in AppContainer)
         → HealthSyncService / HealthIntelligenceContextBuilder
         → HealthIntelligenceSnapshotService (cache + coalesce)
             → HealthIntelligenceEngine
-    → HealthActivityQueryService (repository routing default)
+    → HealthActivityQueryService (repository routing default; maps NormalizedWorkout → HealthWorkoutRecord at boundary)
         → Today / Journey loader / Coach fallback / ReviewService / Training Insights
 ```
 
@@ -82,6 +120,7 @@ HealthKitManager (single shared instance in AppContainer)
 
 | Risk | Severity | Notes |
 |------|----------|-------|
+| Dual workout types (`NormalizedWorkout` vs `HealthWorkoutRecord`) | Medium | Shim required at repository→query boundary; see [Blocked deletions](#blocked-deletions-normalizedworkouthealthworkoutrecord-shim-audited-2026-07-05) |
 | Multiple HealthKitManager defaults in test/preview inits | Low | Production AppContainer shares one instance for repo + sync permission + training auth |
 | `storeRecoverySummary` never called in production | Low | Journey loader reads recovery from intelligence snapshots; recovery cache slot unused |
 | Stale Phase 6–10 audit doc | Low | Historical; engines are implemented — see banner on `PHASE_6_10_ENGINE_AUDIT.md` |
