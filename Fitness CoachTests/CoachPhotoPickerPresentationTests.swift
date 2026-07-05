@@ -2,7 +2,13 @@
 //  CoachPhotoPickerPresentationTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Coach photo picker destination state.
+//  Legacy picker presentation state machine.
+//
+//  `CoachPhotoPickerPresentation` is retained in the codebase but is not
+//  production wiring — Coach uses `CoachImagePickFlowController` with
+//  `CoachInputState.pendingImage` instead. These tests guard the legacy struct
+//  only; see `CoachImagePickFlowTests` and `CoachPhotoLibrarySelectionControllerTests`
+//  for production picker behavior.
 //
 
 import XCTest
@@ -69,5 +75,69 @@ final class CoachPhotoPickerPresentationTests: XCTestCase {
         XCTAssertEqual(presentation.requestCameraPicker(isCameraAvailable: false), .none)
         XCTAssertEqual(presentation.requestCameraPicker(isCameraAvailable: true), .camera)
         XCTAssertEqual(presentation.activePicker, .camera)
+    }
+
+    func testSourceDialogDismissAfterLibrarySelectionReturnsLibraryDestination() {
+        var presentation = CoachPhotoPickerPresentation.idle
+
+        XCTAssertTrue(presentation.requestSourceDialogPresentation())
+        presentation.selectAttachmentSource(.photoLibrary)
+
+        let destination = presentation.finishSourceDialogDismissal()
+
+        XCTAssertEqual(destination, .photoLibrary)
+        XCTAssertFalse(presentation.isSourceDialogPresented)
+    }
+
+    func testSourceDialogDismissAfterCameraSelectionReturnsCameraDestination() {
+        var presentation = CoachPhotoPickerPresentation.idle
+
+        XCTAssertTrue(presentation.requestSourceDialogPresentation())
+        presentation.selectAttachmentSource(.camera)
+
+        let destination = presentation.finishSourceDialogDismissal()
+
+        XCTAssertEqual(destination, .camera)
+    }
+
+    func testBlockingSheetDismissesAllPickerState() {
+        var presentation = CoachPhotoPickerPresentation.idle
+        presentation.selectAttachmentSource(.photoLibrary)
+        _ = presentation.present(.photoLibrary)
+
+        presentation.dismissForBlockingSheet()
+
+        XCTAssertEqual(presentation, .idle)
+    }
+
+    func testRequestPhotoLibraryPickerWhileDialogOpenQueuesForDismissal() {
+        var presentation = CoachPhotoPickerPresentation.idle
+        XCTAssertTrue(presentation.requestSourceDialogPresentation())
+
+        let immediate = presentation.requestPhotoLibraryPicker()
+
+        XCTAssertEqual(immediate, .none)
+        XCTAssertFalse(presentation.isSourceDialogPresented)
+        XCTAssertEqual(presentation.pendingDestination, .photoLibrary)
+
+        let destination = presentation.finishSourceDialogDismissal()
+        XCTAssertEqual(destination, .photoLibrary)
+    }
+
+    func testRapidPresentationRequestsKeepSingleActiveSurface() {
+        var presentation = CoachPhotoPickerPresentation.idle
+
+        XCTAssertTrue(presentation.requestSourceDialogPresentation())
+        XCTAssertFalse(presentation.requestSourceDialogPresentation())
+        XCTAssertTrue(presentation.isSourceDialogPresented)
+        XCTAssertFalse(presentation.isPresentingPicker)
+
+        presentation.selectAttachmentSource(.photoLibrary)
+        let destination = presentation.finishSourceDialogDismissal()
+        XCTAssertEqual(destination, .photoLibrary)
+        XCTAssertTrue(presentation.present(destination))
+        XCTAssertEqual(presentation.activePicker, .photoLibrary)
+        XCTAssertFalse(presentation.present(.camera))
+        XCTAssertFalse(presentation.requestSourceDialogPresentation())
     }
 }
