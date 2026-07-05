@@ -125,6 +125,31 @@ struct HealthIntelligenceUIResolutionInput: Equatable, Sendable {
     var surface: HealthIntelligenceSurface
 }
 
+// MARK: - Card build inputs
+
+struct HealthIntelligenceRecoveryCardBuildInput: Equatable, Sendable {
+    var recovery: RecoverySummary
+    var uiState: HealthIntelligenceUIState?
+    var staleDataLabel: String?
+    var surface: HealthIntelligenceSurface
+}
+
+struct HealthIntelligenceWorkoutCardBuildInput: Equatable, Sendable {
+    var workout: WorkoutSummary?
+    var uiState: HealthIntelligenceUIState?
+}
+
+struct HealthIntelligenceAdaptiveNutritionCardBuildInput: Equatable, Sendable {
+    var summary: AdaptiveNutritionSummary
+    var nutritionProgress: HealthIntelligenceNutritionProgressInput
+}
+
+/// Title and message for HealthKit-disconnected / unavailable recovery summaries.
+struct HealthIntelligenceDisconnectedSummary: Equatable, Sendable {
+    var title: String
+    var message: String
+}
+
 // MARK: - Accessibility
 
 enum HealthIntelligencePresentationAccessibility {
