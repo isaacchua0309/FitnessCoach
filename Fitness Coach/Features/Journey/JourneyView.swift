@@ -114,6 +114,7 @@ struct JourneyView: View {
         case .loading:
             MainTabPageScaffold(
                 title: FormaProductCopy.Journey.Header.title,
+                subtitle: FormaProductCopy.Journey.Header.subtitle,
                 scrollMode: .embedded
             ) {
                 FormaScreenLoadingView(message: FormaProductCopy.Loading.journey)
@@ -121,6 +122,7 @@ struct JourneyView: View {
         case .empty:
             MainTabPageScaffold(
                 title: FormaProductCopy.Journey.Header.title,
+                subtitle: FormaProductCopy.Journey.Header.subtitle,
                 scrollMode: .embedded
             ) {
                 JourneyEmptyStateView {
@@ -135,6 +137,7 @@ struct JourneyView: View {
         case .error(let message):
             MainTabPageScaffold(
                 title: FormaProductCopy.Journey.Header.title,
+                subtitle: FormaProductCopy.Journey.Header.subtitle,
                 scrollMode: .embedded
             ) {
                 FormaScreenErrorView(message: message, onRetry: {
@@ -144,6 +147,7 @@ struct JourneyView: View {
         case .pendingAccountRestore(let message):
             MainTabPageScaffold(
                 title: FormaProductCopy.Journey.Header.title,
+                subtitle: FormaProductCopy.Journey.Header.subtitle,
                 scrollMode: .embedded
             ) {
                 AccountRestorePendingStateView(message: message)
@@ -174,7 +178,7 @@ struct JourneyView: View {
     ) -> some View {
         MainTabPageScaffold(
             title: FormaProductCopy.Journey.Header.title,
-            subtitle: state.header.subtitle,
+            subtitle: FormaProductCopy.Journey.Header.subtitle,
             sectionSpacing: JourneyLayout.sectionSpacing,
             showsCrossDeviceRefreshBanner: model.isCrossDeviceRefreshing
         ) {

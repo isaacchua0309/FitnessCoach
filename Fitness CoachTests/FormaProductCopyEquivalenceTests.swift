@@ -47,7 +47,11 @@ final class FormaProductCopyEquivalenceTests: XCTestCase {
     }
 
     func testJourneyCopyReturnsExpectedRepresentativeStrings() {
-        XCTAssertEqual(FormaProductCopy.Journey.Header.title, "Your journey")
+        XCTAssertEqual(FormaProductCopy.Journey.Header.title, "Journey")
+        XCTAssertEqual(
+            FormaProductCopy.Journey.Header.subtitle,
+            "Your progress story, trends, and weekly reviews."
+        )
         XCTAssertEqual(
             FormaProductCopy.Journey.StartingEmptyState.title,
             "Your journey is just starting."

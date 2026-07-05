@@ -111,11 +111,15 @@ struct JourneyDashboardContent: View {
             EmptyView()
 
         case .transformation:
-            VStack(alignment: .leading, spacing: JourneyLayout.heroStackSpacing) {
-                if state.showsMomentumSection {
-                    JourneyMomentumStrip(state: state.momentum)
+            VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
+                JourneySectionLabel(title: FormaProductCopy.Journey.Hero.sectionTitle)
+
+                VStack(alignment: .leading, spacing: JourneyLayout.heroStackSpacing) {
+                    if state.showsMomentumSection {
+                        JourneyMomentumStrip(state: state.momentum)
+                    }
+                    JourneyTransformationHeroSection(state: state.transformation, onCTA: onCTA)
                 }
-                JourneyTransformationHeroSection(state: state.transformation, onCTA: onCTA)
             }
             .padding(.bottom, JourneyLayout.heroBottomSpacing)
             .onAppear { analyticsCoordinator?.logHeroViewed() }
@@ -204,40 +208,17 @@ struct JourneyDashboardContent: View {
 
 #if DEBUG
 #Preview("Health Intelligence enabled") {
-    ScrollView {
-        JourneyDashboardContent(
-            state: JourneyPreviewData.strongMomentum,
-            healthIntelligenceUIEnabled: true,
-            healthIntelligenceSectionState: JourneyHealthIntelligencePreviewData.strongWeek,
-            onConnectHealth: {}
-        )
-    }
-    .formaMainTabScrollInsets()
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
+    JourneyPreviewScreens.dashboard(
+        .strongMomentum,
+        healthIntelligenceSectionState: JourneyHealthIntelligencePreviewData.strongWeek
+    )
 }
 
 #Preview("Health Intelligence disabled") {
-    ScrollView {
-        JourneyDashboardContent(
-            state: JourneyPreviewData.strongMomentum,
-            healthIntelligenceUIEnabled: false
-        )
-    }
-    .formaMainTabScrollInsets()
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
+    JourneyPreviewScreens.dashboard(.strongMomentum)
 }
 
 #Preview("Weekly progress hero") {
-    ScrollView {
-        JourneyDashboardContent(
-            state: JourneyPreviewData.strongMomentum,
-            healthIntelligenceUIEnabled: false
-        )
-    }
-    .formaMainTabScrollInsets()
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview(palette: .blossomPink)
+    JourneyPreviewScreens.dashboard(.strongMomentum, palette: .blossomPink)
 }
 #endif

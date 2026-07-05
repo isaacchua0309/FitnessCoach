@@ -36,6 +36,6 @@ enum JourneyLayout {
     static let progressBarHeight: CGFloat = 6
     static let heroProgressBarHeight: CGFloat = 8
 
-    /// Padding below the last Journey section (pairs with `formaMainTabScrollInsets`).
+    /// Legacy padding below the last Journey section (tab clearance is handled by `MainTabPageScaffold`).
     static let scrollBottomContentPadding = FormaTokens.Spacing.lg
 }

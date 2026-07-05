@@ -14,13 +14,6 @@ struct JourneyTransformationHeroSection: View {
     var body: some View {
         JourneyCard(elevation: .hero) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                Text(state.title)
-                    .font(JourneyTypography.cardSupporting.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
-                    .textCase(.uppercase)
-                    .tracking(0.5)
-                    .accessibilityHidden(true)
-
                 Text(state.primaryMessage)
                     .font(.system(size: primarySize, weight: .bold, design: .rounded))
                     .foregroundStyle(FormaTokens.Color.textPrimary)

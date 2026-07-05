@@ -2,6 +2,8 @@
 //  JourneyHeaderSection.swift
 //  Fitness Coach
 //
+//  Forma — Journey screen header. Preview/test wrapper around PageHeader.
+//
 
 import SwiftUI
 
@@ -9,10 +11,11 @@ struct JourneyHeaderSection: View {
     let state: JourneyHeaderState
 
     var body: some View {
-        JourneyEyebrowLabel(title: state.title)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(state.accessibilitySummary)
+        PageHeader(
+            title: FormaProductCopy.Journey.Header.title,
+            subtitle: FormaProductCopy.Journey.Header.subtitle
+        )
+        .accessibilityLabel(state.accessibilitySummary)
     }
 }
 
@@ -21,11 +24,11 @@ struct JourneyHeaderSection: View {
     JourneyHeaderSection(
         state: JourneyHeaderState(
             title: FormaProductCopy.Journey.Header.title,
-            subtitle: FormaProductCopy.Journey.Momentum.buildingHeadline,
-            accessibilitySummary: "\(FormaProductCopy.Journey.Header.title). \(FormaProductCopy.Journey.Momentum.buildingHeadline)"
+            subtitle: FormaProductCopy.Journey.Header.subtitle,
+            accessibilitySummary: "\(FormaProductCopy.Journey.Header.title). \(FormaProductCopy.Journey.Header.subtitle)"
         )
     )
-    .padding()
+    .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }

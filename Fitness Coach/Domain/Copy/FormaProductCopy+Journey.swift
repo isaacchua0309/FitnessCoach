@@ -34,6 +34,7 @@ extension FormaProductCopy {
         }
 
         enum Hero {
+            static let sectionTitle = "Your journey"
             static let newUserTitle = "Your journey is just starting."
             static let newUserPrimary = "Build your first week."
             static let newUserBody = "Log today to start creating your transformation story."
@@ -524,7 +525,8 @@ extension FormaProductCopy {
         }
 
         enum Header {
-            static let title = "Your journey"
+            static let title = "Journey"
+            static let subtitle = "Your progress story, trends, and weekly reviews."
         }
 
         enum Chapters {
@@ -883,7 +885,7 @@ extension FormaProductCopy {
         }
 
         enum WeeklyReview {
-            static let sectionTitle = "This Week"
+            static let sectionTitle = "Weekly review"
             static let foodTitle = "Food Logging"
             static let proteinTitle = "Protein"
             static let waterTitle = "Water"
