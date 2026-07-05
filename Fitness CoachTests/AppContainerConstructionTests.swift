@@ -130,4 +130,38 @@ final class AppContainerConstructionTests: XCTestCase {
         XCTAssertNotNil(container.trainingInsightsStore)
         XCTAssertTrue(container.healthIntegrationConnectionStore is LockedHealthIntegrationConnectionStore)
     }
+
+    func testBuildSyncDependenciesDelegatesToSyncDependenciesBundle() throws {
+        let auth = AuthDependencies.build(inMemory: true)
+        let health = HealthDependencies.build(session: auth, inMemory: true)
+        let persistence = try AppContainer.buildPersistenceDependencies(
+            session: auth,
+            inMemory: true,
+            accountDataRemoteStore: nil
+        )
+
+        let bundle = AppContainer.buildSyncDependencies(
+            session: auth,
+            persistence: persistence,
+            health: health,
+            inMemory: true
+        )
+
+        XCTAssertNotNil(bundle.accountRestoreCoordinator)
+        XCTAssertNotNil(bundle.accountInitialRestoreService)
+        XCTAssertNotNil(bundle.crossDeviceSyncCoordinator)
+        XCTAssertNotNil(bundle.accountDeletionCoordinator)
+        XCTAssertNotNil(bundle.accountDataExportService)
+        XCTAssertTrue(bundle.accountRealtimeChangeListener is NoOpAccountRealtimeChangeListener)
+    }
+
+    func testInMemoryContainerWiresAccountLifecycleDependencies() throws {
+        let container = try AppContainer(inMemory: true)
+
+        XCTAssertNotNil(container.accountRestoreCoordinator)
+        XCTAssertNotNil(container.crossDeviceSyncCoordinator)
+        XCTAssertNotNil(container.accountDeletionCoordinator)
+        XCTAssertNotNil(container.accountDataExportService)
+        XCTAssertTrue(container.accountRealtimeChangeListener is NoOpAccountRealtimeChangeListener)
+    }
 }
