@@ -98,7 +98,7 @@ final class HealthIntelligenceSectionLoaderCoreTests: XCTestCase {
             canShowInsight: false,
             confidenceLabel: nil,
             missingSignals: [],
-            fallbackReason: .noHealthPermission
+            fallbackReason: .permissionsRequired
         )
 
         XCTAssertTrue(
