@@ -35,7 +35,14 @@ final class LiveThemeManualQAChecklistTests: XCTestCase {
 
     private let scenario3OtherTabs = [
         "Fitness Coach/Features/Journey/JourneyView.swift",
-        "Fitness Coach/Features/Plan/PlanView.swift"
+        "Fitness Coach/Features/Plan/PlanView.swift",
+        "Fitness Coach/DesignSystem/Layout/MainTabPageScaffold.swift",
+        "Fitness Coach/DesignSystem/Components/PageHeader.swift",
+        "Fitness Coach/DesignSystem/Components/SectionLabel.swift",
+        "Fitness Coach/DesignSystem/Components/MainTabCard.swift",
+        "Fitness Coach/DesignSystem/Components/PageActionPill.swift",
+        "Fitness Coach/DesignSystem/Components/MainTabHeroText.swift",
+        "Fitness Coach/DesignSystem/Components/FormaInlineEmptyState.swift"
     ]
 
     func testScenario1TodaySurfacesObserveLiveTheme() throws {
@@ -55,7 +62,7 @@ final class LiveThemeManualQAChecklistTests: XCTestCase {
     func testScenario3JourneyAndPlanObserveLiveTheme() throws {
         try assertLiveThemeWiring(
             in: scenario3OtherTabs,
-            scenario: "Scenario 3 — Journey and Plan"
+            scenario: "Scenario 3 — Journey, Plan, and shared main-tab layout"
         )
     }
 

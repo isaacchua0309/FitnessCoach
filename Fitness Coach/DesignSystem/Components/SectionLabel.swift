@@ -23,6 +23,7 @@ struct SectionLabel: View {
 
     var body: some View {
         let _ = themeManager.themeRevision
+        let _ = theme.accent
 
         Text(title)
             .font(labelFont)
@@ -31,6 +32,7 @@ struct SectionLabel: View {
             .tracking(tracking)
             .padding(.bottom, FormaMainTabLayout.sectionLabelBottomSpacing)
             .accessibilityAddTraits(.isHeader)
+            .formaThemeReactive()
     }
 
     private var labelFont: Font {

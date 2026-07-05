@@ -14,18 +14,24 @@ struct FormaInlineEmptyState: View {
     var action: (() -> Void)?
     var actionAccessibilityHint: String?
 
+    @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
+        let _ = themeManager.themeRevision
+        let _ = theme.accent
+
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
             if let title {
                 Text(title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .foregroundStyle(theme.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             Text(message)
                 .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(title == nil ? FormaTokens.Color.textPrimary : FormaTokens.Color.textSecondary)
+                .foregroundStyle(title == nil ? theme.primaryText : theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let actionTitle, let action {
@@ -40,6 +46,7 @@ struct FormaInlineEmptyState: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, FormaTokens.Spacing.xs)
         .accessibilityElement(children: .contain)
+        .formaThemeReactive()
     }
 }
 
@@ -58,8 +65,12 @@ struct FormaQuickActionChip: View {
     var accessibilityHint: String?
 
     @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
 
     var body: some View {
+        let _ = themeManager.themeRevision
+        let _ = theme.accent
+
         Group {
             switch style {
             case .secondary:
@@ -97,9 +108,13 @@ private struct FormaThemedChipButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let _ = themeManager.themeRevision
+        let _ = theme.accent
+
+        return configuration.label
             .font(FormaTokens.Typography.caption.weight(.semibold))
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.xs)

@@ -29,6 +29,7 @@ struct PageHeader<TrailingAction: View>: View {
 
     var body: some View {
         let _ = themeManager.themeRevision
+        let _ = theme.accent
 
         VStack(alignment: .leading, spacing: FormaMainTabLayout.headerTitleSubtitleSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
@@ -55,6 +56,7 @@ struct PageHeader<TrailingAction: View>: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilitySummary)
         .accessibilityAddTraits(.isHeader)
+        .formaThemeReactive()
     }
 
     private var titleFont: Font {

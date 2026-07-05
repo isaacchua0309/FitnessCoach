@@ -69,6 +69,7 @@ struct MainTabPageScaffold<
 
     var body: some View {
         let _ = themeManager.themeRevision
+        let _ = theme.accent
 
         VStack(spacing: 0) {
             if showsPageHeader {
@@ -108,6 +109,7 @@ struct MainTabPageScaffold<
                 MainTabTabBarClearanceSpacer(safeAreaBottom: measuredSafeAreaBottom)
             }
         }
+        .formaThemeReactive()
     }
 
     @ViewBuilder

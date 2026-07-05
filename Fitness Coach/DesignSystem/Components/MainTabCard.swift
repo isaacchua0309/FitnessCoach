@@ -13,9 +13,11 @@ struct MainTabCard<Content: View>: View {
     @ViewBuilder var content: Content
 
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let _ = themeManager.themeRevision
+        let _ = theme.accent
         return content
             .padding(.horizontal, compact ? FormaMainTabLayout.cardCompactPadding : FormaMainTabLayout.cardPadding)
             .padding(.vertical, compact ? FormaTokens.Spacing.sm : FormaMainTabLayout.cardPadding)

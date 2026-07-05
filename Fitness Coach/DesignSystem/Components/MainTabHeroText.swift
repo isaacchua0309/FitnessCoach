@@ -82,6 +82,7 @@ struct MainTabHeroText: View {
 
     var body: some View {
         let _ = themeManager.themeRevision
+        let _ = theme.accent
 
         Text(text)
             .font(.system(size: fontSize, weight: .bold, design: .rounded))
@@ -93,6 +94,7 @@ struct MainTabHeroText: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(addsHeaderTrait ? .isHeader : [])
+            .formaThemeReactive()
     }
 
     private var resolvedLineLimit: Int {

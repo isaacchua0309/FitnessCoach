@@ -17,6 +17,7 @@ struct PageActionPill: View {
 
     var body: some View {
         let _ = themeManager.themeRevision
+        let _ = theme.accent
 
         Group {
             if let action {
@@ -31,6 +32,7 @@ struct PageActionPill: View {
             }
         }
         .accessibilityLabel(title)
+        .formaThemeReactive()
     }
 
     private var pillLabel: some View {

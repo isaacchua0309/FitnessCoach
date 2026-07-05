@@ -38,6 +38,7 @@ private struct FormaCardChromeBackground: View {
 
     var body: some View {
         let _ = themeManager.themeRevision
+        let _ = theme.accent
         switch style {
         case .surface:
             surfaceBackground(accentLeading: false)
