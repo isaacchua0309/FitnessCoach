@@ -32,20 +32,23 @@ enum AIBackendConfiguration {
         }
 
         guard let url = URL(string: raw), let host = url.host?.lowercased() else {
-            logger.error("AI gateway URL is invalid: \(raw, privacy: .public)")
+            let redacted = FormaLogRedactor.redactSecrets(in: raw)
+            logger.error("AI gateway URL is invalid: \(redacted, privacy: .public)")
             return nil
         }
 
         guard isLocalhostHost(host) == false else {
+            let redacted = FormaLogRedactor.redactSecrets(in: raw)
             logger.error(
-                "AI gateway URL rejected (localhost not allowed): \(raw, privacy: .public)"
+                "AI gateway URL rejected (localhost not allowed): \(redacted, privacy: .public)"
             )
             return nil
         }
 
         guard url.scheme == "https" || url.scheme == "http" else {
+            let redacted = FormaLogRedactor.redactSecrets(in: raw)
             logger.error(
-                "AI gateway URL rejected (unsupported scheme): \(raw, privacy: .public)"
+                "AI gateway URL rejected (unsupported scheme): \(redacted, privacy: .public)"
             )
             return nil
         }

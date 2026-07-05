@@ -65,7 +65,8 @@ enum AppShellRoutingLogger {
     }
 
     nonisolated private static func emit(message: String, fields: [String: String]) {
-        let fieldLine = fields
+        let sanitized = LogRedactor.sanitizeLogFields(fields)
+        let fieldLine = sanitized
             .sorted { $0.key < $1.key }
             .map { "\($0.key)=\($0.value)" }
             .joined(separator: " ")

@@ -20,11 +20,17 @@ Tests are grouped with **Xcode Test Plans** under `TestPlans/`. The default **Fi
 
 | Plan | Assertion failures | Tests executed | Wall-clock | `xcodebuild` exit |
 |------|-------------------|----------------|------------|-------------------|
-| **Fast-Core** | **0** | 563 (final aggregate) | ~206s | `TEST FAILED` — 7 XCTest crash restarts (duplicate GTMAppAuth/Firebase classes in app + test target) |
+| **Fast-Core** | **0** | 563 (final aggregate) | ~206s | `TEST FAILED` — 7 XCTest crash restarts (duplicate GTMAppAuth/Firebase classes in app + test target) — **addressed 2026-07-05** via SPM parity + strip-duplicate-frameworks build phase |
 | **Integration** | **0** (observed) | Incomplete (~26 before abort) | ~153s | `TEST FAILED` — crash restarts + stale test bundle (`dlopen` / missing `FormaProductCopy` symbol) |
 | **Full (CI)** | Not fully measured | Incomplete (partial run) | ~298s | `TEST FAILED` — 11 crash restarts + `Fitness Coach.debug.dylib` load failure |
 
-**Do not treat the suite as green** until all three finish with `TEST SUCCEEDED`. Known plan fixes (migration, draft store, form-state steps, journey analytics, appleHealth harness, analytics class routing) are in place; remaining blockers are XCTest process stability and keeping app/test bundles in sync after production edits.
+**Re-verify on macOS** after the BW-101 fix:
+
+```bash
+./Scripts/run-fast-core-serial.sh
+```
+
+The script uses `platform=iOS Simulator,name=iPhone 17` (CI destination) and falls back to the nearest available iPhone simulator when iPhone 17 is not installed.
 
 ### Fast-Core includes
 
@@ -66,13 +72,17 @@ For CI / pre-merge: select scheme **Fitness Coach CI** (always runs **Full**).
 
 ## Command line
 
-Simulator (adjust device name as needed):
+Simulator (CI destination — adjust locally if iPhone 17 is unavailable):
 
 ```bash
+# Recommended: serial Fast-Core with iPhone 17 fallback
+./Scripts/run-fast-core-serial.sh
+
+# Or set DESTINATION explicitly (CI default)
 DESTINATION='platform=iOS Simulator,name=iPhone 17'
 
 # Fast — default for local dev (same as ⌘U on Fitness Coach scheme)
-xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core
+xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core -parallel-testing-enabled NO
 
 # Integration only
 xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Integration

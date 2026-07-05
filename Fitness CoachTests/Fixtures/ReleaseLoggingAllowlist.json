@@ -1,0 +1,276 @@
+{
+  "version": 1,
+  "fileEntries": [
+    {
+      "path": "Fitness Coach/App/AIBackendConfiguration.swift",
+      "owner": "AI/Config",
+      "reason": "Gateway misconfiguration errors only; URL values redacted via FormaLogRedactor",
+      "sensitivity": "medium",
+      "redactorRequired": true,
+      "redactorSymbols": ["FormaLogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/App/Routing/AppShellRoutingLogger.swift",
+      "owner": "App/Routing",
+      "reason": "Auth shell routing enums/booleans; UID suffix via FormaLogRedactor.redactUID",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["FormaLogRedactor", "ProfileBootstrapDebugLogger"]
+    },
+    {
+      "path": "Fitness Coach/Application/Services/CoachTimelineBackfillService.swift",
+      "owner": "Coach/Timeline",
+      "reason": "Backfill failure category; error text redacted",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["FormaLogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Application/StateBuilders/Coach/CoachContextCorrectnessValidator.swift",
+      "owner": "Coach/Context",
+      "reason": "Release validation summary uses redactedSummary only",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["redactedSummary", "redactedDebugDescription"]
+    },
+    {
+      "path": "Fitness Coach/Application/StateBuilders/Coach/CoachContextPacketV2Builder.swift",
+      "owner": "Coach/Context",
+      "reason": "HI load timeout/failure metadata (reason codes, no payloads)",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["redactedFailureReason"]
+    },
+    {
+      "path": "Fitness Coach/Application/StateBuilders/Coach/CoachContextPacketV2FallbackBuilder.swift",
+      "owner": "Coach/Context",
+      "reason": "Degraded context fallback; redacted packet summaries only",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["redactedDescription", "redactedDebugDescription"]
+    },
+    {
+      "path": "Fitness Coach/Application/StateBuilders/Coach/CoachHealthIntelligenceSnapshotLoader.swift",
+      "owner": "Coach/HealthIntelligence",
+      "reason": "HI snapshot load lifecycle; redactedFailureReason codes only",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["redactedFailureReason"]
+    },
+    {
+      "path": "Fitness Coach/Application/UseCases/CoachTimeline/CoachTimelineRecorder.swift",
+      "owner": "Coach/Timeline",
+      "reason": "Timeline persistence failures; event type + redacted error text",
+      "sensitivity": "medium",
+      "redactorRequired": true,
+      "redactorSymbols": ["FormaLogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Health/Cache/HealthCacheStoreLogger.swift",
+      "owner": "Health/Cache",
+      "reason": "Cache operation metadata via HealthOSLogFormatting",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["HealthOSLogFormatting", "LogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Health/Intelligence/HealthIntelligenceEngineLogger.swift",
+      "owner": "Health/Intelligence",
+      "reason": "Engine lifecycle metadata via HealthOSLogFormatting",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["HealthOSLogFormatting", "LogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Health/Intelligence/HealthIntelligenceSnapshotLogger.swift",
+      "owner": "Health/Intelligence",
+      "reason": "Snapshot verification metadata via HealthOSLogFormatting",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["HealthOSLogFormatting", "LogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Health/Permissions/HealthPermissionLogger.swift",
+      "owner": "Health/Permissions",
+      "reason": "Permission state enums via HealthOSLogFormatting",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["HealthOSLogFormatting", "LogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Health/Repository/HealthDataRepositoryLogger.swift",
+      "owner": "Health/Repository",
+      "reason": "Repository read routing metadata; no HK samples",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["HealthOSLogFormatting", "LogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Health/Sync/HealthSummarySyncDebugLogger.swift",
+      "owner": "Health/Sync",
+      "reason": "Remote summary sync counts via HealthOSLogFormatting",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["HealthOSLogFormatting", "LogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Health/Sync/HealthSyncLogger.swift",
+      "owner": "Health/Sync",
+      "reason": "Local sync lifecycle metadata via HealthOSLogFormatting",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["HealthOSLogFormatting", "LogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/AI/FallbackLLMClient.swift",
+      "owner": "AI/Client",
+      "reason": "Backend availability metadata (operation name only)",
+      "sensitivity": "low",
+      "redactorRequired": false,
+      "redactorSymbols": []
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/AI/UnavailableLLMClient.swift",
+      "owner": "AI/Client",
+      "reason": "Blocked LLM call metadata (static reason strings)",
+      "sensitivity": "low",
+      "redactorRequired": false,
+      "redactorSymbols": []
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Cloud/AccountDeletionRemoteClient.swift",
+      "owner": "Privacy/Deletion",
+      "reason": "Deletion backend lifecycle; categories and hashed UID only",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["AccountDeletionPolicy", "FormaLogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/AccountDeletionCoordinatorLogger.swift",
+      "owner": "Privacy/Deletion",
+      "reason": "Deletion coordinator phases; LogRedactor.sanitizeLogFields",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["LogRedactor"]
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/CoachAccuracyObservability.swift",
+      "owner": "Coach/Observability",
+      "reason": "Production-safe Coach accuracy aggregates via LogRedactor",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["LogRedactor", "CoachAccuracyObservabilityLogFormatter"]
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/LogRedactor.swift",
+      "owner": "Platform/Logging",
+      "reason": "Shared sanitized OSLog helper used by DEBUG analytics traces",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["LogRedactor", "sanitizeLogFields"]
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/ProfileBootstrapDebugLogger.swift",
+      "owner": "Platform/Bootstrap",
+      "reason": "Profile bootstrap phases; LogRedactor.sanitizeLogFields on all fields",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["LogRedactor", "FormaLogRedactor"]
+    }
+  ],
+  "linePatternEntries": [
+    {
+      "id": "analytics-noop-sink",
+      "pattern": "(analyticsLogger|coachAnalyticsLogger|publicEntryAnalyticsLogger)\\.log\\(",
+      "owner": "Product/Analytics",
+      "reason": "Release uses NoOp analytics loggers from AppContainer",
+      "sensitivity": "none",
+      "redactorRequired": false
+    },
+    {
+      "id": "health-intelligence-analytics-sink",
+      "pattern": "logger\\.log\\(event, properties:",
+      "owner": "Health/Intelligence",
+      "reason": "HealthIntelligencePipelineAnalytics uses injected NoOp logger in Release",
+      "sensitivity": "none",
+      "redactorRequired": false
+    },
+    {
+      "id": "debug-callee-food-estimate",
+      "pattern": "CoachFoodEstimateDebugLogger\\.log\\(",
+      "owner": "Coach/Debug",
+      "reason": "Callee body is #if DEBUG only",
+      "sensitivity": "none",
+      "redactorRequired": false,
+      "debugCalleeFile": "Fitness Coach/Infrastructure/Diagnostics/CoachFoodEstimateDebugLogger.swift"
+    },
+    {
+      "id": "debug-callee-hi-verifier",
+      "pattern": "HealthIntelligenceSnapshotVerifier\\.log\\(",
+      "owner": "Health/Intelligence",
+      "reason": "Callee body is #if DEBUG only",
+      "sensitivity": "none",
+      "redactorRequired": false,
+      "debugCalleeFile": "Fitness Coach/Health/Intelligence/HealthIntelligenceSnapshotVerifier.swift"
+    },
+    {
+      "id": "coach-route-observability",
+      "pattern": "CoachRouteDebugLogger\\.log\\(",
+      "owner": "Coach/Routing",
+      "reason": "Delegates to CoachAccuracyObservabilityLogger (Release-safe metadata)",
+      "sensitivity": "low",
+      "redactorRequired": true,
+      "redactorSymbols": ["CoachAccuracyObservabilityLogger"]
+    }
+  ],
+  "debugOnlyFiles": [
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/AccountSyncLogger.swift",
+      "gate": "else-return",
+      "owner": "Account/Sync",
+      "reason": "accountSyncTrace DEBUG flag; Release returns before emit"
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/AccountRestoreLogger.swift",
+      "gate": "else-return",
+      "owner": "Account/Restore",
+      "reason": "accountRestoreTrace DEBUG flag; Release returns before emit"
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/CrossDeviceSyncLogger.swift",
+      "gate": "else-return",
+      "owner": "Account/Sync",
+      "reason": "cross-device sync trace DEBUG flag; Release returns before emit"
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/TodayHydrationDebugLogger.swift",
+      "gate": "else-return",
+      "owner": "Today",
+      "reason": "todayHydrationTrace DEBUG flag; Release returns before emit"
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/AuthSignInDebugLogger.swift",
+      "gate": "else-return",
+      "owner": "Auth",
+      "reason": "authSignInTrace DEBUG flag; Release returns before emit"
+    },
+    {
+      "path": "Fitness Coach/Application/Sync/AccountMigrationDebugLogger.swift",
+      "gate": "else-return",
+      "owner": "Account/Migration",
+      "reason": "profileBootstrapTrace DEBUG flag; Release returns before emit"
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/CoachTodaySyncDebugLogger.swift",
+      "gate": "else-return",
+      "owner": "Coach/Today",
+      "reason": "Meal/today sync trace is DEBUG-only; Release returns before emit"
+    },
+    {
+      "path": "Fitness Coach/Infrastructure/Diagnostics/FormaPipelineTracer.swift",
+      "gate": "file-debug-implementation",
+      "owner": "Coach/Pipeline",
+      "reason": "Entire tracer implementation is #if DEBUG; Release stub is no-op"
+    }
+  ]
+}

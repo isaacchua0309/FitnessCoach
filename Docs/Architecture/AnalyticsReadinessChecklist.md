@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-07-05  
 **Related:** [LoggingAndPrivacyContract.md](./LoggingAndPrivacyContract.md), [FeatureFlagRegistry.md](./FeatureFlagRegistry.md)  
-**Implementation:** `Fitness Coach/Infrastructure/Diagnostics/AnalyticsLoggingSupport.swift`, `Fitness Coach/App/AnalyticsLoggerFactory.swift`
+**Implementation:** `Fitness Coach/App/FormaAnalyticsConfiguration.swift`, `Fitness Coach/App/AnalyticsLoggerFactory.swift`, `Fitness Coach/Infrastructure/Diagnostics/CompositeAnalyticsLoggers.swift`, `Fitness Coach/Infrastructure/Diagnostics/AnalyticsLoggingSupport.swift`
 
 ---
 
@@ -21,10 +21,25 @@ Feature coordinator / model
         ↓
 Domain *AnalyticsLogging protocol (typed event + properties)
         ↓
+AnalyticsLoggerFactory (FormaAnalyticsConfiguration)
+        ↓
 AppContainer-injected sink
    ├── DEBUG: OSLog*AnalyticsLogger → LogRedactor.emitOSLogTrace
-   └── Release: NoOp*AnalyticsLogger (intentional — events dropped)
+   ├── Release default: NoOp*AnalyticsLogger (intentional — events dropped)
+   └── Future (disabled): Production* adapter when isProductionSinkEnabled == true
 ```
+
+### `FormaAnalyticsConfiguration`
+
+| Preset | `isProductionSinkEnabled` | Use |
+|--------|---------------------------|-----|
+| `.debug` | `false` | DEBUG builds (`FormaAnalyticsConfiguration.current`) |
+| `.releaseDefault` | `false` | Release / App Store default |
+| `.testing` | `false` | Unit tests unless explicitly overridden |
+
+Production sink remains **disabled by default**. Enabling requires an explicit `FormaAnalyticsConfiguration(isProductionSinkEnabled: true)` **and** a wired `Production*` adapter (not shipped yet).
+
+When multiple sinks are active (e.g. DEBUG OSLog + future production), `Composite*AnalyticsLogger` fans out to each child.
 
 **Coach accuracy observability** (`CoachAccuracyObservabilityLogger`) is separate from product analytics — metadata-only OSLog in Release. See Logging contract.
 
@@ -65,11 +80,13 @@ AppContainer-injected sink
 When product approves a backend (Firebase Analytics, Amplitude, internal gateway, etc.):
 
 1. Implement `Production*AnalyticsLogger` adapters behind each protocol
-2. Wire in `AppContainer` `#else` branch (keep NoOp as fallback behind flag)
-3. Map typed properties → vendor schema (snake_case keys)
-4. Add opt-in consent gate if required (App Store / GDPR)
-5. Extend `AnalyticsInfrastructureTests` with adapter contract tests
-6. Update App Store privacy nutrition labels
+2. Return adapters from `productionSink:` closures in `AnalyticsLoggerFactory.makeAppLoggers`
+3. Set `FormaAnalyticsConfiguration(isProductionSinkEnabled: true)` only after consent + privacy review
+4. Keep `NoOp*` as fallback when production adapter is nil or flag is false
+5. Map typed properties → vendor schema (snake_case keys)
+6. Add opt-in consent gate if required (App Store / GDPR)
+7. Extend `AnalyticsInfrastructureTests` with adapter contract tests
+8. Update App Store privacy nutrition labels
 
 **Do not** enable Firebase Analytics in this repo without completing the above.
 
@@ -123,20 +140,21 @@ All sinks should call `properties.privacySafeParameters()` (via `AnalyticsLoggin
 
 ## 7. AppContainer Wiring
 
-Sink selection is centralized in `AnalyticsLoggerFactory`:
+Sink selection is centralized in `AnalyticsLoggerFactory` with explicit configuration:
 
 ```swift
 let loggers = AnalyticsLoggerFactory.makeAppLoggers(
+    configuration: .current,     // .debug in DEBUG, .releaseDefault in Release
     today: injectedTodayLogger,  // optional test override
     ...
 )
-// DEBUG → OSLog*AnalyticsLogger per domain
+// DEBUG → OSLog*AnalyticsLogger per domain (production disabled)
 // Release → NoOp*AnalyticsLogger per domain (intentional)
 ```
 
-`AppContainer.buildAnalyticsDependencies` maps `AppAnalyticsLoggers` into `AnalyticsDependenciesBundle`.
+`AppContainer.buildAnalyticsDependencies` passes `configuration: .current`.
 
-Coach nutrition-card analytics use `AnalyticsLoggerFactory.coach(_:)` at `CoachModel` init (not container-wired).
+Coach nutrition-card analytics use `AnalyticsLoggerFactory.coach(_:configuration:)` at `CoachModel` init (not container-wired).
 
 Factory methods:
 - `makeSettingsAnalyticsCoordinator()` → `settingsAnalyticsLogger`
@@ -166,7 +184,7 @@ Inject test doubles via `AppContainer(inMemory: true, todayAnalyticsLogger: Capt
 
 | Test class | Covers |
 |------------|--------|
-| `AnalyticsInfrastructureTests` | AppContainer sink selection, NoOp safety, event naming, privacy |
+| `AnalyticsInfrastructureTests` | Configuration presets, composite routing, AppContainer sink selection, NoOp safety, event naming, privacy |
 | `TodayAnalyticsTests` | Today buckets |
 | `JourneyAnalyticsLoggingTests` | Journey buckets |
 | `HealthIntelligenceAnalyticsLoggingTests` | HI privacy |
@@ -192,6 +210,7 @@ Inject test doubles via `AppContainer(inMemory: true, todayAnalyticsLogger: Capt
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Added `FormaAnalyticsConfiguration`, `Composite*AnalyticsLogger`, explicit sink routing in factory |
 | 2026-07-05 | Centralized sink selection in `AnalyticsLoggerFactory` |
 | 2026-07-04 | Initial analytics readiness checklist |
 | 2026-07-04 | Added `AnalyticsLoggingSupport`, fixed Plan OSLog sink, wired HI logger in AppContainer |

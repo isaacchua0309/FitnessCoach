@@ -87,11 +87,15 @@ enum CoachTodaySyncDebugLogger {
         ProcessInfo.processInfo.environment["FITPILOT_COACH_TODAY_SYNC_TRACE"] != "0"
     }
     #else
-    nonisolated static var isVerboseEnabled: Bool { true }
+    nonisolated static var isVerboseEnabled: Bool { false }
     #endif
 
     nonisolated private static func emit(message: String, fields: [String: String]) {
+        #if DEBUG
         guard isVerboseEnabled else { return }
+        #else
+        return
+        #endif
 
         let fieldLine = fields
             .sorted { $0.key < $1.key }

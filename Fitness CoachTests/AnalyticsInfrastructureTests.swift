@@ -10,6 +10,86 @@ import XCTest
 
 final class AnalyticsInfrastructureTests: XCTestCase {
 
+    // MARK: - Configuration
+
+    func testReleaseDefaultConfigurationDisablesProductionSink() {
+        XCTAssertFalse(FormaAnalyticsConfiguration.releaseDefault.isProductionSinkEnabled)
+        XCTAssertFalse(FormaAnalyticsConfiguration.debug.isProductionSinkEnabled)
+        XCTAssertFalse(FormaAnalyticsConfiguration.testing.isProductionSinkEnabled)
+    }
+
+    func testCurrentConfigurationMatchesBuildIntent() {
+        #if DEBUG
+        XCTAssertEqual(FormaAnalyticsConfiguration.current, .debug)
+        #else
+        XCTAssertEqual(FormaAnalyticsConfiguration.current, .releaseDefault)
+        #endif
+    }
+
+    func testEnablingProductionSinkRequiresExplicitConfiguration() {
+        let explicit = FormaAnalyticsConfiguration(isProductionSinkEnabled: true)
+        XCTAssertTrue(explicit.isProductionSinkEnabled)
+        XCTAssertNotEqual(explicit, FormaAnalyticsConfiguration.releaseDefault)
+
+        let loggers = AnalyticsLoggerFactory.makeAppLoggers(configuration: .releaseDefault)
+        #if DEBUG
+        XCTAssertTrue(loggers.today is OSLogTodayAnalyticsLogger)
+        #else
+        XCTAssertTrue(loggers.today is NoOpTodayAnalyticsLogger)
+        #endif
+    }
+
+    func testProductionSinkFlagWithoutAdapterStillDefaultsToNoOpInRelease() {
+        let configuration = FormaAnalyticsConfiguration(isProductionSinkEnabled: true)
+        let loggers = AnalyticsLoggerFactory.makeAppLoggers(configuration: configuration)
+
+        #if DEBUG
+        XCTAssertTrue(loggers.today is OSLogTodayAnalyticsLogger)
+        #else
+        XCTAssertTrue(loggers.today is NoOpTodayAnalyticsLogger)
+        #endif
+    }
+
+    func testCompositeTodayAnalyticsLoggerForwardsToConfiguredChildren() {
+        let first = CapturingTodayAnalyticsLogger()
+        let second = CapturingTodayAnalyticsLogger()
+        let composite = CompositeTodayAnalyticsLogger(loggers: [first, second])
+
+        let properties = TodayAnalyticsProperties(dayStage: "afternoon", action: "test")
+        composite.log(.viewed, properties: properties)
+
+        XCTAssertEqual(first.events.count, 1)
+        XCTAssertEqual(second.events.count, 1)
+        XCTAssertEqual(first.events.last?.event, .viewed)
+        XCTAssertEqual(second.events.last?.event, .viewed)
+    }
+
+    func testResolveSinkComposesDebugAndProductionSinksWhenBothPresent() {
+        let debug = CapturingTodayAnalyticsLogger()
+        let production = CapturingTodayAnalyticsLogger()
+        let configuration = FormaAnalyticsConfiguration(isProductionSinkEnabled: true)
+
+        let logger = AnalyticsLoggerFactory.resolve(
+            nil as (any TodayAnalyticsLogging)?,
+            configuration: configuration,
+            debugSink: { debug },
+            noOpSink: { NoOpTodayAnalyticsLogger() },
+            productionSink: { production },
+            composite: { CompositeTodayAnalyticsLogger(loggers: $0) }
+        )
+
+        XCTAssertTrue(logger is CompositeTodayAnalyticsLogger)
+        logger.log(.viewed, properties: TodayAnalyticsProperties(dayStage: "morning"))
+
+        #if DEBUG
+        XCTAssertEqual(debug.events.count, 1)
+        XCTAssertEqual(production.events.count, 1)
+        #else
+        XCTAssertEqual(debug.events.count, 0)
+        XCTAssertEqual(production.events.count, 1)
+        #endif
+    }
+
     // MARK: - AppContainer sink selection
 
     @MainActor

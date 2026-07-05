@@ -49,6 +49,8 @@ enum AccountMigrationDebugLogger {
     ) {
         #if DEBUG
         guard FormaAbTest.Diagnostics.profileBootstrapTrace else { return }
+        #else
+        return
         #endif
 
         let fieldLine = fields
