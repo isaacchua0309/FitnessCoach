@@ -2,7 +2,7 @@
 //  AuthGateCoordinator+OnboardingDelegate.swift
 //  Fitness Coach
 //
-//  Delegate bridge for onboarding shell coordinator state mutations.
+//  Onboarding intent forwarding and delegate bridge for AuthOnboardingShellCoordinator.
 //
 
 import Foundation
@@ -15,10 +15,6 @@ extension AuthGateCoordinator: AuthOnboardingShellCoordinatorDelegate {
 
     func isSignedIn() -> Bool {
         AppRouteResolver.isSignedIn(authManager.authState)
-    }
-
-    func currentUID() -> String? {
-        authManager.currentUID
     }
 
     func rootState() -> RootViewState {
@@ -59,5 +55,58 @@ extension AuthGateCoordinator: AuthOnboardingShellCoordinatorDelegate {
 
     func hasPersistedOnboardingDraft() -> Bool {
         container.onboardingDraftStore.hasDraft
+    }
+}
+
+extension AuthGateCoordinator {
+
+    // MARK: - Pre-auth onboarding
+
+    func preparePreAuthOnboardingIfNeeded() {
+        onboardingShellCoordinator.preparePreAuthOnboardingIfNeeded()
+    }
+
+    // MARK: - Onboarding model lifecycle
+
+    /// Ensures the onboarding model exists whenever routing targets an initializing onboarding shell.
+    func bootstrapOnboardingIfNeeded() {
+        onboardingShellCoordinator.bootstrapOnboardingIfNeeded()
+    }
+
+    func ensurePreAuthOnboardingModel() {
+        onboardingShellCoordinator.ensurePreAuthOnboardingModel()
+    }
+
+    func ensureOnboardingModel() {
+        onboardingShellCoordinator.ensureOnboardingModel()
+    }
+
+    func handleOnboardingCompletionRequest() {
+        onboardingShellCoordinator.handleOnboardingCompletionRequest()
+    }
+
+    func applyOnboardingGoogleSignInOutcome(_ outcome: GoogleSignInAttemptOutcome) {
+        onboardingShellCoordinator.applyOnboardingGoogleSignInOutcome(outcome)
+    }
+
+    /// Signed-in onboarding completion: probe cloud, then sync or show conflict UI.
+    func resolveOnboardingCompletionAfterSignIn(uid: String) async {
+        await onboardingShellCoordinator.resolveOnboardingCompletionAfterSignIn(uid: uid)
+    }
+
+    func finishOnboardingCompletionAfterSuccessfulSync() {
+        onboardingShellCoordinator.finishOnboardingCompletionAfterSuccessfulSync()
+    }
+
+    func clearOnboardingCompletionState() {
+        onboardingShellCoordinator.clearOnboardingCompletionState()
+    }
+
+    func retryOnboardingCompletionCloudCheck() {
+        onboardingShellCoordinator.retryOnboardingCompletionCloudCheck()
+    }
+
+    func finishOnboardingLocally() {
+        onboardingShellCoordinator.finishOnboardingLocally()
     }
 }
