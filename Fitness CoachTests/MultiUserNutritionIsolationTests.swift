@@ -182,7 +182,7 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
     }
 
     private func makeHarness(storeURL: URL? = nil) throws -> Harness {
-        let dateProvider = FixedDailyLogTestDateProvider(now: ProfileTestFixtures.referenceDate)
+        let dateProvider = FixedDailyLogTestDateProvider(now: ProfileFixtures.referenceDate)
         let container: ModelContainer
         if let storeURL {
             container = try FormaModelContainer.makeContainer(inMemory: false, storeURL: storeURL)
@@ -237,7 +237,7 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
     @discardableResult
     private func seedProfile(ownerUID: String, in harness: Harness) throws -> UserProfile {
         try harness.profileService.createProfile(
-            ProfileTestFixtures.sampleDraft,
+            ProfileFixtures.sampleDraft,
             ownerUID: ownerUID
         )
     }

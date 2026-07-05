@@ -14,7 +14,7 @@ final class AccountRestoreEndToEndTests: XCTestCase {
 
     private let userA = "userA"
     private let userB = "userB"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
     private var calendar: Calendar!
     private var localDate: String!
 

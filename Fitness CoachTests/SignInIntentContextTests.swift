@@ -11,7 +11,7 @@ import XCTest
 final class SignInIntentContextTests: XCTestCase {
 
     private let uid = "remote-user"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     // MARK: - Intent resolution
 

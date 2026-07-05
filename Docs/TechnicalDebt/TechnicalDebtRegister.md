@@ -129,6 +129,7 @@ See `Docs/PersistenceCleanupNotes.md` and entity file headers.
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | **PH-004 fixture aliases (batch 1)** — `FoodLogFixtures` / `DailyLogFixtures` canonical in tests; `ProfileTestFixtures` usage reduced (~101 → ~31 files) |
 | 2026-07-05 | **Fast-Core / BW-101** — TD-TEST-001 mostly closed; test target uses `TEST_HOST` (no duplicate Firebase SPM link); `Scripts/run_fast_core_tests.sh`; Fast-Core serial |
 | 2026-07-05 | **NormalizedWorkout shim audit** — TD-HI-003 opened; shim deletion blocked pending `HealthWorkoutRecord` → `NormalizedWorkout` query-boundary migration |
 | 2026-07-05 | **Health Intelligence consolidation v2** — TD-HI-002 mostly closed; `HealthIntelligenceSectionLoaderCore`, `TodayHealthIntelligenceSectionLoader`, AppContainer dependency file split |

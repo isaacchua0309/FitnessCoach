@@ -11,8 +11,8 @@ import Foundation
 enum AccountRestoreTestSupport {
 
     static func makeProfile(ownerUID: String, referenceDate: Date) -> UserProfile {
-        var draft = ProfileTestFixtures.sampleDraft
-        draft.targets = ProfileTestFixtures.sampleTargets
+        var draft = ProfileFixtures.sampleDraft
+        draft.targets = ProfileFixtures.sampleTargets
         return UserProfile(
             id: UUID(),
             ownerUID: ownerUID,

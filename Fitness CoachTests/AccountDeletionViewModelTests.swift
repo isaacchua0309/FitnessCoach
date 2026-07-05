@@ -12,7 +12,7 @@ import XCTest
 final class AccountDeletionViewModelTests: XCTestCase {
 
     private let ownerUID = "user-a"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     private var sessionUID: String?
     private var remoteClient: MockAccountDeletionViewModelRemoteClient!

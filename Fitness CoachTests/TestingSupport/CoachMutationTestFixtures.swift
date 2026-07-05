@@ -12,9 +12,9 @@ enum CoachMutationTestFixtures {
 
     static let referenceDate = TestDateFixtures.referenceEpoch
 
-    static var chickenFoodEntry: FoodEntry { CoachFoodFixtures.chickenFoodEntry }
+    static var chickenFoodEntry: FoodEntry { FoodLogFixtures.chickenFoodEntry }
 
-    static var sampleDailyLog: DailyLog { CoachFoodFixtures.sampleDailyLog }
+    static var sampleDailyLog: DailyLog { FoodLogFixtures.sampleDailyLog }
 
     static var chickenConfirmationDraft: AIFoodConfirmationDraft {
         AIFoodConfirmationDraft(

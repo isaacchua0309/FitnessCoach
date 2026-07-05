@@ -136,7 +136,7 @@ final class JourneyDataConsistencyTests: XCTestCase {
 
         let timeline = JourneyTimelineBuilder.build(
             JourneyTimelineBuilder.Input(
-                profile: ProfileTestFixtures.sampleProfile,
+                profile: ProfileFixtures.sampleProfile,
                 baseline: makeBaseline(),
                 maturityLogs: [],
                 allWeights: [],
@@ -290,7 +290,7 @@ final class JourneyDataConsistencyTests: XCTestCase {
         )
 
         return JourneyDashboardBuilder.Context(
-            profile: ProfileTestFixtures.sampleProfile,
+            profile: ProfileFixtures.sampleProfile,
             baseline: baseline,
             maturityLogs: maturityLogs,
             monthLogs: maturityLogs,

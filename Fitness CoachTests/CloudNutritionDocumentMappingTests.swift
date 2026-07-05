@@ -12,7 +12,7 @@ final class CloudNutritionDocumentMappingTests: XCTestCase {
 
     private var calendar: Calendar!
     private var context: CloudNutritionSyncMappingContext!
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     override func setUp() {
         super.setUp()
@@ -35,7 +35,7 @@ final class CloudNutritionDocumentMappingTests: XCTestCase {
             id: UUID(),
             date: referenceDate,
             weightKg: 70,
-            targets: ProfileTestFixtures.sampleTargets,
+            targets: ProfileFixtures.sampleTargets,
             totals: MacroTotals(calories: 500, protein: 30, carbs: 40, fat: 15, fiber: 5, sodium: 200),
             waterConsumedMl: 600,
             steps: 5000,
@@ -54,7 +54,7 @@ final class CloudNutritionDocumentMappingTests: XCTestCase {
 
         let restored = try CloudNutritionDocumentMapping.makeDailyLog(from: cloud, calendar: calendar)
         XCTAssertEqual(restored.totals.calories, 500)
-        XCTAssertEqual(restored.targets.calorieTarget, ProfileTestFixtures.sampleTargets.calorieTarget)
+        XCTAssertEqual(restored.targets.calorieTarget, ProfileFixtures.sampleTargets.calorieTarget)
         XCTAssertEqual(restored.waterConsumedMl, 600)
     }
 

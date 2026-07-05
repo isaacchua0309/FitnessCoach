@@ -13,7 +13,7 @@ final class AccountDeletionCancellationTests: XCTestCase {
 
     private let ownerUID = "user-a"
     private let otherUID = "user-b"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     private var deletionGuard: AccountDeletionGuard!
     private var syncCoordinator: AccountSyncCoordinator!

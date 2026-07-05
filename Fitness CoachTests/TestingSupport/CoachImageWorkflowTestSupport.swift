@@ -34,7 +34,7 @@ enum CoachImageWorkflowTestSupport {
         } else {
             resolvedContainer = try AppContainer(inMemory: true)
         }
-        try resolvedContainer.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        try resolvedContainer.userProfileService.createProfile(ProfileFixtures.sampleDraft)
         let model = CoachModel(
             actionCenter: resolvedContainer.actionCenter,
             dailyLogReader: resolvedContainer.dailyLogService,

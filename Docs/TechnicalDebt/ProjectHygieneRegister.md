@@ -125,8 +125,8 @@ Full register: [TechnicalDebtRegister.md](./TechnicalDebtRegister.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Canonical fixtures | `Fitness CoachTests/TestingSupport/` | `TestFixtureFactory`, `ProfileFixtures`, etc. |
-| Legacy aliases | `ProfileTestFixtures`, `CoachFoodFixtures` | Kept for gradual migration (~90 files still on aliases) |
+| Canonical fixtures | `Fitness CoachTests/TestingSupport/` | `TestFixtureFactory`, `ProfileFixtures`, `FoodLogFixtures`, `DailyLogFixtures`, etc. |
+| Legacy aliases | `ProfileTestFixtures` only | `CoachFoodFixtures` → `FoodLogFixtures` and `DailyNutritionSummaryTestFixtures` → `DailyLogFixtures` fully migrated (2026-07-05); ~31 test files still import `ProfileTestFixtures` for onboarding/profile-heavy suites |
 | Async polling | `AsyncTestSupport` | Account deletion/sync tests migrated off `Task.sleep` |
 | AI test stubs | `CoachContextPacketV2` | `AIContext` removed (TD-AI-001 closed) |
 
@@ -147,7 +147,7 @@ Full register: [TechnicalDebtRegister.md](./TechnicalDebtRegister.md).
 |----|----------|------|---------|
 | PH-002 | P1 | Update CI / docs still referencing iPhone 16 | Grep `iPhone 16`; align to available simulators |
 | PH-003 | P2 | Concurrency warning burn-down (BW-102) | Subsystem-by-subsystem Swift 6 isolation pass |
-| PH-004 | P2 | Complete test fixture migration to `TestingSupport/` | Replace `ProfileTestFixtures` alias usages |
+| PH-004 | P2 | Complete test fixture migration to `TestingSupport/` | **In progress** — `FoodLogFixtures` / `DailyLogFixtures` canonical; ~70 files migrated off `ProfileTestFixtures`; remaining: onboarding, profile bootstrap, auth-route suites |
 | PH-005 | P3 | Close TD-COPY-001 | **Done 2026-07-05** — equivalence tests added |
 
 ---
@@ -164,6 +164,7 @@ Full register: [TechnicalDebtRegister.md](./TechnicalDebtRegister.md).
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | **PH-004 fixture migration (batch 1)** — `CoachFoodFixtures` / `DailyNutritionSummaryTestFixtures` fully migrated; ~70 test/support files now use `ProfileFixtures` |
 | 2026-07-05 | **PH-001 closed** — Fast-Core SPM/host wiring (BW-101); added `run_fast_core_tests.sh` |
 | 2026-07-05 | Initial register; 2026-07-05 build capture; BW-106–108 fixes; iPhone 17 simulator default |
 | 2026-07-04 | Build warnings register created (predecessor doc) |

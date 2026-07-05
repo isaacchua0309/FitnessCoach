@@ -132,7 +132,7 @@ final class ExistingUserSignInTests: XCTestCase {
                 rootState: .loading,
                 isSyncedForCurrentUID: false,
                 cloudResult: CloudProfileLookupResult.found(
-                    CloudProfileSummary(updatedAt: ProfileTestFixtures.referenceDate)
+                    CloudProfileSummary(updatedAt: ProfileFixtures.referenceDate)
                 )
             )
         )

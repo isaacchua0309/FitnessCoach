@@ -157,7 +157,7 @@ final class JourneyPresentationBuilderTests: XCTestCase {
     // MARK: - Helpers
 
     private func makeContext(
-        profile: UserProfile? = ProfileTestFixtures.sampleProfile,
+        profile: UserProfile? = ProfileFixtures.sampleProfile,
         weekLogs: [DailyLog],
         maturityLogs: [DailyLog],
         allWeights: [WeightEntry],

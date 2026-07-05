@@ -92,7 +92,7 @@ xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fa
   -only-testing:"Fitness CoachTests/CoachMutationFormattingTests"
 ```
 
-**Helpers:** `CoachFoodFixtures`, `CoachMutationTestFixtures`, `CoachContextPacketV2TestFixtures`, `FakeAnalyticsLogger.coach()`, `FakeClock`.
+**Helpers:** `FoodLogFixtures`, `CoachMutationTestFixtures`, `CoachContextPacketV2TestFixtures`, `FakeAnalyticsLogger.coach()`, `FakeClock`.
 
 ---
 
@@ -144,7 +144,7 @@ xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fa
   -only-testing:"Fitness CoachTests/WeightLossPaceTests"
 ```
 
-**Helpers:** `FormaCalculationTestFixtures`, `ProfileTestFixtures`, `FakeAnalyticsLogger.plan()`.
+**Helpers:** `FormaCalculationTestFixtures`, `ProfileFixtures`, `FakeAnalyticsLogger.plan()`.
 
 ---
 
@@ -199,9 +199,9 @@ cd functions && npm test
 |--------|---------|
 | `TestFixtureFactory` | Central factory for clocks, SwiftData harnesses, nutrition scenarios, HI harness |
 | `TestDateFixtures` | Canonical fixed dates and UTC calendars |
-| `ProfileFixtures` | Profile drafts, models, and cloud documents (`ProfileTestFixtures` alias) |
-| `DailyLogFixtures` | Pure `DailyLog` scenarios for nutrition/review tests (`DailyNutritionSummaryTestFixtures` alias) |
-| `FoodLogFixtures` | Food drafts, entries, water logs (`CoachFoodFixtures` alias) |
+| `ProfileFixtures` | Profile drafts, models, and cloud documents (canonical; `ProfileTestFixtures` alias retained for remaining onboarding/profile suites) |
+| `DailyLogFixtures` | Pure `DailyLog` scenarios for nutrition/review tests (canonical) |
+| `FoodLogFixtures` | Food drafts, entries, water logs (canonical) |
 | `WeightFixtures` | Deterministic `WeightEntry` builders for Journey tests |
 | `WeeklyProgressFixtures` | Journey rolling-week logs and habit builder inputs |
 | `HealthIntelligenceFixtures` | HI calendar anchors and default plan snapshots |

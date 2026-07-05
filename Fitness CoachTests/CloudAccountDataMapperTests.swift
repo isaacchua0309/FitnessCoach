@@ -12,7 +12,7 @@ final class CloudAccountDataMapperTests: XCTestCase {
 
     private var calendar: Calendar!
     private var context: CloudAccountDataMappingContext!
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
     private let userA = "userA"
     private let userB = "userB"
 
