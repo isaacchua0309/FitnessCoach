@@ -121,7 +121,9 @@ extension AppContainer {
                 : nil,
             connectionStore: healthIntegrationConnectionStore
         )
-        let trainingInsightsModel = TrainingInsightsModel(workoutReader: workoutReader)
+        let trainingInsightsModel = TrainingInsightsModel(
+            healthActivityQuery: healthActivityQueryService
+        )
 
         HealthTrainingDebugLogger.event(
             "Training integration wired",

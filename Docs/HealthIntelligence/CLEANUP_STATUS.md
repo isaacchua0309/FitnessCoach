@@ -30,6 +30,7 @@ This document tracks **removed**, **deprecated**, and **remaining** cleanup item
 | Journey snapshot-based presentation overloads | Group 2 cleanup | Record-based `recoveryTimeline(from recoveryDays:)`, `workoutHistory(from workoutRecords:)`, etc. |
 | `TodayReadOnlyCompositionPolicy.showsLegacyHealthIntelligenceStack` | Consolidation v2 | Retired split-section layout; always returned `false`; zero production references |
 | `TodayReadOnlyCompositionPolicy.showsLegacyNextBestAction` | Consolidation v2 | Next-best-action folded into mission hero / HI section; always returned `false`; parity + composition tests cover replacement |
+| Training Insights direct HK reads | Consolidation v2 | `TrainingInsightsModel` now reads via `HealthActivityQueryService` (repository routing default); legacy reader fallback only when `isRepositoryReadRoutingEnabled` is off |
 
 ---
 
@@ -38,10 +39,9 @@ This document tracks **removed**, **deprecated**, and **remaining** cleanup item
 | Item | Location | Future removal condition |
 |------|----------|--------------------------|
 | `HealthDataRepository.normalizedSamples(for:)` | `HealthDataRepository.swift` | All callers use prefetched bundle / `HealthNormalizedSampleDeriver` |
-| HealthKit reader fallback in `HealthActivityQueryService` | `HealthActivityQueryService.swift` | `isRepositoryReadRoutingEnabled` flag retired; Training Insights migrated |
+| HealthKit reader fallback in `HealthActivityQueryService` | `HealthActivityQueryService.swift` | `isRepositoryReadRoutingEnabled` flag retired; all callers migrated |
 | `isRepositoryReadRoutingEnabled` feature flag | `HealthIntelligenceFeatureFlags.swift` | Default-true routing stable; reader fallback deleted |
 | Journey `workoutReader` fallback | `JourneyModel.fetchHealthWorkouts` | All `JourneyModel` instances receive `healthActivityQuery` |
-| Training Insights direct HK reads | `TrainingInsightsModel` | Route through `HealthActivityQueryService` / repository |
 | Workout calorie `max(manual, HealthKit)` merge | `TodayModel`, `DailyReviewSummaryBuilder` | HI workout display owns Today activity calories |
 | Legacy dashboard sections + composition policy files | `*CompositionPolicy.swift` | `healthIntelligenceUIEnabled` permanently on; legacy UI removed. **Active methods kept:** `showsLegacyPlanConfidenceSection`, `showsLegacyInsightsSection`, `showsLegacyWeeklyReviewSection`, and all `showsHealthIntelligenceSection` / activity / recovery gating |
 | FITPILOT_* legacy env keys | `HealthIntelligenceFeatureFlags` | Documented migration to FORMA_* only |
@@ -71,7 +71,7 @@ HealthKitManager (single shared instance in AppContainer)
         → HealthIntelligenceSnapshotService (cache + coalesce)
             → HealthIntelligenceEngine
     → HealthActivityQueryService (repository routing default)
-        → Today / Journey loader / Coach fallback / ReviewService
+        → Today / Journey loader / Coach fallback / ReviewService / Training Insights
 ```
 
 **Not duplicate stacks:** `NextBestActionEngine` (Today Mission Control) vs `HealthNextBestActionEngine` (HI snapshot) serve different surfaces.
@@ -82,7 +82,6 @@ HealthKitManager (single shared instance in AppContainer)
 
 | Risk | Severity | Notes |
 |------|----------|-------|
-| Training Insights bypasses repository | Medium | Direct `workoutReader.fetchWorkouts`; extra HK reads when routing flag off |
 | Multiple HealthKitManager defaults in test/preview inits | Low | Production AppContainer shares one instance for repo + sync permission + training auth |
 | `storeRecoverySummary` never called in production | Low | Journey loader reads recovery from intelligence snapshots; recovery cache slot unused |
 | Stale Phase 6–10 audit doc | Low | Historical; engines are implemented — see banner on `PHASE_6_10_ENGINE_AUDIT.md` |
@@ -109,3 +108,4 @@ Key test files after cleanup:
 - `PlanDashboardHealthIntelligenceTests.swift`
 - `JourneyHealthIntelligenceCompositionTests.swift`
 - `HealthIntelligencePhase11IntegrationTests.swift`
+- `TrainingInsightsAggregatorTests.swift`
