@@ -15,7 +15,7 @@ struct GoalOptionSelector: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        LazyVStack(spacing: FormaTokens.Spacing.sm) {
+        LazyVStack(spacing: AdjustPlanLayoutPolicy.goalCardStackSpacing) {
             ForEach(options) { option in
                 GoalOptionCard(
                     goal: option,

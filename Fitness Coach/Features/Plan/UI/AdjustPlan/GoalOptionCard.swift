@@ -8,9 +8,9 @@
 import SwiftUI
 
 private enum GoalOptionCardLayout {
-    static let iconColumnWidth: CGFloat = 28
-    static let contentSpacing: CGFloat = FormaTokens.Spacing.xs
-    static let textStackSpacing: CGFloat = FormaTokens.Spacing.xs
+    static let iconColumnWidth = AdjustPlanLayoutPolicy.goalIconColumnWidth
+    static let contentSpacing = AdjustPlanLayoutPolicy.goalTextToCheckmarkSpacing
+    static let textStackSpacing = FormaTokens.Spacing.xs
     static let contentPadding = EdgeInsets(
         top: FormaTokens.Spacing.sm,
         leading: FormaTokens.Spacing.lg,
