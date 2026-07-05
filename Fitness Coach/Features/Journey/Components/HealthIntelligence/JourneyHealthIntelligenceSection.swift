@@ -9,6 +9,7 @@ import SwiftUI
 
 struct JourneyHealthIntelligenceSection: View {
     let state: JourneyHealthIntelligenceSectionState
+    var showsUnifiedThisWeekCard: Bool = false
     var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     var onConnectHealth: (() -> Void)?
     var onWeeklyReviewSelected: ((WeeklyReviewDetailState) -> Void)?
@@ -27,7 +28,10 @@ struct JourneyHealthIntelligenceSection: View {
                 journeyInfoBanner(label: partialSignalsNote)
             }
 
-            if let weeklyReviewCard = state.weeklyReviewCard {
+            if JourneyDashboardCompositionPolicy.showsHealthIntelligenceWeeklyReviewCard(
+                showsUnifiedThisWeekCard: showsUnifiedThisWeekCard
+            ),
+               let weeklyReviewCard = state.weeklyReviewCard {
                 weeklyReviewCardView(weeklyReviewCard)
             }
 
@@ -55,10 +59,14 @@ struct JourneyHealthIntelligenceSection: View {
                 isLoading: state.isLoading
             )
 
-            JourneyHealthProgressCard(
-                state: state.progress,
-                isLoading: state.isLoading
-            )
+            if JourneyDashboardCompositionPolicy.showsHealthIntelligenceProgressCard(
+                showsUnifiedThisWeekCard: showsUnifiedThisWeekCard
+            ) {
+                JourneyHealthProgressCard(
+                    state: state.progress,
+                    isLoading: state.isLoading
+                )
+            }
 
             if let fallbackMessage = state.fallbackMessage,
                state.connectHealthCTA == nil {

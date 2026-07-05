@@ -16,6 +16,11 @@ struct UnifiedWeeklyReviewState: Equatable, Identifiable {
     let dateRangeText: String
     let headline: String
     let summary: String
+    /// Short card title for the unified This Week section, e.g. "Getting started".
+    let cardStateTitle: String
+    /// Single-paragraph card body for the unified This Week section.
+    let cardSummary: String
+    let compactStats: [ThisWeekCompactStat]
     let confidenceLabel: String
     let confidenceAccessibilityLabel: String
 
@@ -30,7 +35,18 @@ struct UnifiedWeeklyReviewState: Equatable, Identifiable {
     let secondaryCTA: WeeklyProgressCTA?
     let isReady: Bool
     let isInsufficientData: Bool
+    let insufficientDataSummary: String?
+    let insufficientDataHeadline: String?
+    let insufficientDataRequirement: String?
+    let insufficientDataProgressLabel: String?
+    let unlockChecklist: JourneyUnlockChecklistState?
+    let suppressDuplicateUnlockCTA: Bool
     let freshness: WeeklyProgressFreshnessState?
+}
+
+struct ThisWeekCompactStat: Equatable, Identifiable {
+    let id: String
+    let label: String
 }
 
 // MARK: - Sub-states
@@ -120,6 +136,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
     var goalDirection: JourneyGoalDirection?
     var dailyReviewsThisWeekCount: Int
     var freshnessInput: WeeklyProgressFreshnessInput?
+    var screenPresentation: JourneyScreenPresentationState?
     var calendar: Calendar
 
     init(
@@ -132,6 +149,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
         goalDirection: JourneyGoalDirection? = nil,
         dailyReviewsThisWeekCount: Int = 0,
         freshnessInput: WeeklyProgressFreshnessInput? = nil,
+        screenPresentation: JourneyScreenPresentationState? = nil,
         calendar: Calendar = .current
     ) {
         self.summary = summary
@@ -143,6 +161,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
         self.goalDirection = goalDirection
         self.dailyReviewsThisWeekCount = dailyReviewsThisWeekCount
         self.freshnessInput = freshnessInput
+        self.screenPresentation = screenPresentation
         self.calendar = calendar
     }
 }
@@ -151,7 +170,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
 
 enum UnifiedWeeklyReviewPresentationBuilder {
 
-    private static let unifiedWeekTitle = "Weekly review"
+    private static let unifiedWeekTitle = FormaProductCopy.Journey.WeeklyReview.sectionTitle
 
     // MARK: Public
 
@@ -167,7 +186,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             summary: summary,
             profile: input.profile
         )
-        let confidence = confidencePresentation(for: summary)
+        let confidence = confidencePresentation(for: summary, screenPresentation: input.screenPresentation)
         let caveats = mergedCaveats(
             summary: summary,
             healthReviewDetail: input.healthReviewDetail
@@ -175,7 +194,8 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         let ctas = ctas(
             summary: summary,
             recommendation: recommendation,
-            weeklyReview: input.weeklyReview
+            weeklyReview: input.weeklyReview,
+            screenPresentation: input.screenPresentation
         )
         let isInsufficientData = insufficientData(summary: summary)
         let isReady = ready(
@@ -183,18 +203,34 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             habitRows: habitRows,
             isInsufficientData: isInsufficientData
         )
-        let freshness = WeeklyProgressFreshnessBuilder.build(input.freshnessInput)
-
-        return UnifiedWeeklyReviewState(
-            id: summary.id,
-            weekTitle: unifiedWeekTitle,
-            dateRangeText: dateRangeText(
+        let freshness = WeeklyProgressFreshnessBuilder.build(
+            input.freshnessInput,
+            surface: input.screenPresentation == nil ? .generic : .journey
+        )
+        let weekRangeText = input.screenPresentation?.weekly.dateRangeText
+            ?? JourneyFormatter.timelineDateRangeLabel(
                 start: summary.startDate,
                 end: summary.endDate,
                 calendar: input.calendar
-            ),
+            )
+        let emptyState = input.screenPresentation?.copy.emptyState
+        let unlockDashboard = input.screenPresentation?.unlockDashboard
+        let cardPresentation = thisWeekCardPresentation(
+            input: input,
+            isInsufficientData: isInsufficientData,
+            isReady: isReady,
+            healthInsights: healthInsights
+        )
+
+        return UnifiedWeeklyReviewState(
+            id: summary.id,
+            weekTitle: input.screenPresentation?.weekly.weekTitle ?? unifiedWeekTitle,
+            dateRangeText: weekRangeText,
             headline: summary.headline,
             summary: summary.summary,
+            cardStateTitle: cardPresentation.stateTitle,
+            cardSummary: cardPresentation.summary,
+            compactStats: cardPresentation.compactStats,
             confidenceLabel: confidence.label,
             confidenceAccessibilityLabel: confidence.accessibility,
             maintenanceBlock: maintenanceBlock,
@@ -207,6 +243,12 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             secondaryCTA: ctas.secondary,
             isReady: isReady,
             isInsufficientData: isInsufficientData,
+            insufficientDataSummary: emptyState?.requirement ?? input.screenPresentation?.copy.insufficientDataSummary,
+            insufficientDataHeadline: emptyState?.headline,
+            insufficientDataRequirement: emptyState?.requirement,
+            insufficientDataProgressLabel: emptyState?.progressLabel,
+            unlockChecklist: unlockDashboard?.checklist,
+            suppressDuplicateUnlockCTA: unlockDashboard?.showsProminentNextActionCard ?? false,
             freshness: freshness
         )
     }
@@ -228,6 +270,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
                 goalDirection: dashboard.baseline.goalDirection,
                 dailyReviewsThisWeekCount: dashboard.dailyReviewsThisWeekCount,
                 freshnessInput: freshnessInput,
+                screenPresentation: dashboard.screenPresentation,
                 calendar: calendar
             )
         )
@@ -249,6 +292,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             goalDirection: dashboard.baseline.goalDirection,
             dailyReviewsThisWeekCount: dashboard.dailyReviewsThisWeekCount,
             freshnessInput: freshnessInput,
+            screenPresentation: dashboard.screenPresentation,
             calendar: calendar
         )
         return buildDetail(input)
@@ -292,7 +336,10 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         return WeeklyProgressDetailState(
             summary: summary,
             unified: unified,
-            verdictTitle: verdictTitle(for: summary.verdict),
+            verdictTitle: verdictTitle(
+                for: summary.verdict,
+                screenPresentation: input.screenPresentation
+            ),
             primaryInsight: summary.primaryInsight,
             consistency: consistencySection(
                 from: summary,
@@ -326,10 +373,14 @@ enum UnifiedWeeklyReviewPresentationBuilder {
 
     private static let uncertaintyTitle = "Why this may be uncertain"
 
-    private static func verdictTitle(for verdict: WeeklyProgressVerdict) -> String {
+    private static func verdictTitle(
+        for verdict: WeeklyProgressVerdict,
+        screenPresentation: JourneyScreenPresentationState? = nil
+    ) -> String {
         switch verdict {
         case .notEnoughData:
-            return FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+            return screenPresentation?.copy.emptyState?.headline
+                ?? FormaProductCopy.Journey.EmptyState.buildingFirstTrend
         case .onTrack:
             return "On track this week"
         case .likelyTooAggressive:
@@ -526,7 +577,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
 
         let title = showsLearnedEstimate
             ? "Learned maintenance"
-            : "Maintenance estimate building"
+            : "Maintenance"
 
         let explanation: String
         if showsLearnedEstimate, let maintenance = estimate.estimatedMaintenanceKcal {
@@ -640,7 +691,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         if let changeLabel {
             accessibilityParts.append(changeLabel)
         } else {
-            accessibilityParts.append(copy.weightUnavailable)
+            accessibilityParts.append(FormaProductCopy.Journey.Unlock.weightTrendBuildingDetail)
         }
         if hasSpike {
             accessibilityParts.append(FormaProductCopy.WeightSpikeEducation.accessibilityLabel)
@@ -716,14 +767,201 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         return deduplicatedInsights(insights)
     }
 
+    // MARK: - This Week card
+
+    private struct ThisWeekCardPresentation: Equatable {
+        var stateTitle: String
+        var summary: String
+        var compactStats: [ThisWeekCompactStat]
+    }
+
+    private static func thisWeekCardPresentation(
+        input: UnifiedWeeklyReviewInput,
+        isInsufficientData: Bool,
+        isReady: Bool,
+        healthInsights: [WeeklyHealthInsightState]
+    ) -> ThisWeekCardPresentation {
+        let copy = FormaProductCopy.Journey.ThisWeek.self
+        let presentation = input.screenPresentation
+        let stats = presentation?.weekly.stats
+        let compactStats = compactStats(
+            screenPresentation: presentation,
+            summary: input.summary
+        )
+
+        let stateTitle: String
+        if isInsufficientData {
+            stateTitle = copy.gettingStarted
+        } else if presentation?.unlocks.weeklyReview == true {
+            stateTitle = copy.weeklyReviewReady
+        } else if (stats?.mealLoggingDays ?? input.summary.foodLoggedDays) > 0 {
+            stateTitle = copy.buildingConsistency
+        } else {
+            stateTitle = input.summary.headline
+        }
+
+        let summary = thisWeekCardSummary(
+            input: input,
+            isInsufficientData: isInsufficientData,
+            isReady: isReady,
+            healthInsights: healthInsights,
+            compactStats: compactStats
+        )
+
+        return ThisWeekCardPresentation(
+            stateTitle: stateTitle,
+            summary: summary,
+            compactStats: compactStats
+        )
+    }
+
+    private static func thisWeekCardSummary(
+        input: UnifiedWeeklyReviewInput,
+        isInsufficientData: Bool,
+        isReady: Bool,
+        healthInsights: [WeeklyHealthInsightState],
+        compactStats: [ThisWeekCompactStat]
+    ) -> String {
+        let presentation = input.screenPresentation
+        let nextAction = presentation?.nextBestAction
+        let stats = presentation?.weekly.stats
+
+        if isInsufficientData {
+            let highlights = thisWeekHighlightPhrases(
+                stats: stats,
+                summary: input.summary
+            )
+            let opening: String
+            if highlights.isEmpty {
+                opening = nextAction?.detail ?? nextAction?.title ?? input.summary.primaryInsight
+            } else {
+                opening = "You \(joinedHighlights(highlights))."
+            }
+
+            if stats?.mealsLogged == 0 {
+                let mealPrompt = FormaProductCopy.Journey.NextBestAction.logFirstMealDetail
+                guard opening.localizedCaseInsensitiveContains("first meal") == false else {
+                    return opening
+                }
+                return "\(opening) \(mealPrompt)"
+            }
+
+            if let detail = nextAction?.detail,
+               !detail.isEmpty,
+               !opening.localizedCaseInsensitiveContains(detail) {
+                return "\(opening) \(detail)"
+            }
+            return opening
+        }
+
+        if presentation?.unlocks.weeklyReview == true {
+            if let win = healthInsights.first(where: { $0.kind == .win })?.message {
+                return win
+            }
+            return trimmed(input.summary.primaryInsight) ?? input.summary.summary
+        }
+
+        if isReady, let supplemental = healthInsights.first?.message {
+            return supplemental
+        }
+
+        if compactStats.isEmpty {
+            return input.summary.primaryInsight
+        }
+
+        return trimmed(input.summary.summary) ?? input.summary.primaryInsight
+    }
+
+    private static func thisWeekHighlightPhrases(
+        stats: JourneyWeeklyStatsState?,
+        summary: WeeklyProgressSummary
+    ) -> [String] {
+        var phrases: [String] = []
+
+        if let averageSteps = stats?.averageSteps, averageSteps > 0 {
+            phrases.append("averaged \(averageSteps.formatted()) steps")
+        }
+
+        let workouts = stats?.workouts ?? summary.trainingDays ?? 0
+        if workouts > 0 {
+            phrases.append(
+                workouts == 1
+                    ? "completed your first workout"
+                    : "completed \(workouts) workouts"
+            )
+        }
+
+        let weighIns = stats?.weighIns ?? 0
+        if weighIns > 0 {
+            phrases.append(
+                weighIns == 1
+                    ? "logged your first weigh-in"
+                    : "logged \(weighIns) weigh-ins"
+            )
+        }
+
+        let meals = stats?.mealsLogged ?? summary.foodLoggedDays
+        if meals > 0 {
+            phrases.append(
+                meals == 1
+                    ? "logged your first meal"
+                    : "logged meals on \(meals) days"
+            )
+        }
+
+        return phrases
+    }
+
+    private static func joinedHighlights(_ phrases: [String]) -> String {
+        guard !phrases.isEmpty else { return "" }
+        if phrases.count == 1 { return phrases[0] }
+        if phrases.count == 2 { return "\(phrases[0]) and \(phrases[1])" }
+        let head = phrases.dropLast().joined(separator: ", ")
+        return "\(head), and \(phrases.last!)"
+    }
+
+    private static func compactStats(
+        screenPresentation: JourneyScreenPresentationState?,
+        summary: WeeklyProgressSummary
+    ) -> [ThisWeekCompactStat] {
+        let copy = FormaProductCopy.Journey.ThisWeek.self
+        var stats: [ThisWeekCompactStat] = []
+
+        let weeklyStats = screenPresentation?.weekly.stats
+        if let steps = weeklyStats?.averageSteps, steps > 0 {
+            stats.append(ThisWeekCompactStat(id: "steps", label: copy.averageSteps(steps)))
+        }
+
+        let workouts = weeklyStats?.workouts ?? summary.trainingDays ?? 0
+        stats.append(ThisWeekCompactStat(id: "workouts", label: copy.workouts(workouts)))
+
+        let weighIns = weeklyStats?.weighIns ?? 0
+        stats.append(ThisWeekCompactStat(id: "weigh-ins", label: copy.weighIns(weighIns)))
+
+        let meals = weeklyStats?.mealsLogged ?? summary.foodLoggedDays
+        stats.append(ThisWeekCompactStat(id: "meals", label: copy.mealsLogged(meals)))
+
+        if let proteinDays = weeklyStats?.proteinLoggingDays, proteinDays >= 3 {
+            stats.append(ThisWeekCompactStat(id: "protein", label: copy.proteinDays(proteinDays)))
+        }
+
+        if let waterDays = weeklyStats?.waterLoggingDays, waterDays >= 3 {
+            stats.append(ThisWeekCompactStat(id: "water", label: copy.waterDays(waterDays)))
+        }
+
+        return stats
+    }
+
     // MARK: CTAs
 
     private static func ctas(
         summary: WeeklyProgressSummary,
         recommendation: WeeklyPlanRecommendation?,
-        weeklyReview: JourneyWeeklyReviewState?
+        weeklyReview: JourneyWeeklyReviewState?,
+        screenPresentation: JourneyScreenPresentationState? = nil
     ) -> (primary: WeeklyProgressCTA?, secondary: WeeklyProgressCTA?) {
-        var primary = cta(from: summary.nextAction, summary: summary)
+        var primary = screenPresentation.map { cta(from: $0.nextBestAction) }
+            ?? cta(from: summary.nextAction, summary: summary)
 
         if primary == nil {
             primary = keepLoggingCTA(summary: summary)
@@ -881,9 +1119,16 @@ enum UnifiedWeeklyReviewPresentationBuilder {
     // MARK: Confidence & formatting
 
     private static func confidencePresentation(
-        for summary: WeeklyProgressSummary
+        for summary: WeeklyProgressSummary,
+        screenPresentation: JourneyScreenPresentationState? = nil
     ) -> (label: String, accessibility: String) {
-        (
+        if let screenPresentation {
+            return (
+                label: screenPresentation.copy.confidenceLabel,
+                accessibility: screenPresentation.copy.confidenceAccessibilityLabel
+            )
+        }
+        return (
             label: shortConfidenceLabel(for: summary.confidence),
             accessibility: WeeklyProgressConfidencePolicy.confidenceCopy(
                 for: summary.confidence,
@@ -892,18 +1137,66 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         )
     }
 
+    static func cta(
+        from action: JourneyNextBestActionState
+    ) -> WeeklyProgressCTA {
+        let accessibility = action.accessibilityLabel
+        switch action.kind {
+        case .logFirstMeal, .logMealsConsistently:
+            return WeeklyProgressCTA(
+                id: "cta-log-food",
+                kind: .logFood,
+                title: action.title,
+                subtitle: action.detail,
+                accessibilityLabel: accessibility
+            )
+        case .logWeightMoreOften:
+            return WeeklyProgressCTA(
+                id: "cta-log-weight",
+                kind: .logWeight,
+                title: action.title,
+                subtitle: action.detail,
+                accessibilityLabel: accessibility
+            )
+        case .completeFirstWorkout:
+            return WeeklyProgressCTA(
+                id: "cta-first-workout",
+                kind: .keepLogging,
+                title: action.title,
+                subtitle: action.detail,
+                accessibilityLabel: accessibility
+            )
+        case .syncRecoveryData:
+            return WeeklyProgressCTA(
+                id: "cta-sync-recovery",
+                kind: .connectAppleHealth,
+                title: action.title,
+                subtitle: action.detail,
+                accessibilityLabel: accessibility
+            )
+        case .keepStreakGoing:
+            return WeeklyProgressCTA(
+                id: "cta-keep-streak",
+                kind: .keepLogging,
+                title: action.title,
+                subtitle: action.detail,
+                accessibilityLabel: accessibility
+            )
+        }
+    }
+
     private static func shortConfidenceLabel(
         for confidence: WeeklyProgressConfidenceLevel
     ) -> String {
         switch confidence {
         case .unavailable:
-            return FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+            return FormaProductCopy.Journey.WeeklyConfidence.building
         case .low:
-            return FormaProductCopy.WeeklyReviewPresentation.confidenceLow
+            return FormaProductCopy.Journey.WeeklyConfidence.building
         case .medium:
-            return FormaProductCopy.WeeklyReviewPresentation.confidenceModerate
+            return FormaProductCopy.Journey.WeeklyConfidence.moderate
         case .high:
-            return FormaProductCopy.WeeklyReviewPresentation.confidenceHigh
+            return FormaProductCopy.Journey.WeeklyConfidence.high
         }
     }
 
@@ -931,9 +1224,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         end: Date,
         calendar: Calendar
     ) -> String {
-        let startLabel = JourneyFormatter.timelineDayLabel(start, calendar: calendar)
-        let endLabel = JourneyFormatter.timelineDayLabel(end, calendar: calendar)
-        return "\(startLabel) – \(endLabel)"
+        JourneyFormatter.timelineDateRangeLabel(start: start, end: end, calendar: calendar)
     }
 
     private static func weightLabel(_ kg: Double?) -> String? {

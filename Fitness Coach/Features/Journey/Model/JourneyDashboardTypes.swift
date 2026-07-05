@@ -59,15 +59,57 @@ struct JourneyStreakChipState: Equatable {
 
 struct JourneyStreakState: Equatable {
     var currentLoggingStreakDays: Int
+    var currentMealLoggingStreakDays: Int
+    var currentCheckInStreakDays: Int
+    var currentActivityStreakDays: Int
     var longestLoggingStreakDays: Int
+    var longestMealLoggingStreakDays: Int
     var currentProteinStreakDays: Int
     var currentWaterStreakDays: Int
     var currentTrainingStreakWeeks: Int?
     var isTodayLogged: Bool
+    var isTodayMealLogged: Bool
     var heroStreakChip: JourneyStreakChipState
     var weeklyConsistencyHeadline: String
     var weeklyConsistencyDetail: String?
     var keepStreakAliveCopy: String?
+}
+
+extension JourneyStreakState {
+    /// Test/preview helper mapping the legacy logging streak fields to the expanded breakdown.
+    static func legacy(
+        currentLoggingStreakDays: Int,
+        longestLoggingStreakDays: Int,
+        currentProteinStreakDays: Int = 0,
+        currentWaterStreakDays: Int = 0,
+        currentTrainingStreakWeeks: Int? = nil,
+        isTodayLogged: Bool = false,
+        heroStreakChip: JourneyStreakChipState = .hidden,
+        weeklyConsistencyHeadline: String = "",
+        weeklyConsistencyDetail: String? = nil,
+        keepStreakAliveCopy: String? = nil,
+        mealLoggingStreakDays: Int? = nil,
+        activityStreakDays: Int = 0
+    ) -> JourneyStreakState {
+        let meal = mealLoggingStreakDays ?? currentLoggingStreakDays
+        return JourneyStreakState(
+            currentLoggingStreakDays: currentLoggingStreakDays,
+            currentMealLoggingStreakDays: meal,
+            currentCheckInStreakDays: currentLoggingStreakDays,
+            currentActivityStreakDays: activityStreakDays,
+            longestLoggingStreakDays: longestLoggingStreakDays,
+            longestMealLoggingStreakDays: longestLoggingStreakDays,
+            currentProteinStreakDays: currentProteinStreakDays,
+            currentWaterStreakDays: currentWaterStreakDays,
+            currentTrainingStreakWeeks: currentTrainingStreakWeeks,
+            isTodayLogged: isTodayLogged,
+            isTodayMealLogged: isTodayLogged && meal > 0,
+            heroStreakChip: heroStreakChip,
+            weeklyConsistencyHeadline: weeklyConsistencyHeadline,
+            weeklyConsistencyDetail: weeklyConsistencyDetail,
+            keepStreakAliveCopy: keepStreakAliveCopy
+        )
+    }
 }
 
 // MARK: - Weekly review

@@ -180,7 +180,10 @@ enum WeeklyProgressConfidencePolicy {
                 weightEntryCount: result.weightEntryCount,
                 calendarSpanDays: result.calendarSpanDays,
                 reasons: orderedUniqueReasons(reasons),
-                userFacingSummary: insufficientDataCopy(for: orderedUniqueReasons(reasons))
+                userFacingSummary: insufficientDataCopy(
+                for: orderedUniqueReasons(reasons),
+                foodLoggedDays: result.foodLoggedDays
+            )
             )
         }
 
@@ -257,7 +260,8 @@ enum WeeklyProgressConfidencePolicy {
     }
 
     static func insufficientDataCopy(
-        for reasons: [WeeklyProgressInsufficientDataReason]
+        for reasons: [WeeklyProgressInsufficientDataReason],
+        foodLoggedDays: Int = 0
     ) -> String {
         let ordered = orderedUniqueReasons(reasons)
         guard let primary = ordered.first else {
@@ -268,7 +272,10 @@ enum WeeklyProgressConfidencePolicy {
         case .notEnoughCalendarSpan:
             return "Keep logging a few more days before we estimate maintenance."
         case .notEnoughFoodLoggedDays:
-            return "Log a few more meals this week so we can estimate maintenance with confidence."
+            if foodLoggedDays == 0 {
+                return FormaProductCopy.Journey.NextBestAction.logFirstMealDetail
+            }
+            return FormaProductCopy.Journey.NextBestAction.logMealsConsistentlyDetail
         case .notEnoughWeightEntries:
             return "Add a few more weigh-ins this week before we estimate maintenance."
         case .inconsistentLogging:
@@ -323,7 +330,7 @@ enum WeeklyProgressConfidencePolicy {
             weightEntryCount: weightEntryCount,
             calendarSpanDays: calendarSpanDays,
             reasons: ordered,
-            userFacingSummary: insufficientDataCopy(for: ordered)
+            userFacingSummary: insufficientDataCopy(for: ordered, foodLoggedDays: foodLoggedDays)
         )
     }
 

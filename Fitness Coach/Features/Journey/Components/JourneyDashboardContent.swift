@@ -23,6 +23,25 @@ struct JourneyDashboardContent: View {
 
     var body: some View {
         LazyVStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
+            if state.screenPresentation.sync.showsHealthSyncNotice,
+               let notice = state.screenPresentation.sync.healthSyncNotice {
+                JourneyCard(elevation: .quiet) {
+                    Text(notice)
+                        .font(JourneyTypography.cardSupporting)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .healthIntelligenceMultilineText()
+                }
+                .accessibilityIdentifier("journey-sync-notice")
+            }
+
+            if state.screenPresentation.unlockDashboard.showsProminentNextActionCard,
+               let nextActionCard = state.screenPresentation.unlockDashboard.nextActionCard {
+                JourneyNextActionCard(
+                    state: nextActionCard,
+                    onCTA: onWeeklyProgressCTA
+                )
+            }
+
             ForEach(visibleSections, id: \.self) { section in
                 sectionView(for: section)
             }
@@ -47,11 +66,7 @@ struct JourneyDashboardContent: View {
     }
 
     private var unifiedWeeklyReview: UnifiedWeeklyReviewState {
-        UnifiedWeeklyReviewPresentationBuilder.build(
-            dashboard: state,
-            healthIntelligence: healthIntelligenceSectionState,
-            freshnessInput: weeklyProgressFreshnessInput
-        )
+        state.unifiedWeeklyReview
     }
 
     private var visibleSections: [JourneyProductSection] {
@@ -115,15 +130,12 @@ struct JourneyDashboardContent: View {
                 .onAppear { analyticsCoordinator?.logProjectionViewed() }
 
         case .weeklyProgress:
-            WeeklyProgressHeroSection(
+            ThisWeekSection(
                 state: unifiedWeeklyReview,
                 summary: state.weeklyProgressSummary,
-                foodLoggedDays: state.weeklyProgressSummary.foodLoggedDays,
-                totalDays: state.weeklyProgressSummary.totalDays,
                 weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator,
                 freshnessInput: weeklyProgressFreshnessInput,
                 onPrimaryCTA: onWeeklyProgressCTA,
-                onSecondaryCTA: onWeeklyProgressCTA,
                 onOpenWeeklyReviewDetail: weeklyReviewDetailAction
             )
 
@@ -131,6 +143,7 @@ struct JourneyDashboardContent: View {
             if let healthIntelligenceSectionState {
                 JourneyHealthIntelligenceSection(
                     state: healthIntelligenceSectionState,
+                    showsUnifiedThisWeekCard: showsWeeklyProgressHero,
                     healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                     onConnectHealth: onConnectHealth,
                     onWeeklyReviewSelected: { _ in onOpenWeeklyProgressDetail?() }

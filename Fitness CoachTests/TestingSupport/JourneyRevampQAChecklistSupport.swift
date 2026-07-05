@@ -32,6 +32,12 @@ enum JourneyRevampQAChecklistSupport {
         "Your consistency is starting to create a useful pattern",
         "Level 1 / 25 XP",
         "Keep logging to unlock habit insights",
+        "Not enough data yet",
+        "Maintenance estimate building",
+        "Log weight to see weekly change",
+        "Missing signals:",
+        "Limited confidence",
+        "Requires: 7 days",
     ]
 
     static let shamePhrases: [String] = [
@@ -222,7 +228,8 @@ enum JourneyRevampQAChecklistSupport {
         let detail = UnifiedWeeklyReviewPresentationBuilder.buildDetail(dashboard: dashboard)
 
         XCTAssertFalse(unified.confidenceAccessibilityLabel.isEmpty, file: file, line: line)
-        XCTAssertFalse(unified.headline.isEmpty, file: file, line: line)
+        XCTAssertFalse(unified.cardStateTitle.isEmpty, file: file, line: line)
+        XCTAssertFalse(unified.cardSummary.isEmpty, file: file, line: line)
         XCTAssertFalse(detail.accessibilityLabel.isEmpty, file: file, line: line)
         XCTAssertTrue(
             detail.accessibilityLabel.contains(unified.confidenceAccessibilityLabel),

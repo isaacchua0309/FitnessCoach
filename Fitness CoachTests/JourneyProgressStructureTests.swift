@@ -44,7 +44,9 @@ final class JourneyProgressStructureTests: XCTestCase {
         let dashboard = JourneyPreviewData.brandNewUser
 
         XCTAssertTrue(dashboard.showsStartingEmptyState)
-        XCTAssertTrue(dashboard.showsMilestonesSection)
+        XCTAssertTrue(dashboard.milestone.isVisible)
+        XCTAssertFalse(dashboard.showsMilestonesSection)
+        XCTAssertTrue(dashboard.screenPresentation.unlockDashboard.showsProminentNextActionCard)
         XCTAssertFalse(dashboard.showsStoryTimelineSection)
         XCTAssertFalse(dashboard.showsGoalProjectionSection)
         XCTAssertFalse(dashboard.showsWeeklyReviewSection)

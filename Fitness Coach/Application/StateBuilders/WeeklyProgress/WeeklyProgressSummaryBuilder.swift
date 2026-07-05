@@ -395,6 +395,40 @@ extension WeeklyProgressSummaryBuilder {
         )
     }
 
+    /// The review window immediately before `range`.
+    static func previousWeekRange(
+        for range: WeeklyProgressWeekRange,
+        calendar: Calendar
+    ) -> WeeklyProgressWeekRange {
+        switch range.kind {
+        case .completedCalendarWeek:
+            let previousStart = calendar.date(byAdding: .weekOfYear, value: -1, to: range.startDate)
+                .map { calendar.startOfDay(for: $0) } ?? range.startDate
+            let previousEnd = calendar.date(byAdding: .day, value: JourneyLogMetrics.weekDayCount - 1, to: previousStart)
+                ?? previousStart
+            return WeeklyProgressWeekRange(
+                kind: .completedCalendarWeek,
+                startDate: previousStart,
+                endDate: calendar.startOfDay(for: previousEnd),
+                totalDays: range.totalDays
+            )
+        case .rollingSevenDays:
+            let endDate = calendar.date(byAdding: .day, value: -JourneyLogMetrics.weekDayCount, to: range.endDate)
+                ?? range.startDate
+            let startDate = calendar.date(
+                byAdding: .day,
+                value: -(JourneyLogMetrics.weekDayCount - 1),
+                to: endDate
+            ) ?? endDate
+            return WeeklyProgressWeekRange(
+                kind: .rollingSevenDays,
+                startDate: calendar.startOfDay(for: startDate),
+                endDate: calendar.startOfDay(for: endDate),
+                totalDays: range.totalDays
+            )
+        }
+    }
+
     static func resolveVerdict(
         maintenanceEstimate: MaintenanceEstimate,
         goalDirection: JourneyGoalDirection

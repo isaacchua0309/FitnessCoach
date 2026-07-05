@@ -45,6 +45,15 @@ enum JourneyDashboardCompositionPolicy {
         showsWeeklyProgressHero
     }
 
+    /// Hides duplicate weekly review and progress cards when the unified This Week section is visible.
+    static func showsHealthIntelligenceWeeklyReviewCard(showsUnifiedThisWeekCard: Bool) -> Bool {
+        !showsUnifiedThisWeekCard
+    }
+
+    static func showsHealthIntelligenceProgressCard(showsUnifiedThisWeekCard: Bool) -> Bool {
+        !showsUnifiedThisWeekCard
+    }
+
     static func showsLegacyWeeklyReviewSection(
         dashboard: JourneyDashboardState,
         showsWeeklyProgressHero: Bool,
@@ -52,10 +61,7 @@ enum JourneyDashboardCompositionPolicy {
         healthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
     ) -> Bool {
         guard dashboard.showsWeeklyReviewSection else { return false }
-        guard showsWeeklyProgressHero,
-              collapsesLegacyWeeklyHabitRows(showsWeeklyProgressHero: true) else {
-            return true
-        }
+        guard !showsWeeklyProgressHero else { return false }
 
         let hidesTrainingRow = hidesTrainingHabitRow(
             isUIEnabled: isHealthIntelligenceUIEnabled,

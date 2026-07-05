@@ -15,6 +15,7 @@ enum JourneyTimelineBuilder {
         var maturityLogs: [DailyLog]
         var allWeights: [WeightEntry]
         var healthWorkoutDayStarts: Set<Date>
+        var healthWorkoutRecords: [HealthWorkoutRecord] = []
         var isAppleHealthConnected: Bool
         var unlockedMilestoneCount: Int
         var asOf: Date
@@ -402,7 +403,11 @@ enum JourneyTimelineBuilder {
         let logged = input.maturityLogs
             .filter { $0.workoutCaloriesBurned > 0 }
             .map { calendar.startOfDay(for: $0.date) }
-        let health = input.healthWorkoutDayStarts.map { calendar.startOfDay(for: $0) }
+        let healthFromRecords = input.healthWorkoutRecords
+            .map { calendar.startOfDay(for: $0.startDate) }
+        let healthFromDayStarts = input.healthWorkoutDayStarts
+            .map { calendar.startOfDay(for: $0) }
+        let health = healthFromRecords.isEmpty ? healthFromDayStarts : healthFromRecords
         return (logged + health).sorted().first
     }
 

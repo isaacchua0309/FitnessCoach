@@ -12,6 +12,8 @@ struct JourneyDashboardState: Equatable {
 
     var baseline: JourneyBaseline
     var streaks: JourneyStreakState
+    var screenPresentation: JourneyScreenPresentationState
+    var unifiedWeeklyReview: UnifiedWeeklyReviewState
 
     var header: JourneyHeaderState
     var momentum: JourneyMomentumState
@@ -37,7 +39,7 @@ extension JourneyDashboardState {
     }
 
     var storyTimeline: JourneyStoryTimelineState {
-        let events = storyEvents.map(\.timelineEvent)
+        let events = screenPresentation.story.events.map(\.timelineEvent)
         return JourneyStoryTimelineState(
             events: events,
             displayEvents: events,
@@ -47,20 +49,25 @@ extension JourneyDashboardState {
         )
     }
 
+    var storyEventsFromPresentation: [JourneyStoryEvent] {
+        screenPresentation.story.events
+    }
+
     var hasMeaningfulJourneyData: Bool {
         weeklyHabit.showsHabitRows
             || !milestones.unlocked.isEmpty
             || baseline.hasRealWeightEntries
-            || streaks.currentLoggingStreakDays >= 2
+            || screenPresentation.streaks.checkInStreakDays >= JourneyThresholds.meaningfulCheckInStreakDays
             || insight.isUnlocked
     }
 
     var showsMilestonesSection: Bool {
-        milestone.isVisible
+        guard milestone.isVisible else { return false }
+        return !screenPresentation.unlockDashboard.suppressesMilestonesSection
     }
 
     var showsStoryTimelineSection: Bool {
-        hasMeaningfulJourneyData && !storyEvents.isEmpty
+        hasMeaningfulJourneyData && !screenPresentation.story.events.isEmpty
     }
 
     var showsStartingEmptyState: Bool {

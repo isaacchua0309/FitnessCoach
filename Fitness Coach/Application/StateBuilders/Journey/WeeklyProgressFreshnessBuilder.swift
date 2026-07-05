@@ -30,10 +30,19 @@ struct WeeklyProgressFreshnessState: Equatable {
 
 enum WeeklyProgressFreshnessBuilder {
 
-    static func build(_ input: WeeklyProgressFreshnessInput?) -> WeeklyProgressFreshnessState? {
+    enum Surface {
+        case journey
+        case generic
+    }
+
+    static func build(
+        _ input: WeeklyProgressFreshnessInput?,
+        surface: Surface = .generic
+    ) -> WeeklyProgressFreshnessState? {
         guard let input else { return nil }
 
         let copy = FormaProductCopy.WeeklyReviewPresentation.Freshness.self
+        let journeySyncCopy = FormaProductCopy.Journey.Sync.healthDataSyncing
 
         if input.isRestoringAccount {
             return state(
@@ -44,18 +53,23 @@ enum WeeklyProgressFreshnessBuilder {
         }
 
         if input.isCrossDeviceRefreshing {
+            let syncingMessage = surface == .journey ? journeySyncCopy : copy.syncingChanges
             return state(
-                card: copy.syncingChanges,
-                detail: copy.syncingChanges,
-                accessibility: copy.syncingChanges
+                card: syncingMessage,
+                detail: syncingMessage,
+                accessibility: syncingMessage
             )
         }
 
         if let pendingUploadCount = input.pendingUploadCount, pendingUploadCount > 0 {
+            let cardMessage = surface == .journey ? journeySyncCopy : copy.syncingChanges
+            let detailMessage = surface == .journey
+                ? journeySyncCopy
+                : copy.reviewMayUpdate
             return state(
-                card: copy.syncingChanges,
-                detail: copy.reviewMayUpdate,
-                accessibility: copy.reviewMayUpdate
+                card: cardMessage,
+                detail: detailMessage,
+                accessibility: detailMessage
             )
         }
 

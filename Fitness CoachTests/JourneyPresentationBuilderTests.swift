@@ -189,6 +189,8 @@ final class JourneyPresentationBuilderTests: XCTestCase {
                 JourneyStreakBuilder.Input(
                     streakSummary: StreakSummary(
                         loggingStreak: 3,
+                        mealLoggingStreak: 3,
+                        checkInStreak: 3,
                         proteinStreak: 2,
                         hydrationStreak: 1,
                         workoutStreak: 0

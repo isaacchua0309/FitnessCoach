@@ -53,10 +53,9 @@ struct WeeklyMaintenanceBlockView: View {
             }
 
             if !state.showsLearnedEstimate {
-                Text(state.explanation)
-                    .font(WeeklyProgressCardSupport.supportingFont)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                JourneyInsightLockedStateView(
+                    state: JourneyUnlockChecklistBuilder.maintenanceLockedState()
+                )
             }
         }
         .padding(WeeklyProgressCardSupport.blockPadding)
