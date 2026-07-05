@@ -105,4 +105,29 @@ final class AppContainerConstructionTests: XCTestCase {
 
         XCTAssertTrue(container.onboardingUserDefaults === defaults)
     }
+
+    func testBuildHealthDelegatesToHealthDependenciesBundle() {
+        let auth = AuthDependencies.build(inMemory: true)
+
+        let bundle = AppContainer.buildHealth(session: auth, inMemory: true)
+
+        XCTAssertNotNil(bundle.healthTrainingService)
+        XCTAssertNotNil(bundle.healthDataRepository)
+        XCTAssertNotNil(bundle.healthSyncService)
+        XCTAssertNotNil(bundle.healthSyncStateStore)
+        XCTAssertNotNil(bundle.trainingInsightsStore)
+        XCTAssertNotNil(bundle.trainingInsightsModel)
+        XCTAssertTrue(bundle.healthIntegrationConnectionStore is LockedHealthIntegrationConnectionStore)
+        XCTAssertTrue(bundle.healthSummaryRemoteSyncClient is NoopHealthSummaryRemoteSyncClient)
+    }
+
+    func testInMemoryContainerWiresHealthPlatformDependencies() throws {
+        let container = try AppContainer(inMemory: true)
+
+        XCTAssertNotNil(container.healthTrainingService)
+        XCTAssertNotNil(container.healthDataRepository)
+        XCTAssertNotNil(container.healthSyncStateStore)
+        XCTAssertNotNil(container.trainingInsightsStore)
+        XCTAssertTrue(container.healthIntegrationConnectionStore is LockedHealthIntegrationConnectionStore)
+    }
 }
