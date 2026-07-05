@@ -29,7 +29,7 @@ struct PlanEditWizard: View {
     @State private var showExpertAdjustments = false
     @State private var targetPreview: CalorieTargetResult?
     @State private var didInitialize = false
-    @State private var showsDiscardChangesConfirmation = false
+    @State private var isShowingDiscardConfirmation = false
     @State private var isStepTransitionInFlight = false
     @State private var stepTransitionGeneration = 0
 
@@ -76,6 +76,24 @@ struct PlanEditWizard: View {
                     formState.syncMaintainGoalWeightFromCurrent()
                 }
             }
+            .overlay {
+                if saveSuccessState == nil, isShowingDiscardConfirmation {
+                    AdjustPlanDiscardConfirmationOverlay(
+                        onKeepEditing: {
+                            isShowingDiscardConfirmation = false
+                        },
+                        onDiscard: {
+                            isShowingDiscardConfirmation = false
+                            discardDraftChanges()
+                        }
+                    )
+                    .zIndex(1)
+                }
+            }
+            .animation(
+                PlanEditMotion.animation(PlanEditMotion.modalPresentation, reduceMotion: reduceMotion),
+                value: isShowingDiscardConfirmation
+            )
             .formaThemeReactive()
         }
     }
@@ -123,18 +141,6 @@ struct PlanEditWizard: View {
         }
         .interactiveDismissDisabled(hasUnsavedChanges)
         .planEditSupportsDynamicType()
-        .confirmationDialog(
-            FormaProductCopy.PlanEditWizardCopy.discardChangesTitle,
-            isPresented: $showsDiscardChangesConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(FormaProductCopy.PlanEditWizardCopy.discardChanges, role: .destructive) {
-                performCancel()
-            }
-            Button(FormaProductCopy.PlanEditWizardCopy.keepEditing, role: .cancel) {}
-        } message: {
-            Text(FormaProductCopy.PlanEditWizardCopy.discardChangesMessage)
-        }
     }
 
     @ViewBuilder
@@ -591,13 +597,18 @@ struct PlanEditWizard: View {
 
     private func requestCancel() {
         if hasUnsavedChanges {
-            showsDiscardChangesConfirmation = true
+            isShowingDiscardConfirmation = true
         } else {
-            performCancel()
+            dismissAdjustPlan()
         }
     }
 
-    private func performCancel() {
+    private func discardDraftChanges() {
+        onCancel()
+        dismiss()
+    }
+
+    private func dismissAdjustPlan() {
         onCancel()
         dismiss()
     }
@@ -692,7 +703,7 @@ struct PlanEditWizard: View {
                 }
                 isSaving = false
                 try? await Task.sleep(nanoseconds: PlanEditSaveSuccessBuilder.displayDurationNanoseconds)
-                performCancel()
+                dismissAdjustPlan()
             } catch {
                 isSaving = false
             }

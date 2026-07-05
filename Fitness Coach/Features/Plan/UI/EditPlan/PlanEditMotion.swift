@@ -16,6 +16,7 @@ enum PlanEditMotion {
     static let selection = Animation.easeOut(duration: 0.22)
     static let progress = Animation.easeInOut(duration: 0.28)
     static let successReveal = Animation.easeOut(duration: 0.30)
+    static let modalPresentation = Animation.easeOut(duration: 0.24)
 
     /// Subtle emphasis — small enough to avoid layout clipping.
     static let selectedScale: CGFloat = 1.012

@@ -287,9 +287,9 @@ extension FormaProductCopy {
     // MARK: - Plan Edit Wizard
 
     enum PlanEditWizardCopy {
-        static let discardChangesTitle = "Discard your edits?"
+        static let discardChangesTitle = "Discard changes?"
         static let discardChangesMessage =
-            "You have unsaved changes. Leaving now will restore your previous plan."
+            "You changed your plan, but haven’t saved it yet."
         static let keepEditing = "Keep Editing"
         static let discardChanges = "Discard Changes"
         static let saveNoChangesHint =
