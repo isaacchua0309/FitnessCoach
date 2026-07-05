@@ -81,6 +81,27 @@ Partial progress (not closed):
 
 ---
 
+## PRDX Platform Infrastructure v1 (2026-07-05)
+
+Platform-contract sprint: explicit flags, logging, analytics routing, test CI, and `AppContainer` bundle extraction **without** user-visible behavior changes.
+
+**Merge status:** Items below are **closed on the PRDX v1 branch stack** (`cursor/finalize-appcontainer-construction-38a8` and predecessors; PRs #180–#196). They remain **open on `main`** until that stack merges and CI is green. Re-open any ID if post-merge Fast-Core or focused PRDX tests regress.
+
+| ID | Linked | Title | Status | Resolution |
+|----|--------|-------|--------|------------|
+| PH-001 / BW-101 | [BW-101](./BuildWarningsRegister.md#remaining--ios) | Fast-Core test plan blocked by package/test target resolution | **Closed** *(branch stack)* | `Fitness CoachTests` SPM products re-linked for compile; **Strip Duplicate SPM Frameworks** build phase prevents runtime duplicate ObjC classes. Documented serial runner: `Scripts/run-fast-core-serial.sh`. PR CI: `.github/workflows/prdx-ci.yml` (`ios-fast-core` job). See [TestCommandCheatsheet.md](../Testing/TestCommandCheatsheet.md). |
+| PRDX-FLAGS-001 | [PRDX_V1_FLAG_MATRIX.md](../Architecture/PRDX_V1_FLAG_MATRIX.md) | Runtime feature flag snapshot contradicts production intent | **Closed** *(branch stack)* | `FormaAbTest.resolvedSnapshot(for:)` + `FormaRuntimeEnvironment.productionIntent`; `FormaAbTestSnapshot.production`; tests: `FormaAbTestResolvedSnapshotTests`, `FormaAbTestProductionSnapshotTests`. **Runtime intentionally unchanged** — Release still resolves `allEnabled` until a separate release flip PR. |
+| PRDX-LOGGING-001 | [ReleaseLoggingAllowlist.md](../Architecture/ReleaseLoggingAllowlist.md) | Release logging policy scattered and unaudited | **Closed** *(branch stack)* | `FormaLogRedactor.swift`; `LogRedactor` delegates; machine allowlist `ReleaseLoggingAllowlist.json`; `ReleaseLoggingGuard` + `ReleaseLoggingGuardTests`; contract in `LoggingAndPrivacyContract.md`. |
+| PRDX-ANALYTICS-001 | [AnalyticsReadinessChecklist.md](../Architecture/AnalyticsReadinessChecklist.md) | Analytics sink routing not explicit | **Closed** *(branch stack)* | `FormaAnalyticsConfiguration` presets; `AnalyticsLoggerFactory` configuration + composite resolve; `CompositeAnalyticsLoggers.swift`; `AnalyticsInfrastructureTests` (Release NoOp default, no Firebase Analytics). |
+| PRDX-CONTAINER-001 | [DependencyInjectionMap.md](../Architecture/DependencyInjectionMap.md) | AppContainer construction root too dense | **Closed** *(branch stack)* | Init-time wiring moved to `Fitness Coach/App/Dependencies/*.swift` (10 bundles). `AppContainer+Construction.swift` reduced to **145 LOC** thin delegates (from ~1005 LOC). Journey/Plan wiring in `AppContainer+FeatureFactories.swift`. `AppContainerConstructionTests` added. |
+| PRDX-FLAGS-002 | [FeatureFlagRegistry.md](../Architecture/FeatureFlagRegistry.md) | Unused `Settings.dataExportEnabled` flag | **Closed** *(branch stack)* | Zero call sites confirmed; removed from `FormaAbTest` / `FormaAbTestSnapshot`; export gated by `AccountDataExportPolicy.isEnabled`. Guard: `FormaAbTestProductionSnapshotTests` asserts field absent. |
+
+**Sprint execution doc:** [PRDX_PLATFORM_INFRASTRUCTURE_V1.md](../Sprints/PRDX_PLATFORM_INFRASTRUCTURE_V1.md)
+
+**Explicitly not closed by this sprint:** TD-HI-002 (HI loader extraction), TD-COACH-001 (remaining Coach decomposition), auth/account feature refactors, Release `production` snapshot wiring.
+
+---
+
 ## Migration-only code (do not delete)
 
 These SwiftData entities remain registered for lightweight migration. **Not technical debt** — documented retention.
@@ -125,6 +146,7 @@ See `Docs/PersistenceCleanupNotes.md` and entity file headers.
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | **PRDX Platform Infrastructure v1** — closed PH-001/BW-101, PRDX-FLAGS-001/002, PRDX-LOGGING-001, PRDX-ANALYTICS-001, PRDX-CONTAINER-001 on branch stack (pending `main` merge) |
 | 2026-07-05 | **Coach decomposition v1** — TD-COACH-001 partially closed; architecture docs added |
 | 2026-07-05 | **Code Bloat Reduction v2 finalized** — closed TD-AI-001, TD-COPY-001; doc archive; fixture consolidation; account-test polling; build/hygiene registers |
 | 2026-07-05 | Added links to BuildWarningsRegister + ProjectHygieneRegister |
