@@ -2,15 +2,205 @@
 
 Quick reference for focused test runs during development and pre-merge checks.
 
-**Simulator destination** (adjust device name as needed):
+Full suite layout and test-plan details: [`Fitness CoachTests/TESTING.md`](../Fitness%20CoachTests/TESTING.md).
+
+---
+
+## Fast-Core (local)
+
+**Documented / CI destination:** `platform=iOS Simulator,name=iPhone 17` (iOS 26.5).
+
+Canonical command:
+
+```bash
+xcodebuild test \
+  -scheme "Fitness Coach" \
+  -destination "platform=iOS Simulator,name=iPhone 17" \
+  -testPlan Fast-Core
+```
+
+Recommended for local stability (serial execution avoids XCTest harness restarts):
+
+```bash
+xcodebuild test \
+  -scheme "Fitness Coach" \
+  -destination "platform=iOS Simulator,name=iPhone 17" \
+  -testPlan Fast-Core \
+  -parallel-testing-enabled NO
+```
+
+Wrapper script (same plan, serial, simulator fallback when iPhone 17 is missing):
+
+```bash
+./Scripts/run-fast-core-serial.sh
+```
+
+Optional `DESTINATION` override:
 
 ```bash
 export DESTINATION='platform=iOS Simulator,name=iPhone 17'
+xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core -parallel-testing-enabled NO
 ```
 
-> **Note:** iPhone 16 may not be installed on all machines. App builds on iPhone 17 (iOS 26.5). Fast-Core runs serially via `./Scripts/run-fast-core-serial.sh` (falls back to the nearest iPhone simulator when iPhone 17 is missing).
+App build smoke (run before or after test changes):
 
-Full suite layout and test-plan details: [`Fitness CoachTests/TESTING.md`](../Fitness%20CoachTests/TESTING.md).
+```bash
+xcodebuild build -scheme "Fitness Coach" \
+  -destination "platform=iOS Simulator,name=iPhone 17"
+```
+
+---
+
+## Simulator fallback
+
+List installed simulators:
+
+```bash
+xcrun simctl list devices available
+```
+
+If `iPhone 17` is not listed, pick the nearest available iPhone from that output and substitute its name in `-destination`:
+
+```bash
+xcodebuild test \
+  -scheme "Fitness Coach" \
+  -destination "platform=iOS Simulator,name=<Your iPhone Simulator>" \
+  -testPlan Fast-Core \
+  -parallel-testing-enabled NO
+```
+
+Or use `./Scripts/run-fast-core-serial.sh`, which prefers iPhone 17 and falls back to the first available iPhone simulator automatically.
+
+---
+
+## Functions checks (local)
+
+Package lives in `functions/`. From repo root:
+
+```bash
+npm --prefix functions ci
+npm --prefix functions run lint
+npm --prefix functions test
+```
+
+Equivalent from inside the package:
+
+```bash
+cd functions && npm ci && npm run lint && npm test
+```
+
+| Script | Purpose |
+|--------|---------|
+| `npm run build` | `tsc` compile |
+| `npm run lint` | ESLint (`.js`, `.ts`) |
+| `npm test` | Jest unit suite (excludes Firestore-rules integration by default) |
+| `npm run test:coach` | Coach prompt/context tests (`test/coach`) |
+| `npm run test:firestore-rules` | Firestore rules integration — **requires emulator on port 8080** |
+| `npm run test:all` | Full Jest suite including emulator-dependent tests |
+
+Focused Jest runs:
+
+```bash
+npm --prefix functions run test:coach
+npm --prefix functions run test:food
+npm --prefix functions run test:gateway
+```
+
+---
+
+## Troubleshooting
+
+### SPM package resolution failures
+
+**Symptom:** `Unable to resolve module dependency: 'FirebaseCore'` (or other Firebase/GoogleSignIn modules) when building `Fitness CoachTests`.
+
+**Cause:** `Fitness CoachTests` must link the same seven SPM products as the app for compile-time `@testable import Fitness_Coach` resolution:
+
+- `FirebaseAnalytics`, `FirebaseAuth`, `FirebaseCore`, `FirebaseFirestore`, `FirebaseFunctions`, `GoogleSignIn`, `SwiftHorizontalRuler`
+
+**Checks:**
+
+```bash
+xcodebuild -resolvePackageDependencies -project "Fitness Coach.xcodeproj"
+xcodebuild build-for-testing -scheme "Fitness Coach" \
+  -destination "platform=iOS Simulator,name=iPhone 17"
+```
+
+See BW-101 in [`Docs/TechnicalDebt/BuildWarningsRegister.md`](../TechnicalDebt/BuildWarningsRegister.md).
+
+### Missing simulator
+
+**Symptom:** `Unable to find a device matching the provided destination specifier` or simulator name not found.
+
+**Fix:** Run `xcrun simctl list devices available`, install an iOS simulator in Xcode (**Settings → Platforms**), or pass a device name that appears in the list. Prefer iPhone 17 for CI parity; any available iPhone works for local runs.
+
+### Stale DerivedData
+
+**Symptom:** Stale symbols (`dlopen` / missing type), inconsistent compile after package or project changes, or tests passing in Xcode but failing from CLI.
+
+**Fix:**
+
+```bash
+rm -rf ~/Library/Developer/Xcode/DerivedData
+xcodebuild -resolvePackageDependencies -project "Fitness Coach.xcodeproj"
+xcodebuild clean build-for-testing -scheme "Fitness Coach" \
+  -destination "platform=iOS Simulator,name=iPhone 17"
+```
+
+Then re-run Fast-Core.
+
+### Test target membership issues
+
+**Symptom:** New test file compiles in Xcode but is not executed, or missing from a plan.
+
+**Checks:**
+
+- Sources under `Fitness CoachTests/` are included via `PBXFileSystemSynchronizedRootGroup` (automatic target membership).
+- Regenerate test plans after adding/removing test classes:
+
+```bash
+python3 Scripts/generate_test_plans.py
+```
+
+- Confirm the class appears in `TestPlans/Fast-Core.xctestplan` (or Integration/Full as appropriate).
+
+### Firebase / GoogleSignIn duplicate-class crashes at runtime
+
+**Symptom:** XCTest process restarts, `duplicate class` warnings for `GTMAppAuth` / Firebase types, or `TEST FAILED` with zero assertion failures.
+
+**Cause:** SPM frameworks embedded in both `Fitness CoachTests.xctest/Frameworks` and the host app / `Fitness Coach.debug.dylib`.
+
+**Fix (already in project):** `Fitness CoachTests` links SPM for compile-time resolution, and the **Strip Duplicate SPM Frameworks** build phase removes `.xctest/Frameworks` after linking. Do not remove that script or re-add embedded frameworks to the test bundle. Run serially: `-parallel-testing-enabled NO` or `./Scripts/run-fast-core-serial.sh`.
+
+See BW-002 in [`Docs/TechnicalDebt/BuildWarningsRegister.md`](../TechnicalDebt/BuildWarningsRegister.md).
+
+---
+
+## CI parity (planned)
+
+There is **no GitHub Actions workflow in this repo yet**. When PR CI is added, it should run the same local gates:
+
+**iOS — Fast-Core**
+
+```bash
+xcodebuild test \
+  -scheme "Fitness Coach" \
+  -destination "platform=iOS Simulator,name=iPhone 17" \
+  -testPlan Fast-Core \
+  -parallel-testing-enabled NO
+```
+
+**Functions**
+
+```bash
+npm --prefix functions ci
+npm --prefix functions run lint
+npm --prefix functions test
+```
+
+Optional follow-up job (not part of default `npm test`): `npm --prefix functions run test:firestore-rules` with a Firestore emulator.
+
+Full iOS regression (`Fitness Coach CI` scheme / `Full` test plan) remains a pre-merge manual or scheduled check until wired into CI.
 
 ---
 
@@ -19,7 +209,7 @@ Full suite layout and test-plan details: [`Fitness CoachTests/TESTING.md`](../Fi
 | Command | When to use |
 |---------|-------------|
 | `./Scripts/run-fast-core-serial.sh` | Everyday local dev (~3–4 min, serial, simulator fallback) |
-| `xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core -parallel-testing-enabled NO` | Same as script when `DESTINATION` is set explicitly |
+| `xcodebuild test … -testPlan Fast-Core -parallel-testing-enabled NO` | Fast-Core with explicit destination (see [Fast-Core](#fast-core-local)) |
 | `xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Integration` | SwiftData, cloud, auth handoff |
 | `xcodebuild test -scheme "Fitness Coach CI" -destination "$DESTINATION"` | Pre-merge full regression |
 
@@ -27,6 +217,12 @@ Regenerate plans after adding test files:
 
 ```bash
 python3 Scripts/generate_test_plans.py
+```
+
+**Simulator destination** (optional env var for commands below):
+
+```bash
+export DESTINATION='platform=iOS Simulator,name=iPhone 17'
 ```
 
 ---
@@ -151,22 +347,17 @@ xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fa
 
 ---
 
-## Backend functions (Node / Jest)
+## Backend functions (focused runs)
 
-From `functions/`:
-
-```bash
-cd functions && npm test
-```
+See [Functions checks (local)](#functions-checks-local) for install, lint, and default test commands.
 
 | Focus | Command |
 |-------|---------|
-| All unit tests | `npm test` |
-| Coach prompts & context | `npm run test:coach` (or `npm test -- --testPathPatterns='test/coach'`) |
-| Account persistence rules | `npm run test:firestore-rules` |
-| Food estimation | `npm test -- --testPathPatterns='food'` |
-| Nutrition sync contract | `npm test -- --testPathPatterns='nutritionSyncContract'` |
-| AI gateway guardrails | `npm test -- --testPathPatterns='gatewayGuardrails|aiGateway'` |
+| Coach prompts & context | `npm --prefix functions run test:coach` |
+| Account persistence rules | `npm --prefix functions run test:firestore-rules` (emulator required) |
+| Food estimation | `npm --prefix functions run test:food` |
+| AI gateway guardrails | `npm --prefix functions run test:gateway` |
+| Nutrition sync contract | `npm --prefix functions run test:account-persistence` |
 
 ---
 
