@@ -44,6 +44,7 @@ final class AuthGateCoordinator: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let publicEntryFlowCoordinator: PublicEntryFlowCoordinator
     private let onboardingShellCoordinator: AuthOnboardingShellCoordinator
+    private let profileConflictCoordinator: AuthProfileConflictCoordinator
     private let signedInShellCoordinator: AuthSignedInShellCoordinator
     #if DEBUG
     private var testingSignedInUID: String?
@@ -61,14 +62,21 @@ final class AuthGateCoordinator: ObservableObject {
             container: container,
             authManager: container.authManager
         )
-        self.signedInShellCoordinator = AuthSignedInShellCoordinator(
+        self.profileConflictCoordinator = AuthProfileConflictCoordinator(
             container: container,
             authManager: container.authManager,
             rootModel: rootModel
         )
+        self.signedInShellCoordinator = AuthSignedInShellCoordinator(
+            container: container,
+            authManager: container.authManager,
+            rootModel: rootModel,
+            profileConflictCoordinator: profileConflictCoordinator
+        )
 
         publicEntryFlowCoordinator.configure(delegate: self)
         onboardingShellCoordinator.configure(delegate: self)
+        profileConflictCoordinator.configure(delegate: self)
         signedInShellCoordinator.configure(delegate: self)
 
         rootModel.objectWillChange
@@ -149,19 +157,19 @@ final class AuthGateCoordinator: ObservableObject {
     // MARK: - Signed-in flow
 
     func restoreGoogleAccountPlanAfterMismatch() {
-        signedInShellCoordinator.restoreGoogleAccountPlanAfterMismatch()
+        profileConflictCoordinator.restoreGoogleAccountPlanAfterMismatch()
     }
 
     func beginUseDeviceProfileAfterMismatch() {
-        signedInShellCoordinator.beginUseDeviceProfileAfterMismatch()
+        profileConflictCoordinator.beginUseDeviceProfileAfterMismatch()
     }
 
     func confirmUseDeviceProfileAfterPrompt() {
-        signedInShellCoordinator.confirmUseDeviceProfileAfterPrompt()
+        profileConflictCoordinator.confirmUseDeviceProfileAfterPrompt()
     }
 
     func signOutFromAccountMismatch() {
-        signedInShellCoordinator.signOutFromAccountMismatch()
+        profileConflictCoordinator.signOutFromAccountMismatch()
     }
 
     func signOutFromAccount() {
@@ -177,7 +185,7 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func retryAccountMismatchOrOnboardingCloudCheck() {
-        signedInShellCoordinator.retryAccountMismatchOrOnboardingCloudCheck()
+        profileConflictCoordinator.retryAccountMismatchOrOnboardingCloudCheck()
     }
 
     // MARK: - Onboarding model lifecycle
@@ -229,31 +237,31 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func presentCloudProfileUploadFailure(context: CloudProfileUploadFailureContext) {
-        signedInShellCoordinator.presentCloudProfileUploadFailure(context: context)
+        profileConflictCoordinator.presentCloudProfileUploadFailure(context: context)
     }
 
     func clearProfileConflictState() {
-        signedInShellCoordinator.clearProfileConflictState()
+        profileConflictCoordinator.clearProfileConflictState()
     }
 
     func restoreExistingPlanAfterConflict() {
-        signedInShellCoordinator.restoreExistingPlanAfterConflict()
+        profileConflictCoordinator.restoreExistingPlanAfterConflict()
     }
 
     func beginUseDevicePlanAfterConflict() {
-        signedInShellCoordinator.beginUseDevicePlanAfterConflict()
+        profileConflictCoordinator.beginUseDevicePlanAfterConflict()
     }
 
     func confirmUseDevicePlanAfterConflict() {
-        signedInShellCoordinator.confirmUseDevicePlanAfterConflict()
+        profileConflictCoordinator.confirmUseDevicePlanAfterConflict()
     }
 
     func finishProfileConflictAfterRestore() {
-        signedInShellCoordinator.finishProfileConflictAfterRestore()
+        profileConflictCoordinator.finishProfileConflictAfterRestore()
     }
 
     func finishProfileConflictAfterUpload() {
-        signedInShellCoordinator.finishProfileConflictAfterUpload()
+        profileConflictCoordinator.finishProfileConflictAfterUpload()
     }
 
     func syncUnsyncedLocalProfile(uid: String) {
@@ -261,15 +269,15 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func retryCloudProfileUpload() {
-        signedInShellCoordinator.retryCloudProfileUpload()
+        profileConflictCoordinator.retryCloudProfileUpload()
     }
 
     func finishAfterSuccessfulCloudUpload(context: CloudProfileUploadFailureContext) {
-        signedInShellCoordinator.finishAfterSuccessfulCloudUpload(context: context)
+        profileConflictCoordinator.finishAfterSuccessfulCloudUpload(context: context)
     }
 
     func continueAfterCloudUploadFailure() {
-        signedInShellCoordinator.continueAfterCloudUploadFailure()
+        profileConflictCoordinator.continueAfterCloudUploadFailure()
     }
 
     // MARK: - Auth / root reactions
@@ -341,7 +349,7 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func presentProfileConflictAfterLookup(uid: String) {
-        signedInShellCoordinator.presentProfileConflictAfterLookup(uid: uid)
+        profileConflictCoordinator.presentProfileConflictAfterLookup(uid: uid)
     }
 
     func handleRootStateChange(_ state: RootViewState) {

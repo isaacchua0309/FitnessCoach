@@ -11,15 +11,6 @@ import Foundation
 protocol AuthSignedInShellCoordinatorDelegate: AnyObject {
     var signedInSessionID: UUID { get set }
     var awaitingCloudSync: Bool { get set }
-    var conflictCloudDocument: CloudUserProfileDocument? { get set }
-    var profileConflictContext: ProfileConflictResolutionContext { get set }
-    var isResolvingProfileConflict: Bool { get set }
-    var showUseDevicePlanOverwriteConfirmation: Bool { get set }
-    var isResolvingAccountMismatch: Bool { get set }
-    var showUseDeviceProfileConfirmation: Bool { get set }
-    var retryFromAccountMismatch: Bool { get set }
-    var pendingUploadFailureContext: CloudProfileUploadFailureContext? { get set }
-    var isRetryingCloudUpload: Bool { get set }
     var suppressSignOutEntrySourceAnnotation: Bool { get set }
     var lastExistingUserResolutionResult: ExistingUserSignInResolutionResult? { get set }
     var accountRestoreViewModel: AccountRestoreViewModel? { get set }
@@ -67,12 +58,19 @@ final class AuthSignedInShellCoordinator {
     private let container: AppContainer
     private let authManager: AuthManager
     private let rootModel: RootModel
+    private let profileConflictCoordinator: AuthProfileConflictCoordinator
     private var accountRestoreRouteTask: Task<Void, Never>?
 
-    init(container: AppContainer, authManager: AuthManager, rootModel: RootModel) {
+    init(
+        container: AppContainer,
+        authManager: AuthManager,
+        rootModel: RootModel,
+        profileConflictCoordinator: AuthProfileConflictCoordinator
+    ) {
         self.container = container
         self.authManager = authManager
         self.rootModel = rootModel
+        self.profileConflictCoordinator = profileConflictCoordinator
     }
 
     func configure(delegate: AuthSignedInShellCoordinatorDelegate) {
@@ -80,79 +78,6 @@ final class AuthSignedInShellCoordinator {
     }
 
     // MARK: - Signed-in flow
-
-    func restoreGoogleAccountPlanAfterMismatch() {
-        guard let uid = authManager.currentUID else { return }
-
-        delegate?.isResolvingAccountMismatch = true
-
-        Task { @MainActor in
-            let outcome = await container.profileBootstrapCoordinatorService.restoreGoogleAccountPlan(uid: uid)
-
-            switch outcome {
-            case .restoredToMain:
-                try? container.actionCenter.syncTodayTargetsFromProfile()
-                container.onboardingCoachingContextStore.clear()
-                delegate?.isResolvingAccountMismatch = false
-                delegate?.awaitingCloudSync = false
-                scheduleRouteToMainWithAccountRestore(uid: uid, reason: .accountSwitch)
-            case .missingCloudProfile:
-                delegate?.isResolvingAccountMismatch = false
-                delegate?.clearOnboardingModel()
-                rootModel.presentMissingCloudProfile()
-            case .cloudFetchFailed:
-                delegate?.isResolvingAccountMismatch = false
-                delegate?.retryFromAccountMismatch = true
-                rootModel.presentAccountMismatchCloudCheckFailed()
-            }
-        }
-    }
-
-    func beginUseDeviceProfileAfterMismatch() {
-        guard let uid = authManager.currentUID else { return }
-
-        delegate?.isResolvingAccountMismatch = true
-
-        Task { @MainActor in
-            let outcome = await container.profileBootstrapCoordinatorService.prepareUseDeviceProfile(uid: uid)
-            delegate?.isResolvingAccountMismatch = false
-
-            switch outcome {
-            case .cloudProfileConflict(let document):
-                delegate?.conflictCloudDocument = document
-                delegate?.profileConflictContext = .onboardingCompletion
-                rootModel.presentProfilePlanConflict()
-            case .requiresLocalLinkConfirmation:
-                delegate?.showUseDeviceProfileConfirmation = true
-            case .cloudFetchFailed:
-                delegate?.retryFromAccountMismatch = true
-                rootModel.presentAccountMismatchCloudCheckFailed()
-            }
-        }
-    }
-
-    func confirmUseDeviceProfileAfterPrompt() {
-        guard let uid = authManager.currentUID else { return }
-
-        delegate?.isResolvingAccountMismatch = true
-
-        Task { @MainActor in
-            do {
-                _ = try container.profileBootstrapCoordinatorService.confirmLinkLocalProfileToAccount(uid: uid)
-                delegate?.isResolvingAccountMismatch = false
-                delegate?.awaitingCloudSync = false
-                scheduleRouteToMainWithAccountRestore(uid: uid, reason: .accountSwitch)
-            } catch {
-                delegate?.isResolvingAccountMismatch = false
-                delegate?.retryFromAccountMismatch = true
-                rootModel.presentAccountMismatchCloudCheckFailed()
-            }
-        }
-    }
-
-    func signOutFromAccountMismatch() {
-        performUserInitiatedSignOut(source: "account_profile_mismatch")
-    }
 
     func signOutFromAccount() {
         performUserInitiatedSignOut(source: "account_settings")
@@ -170,119 +95,6 @@ final class AuthSignedInShellCoordinator {
 
     func handleAccountDeletionCompleted(scope: AccountDeletionScope) {
         resetShellAfterAccountDeletion(source: deletionSource(for: scope))
-    }
-
-    func retryAccountMismatchOrOnboardingCloudCheck() {
-        guard let delegate else { return }
-        if delegate.retryFromAccountMismatch {
-            delegate.retryFromAccountMismatch = false
-            rootModel.presentAccountProfileMismatch()
-            restoreGoogleAccountPlanAfterMismatch()
-            return
-        }
-        delegate.retryOnboardingCompletionCloudCheck()
-    }
-
-    func presentCloudProfileUploadFailure(context: CloudProfileUploadFailureContext) {
-        guard let delegate else { return }
-        delegate.pendingUploadFailureContext = context
-        container.profileCloudSyncStore.clear()
-        container.cloudUploadFailureNotifier.clear()
-        delegate.awaitingCloudSync = false
-        rootModel.presentCloudProfileUploadFailed()
-    }
-
-    func clearProfileConflictState() {
-        guard let delegate else { return }
-        delegate.conflictCloudDocument = nil
-        delegate.isResolvingProfileConflict = false
-        delegate.profileConflictContext = .accountOrOwnershipReconcile
-    }
-
-    func restoreExistingPlanAfterConflict() {
-        guard let delegate,
-              let cloudDocument = delegate.conflictCloudDocument,
-              let uid = authManager.currentUID else { return }
-
-        delegate.isResolvingProfileConflict = true
-
-        Task { @MainActor in
-            do {
-                _ = try container.profileBootstrapCoordinatorService.restoreExistingPlanAfterConflict(
-                    uid: uid,
-                    cloudDocument: cloudDocument
-                )
-                try container.actionCenter.syncTodayTargetsFromProfile()
-                container.onboardingCoachingContextStore.clear()
-                finishProfileConflictAfterRestore()
-            } catch {
-                delegate.isResolvingProfileConflict = false
-                ProfileBootstrapDebugLogger.error(
-                    "Failed to restore existing cloud profile after conflict",
-                    fields: ["uid": uid],
-                    underlying: error
-                )
-                rootModel.presentOnboardingCloudCheckFailed()
-            }
-        }
-    }
-
-    func beginUseDevicePlanAfterConflict() {
-        delegate?.showUseDevicePlanOverwriteConfirmation = true
-    }
-
-    func confirmUseDevicePlanAfterConflict() {
-        guard let delegate, let uid = authManager.currentUID else { return }
-
-        delegate.isResolvingProfileConflict = true
-
-        Task { @MainActor in
-            do {
-                if delegate.profileConflictContext == .onboardingCompletion {
-                    delegate.commitLocalProfileForSavePlan()
-                }
-                try await container.profileBootstrapCoordinatorService.uploadDevicePlanAfterConflict(uid: uid)
-                delegate.isResolvingProfileConflict = false
-                finishProfileConflictAfterUpload()
-            } catch {
-                delegate.isResolvingProfileConflict = false
-                ProfileBootstrapDebugLogger.error(
-                    "profile_conflict_upload_failed",
-                    fields: ["uid": uid],
-                    underlying: error
-                )
-                presentCloudProfileUploadFailure(context: .conflictReplace)
-            }
-        }
-    }
-
-    func finishProfileConflictAfterRestore() {
-        guard let delegate, let uid = authManager.currentUID else { return }
-        switch delegate.profileConflictContext {
-        case .onboardingCompletion:
-            delegate.finalizeAfterRestoredExistingPlanAndClearCompletionState()
-        case .accountOrOwnershipReconcile:
-            clearProfileConflictState()
-            clearStaleOnboardingDraftIfSafe()
-            delegate.completeExistingUserSignInSuccessIfNeeded()
-        }
-        delegate.awaitingCloudSync = false
-        scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
-    }
-
-    func finishProfileConflictAfterUpload() {
-        guard let delegate, let uid = authManager.currentUID else { return }
-        try? container.actionCenter.syncTodayTargetsFromProfile()
-        switch delegate.profileConflictContext {
-        case .onboardingCompletion:
-            delegate.finalizeAfterSuccessfulSignInAndClearCompletionState()
-        case .accountOrOwnershipReconcile:
-            clearProfileConflictState()
-            clearStaleOnboardingDraftIfSafe()
-            delegate.completeExistingUserSignInSuccessIfNeeded()
-        }
-        delegate.awaitingCloudSync = false
-        scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
     }
 
     func syncUnsyncedLocalProfile(uid: String) {
@@ -309,76 +121,8 @@ final class AuthSignedInShellCoordinator {
         }
     }
 
-    func retryCloudProfileUpload() {
-        guard let delegate,
-              let uid = authManager.currentUID,
-              let context = delegate.pendingUploadFailureContext else { return }
-
-        delegate.isRetryingCloudUpload = true
-
-        Task { @MainActor in
-            defer { delegate.isRetryingCloudUpload = false }
-            do {
-                try await container.profileBootstrapCoordinatorService.retryCloudProfileUpload(
-                    uid: uid,
-                    context: context
-                )
-                let succeededContext = context
-                delegate.pendingUploadFailureContext = nil
-                container.cloudUploadFailureNotifier.clear()
-                finishAfterSuccessfulCloudUpload(context: succeededContext)
-            } catch is CloudProfileWriteError {
-                container.profileCloudSyncStore.clear()
-                rootModel.presentCloudProfileUploadFailed()
-            } catch {
-                container.profileCloudSyncStore.clear()
-                ProfileBootstrapDebugLogger.error(
-                    "cloud_profile_upload_retry_failed",
-                    fields: ["uid": uid],
-                    underlying: error
-                )
-                rootModel.presentCloudProfileUploadFailed()
-            }
-        }
-    }
-
-    func finishAfterSuccessfulCloudUpload(context: CloudProfileUploadFailureContext) {
-        guard let delegate else { return }
-        switch context {
-        case .onboardingCompletion:
-            delegate.finishOnboardingCompletionAfterSuccessfulSync()
-        case .reconcileUpload:
-            delegate.awaitingCloudSync = false
-            guard let uid = authManager.currentUID else { return }
-            scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
-        case .conflictReplace:
-            finishProfileConflictAfterUpload()
-        case .profileEdit:
-            delegate.awaitingCloudSync = false
-            guard let uid = authManager.currentUID else { return }
-            scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
-        }
-    }
-
-    func continueAfterCloudUploadFailure() {
-        guard let delegate else { return }
-        let context = delegate.pendingUploadFailureContext
-        container.profileCloudSyncStore.clear()
-        delegate.pendingUploadFailureContext = nil
-        container.cloudUploadFailureNotifier.clear()
-
-        switch context {
-        case .onboardingCompletion:
-            delegate.finalizeAfterSuccessfulSignInAndClearCompletionState()
-        case .reconcileUpload, .conflictReplace:
-            clearProfileConflictState()
-        case .profileEdit, .none:
-            break
-        }
-
-        delegate.awaitingCloudSync = false
-        guard let uid = authManager.currentUID else { return }
-        scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
+    private func presentCloudProfileUploadFailure(context: CloudProfileUploadFailureContext) {
+        profileConflictCoordinator.presentCloudProfileUploadFailure(context: context)
     }
 
     // MARK: - Auth / root reactions
@@ -422,11 +166,7 @@ final class AuthSignedInShellCoordinator {
             delegate?.resetOnboardingForSignedOutTransition()
             delegate?.pendingExistingUserSignIn = false
             delegate?.existingUserSignInSessionActive = false
-            delegate?.conflictCloudDocument = nil
-            delegate?.isResolvingProfileConflict = false
-            delegate?.pendingUploadFailureContext = nil
-            delegate?.isRetryingCloudUpload = false
-            delegate?.retryFromAccountMismatch = false
+            profileConflictCoordinator.resetConflictStateForSignedOutTransition()
             delegate?.awaitingCloudSync = false
             delegate?.signedInSessionID = UUID()
             container.cloudUploadFailureNotifier.clear()
@@ -578,9 +318,7 @@ final class AuthSignedInShellCoordinator {
         case .resolution(let result):
             applyExistingUserSignInResolution(result, uid: uid)
         case .accountMismatch:
-            delegate?.awaitingCloudSync = false
-            delegate?.pendingExistingUserSignIn = false
-            rootModel.presentAccountProfileMismatch()
+            profileConflictCoordinator.handleAccountMismatchFromExistingUserResolution()
         }
     }
 
@@ -612,10 +350,7 @@ final class AuthSignedInShellCoordinator {
             delegate.awaitingCloudSync = false
             rootModel.presentExistingUserProfileLookupFailed()
         case .conflict:
-            delegate.awaitingCloudSync = false
-            delegate.pendingExistingUserSignIn = false
-            delegate.profileConflictContext = .accountOrOwnershipReconcile
-            presentProfileConflictAfterLookup(uid: uid)
+            profileConflictCoordinator.handleExistingUserSignInConflict(uid: uid)
         }
     }
 
@@ -670,10 +405,9 @@ final class AuthSignedInShellCoordinator {
         case .requireOwnershipCloudLookup(let uid):
             performOwnershipCloudLookup(uid: uid, isFreshSignIn: isFreshSignIn)
         case .showAccountMismatch:
-            delegate.awaitingCloudSync = false
-            rootModel.presentAccountProfileMismatch()
+            profileConflictCoordinator.presentAccountProfileMismatch()
         case .showProfileConflict(let uid):
-            presentProfileConflictAfterLookup(uid: uid)
+            profileConflictCoordinator.presentProfileConflictAfterLookup(uid: uid)
         case .showCloudFetchFailed:
             rootModel.presentOnboardingCloudCheckFailed()
         case .presentMissingCloudProfile:
@@ -703,33 +437,6 @@ final class AuthSignedInShellCoordinator {
                 cloudResult: cloudResult
             )
             applyReconcileDecision(decision, uid: uid, isFreshSignIn: isFreshSignIn)
-        }
-    }
-
-    func presentProfileConflictAfterLookup(uid: String) {
-        Task { @MainActor in
-            guard let delegate else { return }
-            switch await container.profileBootstrapService.resolveCloudProfile(
-                uid: uid,
-                context: .ownershipResolution
-            ) {
-            case .found(let document):
-                delegate.conflictCloudDocument = document
-                delegate.profileConflictContext = .accountOrOwnershipReconcile
-                rootModel.presentProfilePlanConflict()
-            case .missing, .failed:
-                if delegate.existingUserSignInSessionActive {
-                    delegate.logExistingUserSignIn(
-                        .existingSignInFailed,
-                        reason: .profileLookupFailed,
-                        profileResolutionResult: .lookupFailed
-                    )
-                    delegate.existingUserSignInSessionActive = false
-                    rootModel.presentExistingUserProfileLookupFailed()
-                } else {
-                    rootModel.presentOnboardingCloudCheckFailed()
-                }
-            }
         }
     }
 
@@ -782,10 +489,7 @@ final class AuthSignedInShellCoordinator {
         accountRestoreRouteTask?.cancel()
         accountRestoreRouteTask = nil
         delegate?.accountRestoreViewModel = nil
-        delegate?.isResolvingAccountMismatch = false
-        delegate?.isResolvingProfileConflict = false
-        delegate?.showUseDeviceProfileConfirmation = false
-        delegate?.showUseDevicePlanOverwriteConfirmation = false
+        profileConflictCoordinator.resetConflictPresentationState()
         delegate?.lastExistingUserResolutionResult = nil
         container.onboardingCoachingContextStore.clear()
     }

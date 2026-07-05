@@ -38,8 +38,7 @@ extension AuthGateCoordinator: AuthOnboardingShellCoordinatorDelegate {
     }
 
     func presentProfilePlanConflict() {
-        profileConflictContext = .onboardingCompletion
-        rootModel.presentProfilePlanConflict()
+        profileConflictCoordinator.presentOnboardingCompletionProfileConflict()
     }
 
     func presentOnboardingCloudCheckFailed() {
