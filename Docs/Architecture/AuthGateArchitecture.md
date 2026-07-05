@@ -184,13 +184,15 @@ flowchart TD
 
 ### Characterization tests (behavior freeze)
 
-Run before and after auth-gate lifecycle changes:
+Run before and after auth-gate lifecycle changes (included in **Fast-Core**):
 
 | Suite | Path | Covers |
 |-------|------|--------|
 | Decomposition characterization | `Fitness CoachTests/Auth/AuthGateCoordinatorDecompositionCharacterizationTests.swift` | End-to-end façade behavior across routes, public entry, onboarding, conflict, restore, sign-out |
 | Routing characterization | `Fitness CoachTests/Auth/AuthGateCoordinatorRoutingCharacterizationTests.swift` | `effectiveRoute` precedence, overlay policy parity, route stability |
 | Test support | `Fitness CoachTests/Auth/AuthGateCharacterizationTestSupport.swift` | Harness factory, route scenarios, `AuthGateDependencies.testing` injection |
+
+**Fast-Core auth gate command:** see `Docs/Testing/TestCommandCheatsheet.md` § Auth gate.
 
 DEBUG test seam: `Fitness Coach/Application/Services/Auth/AuthManager+Testing.swift` (`applyTestingAuthState`).
 

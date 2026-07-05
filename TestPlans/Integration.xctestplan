@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "id": "5EC623A4-69A0-4576-B09C-C1AC87B0BAD0",
+      "id": "7D690652-F0F2-42F1-AFE7-1832360F77E2",
       "name": "Configuration 1",
       "options": {}
     }
@@ -55,6 +55,7 @@
         "OnboardingCommittedProfileRestorerTests",
         "OnboardingCompletionPathTests",
         "OnboardingCompletionProfileFlowTests",
+        "OnboardingCompletionSignInIntegrationTests",
         "OnboardingExistingAccountRoutingPolicyTests",
         "OnboardingFlowSelectionTests",
         "OnboardingFormaProofAnalyticsTests",
@@ -70,7 +71,6 @@
         "PlanEditWizardTests",
         "ProfileBootstrapCoordinatorTests",
         "ProfileBootstrapServiceTests",
-        "ProfilePlanConflictFlowTests",
         "ProfileRestoreRoutingTests",
         "SignOutHygieneTests",
         "TodayActionCoordinatorTests",

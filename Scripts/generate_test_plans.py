@@ -46,7 +46,6 @@ INTEGRATION_FILES = {
     "PlanEditWizardTests.swift",
     "ProfileBootstrapCoordinatorTests.swift",
     "ProfileBootstrapServiceTests.swift",
-    "ProfilePlanConflictFlowTests.swift",
     "ProfileRestoreRoutingTests.swift",
     "ReleaseAIBackendConfigurationTests.swift",
     "SignOutHygieneTests.swift",
@@ -74,12 +73,13 @@ INTEGRATION_CLASSES = {
     "OnboardingAlmostThereAnalyticsTests",
     "OnboardingFormaProofAnalyticsTests",
     "OnboardingModelAnalyticsTests",
+    "OnboardingCompletionSignInIntegrationTests",
 }
 
 
 def discover_classes() -> dict[str, Path]:
     classes: dict[str, Path] = {}
-    for path in sorted(TEST_DIR.glob("*Tests.swift")):
+    for path in sorted(TEST_DIR.rglob("*Tests.swift")):
         for match in re.finditer(r"final class (\w+Tests): XCTestCase", path.read_text()):
             classes[match.group(1)] = path
     return classes

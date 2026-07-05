@@ -150,6 +150,29 @@ xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fa
 
 ---
 
+## Auth gate (decomposition characterization)
+
+Fast-Core gate for auth shell lifecycle decomposition (TD-AUTH-001):
+
+```bash
+xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core \
+  -parallel-testing-enabled NO \
+  -only-testing:"Fitness CoachTests/AuthGateCoordinatorDecompositionCharacterizationTests" \
+  -only-testing:"Fitness CoachTests/AuthGateCoordinatorRoutingCharacterizationTests" \
+  -only-testing:"Fitness CoachTests/AppRouteResolverTests" \
+  -only-testing:"Fitness CoachTests/AuthSignInPolicyTests" \
+  -only-testing:"Fitness CoachTests/AuthRestoreRoutingTests" \
+  -only-testing:"Fitness CoachTests/ProfilePlanConflictFlowTests" \
+  -only-testing:"Fitness CoachTests/AccountPersistenceAuthLifecycleTests" \
+  -only-testing:"Fitness CoachTests/OnboardingCompletionSignInPolicyTests"
+```
+
+`AuthRoutingTests.swift` hosts `AppRouteResolverTests` and `AuthSignInPolicyTests` (selected above). `OnboardingCompletionSignInIntegrationTests` remains in **Integration** (full `OnboardingModel` handoff). Restore E2E (`AccountRestoreEndToEndTests`) stays in **Integration**.
+
+**Helpers:** `Fitness CoachTests/Auth/AuthGateCharacterizationTestSupport.swift`, `AuthManager+Testing.swift` (DEBUG).
+
+---
+
 ## Backend functions (Node / Jest)
 
 From `functions/`:
