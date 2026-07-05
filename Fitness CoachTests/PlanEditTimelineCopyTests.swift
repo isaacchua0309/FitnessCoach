@@ -22,22 +22,22 @@ final class PlanEditTimelineCopyTests: XCTestCase {
 
         XCTAssertEqual(
             PlanEditTimelineCopy.estimatedFinishLabel(for: date, calendar: calendar),
-            FormaProductCopy.PlanEditHero.estimatedFinish("March 2026")
+            FormaProductCopy.PlanEditHero.estimatedFinish("15 March 2026")
         )
     }
 
     func testMonthYearDisplayStripsLegacyAndCurrentPrefixes() {
         XCTAssertEqual(
             PlanEditTimelineCopy.monthYearDisplay(
-                fromCompletionLabel: "Estimated finish: March 2026."
+                fromCompletionLabel: "Estimated finish: 15 March 2026."
             ),
-            "March 2026"
+            "15 March 2026"
         )
         XCTAssertEqual(
             PlanEditTimelineCopy.monthYearDisplay(
-                fromCompletionLabel: "On track for April 2027."
+                fromCompletionLabel: "On track for 1 April 2027."
             ),
-            "April 2027"
+            "1 April 2027"
         )
     }
 
@@ -72,7 +72,7 @@ final class PlanEditTimelineCopyTests: XCTestCase {
         )
         XCTAssertEqual(
             PlanEditTimelineCopy.monthYearDisplay(fromCompletionLabel: projection.estimatedCompletionLabel),
-            "August 2027"
+            "1 August 2027"
         )
     }
 }

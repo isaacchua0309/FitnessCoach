@@ -166,19 +166,19 @@ extension FormaProductCopy {
 
     enum PlanEditGoal {
         static let sectionTitle = "What are you working toward?"
-        static let recommendedBadge = "Recommended for you"
+        static let recommendedBadge = "Recommended"
 
         static let loseFatTitle = "Lose fat"
-        static let loseFatExplanation = "Trim body fat while keeping strength on the menu."
-        static let loseFatOutcome = "Gradual scale changes with room to stay consistent."
+        static let loseFatExplanation = "Trim fat, keep strength."
+        static let loseFatOutcome = "Steady weekly progress."
 
         static let maintainTitle = "Maintain weight"
-        static let maintainExplanation = "Hold your weight steady while you build habits."
-        static let maintainOutcome = "Daily targets stay near maintenance so progress feels calm."
+        static let maintainExplanation = "Hold your current weight."
+        static let maintainOutcome = "Steady maintenance targets."
 
         static let gainMuscleTitle = "Build muscle"
-        static let gainMuscleExplanation = "Fuel training with a modest surplus."
-        static let gainMuscleOutcome = "Weight may climb slowly while strength gets priority."
+        static let gainMuscleExplanation = "Modest surplus for training."
+        static let gainMuscleOutcome = "Gradual strength-first gains."
     }
 
     // MARK: - Plan Edit Target & Pace

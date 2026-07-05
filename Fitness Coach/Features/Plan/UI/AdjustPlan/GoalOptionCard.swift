@@ -40,7 +40,7 @@ struct GoalOptionCard: View {
 
                 VStack(alignment: .leading, spacing: GoalOptionCardLayout.textStackSpacing) {
                     Text(goal.title)
-                        .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                        .font(FormaTokens.Typography.body.weight(.semibold))
                         .foregroundStyle(theme.primaryText)
                         .fixedSize(horizontal: false, vertical: true)
                         .layoutPriority(1)
@@ -50,11 +50,6 @@ struct GoalOptionCard: View {
                     }
 
                     Text(goal.explanation)
-                        .font(FormaTokens.Typography.body)
-                        .foregroundStyle(theme.primaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(goal.outcomePreview)
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)

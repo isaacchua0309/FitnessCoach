@@ -40,8 +40,8 @@ final class PlanEditCopyGuardrailTests: XCTestCase {
             "March 2026"
         )
         XCTAssertEqual(
-            PlanEditTimelineCopy.monthYearDisplay(fromCompletionLabel: "On track for March 2026."),
-            "March 2026"
+            PlanEditTimelineCopy.monthYearDisplay(fromCompletionLabel: "On track for 26 March 2026."),
+            "26 March 2026"
         )
     }
 
