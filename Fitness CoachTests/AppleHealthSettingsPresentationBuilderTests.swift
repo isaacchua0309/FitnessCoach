@@ -241,7 +241,7 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
         remoteSyncConsent: HealthSummarySyncConsentState = .default,
         isHealthDataAvailable: Bool = true,
         loadPhase: AppleHealthSettingsLoadPhase = .loaded,
-        now: Date = Date()
+        now: Date = TestDateFixtures.referenceEpoch
     ) -> AppleHealthSettingsPresentation {
         AppleHealthSettingsPresentationBuilder.build(
             input: buildInput(

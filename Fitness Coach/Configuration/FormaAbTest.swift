@@ -3,7 +3,14 @@
 //  Fitness Coach
 //
 //  Forma — Single source of truth for feature gates and rollout toggles.
-//  Change defaults here to flip behavior app-wide.
+//
+//  ## Runtime vs production intent
+//  - **Runtime default:** `FormaAbTestSnapshot.allEnabled` (internal builds and current tests).
+//  - **Production intent:** `FormaAbTestSnapshot.production` — documented App Store-safe
+//    defaults for release checklists and production-critical tests. Not wired as the runtime
+//    resolver until an explicit release pass approves behavior changes.
+//
+//  Registry: `Docs/Architecture/FeatureFlagRegistry.md`
 //
 
 import Foundation
@@ -82,6 +89,9 @@ enum FormaAbTest {
     }
 
     // MARK: Coach
+    //
+    // Owner: Coach platform. Do not change defaults without Coach regression suite.
+    // Registry: Docs/Architecture/FeatureFlagRegistry.md § Coach
 
     enum Coach {
         static var aiCommandParsingEnabled: Bool { resolved.aiCommandParsingEnabled }
@@ -111,9 +121,10 @@ enum FormaAbTest {
     }
 
     // MARK: Settings
+    //
+    // Export visibility uses `AccountDataExportPolicy` / `SettingsDataExportCapability` — not FormaAbTest.
 
     enum Settings {
-        static var dataExportEnabled: Bool { resolved.dataExportEnabled }
         static var dataDeletionEnabled: Bool { resolved.dataDeletionEnabled }
         static var shipsInAppLegalWithoutPublishedURL: Bool {
             resolved.shipsInAppLegalWithoutPublishedURL
@@ -216,7 +227,6 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
     var supportsIncreasedContrastPaletteVariants: Bool
     var supportsReduceTransparencyCompositing: Bool
 
-    var dataExportEnabled: Bool
     var dataDeletionEnabled: Bool
     var shipsInAppLegalWithoutPublishedURL: Bool
     var developerSectionVisible: Bool
@@ -266,7 +276,6 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
         shipsLightAndSystemAppearance: true,
         supportsIncreasedContrastPaletteVariants: true,
         supportsReduceTransparencyCompositing: true,
-        dataExportEnabled: true,
         dataDeletionEnabled: true,
         shipsInAppLegalWithoutPublishedURL: true,
         developerSectionVisible: true,
@@ -289,5 +298,54 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
         todayHydrationTrace: true,
         accountSyncTrace: true,
         accountRestoreTrace: true
+    )
+
+    /// Documented App Store-safe defaults. Used by release checklists and production-critical tests.
+    /// Runtime still resolves `allEnabled` until an explicit release pass wires this snapshot.
+    static let production = FormaAbTestSnapshot(
+        foundationEnabled: true,
+        enginesEnabled: true,
+        uiEnabled: false,
+        coachContextEnabled: true,
+        weeklyReviewEnabled: false,
+        syncEnabled: true,
+        remoteSummarySyncEnabled: false,
+        repositoryReadRoutingEnabled: true,
+        pipelineAnalyticsEnabled: false,
+        todayDebugFetchEnabled: false,
+        journeyDebugFetchEnabled: false,
+        planDebugFetchEnabled: false,
+        aiCommandParsingEnabled: true,
+        mealPhotoPipelineReady: true,
+        pipelineTraceEnabled: false,
+        pipelineTraceVerbose: false,
+        imageAnalysisDebugLog: false,
+        foodEstimateDebugLog: false,
+        scanFoodEnabled: true,
+        shipsLightAndSystemAppearance: false,
+        supportsIncreasedContrastPaletteVariants: false,
+        supportsReduceTransparencyCompositing: false,
+        dataDeletionEnabled: true,
+        shipsInAppLegalWithoutPublishedURL: false,
+        developerSectionVisible: false,
+        supportsAnonymousSignIn: false,
+        requiresSignInBeforeOnboarding: true,
+        preservesLocalUserDataOnSignOut: true,
+        clearsCloudSyncMetadataOnSignOut: true,
+        internalBuildEnabled: false,
+        includesDeveloperTools: false,
+        todayAnalyticsTrace: false,
+        journeyAnalyticsTrace: false,
+        onboardingAnalyticsTrace: false,
+        settingsAnalyticsTrace: false,
+        themeAnalyticsTrace: false,
+        publicEntryAnalyticsTrace: false,
+        healthIntelligenceAnalyticsTrace: false,
+        healthTrainingTrace: false,
+        profileBootstrapTrace: false,
+        authSignInTrace: false,
+        todayHydrationTrace: false,
+        accountSyncTrace: false,
+        accountRestoreTrace: false
     )
 }

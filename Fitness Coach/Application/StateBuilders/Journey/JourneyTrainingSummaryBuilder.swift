@@ -26,8 +26,7 @@ enum JourneyTrainingSummaryBuilder {
             return .locked
         }
 
-        let todayStart = calendar.startOfDay(for: date)
-        let weekStart = calendar.date(byAdding: .day, value: -6, to: todayStart) ?? todayStart
+        let weekStart = JourneyLogMetrics.rollingWeekStart(asOf: date, calendar: calendar)
         let filtered = weekWorkouts.filter { $0.startDate >= weekStart && $0.startDate <= date }
 
         let weekly = TrainingInsightsAggregator.weeklySummary(

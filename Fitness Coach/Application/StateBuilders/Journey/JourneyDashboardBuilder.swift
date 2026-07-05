@@ -33,6 +33,9 @@ enum JourneyDashboardBuilder {
     }
 
     // MARK: - Weekly review
+    //
+    // `weekLogs` / `previousWeekLogs` are pre-filtered to rolling 7-day windows in JourneyModel
+    // (`JourneyLogMetrics.rollingWeekStart`). This card is separate from HI calendar-week reviews.
 
     static func weeklyReview(context: Context) -> JourneyWeeklyReviewState {
         let weekLogs = context.weekLogs

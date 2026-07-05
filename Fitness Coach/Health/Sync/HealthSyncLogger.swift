@@ -29,7 +29,7 @@ enum HealthSyncLogger {
             fields: [
                 "context": context,
                 "signal": signal.rawValue,
-                "error": error.localizedDescription
+                "errorCategory": String(describing: error)
             ]
         )
     }
@@ -57,16 +57,12 @@ enum HealthSyncLogger {
 
         event(
             "Local sync completed",
-            fields: [
-                "context": context,
-                "phase": state.phase.rawValue,
-                "trigger": state.trigger?.rawValue ?? "none",
-                "daysCompleted": String(state.progress.daysCompleted),
-                "daysRequested": String(state.progress.daysRequested),
-                "durationMs": String(durationMs),
-                "failedSignals": failedSignals.isEmpty ? "none" : failedSignals,
-                "lastError": state.lastError?.localizedDescription ?? "none"
-            ]
+            fields: syncStateFields(
+                context: context,
+                state: state,
+                durationMs: durationMs,
+                failedSignals: failedSignals
+            )
         )
     }
 
@@ -91,21 +87,46 @@ enum HealthSyncLogger {
 
         event(
             "Sync state updated",
-            fields: [
-                "context": context,
-                "phase": state.phase.rawValue,
-                "trigger": state.trigger?.rawValue ?? "none",
-                "daysCompleted": String(state.progress.daysCompleted),
-                "daysRequested": String(state.progress.daysRequested),
-                "failedSignals": failedSignals.isEmpty ? "none" : failedSignals,
-                "lastError": state.lastError?.localizedDescription ?? "none"
-            ]
+            fields: syncStateFields(
+                context: context,
+                state: state,
+                durationMs: nil,
+                failedSignals: failedSignals
+            )
         )
     }
 
     // MARK: - Private
 
     private static let logger = Logger(subsystem: "FitPilot", category: "HealthSync")
+
+    private static func syncStateFields(
+        context: String,
+        state: HealthSyncState,
+        durationMs: Int?,
+        failedSignals: String
+    ) -> [String: String] {
+        var fields: [String: String] = [
+            "context": context,
+            "phase": state.phase.rawValue,
+            "trigger": state.trigger?.rawValue ?? "none",
+            "daysCompleted": String(state.progress.daysCompleted),
+            "daysRequested": String(state.progress.daysRequested),
+            "failedSignals": failedSignals.isEmpty ? "none" : failedSignals
+        ]
+        if let durationMs {
+            fields["durationMs"] = String(durationMs)
+        }
+        if let lastError = state.lastError {
+            fields["lastErrorCategory"] = String(describing: lastError)
+            #if DEBUG
+            fields["lastError"] = lastError.localizedDescription
+            #endif
+        } else {
+            fields["lastErrorCategory"] = "none"
+        }
+        return fields
+    }
 
     private static func log(level: String, message: String, fields: [String: String]) {
         var metadata = fields

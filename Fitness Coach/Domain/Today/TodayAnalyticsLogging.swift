@@ -4,6 +4,9 @@
 //
 //  Forma — Typed Today analytics events and safe property bag.
 //
+//  Contract: Docs/Architecture/AnalyticsReadinessChecklist.md
+//  Release: NoOp sink (events not persisted). DEBUG: OSLog via AppContainer.
+//
 
 import Foundation
 

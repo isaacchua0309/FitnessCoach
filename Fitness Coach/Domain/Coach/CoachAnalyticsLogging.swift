@@ -4,6 +4,9 @@
 //
 //  Forma — Typed Coach analytics events and safe property bag.
 //
+//  Contract: Docs/Architecture/AnalyticsReadinessChecklist.md
+//  Note: Coach route/context accuracy uses CoachAccuracyObservabilityLogger (separate).
+//
 
 import Foundation
 
@@ -50,7 +53,7 @@ struct OSLogCoachAnalyticsLogger: CoachAnalyticsLogging {
             stage: .aiTask,
             level: .debug,
             message: "Coach analytics",
-            fields: ["event": event.rawValue].merging(properties.asParameters()) { _, new in new }
+            fields: ["event": event.rawValue].merging(properties.privacySafeParameters()) { _, new in new }
         )
     }
 }

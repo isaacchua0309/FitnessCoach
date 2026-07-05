@@ -252,8 +252,6 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
         XCTAssertTrue(eventNames.contains("journey_insights_viewed"))
         XCTAssertTrue(eventNames.contains("journey_monthly_recap_viewed"))
         XCTAssertTrue(eventNames.contains("journey_chapter_viewed"))
-        XCTAssertFalse(eventNames.contains("journey_transformation_viewed"))
-        XCTAssertFalse(eventNames.contains("journey_milestone_rail_viewed"))
     }
 
     func testGoToTodayTappedFiresEveryTime() {
@@ -263,13 +261,6 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(analytics.events.filter { $0.event == .goToTodayTapped }.count, 2)
         XCTAssertEqual(analytics.lastProperties?["user_stage"], "new")
-    }
-
-    func testDeprecatedStartingEmptyStateViewedDoesNotEmit() {
-        coordinator.updateContext(from: JourneyPreviewData.brandNewUser, healthConnected: false)
-        coordinator.logStartingEmptyStateViewed()
-
-        XCTAssertTrue(analytics.events.isEmpty)
     }
 
     func testWeightCTATappedEvent() {

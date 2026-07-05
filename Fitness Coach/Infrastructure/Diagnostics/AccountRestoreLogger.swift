@@ -139,7 +139,10 @@ enum AccountRestoreLogger {
     }
 
     nonisolated static func error(_ message: String, fields: [String: String] = [:], underlying: Error? = nil) {
-        var merged = sanitizeFields(fields)
+        var merged = LogRedactor.sanitizeLogFields(
+            fields,
+            options: LogRedactor.SanitizeOptions(allowedKeys: allowedFieldKeys)
+        )
         if let underlying {
             merged["errorCategory"] = AccountSyncLogger.errorCategory(from: underlying)
         }
@@ -164,7 +167,10 @@ enum AccountRestoreLogger {
         return
         #endif
 
-        var merged = sanitizeFields(fields)
+        var merged = LogRedactor.sanitizeLogFields(
+            fields,
+            options: LogRedactor.SanitizeOptions(allowedKeys: allowedFieldKeys)
+        )
         merged["level"] = levelName
 
         let fieldLine = merged
@@ -177,48 +183,6 @@ enum AccountRestoreLogger {
             : "[AccountRestore] \(message) \(fieldLine)"
 
         logger.log(level: osLogType, "\(line, privacy: .public)")
-    }
-
-    nonisolated private static func sanitizeFields(_ fields: [String: String]) -> [String: String] {
-        var result: [String: String] = [:]
-        result.reserveCapacity(fields.count)
-        for (key, value) in fields {
-            let lowered = key.lowercased()
-            if lowered == "uid" {
-                result["uidHash"] = AccountSyncLogger.hashedUID(value)
-                continue
-            }
-            if lowered.contains("uid"), lowered != "uidhash" {
-                continue
-            }
-            if isSensitiveFieldKey(lowered) {
-                continue
-            }
-            result[key] = sanitizeValue(value)
-        }
-        return result
-    }
-
-    nonisolated private static func sanitizeValue(_ value: String) -> String {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return trimmed }
-        if trimmed.count > 64 {
-            return String(trimmed.prefix(64))
-        }
-        return trimmed
-    }
-
-    nonisolated private static func isSensitiveFieldKey(_ key: String) -> Bool {
-        if allowedFieldKeys.contains(key) {
-            return false
-        }
-
-        let blocked = [
-            "name", "food", "calorie", "protein", "carb", "fat", "fiber", "sodium",
-            "water", "weight", "review", "summary", "message", "note", "image", "base64",
-            "coach", "text", "quantity", "amount", "document", "payload", "profile"
-        ]
-        return blocked.contains { key.contains($0) }
     }
 
     /// Aggregate restore metrics intentionally include words like "food" or "weight" in the key name.

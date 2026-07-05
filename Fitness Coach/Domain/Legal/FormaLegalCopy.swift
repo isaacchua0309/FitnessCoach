@@ -271,7 +271,7 @@ enum FormaLegalDocument: String, Identifiable, Sendable {
         }
     }
 
-    // TODO: Set published URLs before App Store release to open in Safari instead of the in-app sheet.
+    // TD-LEGAL-002: Set published URLs before App Store release. See Docs/TechnicalDebt/TechnicalDebtRegister.md
     var url: URL? {
         switch self {
         case .terms:
@@ -283,7 +283,7 @@ enum FormaLegalDocument: String, Identifiable, Sendable {
 }
 
 enum FormaLegalURLs {
-    // TODO: Publish hosted Terms and Privacy Policy URLs before App Store release.
+    // TD-LEGAL-001: Publish hosted Terms and Privacy Policy URLs before App Store release.
     static let terms: URL? = nil
     static let privacyPolicy: URL? = nil
 }

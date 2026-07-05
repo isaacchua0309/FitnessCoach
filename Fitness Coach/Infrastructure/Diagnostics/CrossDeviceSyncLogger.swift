@@ -203,7 +203,7 @@ enum CrossDeviceSyncLogger {
         return
         #endif
 
-        var merged = sanitizeFields(fields)
+        var merged = LogRedactor.sanitizeLogFields(fields)
         merged["level"] = levelName
 
         let fieldLine = merged
@@ -216,42 +216,5 @@ enum CrossDeviceSyncLogger {
             : "[CrossDeviceSync] \(message) \(fieldLine)"
 
         logger.log(level: osLogType, "\(line, privacy: .public)")
-    }
-
-    nonisolated private static func sanitizeFields(_ fields: [String: String]) -> [String: String] {
-        var result: [String: String] = [:]
-        result.reserveCapacity(fields.count)
-        for (key, value) in fields {
-            let lowered = key.lowercased()
-            if lowered.contains("uid"), lowered != "uidhash" {
-                continue
-            }
-            if isSensitiveFieldKey(lowered) || isSensitiveFieldValue(value) {
-                continue
-            }
-            result[key] = value
-        }
-        return result
-    }
-
-    nonisolated private static func isSensitiveFieldKey(_ key: String) -> Bool {
-        let blocked = [
-            "name", "food", "calorie", "protein", "carb", "fat", "fiber", "sodium",
-            "water", "weight", "review", "summary", "message", "note", "image", "base64",
-            "coach", "text", "quantity", "amount", "payload", "document", "healthkit",
-            "profile", "email", "token", "password"
-        ]
-        return blocked.contains { key.contains($0) }
-    }
-
-    nonisolated private static func isSensitiveFieldValue(_ value: String) -> Bool {
-        let lowered = value.lowercased()
-        if lowered.contains("firebase") || lowered.contains("users/") {
-            return true
-        }
-        if value.count > 64 {
-            return true
-        }
-        return false
     }
 }

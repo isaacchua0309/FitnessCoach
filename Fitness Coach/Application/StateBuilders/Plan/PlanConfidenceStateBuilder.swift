@@ -133,7 +133,12 @@ enum PlanConfidenceStateBuilder {
             .max(by: { $0.date < $1.date }) else {
             return false
         }
-        let windowStart = calendar.date(byAdding: .day, value: -windowDays, to: asOf) ?? asOf
+        // Qualifies when the latest weigh-in is within `windowDays` before `asOf` (inclusive of window start).
+        let windowStart = JourneyLogMetrics.lookbackStart(
+            endingOn: asOf,
+            dayCount: windowDays,
+            calendar: calendar
+        )
         return latest.date >= windowStart
     }
 

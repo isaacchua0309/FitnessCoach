@@ -1,0 +1,324 @@
+//
+//  AppContainer+FeatureFactories.swift
+//  Fitness Coach
+//
+//  Feature model and coordinator factories for AppContainer.
+//
+
+import Foundation
+
+// MARK: - Feature model factories
+
+extension AppContainer {
+
+    func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {
+        healthIntelligenceEngine
+    }
+
+    func refreshHealthIntelligenceSnapshotIfNeeded() async {
+        guard HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled else { return }
+        await healthIntelligenceSnapshotService.refreshTodaySnapshot(calendar: .current)
+    }
+
+    func makeTodayActionCoordinator(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> TodayActionCoordinator {
+        TodayActionCoordinator(
+            actionCenter: actionCenter,
+            analyticsLogger: todayAnalyticsLogger,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+        )
+    }
+
+    func makeTodayModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> TodayModel {
+        TodayModel(
+            dailyLogReader: dailyLogService,
+            foodLogReader: foodLogService,
+            weightLogReader: weightLogService,
+            dailyReviewReader: reviewService,
+            userProfileReader: userProfileService,
+            healthActivityQuery: healthActivityQueryService,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            hydrationContextProvider: { [weak self] in
+                guard let self else { return nil }
+                return TodayHydrationGate.resolve(
+                    authState: self.authManager.authState,
+                    profile: try? self.userProfileService.getCurrentProfile()
+                )
+            },
+            authStateProvider: { [weak self] in
+                self?.authManager.authState ?? .unknown
+            },
+            restoreSessionState: accountRestoreSessionState,
+            localDataInspector: accountLocalDataInspector,
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
+        )
+    }
+
+    func makeCoachModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> CoachModel {
+        let contextPacketBuilder = CoachContextPacketV2Builder(
+            dailyLogService: dailyLogService,
+            foodLogService: foodLogService,
+            waterLogService: waterLogService,
+            weightLogService: weightLogService,
+            userProfileService: userProfileService,
+            healthActivityQuery: healthActivityQueryService,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            healthIntelligenceContextBuilder: healthIntelligenceContextBuilder,
+            trainingLoadEngine: trainingLoadEngine,
+            timelineStore: coachTimelineStore,
+            timelineBackfillService: coachTimelineBackfillService,
+            timelineRecorder: coachTimelineRecorder
+        )
+
+        return CoachModel(
+            actionCenter: actionCenter,
+            dailyLogReader: dailyLogService,
+            healthActivityQuery: healthActivityQueryService,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            healthDataRepository: healthDataRepository,
+            healthIntelligenceLoadEnabled: { HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence },
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            },
+            weightLogReader: weightLogService,
+            aiService: aiService,
+            contextPacketBuilder: contextPacketBuilder,
+            userProfileReader: userProfileService,
+            aiCommandParsingEnabled: aiCommandParsingEnabled,
+            trainingInsightsStore: trainingInsightsStore,
+            transcriptStore: coachChatTranscriptStore,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            timelineRecorder: coachTimelineRecorder,
+            timelineStore: coachTimelineStore
+        )
+    }
+
+    func makeJourneyAnalyticsCoordinator() -> JourneyAnalyticsCoordinator {
+        JourneyAnalyticsCoordinator(analyticsLogger: journeyAnalyticsLogger)
+    }
+
+    func makeSettingsPrivacyDataEnvironment() -> SettingsPrivacyDataEnvironment {
+        let provider = SettingsPrivacyDataStatusProvider(
+            authManager: authManager,
+            accountRestoreStateStore: accountRestoreStateStore,
+            accountRestoreSessionState: accountRestoreSessionState,
+            accountSyncDiagnostics: accountSyncDiagnostics,
+            accountSyncOutboxStore: accountSyncOutboxStore,
+            profileCloudSyncStore: profileCloudSyncStore,
+            accountSyncCursorStore: accountSyncCursorStore
+        )
+        return SettingsPrivacyDataEnvironment {
+            await provider.snapshot()
+        }
+    }
+
+    func makeSettingsAnalyticsCoordinator() -> SettingsAnalyticsCoordinator {
+        SettingsAnalyticsCoordinator(analyticsLogger: settingsAnalyticsLogger)
+    }
+
+    func makeHealthIntelligenceAnalyticsCoordinator() -> HealthIntelligenceAnalyticsCoordinator {
+        HealthIntelligenceAnalyticsCoordinator(analyticsLogger: healthIntelligenceAnalyticsLogger)
+    }
+
+    func makeJourneyModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> JourneyModel {
+        JourneyModel(
+            dailyLogReader: dailyLogService,
+            weightLogReader: weightLogService,
+            userProfileReader: userProfileService,
+            trainingInsightsStore: trainingInsightsStore,
+            workoutReader: healthKitWorkoutReader,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            weeklyReviewService: weeklyReviewService,
+            healthIntelligenceEngine: healthIntelligenceEngine,
+            healthCacheStore: healthCacheStore,
+            healthActivityQuery: healthActivityQueryService,
+            healthDataRepository: healthDataRepository,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            },
+            restoreSessionState: accountRestoreSessionState,
+            localDataInspector: accountLocalDataInspector,
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
+        )
+    }
+
+    func makePlanModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> PlanModel {
+        PlanModel(
+            actionCenter: actionCenter,
+            userProfileReader: userProfileService,
+            planTargetCalculator: targetService,
+            dailyLogReader: dailyLogService,
+            weightLogReader: weightLogService,
+            trainingInsightsStore: trainingInsightsStore,
+            analyticsLogger: planAnalyticsLogger,
+            healthBaselineService: healthBaselineService,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            healthDataRepository: healthDataRepository,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            },
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
+        )
+    }
+
+    func makeRootModel() -> RootModel {
+        RootModel(profileBootstrapService: profileBootstrapService)
+    }
+
+    func makeOnboardingModel(
+        entry: OnboardingAnalyticsEntry = .preAuth,
+        onCompletion: @escaping () -> Void
+    ) -> OnboardingModel {
+        OnboardingModel(
+            actionCenter: actionCenter,
+            userProfileReader: userProfileService,
+            planTargetCalculator: targetService,
+            onCompletion: onCompletion,
+            draftStore: onboardingDraftStore,
+            coachingContextStore: onboardingCoachingContextStore,
+            analyticsLogger: onboardingAnalyticsLogger,
+            analyticsEntry: entry,
+            healthTrainingIntegration: healthTrainingService,
+            trainingInsightsStore: trainingInsightsStore,
+            healthSyncStateStore: HealthIntelligenceFeatureFlags.isSyncEnabled
+                ? healthSyncStateStore
+                : nil
+        )
+    }
+
+    func resolveAppShellRoute(
+        authState: AuthState,
+        rootState: RootViewState = .loading,
+        isOnboardingModelReady: Bool = false,
+        awaitingCloudSync: Bool = false,
+        pendingOnboardingCompletion: Bool = false,
+        publicEntryDestination: PublicEntryRoute = .welcome
+    ) -> AppShellRoute {
+        if awaitingCloudSync,
+           AppRouteResolver.isSignedIn(authState),
+           rootState == .main {
+            return .signedInProfileLoading
+        }
+
+        return AppRouteResolver.resolve(
+            authState: authState,
+            rootState: rootState,
+            isOnboardingModelReady: isOnboardingModelReady,
+            hasLocalProfile: profileBootstrapService.hasLocalProfile(),
+            signedOutWithProfilePolicy: .requireSignIn,
+            localProfileAwaitingSignIn: profileBootstrapService.localProfileAwaitingSignIn(),
+            pendingOnboardingCompletion: pendingOnboardingCompletion,
+            publicEntryDestination: publicEntryDestination,
+            hasPersistedOnboardingDraft: onboardingDraftStore.hasDraft,
+            suppressAutomaticPublicEntryResume: publicEntrySessionStore.suppressAutomaticPublicEntryResume
+        )
+    }
+}
+
+#if DEBUG
+// MARK: - Debug actions
+
+extension AppContainer {
+
+    func makeAccountRestoreDebugActions() -> AccountRestoreDebugActions {
+        AccountRestoreDebugActions(
+            lastSnapshot: { [accountRestoreDiagnostics] in
+                accountRestoreDiagnostics.lastSnapshot
+            },
+            restoreStateDescription: { [authManager, accountRestoreDiagnostics, accountRestoreStateStore] in
+                guard let uid = authManager.currentUID else {
+                    return "No signed-in UID."
+                }
+                let state = accountRestoreDiagnostics.restoreState(
+                    for: uid,
+                    stateStore: accountRestoreStateStore
+                )
+                return AccountRestoreLoggerDebugSupport.redactedRestoreStateDescription(state)
+            },
+            triggerManualRetry: { [accountRestoreCoordinator, authManager, accountRestoreDiagnostics] in
+                guard let uid = authManager.currentUID else { return nil }
+                return await accountRestoreDiagnostics.triggerManualRetry(
+                    coordinator: accountRestoreCoordinator,
+                    uid: uid
+                )
+            },
+            resetRestoreMetadata: { [authManager, accountRestoreDiagnostics, accountRestoreStateStore] in
+                guard let uid = authManager.currentUID else { return }
+                accountRestoreDiagnostics.resetRestoreMetadata(
+                    stateStore: accountRestoreStateStore,
+                    uid: uid
+                )
+            }
+        )
+    }
+
+    func makeAccountSyncDebugActions() -> AccountSyncDebugActions {
+        AccountSyncDebugActions(
+            pendingMutationCount: { [accountSyncOutboxStore, authManager, accountSyncDiagnostics] in
+                await accountSyncDiagnostics.pendingMutationCount(
+                    outbox: accountSyncOutboxStore,
+                    ownerUID: authManager.currentUID ?? ""
+                )
+            },
+            lastSnapshot: { [accountSyncDiagnostics] in
+                accountSyncDiagnostics.lastSnapshot
+            },
+            triggerManualSync: { [accountSyncCoordinator, authManager, accountSyncDiagnostics] in
+                guard let uid = authManager.currentUID else { return nil }
+                return await accountSyncDiagnostics.triggerManualSync(
+                    coordinator: accountSyncCoordinator,
+                    ownerUID: uid
+                )
+            },
+            triggerManualCrossDeviceRefresh: { [weak self] in
+                await self?.performManualCrossDeviceRefresh()
+            }
+        )
+    }
+}
+#endif

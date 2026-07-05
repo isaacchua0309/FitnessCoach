@@ -15,7 +15,7 @@ struct OSLogPublicEntryAnalyticsLogger: PublicEntryAnalyticsLogging {
 
     func log(_ event: PublicEntryAnalyticsEvent, properties: PublicEntryAnalyticsProperties) {
         #if DEBUG
-        PublicEntryAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        PublicEntryAnalyticsDebugLogger.event(event.rawValue, fields: properties.privacySafeParameters())
         #endif
     }
 }
@@ -29,14 +29,12 @@ enum PublicEntryAnalyticsDebugLogger {
 
     nonisolated static func event(_ message: String, fields: [String: String] = [:]) {
         guard isEnabled else { return }
-        let fieldLine = fields
-            .sorted { $0.key < $1.key }
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: " ")
-        let line = fieldLine.isEmpty
-            ? "[PublicEntryAnalytics] \(message)"
-            : "[PublicEntryAnalytics] \(message) \(fieldLine)"
-        logger.info("\(line, privacy: .public)")
+        LogRedactor.emitOSLogTrace(
+            prefix: "PublicEntryAnalytics",
+            logger: logger,
+            message: message,
+            fields: fields
+        )
     }
 }
 #endif

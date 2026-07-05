@@ -129,7 +129,7 @@ function clampString(value: unknown, maxLength: number): string | undefined {
   return `${trimmed.slice(0, maxLength)}…`;
 }
 
-function optionalString(value: unknown, field: string, maxLength: number): void {
+function optionalString(value: unknown, _field: string, maxLength: number): void {
   if (value === undefined || value === null) return;
   if (typeof value !== "string") {
     throw new GatewayError(400, "Invalid context.");
@@ -139,21 +139,21 @@ function optionalString(value: unknown, field: string, maxLength: number): void 
   }
 }
 
-function optionalNumber(value: unknown, field: string): void {
+function optionalNumber(value: unknown, _field: string): void {
   if (value === undefined || value === null) return;
   if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new GatewayError(400, "Invalid context.");
   }
 }
 
-function optionalBoolean(value: unknown, field: string): void {
+function optionalBoolean(value: unknown, _field: string): void {
   if (value === undefined || value === null) return;
   if (typeof value !== "boolean") {
     throw new GatewayError(400, "Invalid context.");
   }
 }
 
-function optionalArray(value: unknown, field: string): void {
+function optionalArray(value: unknown, _field: string): void {
   if (value === undefined || value === null) return;
   if (!Array.isArray(value)) {
     throw new GatewayError(400, "Invalid context.");
@@ -164,7 +164,7 @@ function isValidLinkedEntryId(value: unknown): value is string {
   return typeof value === "string" && LINKED_ENTRY_ID_PATTERN.test(value);
 }
 
-function validateLinkedEntryId(value: unknown, field: string): void {
+function validateLinkedEntryId(value: unknown, _field: string): void {
   if (value === undefined || value === null) return;
   if (!isValidLinkedEntryId(value)) {
     throw new GatewayError(400, "Invalid context.");

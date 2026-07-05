@@ -4,6 +4,8 @@
 //
 //  Forma — Typed Journey analytics events and safe property bag.
 //
+//  Contract: Docs/Architecture/AnalyticsReadinessChecklist.md
+//
 
 import Foundation
 
@@ -23,19 +25,6 @@ enum JourneyAnalyticsEvent: String, Sendable {
     case goToTodayTapped = "journey_go_to_today_tapped"
     case weightCTATapped = "journey_weight_cta_tapped"
     case coachCTATapped = "journey_coach_cta_tapped"
-
-    // MARK: Deprecated (pre-revamp — do not emit from Journey UI)
-
-    case screenViewed = "journey_screen_viewed"
-    case transformationViewed = "journey_transformation_viewed"
-    case goalProjectionViewed = "journey_goal_projection_viewed"
-    case weeklyReviewViewed = "journey_weekly_review_viewed"
-    case milestoneRailViewed = "journey_milestone_rail_viewed"
-    case timelineViewed = "journey_timeline_viewed"
-    case startingEmptyStateViewed = "journey_starting_empty_state_viewed"
-    case habitInsightViewed = "journey_habit_insight_viewed"
-    case analyticsExpanded = "journey_analytics_expanded"
-    case rangeChanged = "journey_range_changed"
 }
 
 struct JourneyAnalyticsSnapshot: Equatable, Sendable {

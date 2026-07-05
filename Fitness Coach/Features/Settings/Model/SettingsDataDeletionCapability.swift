@@ -4,6 +4,12 @@
 //
 //  Forma — Documents whether account/data deletion is implemented.
 //
+//  **Owner:** Settings / privacy platform.
+//  **Registry:** `Docs/Architecture/FeatureFlagRegistry.md` § Settings.
+//
+//  Deletion: `FormaAbTest.Settings.dataDeletionEnabled` (production intent: `true`).
+//  Export: `AccountDataExportPolicy.isEnabled` — not a FormaAbTest flag (see registry).
+//
 
 import Foundation
 

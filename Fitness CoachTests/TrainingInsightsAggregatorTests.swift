@@ -128,7 +128,7 @@ final class TrainingInsightsAggregatorTests: XCTestCase {
         let model = await MainActor.run {
             TrainingInsightsModel(
                 workoutReader: reader,
-                dateProvider: FixedTestDateProvider(now: referenceNow),
+                dateProvider: FakeClock(now: referenceNow),
                 calendar: calendar
             )
         }
@@ -161,13 +161,5 @@ final class TrainingInsightsAggregatorTests: XCTestCase {
             durationMinutes: minutes,
             activeCalories: calories
         )
-    }
-}
-
-private struct FixedTestDateProvider: DateProviding {
-    let now: Date
-
-    func startOfDay(for date: Date) -> Date {
-        Calendar.current.startOfDay(for: date)
     }
 }

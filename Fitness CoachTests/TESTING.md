@@ -2,6 +2,10 @@
 
 Tests are grouped with **Xcode Test Plans** under `TestPlans/`. The default **Fitness Coach** scheme runs the fast suite; CI should use the **Fitness Coach CI** scheme.
 
+**Focused commands by domain:** [`Docs/Testing/TestCommandCheatsheet.md`](../Docs/Testing/TestCommandCheatsheet.md)
+
+**Production release:** After automated suites pass, run the manual script in [Docs/Production/ReleaseTestPlan.md](../Docs/Production/ReleaseTestPlan.md) and complete [Docs/Production/ProductionReadinessChecklist.md](../Docs/Production/ProductionReadinessChecklist.md).
+
 ## Test plans
 
 | Plan | Purpose | ~Classes | Typical runtime |
@@ -292,7 +296,7 @@ Onboarding selectors use checkmarks and/or borders; sex pills now show a checkma
 | VoiceOver | Per-screen labels; theme tokens do not block |
 | Dynamic Type | `FormaTokens.Typography` where used |
 | Reduce Motion | Onboarding defers to `accessibilityReduceMotion` |
-| Increased Contrast | **Not yet** — see `ThemeAccessibilityAdaptationPolicy.increasedContrastTODO` |
+| Increased Contrast | **Not yet** — see `ThemeAccessibilityAdaptationPolicy.increasedContrastFollowUp` |
 | Reduce Transparency | **Not yet** — see `ThemeAccessibilityAdaptationPolicy.reduceTransparencyTODO` |
 
 Run locally:

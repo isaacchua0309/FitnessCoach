@@ -15,7 +15,7 @@ struct OSLogSettingsAnalyticsLogger: SettingsAnalyticsLogging {
 
     func log(_ event: SettingsAnalyticsEvent, properties: SettingsAnalyticsProperties) {
         #if DEBUG
-        SettingsAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        SettingsAnalyticsDebugLogger.event(event.rawValue, fields: properties.privacySafeParameters())
         #endif
     }
 }
@@ -29,14 +29,12 @@ enum SettingsAnalyticsDebugLogger {
 
     nonisolated static func event(_ message: String, fields: [String: String] = [:]) {
         guard isEnabled else { return }
-        let fieldLine = fields
-            .sorted { $0.key < $1.key }
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: " ")
-        let line = fieldLine.isEmpty
-            ? "[SettingsAnalytics] \(message)"
-            : "[SettingsAnalytics] \(message) \(fieldLine)"
-        logger.info("\(line, privacy: .public)")
+        LogRedactor.emitOSLogTrace(
+            prefix: "SettingsAnalytics",
+            logger: logger,
+            message: message,
+            fields: fields
+        )
     }
 }
 #endif

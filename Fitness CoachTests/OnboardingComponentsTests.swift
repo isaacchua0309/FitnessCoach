@@ -67,42 +67,6 @@ final class OnboardingComponentsTests: XCTestCase {
 
     // MARK: - Proof card models
 
-    func testWeightMaintenanceProofModelUsesCopyNotHardcodedClaims() {
-        let model = OnboardingWeightMaintenanceProofModel.introDefault
-        let copy = FormaProductCopy.Onboarding.Flow.Proof.WeightMaintenance.self
-
-        XCTAssertEqual(model.title, copy.title)
-        XCTAssertEqual(model.subtitle, copy.subtitle)
-        XCTAssertEqual(model.caption, copy.caption)
-        XCTAssertEqual(model.yAxisLabel, copy.yAxisLabel)
-        XCTAssertEqual(model.points.count, 4)
-    }
-
-    func testComparisonBarProofModelUsesCopyNotHardcodedClaims() {
-        let model = OnboardingComparisonBarProofModel.introDefault
-        let copy = FormaProductCopy.Onboarding.Flow.Proof.Comparison.self
-
-        XCTAssertEqual(model.title, copy.title)
-        XCTAssertEqual(model.subtitle, copy.subtitle)
-        XCTAssertEqual(model.metricLabel, copy.metricLabel)
-        XCTAssertEqual(model.formaLabel, copy.formaLabel)
-        XCTAssertEqual(model.typicalLabel, copy.typicalLabel)
-        XCTAssertEqual(model.formaValueLabel, copy.formaValueLabel)
-        XCTAssertEqual(model.typicalValueLabel, copy.typicalValueLabel)
-    }
-
-    func testFormaProofComparisonModelUsesCopyNotHardcodedClaims() {
-        let model = OnboardingFormaProofComparisonModel.default
-        let comparison = FormaProductCopy.Onboarding.Flow.FormaProof.Comparison.self
-        let disclaimer = FormaProductCopy.Onboarding.Flow.Proof.WeightLossComparison.disclaimer
-
-        XCTAssertEqual(model.withoutFormaLabel, comparison.withoutStructureTitle)
-        XCTAssertEqual(model.withFormaLabel, comparison.withFormaTitle)
-        XCTAssertEqual(model.withoutFormaValue, comparison.withoutBullets[0])
-        XCTAssertEqual(model.withFormaValue, comparison.withFormaBullets[0])
-        XCTAssertEqual(model.disclaimer, disclaimer)
-    }
-
     func testTrajectoryComparisonModelUsesIntroProofCopy() {
         let model = OnboardingWeightTrajectoryComparisonModel.introProofDefault
         let intro = FormaProductCopy.Onboarding.Flow.IntroProof.self

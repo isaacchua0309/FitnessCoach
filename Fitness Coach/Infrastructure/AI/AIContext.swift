@@ -11,6 +11,7 @@
 import Foundation
 
 @available(*, deprecated, message: "Coach AI transport uses CoachContextPacketV2. Retained only for Codable compatibility during cleanup.")
+/// TD-AI-001: Retained for test mocks until V2-only doubles. See Docs/TechnicalDebt/TechnicalDebtRegister.md
 struct AIContext: Codable, Equatable, Sendable {
     var date: Date
     var timezoneIdentifier: String
