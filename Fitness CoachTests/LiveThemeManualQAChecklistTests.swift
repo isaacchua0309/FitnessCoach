@@ -27,6 +27,7 @@ final class LiveThemeManualQAChecklistTests: XCTestCase {
     ]
 
     private let scenario2CoachSurfaces = [
+        "Fitness Coach/Features/Coach/Components/CoachPageHeader.swift",
         "Fitness Coach/Features/Coach/Components/CoachComposer.swift",
         "Fitness Coach/Features/Coach/Components/CoachMessageView.swift",
         "Fitness Coach/Features/Coach/Components/CoachConfirmationBar.swift",

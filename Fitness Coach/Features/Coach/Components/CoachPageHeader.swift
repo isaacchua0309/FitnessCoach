@@ -15,8 +15,14 @@ enum CoachPageHeaderMode: Equatable {
 struct CoachPageHeader: View {
     var mode: CoachPageHeaderMode
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     var body: some View {
-        PageHeader(
+        let _ = themeManager.themeRevision
+        let _ = theme.accent
+
+        return PageHeader(
             title: FormaProductCopy.Coach.screenTitle,
             subtitle: subtitle
         )
