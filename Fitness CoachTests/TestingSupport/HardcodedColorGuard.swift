@@ -67,6 +67,7 @@ enum HardcodedColorGuard {
 
     private static func isExcluded(path: URL, repositoryRoot: URL) -> Bool {
         let relative = relativePath(for: path, repositoryRoot: repositoryRoot)
+        if relative.hasPrefix("Fitness Coach/DesignSystem/Theme/") { return true }
         if relative.contains("/Fitness CoachTests/") { return true }
         if approvedFileNames.contains(path.lastPathComponent) { return true }
         return false
@@ -206,6 +207,9 @@ enum HardcodedColorGuard {
         let specs: [(String, String)] = [
             ("SwiftUI system color (\\.color)", "\\.(?:\(colors))\\b"),
             ("SwiftUI Color.*", "Color\\.(?:\(colors))\\b"),
+            ("Named asset Color(\"Blue|Pink\")", "Color\\s*\\(\\s*\"(?:Blue|Pink)\"\\s*\\)"),
+            ("formaBlue token", "\\bformaBlue\\b"),
+            ("formaPink token", "\\bformaPink\\b"),
             ("Color(red:", "Color\\s*\\(\\s*red\\s*:"),
             ("Color(hue:", "Color\\s*\\(\\s*hue\\s*:"),
             ("Color(white:", "Color\\s*\\(\\s*white\\s*:"),

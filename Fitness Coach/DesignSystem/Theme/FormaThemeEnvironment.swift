@@ -29,6 +29,10 @@ private struct ThemePaletteKey: EnvironmentKey {
     static let defaultValue = FormaThemeEnvironment.defaultResolvedTheme.themePalette
 }
 
+private struct ThemeTokensKey: EnvironmentKey {
+    static let defaultValue = ThemeTokensProvider.productDefault
+}
+
 private struct FormaPlanColorsKey: EnvironmentKey {
     static let defaultValue = PlanThemeColorProvider.productDefault
 }
@@ -42,8 +46,15 @@ extension EnvironmentValues {
             self[FormaResolvedThemeKey.self] = newValue
             self[FormaColorsKey.self] = newValue.colors
             self[ThemePaletteKey.self] = newValue.themePalette
+            self[ThemeTokensKey.self] = ThemeTokensProvider.tokens(from: newValue)
             self[FormaPlanColorsKey.self] = PlanThemeColorProvider.planColors(from: newValue)
         }
+    }
+
+    /// Canonical semantic theme roles for the active resolved theme.
+    var theme: ThemeTokens {
+        get { self[ThemeTokensKey.self] }
+        set { self[ThemeTokensKey.self] = newValue }
     }
 
     /// Semantic color palette for the active resolved theme.
@@ -89,14 +100,18 @@ struct FormaThemeRootState: Equatable, Sendable {
 
 // MARK: - Static token reactivity
 
-/// Establishes a SwiftUI dependency on the resolved theme so descendants that read
-/// `FormaTokens.Color` / `CoachDesignTokens.Color` (static bridge) re-render when
-/// palette or appearance changes.
+/// Establishes a SwiftUI dependency on the live theme store and resolved environment so
+/// descendants that read `FormaTokens.Color` / `CoachDesignTokens.Color` (static bridge)
+/// re-render when palette or appearance changes.
 private struct FormaThemeReactiveModifier: ViewModifier {
     @Environment(\.formaResolvedTheme) private var resolvedTheme
+    @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeStore: ThemeStore
 
     func body(content: Content) -> some View {
         let _ = resolvedTheme
+        let _ = themeStore.themeRevision
+        let _ = theme.accent
         return content
     }
 }
@@ -113,33 +128,27 @@ extension View {
 
 extension View {
 
-    /// Injects a fixed resolved theme (and legacy palette bridge) for previews.
-    func formaResolvedTheme(_ theme: ResolvedAppTheme) -> some View {
-        let legacyPalette = FormaPaletteCatalog.legacyThemePalette(
-            for: theme.preferences.palette,
-            colorScheme: theme.resolvedColorScheme
-        )
-        FormaThemeAccess.update(resolved: theme)
-        return environment(\.formaResolvedTheme, theme)
-            .environment(\.formaPlanColors, PlanThemeColorProvider.planColors(from: theme))
-            .environment(\.formaThemePalette, legacyPalette)
-            .tint(theme.themePalette.primary)
-            .formaThemeReactive()
-    }
-
-    /// Preview helper that mirrors root theme injection without a live `ThemeStore`.
+    /// Preview helper that mirrors root theme injection with a live `ThemeStore`.
     func formaThemePreview(
         appearance: AppAppearanceMode = .dark,
         palette: AppThemePalette = .oceanBlue,
         systemColorScheme: ColorScheme = .dark
     ) -> some View {
-        let preferences = AppThemePreferences(appearance: appearance, palette: palette)
-        let resolved = ThemeResolver.resolve(
-            preferences: preferences,
-            systemColorScheme: systemColorScheme
-        )
+        let store = ThemeStore(userDefaults: ThemeStore.previewUserDefaults())
+        store.setAppearance(appearance)
+        store.setTheme(palette)
         return preferredColorScheme(ThemeResolver.preferredColorScheme(for: appearance))
-            .formaResolvedTheme(resolved)
+            .environmentObject(store)
+            .formaRootTheme()
+    }
+
+    /// Injects a fixed resolved theme (and legacy palette bridge) for previews.
+    func formaResolvedTheme(_ theme: ResolvedAppTheme) -> some View {
+        let store = ThemeStore(userDefaults: ThemeStore.previewUserDefaults())
+        store.setAppearance(theme.preferences.appearance)
+        store.setTheme(theme.preferences.palette)
+        return environmentObject(store)
+            .formaRootTheme()
     }
 
     /// Injects resolved plan-flow colors for previews and tests.

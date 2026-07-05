@@ -12,6 +12,8 @@ struct TodayEndOfDayWrapUpSection: View {
     let onOpenJourney: () -> Void
     var onViewed: (() -> Void)?
 
+    @Environment(\.theme) private var theme
+
     var body: some View {
         if wrapUp.isVisible {
             VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
@@ -22,12 +24,12 @@ struct TodayEndOfDayWrapUpSection: View {
                         if let noLogsMessage = wrapUp.noLogsMessage {
                             Text(noLogsMessage)
                                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                                .foregroundStyle(FormaTokens.Color.textPrimary)
+                                .foregroundStyle(theme.primaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                         } else if let overallMessage = wrapUp.overallMessage {
                             Text(overallMessage)
                                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                                .foregroundStyle(FormaTokens.Color.textPrimary)
+                                .foregroundStyle(theme.primaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
@@ -62,7 +64,7 @@ struct TodayEndOfDayWrapUpSection: View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
             Text(row.label)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(theme.secondaryText)
                 .frame(width: 72, alignment: .leading)
 
             Text(row.valueText)
@@ -77,13 +79,13 @@ struct TodayEndOfDayWrapUpSection: View {
     private func valueColor(for status: TodayEndOfDayRowStatus) -> Color {
         switch status {
         case .complete:
-            return FormaTokens.Theme.primary
+            return theme.accent
         case .partial:
-            return FormaTokens.Color.textPrimary
+            return theme.primaryText
         case .notLogged:
-            return FormaTokens.Color.textTertiary
+            return theme.tertiaryText
         case .overTarget:
-            return FormaTokens.Color.destructive.opacity(0.9)
+            return theme.destructive.opacity(0.9)
         }
     }
 }

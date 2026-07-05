@@ -8,28 +8,36 @@
 import SwiftUI
 
 struct FormaRootThemeModifier: ViewModifier {
-    @ObservedObject var store: ThemeStore
+    @EnvironmentObject private var themeStore: ThemeStore
     @Environment(\.colorScheme) private var systemColorScheme
 
     func body(content: Content) -> some View {
-        let state = FormaThemeRootState.make(store: store, systemColorScheme: systemColorScheme)
+        let _ = themeStore.themeRevision
+        let state = FormaThemeRootState.make(store: themeStore, systemColorScheme: systemColorScheme)
+        let theme = ThemeTokensProvider.tokens(from: state.resolved)
         FormaThemeAccess.update(resolved: state.resolved)
 
         return content
             .preferredColorScheme(state.preferredColorScheme)
             .environment(\.formaResolvedTheme, state.resolved)
             .environment(\.formaThemePalette, state.legacyPalette)
-            .environment(\.themePalette, state.resolved.themePalette)
-            .tint(state.resolved.themePalette.primary)
+            .environment(\.theme, theme)
+            .tint(theme.tabBarSelectedIcon)
+            .formaUIKitAppearance()
             .formaThemeReactive()
     }
 }
 
 extension View {
 
-    /// Apply once at the app root. Do not nest inside feature screens.
+    /// Apply once at the app root. Requires `ThemeStore` / `ThemeManager` on the environment.
+    func formaRootTheme() -> some View {
+        modifier(FormaRootThemeModifier())
+    }
+
+    /// Legacy entry point — prefer `.formaRootTheme()` with `environmentObject(themeStore)`.
     func formaRootTheme(store: ThemeStore) -> some View {
-        modifier(FormaRootThemeModifier(store: store))
+        environmentObject(store).formaRootTheme()
     }
 }
 

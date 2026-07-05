@@ -12,8 +12,12 @@ struct TodayNextBestActionCard: View {
     var isLoading: Bool = false
     var onAction: (() -> Void)?
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: state.sectionTitle)
 
             TodayHealthIntelligenceLoadingCard(isLoading: isLoading) {
@@ -21,7 +25,7 @@ struct TodayNextBestActionCard: View {
                     VStack(alignment: .leading, spacing: TodayHealthIntelligenceCardSupport.cardContentSpacing) {
                         Text(state.title)
                             .font(TodayHealthIntelligenceCardTypography.headline)
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .foregroundStyle(theme.primaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.85)
@@ -29,7 +33,7 @@ struct TodayNextBestActionCard: View {
                         if let message = state.message {
                             Text(message)
                                 .font(TodayHealthIntelligenceCardTypography.body)
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .foregroundStyle(theme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .lineLimit(nil)
                                 .minimumScaleFactor(0.85)
@@ -52,7 +56,7 @@ struct TodayNextBestActionCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityIdentifier("today-hi-next-best-action-card")
-        .formaThemeReactive()
+        .todayLiveTheme()
     }
 
     private var resolvedActionTitle: String? {

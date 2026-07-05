@@ -19,6 +19,7 @@ enum TodayHealthIntelligenceCardSupport {
 struct TodayHealthIntelligencePhaseBadge: View {
     let phase: TodayRecoveryCardPhase
 
+    @Environment(\.theme) private var theme
     @ScaledMetric(relativeTo: .caption) private var verticalPadding: CGFloat = 4
 
     var body: some View {
@@ -32,7 +33,6 @@ struct TodayHealthIntelligencePhaseBadge: View {
                     .fill(backgroundColor)
             )
             .accessibilityLabel(accessibilityLabel)
-            .formaThemeReactive()
     }
 
     private var label: String {
@@ -53,13 +53,13 @@ struct TodayHealthIntelligencePhaseBadge: View {
     private var foregroundColor: Color {
         switch phase {
         case .ready:
-            return FormaTokens.Color.success
+            return theme.success
         case .moderate:
-            return FormaTokens.Color.textSecondary
+            return theme.secondaryText
         case .low:
-            return FormaTokens.Color.warning
+            return theme.warning
         case .unknown, .limitedEstimate:
-            return FormaTokens.Color.textTertiary
+            return theme.tertiaryText
         }
     }
 
@@ -74,28 +74,48 @@ struct TodayHealthIntelligencePhaseBadge: View {
 
 // MARK: - Guidance row
 
+enum TodayGuidanceIconAccent: Equatable {
+    case primary
+    case secondary
+    case tertiary
+}
+
 struct TodayHealthIntelligenceGuidanceRow: View {
     let text: String
     var iconName: String = "circle.fill"
-    var iconColor: Color = FormaTokens.Theme.primary
+    var iconAccent: TodayGuidanceIconAccent = .primary
+
+    @Environment(\.theme) private var theme
+
+    private var resolvedIconColor: Color {
+        switch iconAccent {
+        case .primary:
+            return theme.accent
+        case .secondary:
+            return theme.accent.opacity(0.72)
+        case .tertiary:
+            return theme.tertiaryText
+        }
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
             Image(systemName: iconName)
                 .font(FormaTokens.Typography.caption2.weight(.semibold))
-                .foregroundStyle(iconColor)
+                .foregroundStyle(resolvedIconColor)
                 .frame(width: TodayLayout.actionIconColumnWidth, alignment: .center)
                 .padding(.top, 2)
                 .accessibilityHidden(true)
 
             Text(text)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.85)
         }
         .accessibilityElement(children: .combine)
+        .formaThemeReactive()
     }
 }
 
@@ -104,6 +124,8 @@ struct TodayHealthIntelligenceGuidanceRow: View {
 struct TodayHealthIntelligenceCardNote: View {
     let text: String
     var tone: Tone = .neutral
+
+    @Environment(\.theme) private var theme
 
     enum Tone {
         case neutral
@@ -122,9 +144,9 @@ struct TodayHealthIntelligenceCardNote: View {
     private var foregroundColor: Color {
         switch tone {
         case .neutral:
-            return FormaTokens.Color.textTertiary
+            return theme.tertiaryText
         case .caution:
-            return FormaTokens.Color.warning
+            return theme.warning
         }
     }
 }

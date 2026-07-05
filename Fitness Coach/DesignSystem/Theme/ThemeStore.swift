@@ -5,19 +5,25 @@
 //  Forma — Local theme preferences (UserDefaults-backed, not cloud-synced).
 //
 //  Single app-wide source of truth for theme palette and appearance. Injected once
-//  at the root in `Fitness_CoachApp` via `formaRootTheme(store:)` so onboarding,
-//  auth, and main tabs all observe the same live palette.
+//  at the root in `Fitness_CoachApp` via `environmentObject` + `formaRootTheme()` so
+//  onboarding, auth, and main tabs all observe the same live palette.
 //
 
 import Combine
 import SwiftUI
 
+/// Single app-wide theme manager. Injected once at the root via `environmentObject`;
+/// feature screens must observe this type (or `ThemeManager`) — never read UserDefaults
+/// or construct independent instances for production UI.
+typealias ThemeManager = ThemeStore
+
 @MainActor
 final class ThemeStore: ObservableObject {
 
-    @Published private(set) var preferences: AppThemePreferences {
-        didSet { persist() }
-    }
+    @Published private(set) var preferences: AppThemePreferences
+
+    /// Bumps whenever palette or appearance changes so root injection can invalidate stale UI.
+    @Published private(set) var themeRevision: UInt = 0
 
     private let userDefaults: UserDefaults
     private let analyticsLogger: any ThemeAnalyticsLogging
@@ -49,6 +55,16 @@ final class ThemeStore: ObservableObject {
         preferences.palette
     }
 
+    /// User-selected color theme (alias for `palette`).
+    var selectedTheme: AppThemePalette {
+        preferences.palette
+    }
+
+    /// Semantic tokens for the active theme resolved with the current system color scheme.
+    func tokens(systemColorScheme: ColorScheme) -> ThemeTokens {
+        ThemeTokensProvider.tokens(from: resolvedTheme(systemColorScheme: systemColorScheme))
+    }
+
     var preferredColorScheme: ColorScheme? {
         ThemeResolver.preferredColorScheme(for: preferences.appearance)
     }
@@ -58,7 +74,7 @@ final class ThemeStore: ObservableObject {
         let previous = preferences.appearance
         var updated = preferences
         updated.appearance = mode
-        preferences = updated
+        commitPreferences(updated)
         analyticsLogger.log(
             .appearanceModeChanged,
             properties: .appearanceChange(previous: previous, new: mode)
@@ -66,14 +82,19 @@ final class ThemeStore: ObservableObject {
     }
 
     func setPalette(_ palette: AppThemePalette) {
-        guard preferences.palette != palette else { return }
+        setTheme(palette)
+    }
+
+    /// Updates the selected color theme, persists to UserDefaults, and notifies all observers.
+    func setTheme(_ theme: AppThemePalette) {
+        guard selectedTheme != theme else { return }
         let previous = preferences.palette
         var updated = preferences
-        updated.palette = palette
-        preferences = updated
+        updated.palette = theme
+        commitPreferences(updated)
         analyticsLogger.log(
             .paletteChanged,
-            properties: .paletteChange(previous: previous, new: palette)
+            properties: .paletteChange(previous: previous, new: theme)
         )
     }
 
@@ -113,6 +134,12 @@ final class ThemeStore: ObservableObject {
 
     // MARK: - Persistence
 
+    private func commitPreferences(_ updated: AppThemePreferences) {
+        preferences = updated
+        themeRevision &+= 1
+        persist()
+    }
+
     private func persist() {
         preferences.write(to: userDefaults)
         #if DEBUG
@@ -146,5 +173,11 @@ final class ThemeStore: ObservableObject {
         #endif
 
         return migrated
+    }
+
+    /// Isolated defaults for SwiftUI previews — not used in production.
+    static func previewUserDefaults() -> UserDefaults {
+        let suiteName = "forma.theme.preview.\(UUID().uuidString)"
+        return UserDefaults(suiteName: suiteName)!
     }
 }

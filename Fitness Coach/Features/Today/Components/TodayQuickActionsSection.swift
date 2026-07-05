@@ -15,12 +15,17 @@ struct TodayQuickActionsSection: View {
     let onViewPlan: () -> Void
     let onScanMeal: () -> Void
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     private let columns = [
         GridItem(.flexible(), spacing: FormaTokens.Spacing.xs),
         GridItem(.flexible(), spacing: FormaTokens.Spacing.xs)
     ]
 
     var body: some View {
+        let _ = themeManager.themeRevision
+
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.QuickActions.sectionTitle)
 
@@ -66,7 +71,7 @@ struct TodayQuickActionsSection: View {
                         Text(FormaProductCopy.Today.QuickActions.title(for: .scanFood))
                             .font(FormaTokens.Typography.caption.weight(.semibold))
                     }
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .foregroundStyle(theme.accent)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
                 }
@@ -76,6 +81,7 @@ struct TodayQuickActionsSection: View {
             }
         }
         .accessibilityElement(children: .contain)
+        .todayLiveTheme()
     }
 
     private func quickActionButton(
@@ -90,11 +96,11 @@ struct TodayQuickActionsSection: View {
                 Image(systemName: symbolName)
                     .font(.system(size: 18, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(isPrimary ? FormaTokens.Theme.textOnAccent : FormaTokens.Theme.primary)
+                    .foregroundStyle(isPrimary ? theme.buttonText : theme.accent)
 
                 Text(title)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(isPrimary ? FormaTokens.Theme.textOnAccent : FormaTokens.Color.textPrimary)
+                    .foregroundStyle(isPrimary ? theme.buttonText : theme.primaryText)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
@@ -105,7 +111,7 @@ struct TodayQuickActionsSection: View {
             .padding(.vertical, FormaTokens.Spacing.sm)
             .background(
                 isPrimary
-                    ? FormaTokens.Theme.primaryButtonBackground
+                    ? theme.buttonBackground
                     : FormaCardChrome.background(.bordered)
             )
             .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous))

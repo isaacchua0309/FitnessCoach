@@ -24,6 +24,53 @@ final class ThemeStoreTests: XCTestCase {
         }
     }
 
+    func testSetThemeAliasUpdatesPaletteAndPersists() async {
+        await MainActor.run {
+            let defaults = makeIsolatedDefaults()
+            let store = ThemeStore(userDefaults: defaults)
+            XCTAssertEqual(store.selectedTheme, .oceanBlue)
+
+            store.setTheme(.blossomPink)
+            XCTAssertEqual(store.selectedTheme, .blossomPink)
+            XCTAssertEqual(store.palette, .blossomPink)
+            XCTAssertEqual(
+                defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
+                AppThemePalette.blossomPink.persistenceRawValue
+            )
+
+            let reloaded = ThemeStore(userDefaults: defaults)
+            XCTAssertEqual(reloaded.selectedTheme, .blossomPink)
+        }
+    }
+
+    func testThemeRevisionIncrementsOnPaletteAndAppearanceChanges() async {
+        await MainActor.run {
+            let store = ThemeStore(userDefaults: makeIsolatedDefaults())
+            let initialRevision = store.themeRevision
+
+            store.setTheme(.blossomPink)
+            XCTAssertEqual(store.themeRevision, initialRevision + 1)
+
+            store.setAppearance(.light)
+            XCTAssertEqual(store.themeRevision, initialRevision + 2)
+
+            store.setTheme(.blossomPink)
+            XCTAssertEqual(store.themeRevision, initialRevision + 2, "No-op theme set must not bump revision")
+        }
+    }
+
+    func testTokensMatchResolvedTheme() async {
+        await MainActor.run {
+            let store = ThemeStore(userDefaults: makeIsolatedDefaults())
+            store.setTheme(.sunsetOrange)
+            let tokens = store.tokens(systemColorScheme: .dark)
+            let resolved = store.resolvedTheme(systemColorScheme: .dark)
+            XCTAssertEqual(tokens.accent, resolved.themePalette.primary)
+            XCTAssertEqual(tokens.cardBackground, resolved.colors.surface)
+            XCTAssertEqual(tokens.progressFill, resolved.colors.progress)
+        }
+    }
+
     // MARK: - Save / load
 
     func testSaveAndLoadAppearance() async {

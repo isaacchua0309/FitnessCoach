@@ -24,6 +24,19 @@ enum FormaCardChrome {
 
     @ViewBuilder
     static func background(_ style: Style) -> some View {
+        FormaCardChromeBackground(style: style)
+    }
+}
+
+/// Environment-backed card chrome so palette changes repaint without app relaunch.
+private struct FormaCardChromeBackground: View {
+    let style: FormaCardChrome.Style
+
+    @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
+
+    var body: some View {
+        let _ = themeManager.themeRevision
         switch style {
         case .surface:
             surfaceBackground(accentLeading: false)
@@ -36,43 +49,43 @@ enum FormaCardChrome {
         }
     }
 
-    private static var subtleBackground: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(FormaTokens.Color.surfaceSubtle)
+    private var subtleBackground: some View {
+        RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
+            .fill(theme.accentSoftBackground)
             .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(FormaTokens.Color.border.opacity(0.55), lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
+                    .stroke(theme.inputBorder.opacity(0.55), lineWidth: 0.5)
             }
     }
 
-    private static var borderedBackground: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(FormaTokens.Color.surface)
+    private var borderedBackground: some View {
+        RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
+            .fill(theme.cardBackground)
             .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(FormaTokens.Color.border, lineWidth: 1)
+                RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
+                    .stroke(theme.inputBorder, lineWidth: 1)
             }
     }
 
-    private static func surfaceBackground(accentLeading: Bool) -> some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(FormaTokens.Color.surface)
+    private func surfaceBackground(accentLeading: Bool) -> some View {
+        RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
+            .fill(theme.cardBackground)
             .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                     .stroke(
                         accentLeading
                             ? LinearGradient(
                                 colors: [
-                                    FormaTokens.Theme.primary.opacity(0.22),
-                                    FormaTokens.Color.border
+                                    theme.accent.opacity(0.22),
+                                    theme.inputBorder
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                             : LinearGradient(
                                 colors: [
-                                    FormaTokens.Theme.primary.opacity(0.14),
-                                    FormaTokens.Color.border
+                                    theme.accent.opacity(0.14),
+                                    theme.inputBorder
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -83,7 +96,7 @@ enum FormaCardChrome {
             .overlay(alignment: .leading) {
                 if accentLeading {
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .fill(FormaTokens.Theme.primary.opacity(0.55))
+                        .fill(theme.accentLine)
                         .frame(width: 3)
                         .padding(.vertical, FormaTokens.Spacing.sm)
                         .padding(.leading, 1)

@@ -63,27 +63,3 @@ struct TodayWaterQuickAddButtonStyle: ButtonStyle {
         return 1
     }
 }
-
-enum TodayWaterQuickAddColors {
-    static func foreground(isDisabled: Bool, isSelected: Bool) -> Color {
-        if isDisabled { return FormaTokens.Color.textTertiary }
-        if isSelected { return FormaTokens.Theme.textOnAccent }
-        return FormaTokens.Theme.primary
-    }
-
-    static func background(isDisabled: Bool, isSelected: Bool) -> Color {
-        if isDisabled { return FormaTokens.Color.surfaceSubtle }
-        if isSelected { return FormaTokens.Theme.primary }
-        return FormaTokens.Theme.softBackground
-    }
-
-    static func border(isDisabled: Bool, isSelected: Bool) -> Color {
-        if isDisabled { return FormaTokens.Color.border.opacity(0.45) }
-        if isSelected { return FormaTokens.Theme.primary.opacity(0.5) }
-        return FormaTokens.Theme.borderTint.opacity(0.28)
-    }
-
-    static func borderWidth(isSelected: Bool) -> CGFloat {
-        isSelected ? 1 : 0.5
-    }
-}

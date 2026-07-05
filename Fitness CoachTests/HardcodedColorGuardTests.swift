@@ -36,6 +36,41 @@ final class HardcodedColorGuardTests: XCTestCase {
         )
     }
 
+    func testGuardDetectsNamedBlueAssetColor() {
+        let sample = """
+        Text("Oops")
+            .foregroundStyle(Color("Blue"))
+        """
+        let violations = HardcodedColorGuard.scan(repositoryRoot: makeTemporaryRepo(with: sample))
+        XCTAssertFalse(violations.isEmpty)
+        XCTAssertTrue(violations.contains { $0.matchedPattern.contains("Named asset") })
+    }
+
+    func testPaletteLiteralGuardDetectsFormaBlueInReusableUI() {
+        let sample = """
+        Text("Oops")
+            .foregroundStyle(formaBlue)
+        """
+        let violations = ThemePaletteLiteralGuard.scan(repositoryRoot: makeTemporaryRepo(with: sample))
+        XCTAssertFalse(violations.isEmpty)
+        XCTAssertTrue(violations.contains { $0.matchedPattern.contains("formaBlue") })
+    }
+
+    func testPaletteLiteralGuardIgnoresThemeDefinitionDirectory() throws {
+        let tempRoot = makeTemporaryRepo(with: "Text(\"OK\")")
+        let themeURL = tempRoot
+            .appendingPathComponent("Fitness Coach/DesignSystem/Theme/FormaPaletteCatalog.swift")
+        try FileManager.default.createDirectory(
+            at: themeURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try "enum FormaPaletteCatalog { static let c = Color.blue }"
+            .write(to: themeURL, atomically: true, encoding: .utf8)
+
+        let violations = ThemePaletteLiteralGuard.scan(repositoryRoot: tempRoot)
+        XCTAssertTrue(violations.isEmpty)
+    }
+
     func testGuardDetectsSampleViolation() {
         let sample = """
         Text("Oops")

@@ -11,8 +11,12 @@ struct TodayHealthWorkoutCard: View {
     let state: TodayHealthWorkoutCardState
     var isLoading: Bool = false
 
+    @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodayMutedSectionLabel(title: state.sectionTitle)
 
             TodayHealthIntelligenceLoadingCard(isLoading: isLoading) {
@@ -20,7 +24,7 @@ struct TodayHealthWorkoutCard: View {
                     VStack(alignment: .leading, spacing: TodayHealthIntelligenceCardSupport.cardContentSpacing) {
                         Text(state.title)
                             .font(TodayHealthIntelligenceCardTypography.headline)
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .foregroundStyle(theme.primaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.85)
@@ -28,7 +32,7 @@ struct TodayHealthWorkoutCard: View {
                         if let subtitle = state.subtitle {
                             Text(subtitle)
                                 .font(TodayHealthIntelligenceCardTypography.detail)
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .foregroundStyle(theme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .lineLimit(3)
                                 .minimumScaleFactor(0.85)
@@ -43,7 +47,7 @@ struct TodayHealthWorkoutCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityIdentifier("today-hi-workout-card")
-        .formaThemeReactive()
+        .todayLiveTheme()
     }
 
     @ViewBuilder
@@ -53,7 +57,7 @@ struct TodayHealthWorkoutCard: View {
                 TodayHealthIntelligenceGuidanceRow(
                     text: nutritionTip,
                     iconName: "fork.knife",
-                    iconColor: FormaTokens.Theme.primary
+                    iconAccent: .primary
                 )
             }
 
@@ -61,7 +65,7 @@ struct TodayHealthWorkoutCard: View {
                 TodayHealthIntelligenceGuidanceRow(
                     text: hydrationTip,
                     iconName: "drop.fill",
-                    iconColor: FormaTokens.Theme.secondary
+                    iconAccent: .secondary
                 )
             }
         }

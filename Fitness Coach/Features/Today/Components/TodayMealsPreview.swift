@@ -16,11 +16,16 @@ struct TodayMealsPreview: View {
     let onEditEntry: (FoodEntry) -> Void
     let onDeleteEntry: (FoodEntry) -> Void
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     private var section: TodayMealsSectionState {
         TodayMealsGroupingEngine.build(entries: entries, date: date)
     }
 
     var body: some View {
+        let _ = themeManager.themeRevision
+
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Meals.sectionTitle)
 
@@ -30,6 +35,7 @@ struct TodayMealsPreview: View {
                 loggedMealsCard
             }
         }
+        .todayLiveTheme()
     }
 
     private var emptyDayCard: some View {
@@ -37,12 +43,12 @@ struct TodayMealsPreview: View {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 Text(FormaProductCopy.Today.Meals.emptyDayMessage)
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .foregroundStyle(theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Button(FormaProductCopy.Today.Meals.logFirstMealCTA, action: onLogFirstMeal)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .foregroundStyle(theme.accent)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
                     .accessibilityLabel(FormaProductCopy.Today.Meals.logFirstMealCTA)
@@ -106,7 +112,7 @@ struct TodayMealsPreview: View {
             } label: {
                 Text(FormaProductCopy.Today.Meals.addAction)
                     .font(FormaTokens.Typography.caption2.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .foregroundStyle(theme.accent)
                     .frame(minHeight: FormaTokens.Layout.minTouchTarget)
             }
             .buttonStyle(.plain)
@@ -130,7 +136,7 @@ struct TodayMealsPreview: View {
 
                 Image(systemName: "checkmark.circle.fill")
                     .font(.body)
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .foregroundStyle(theme.accent)
                     .symbolRenderingMode(.hierarchical)
                     .accessibilityHidden(true)
             }
@@ -141,7 +147,7 @@ struct TodayMealsPreview: View {
         .padding(.horizontal, FormaTokens.Spacing.md)
         .padding(.vertical, TodayLayout.cardRowVerticalPadding)
         .background(
-            FormaTokens.Theme.softBackground.opacity(0.45),
+            theme.accentSoftBackground.opacity(0.45),
             in: RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
         )
         .accessibilityElement(children: .combine)
@@ -176,23 +182,23 @@ struct TodayMealsPreview: View {
             HStack(spacing: FormaTokens.Spacing.xs) {
                 Text(display.title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .foregroundStyle(theme.primaryText)
 
                 if display.isOptional {
                     Text(FormaProductCopy.Today.Meals.optionalLabel)
                         .font(FormaTokens.Typography.caption2)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                        .foregroundStyle(theme.tertiaryText)
                 }
             }
 
             Text(display.statusLine)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(isLogged ? FormaTokens.Color.textSecondary : FormaTokens.Color.textTertiary)
+                .foregroundStyle(isLogged ? theme.secondaryText : theme.tertiaryText)
 
             if let detailLine = display.detailLine {
                 Text(detailLine)
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .foregroundStyle(theme.secondaryText)
             }
         }
     }

@@ -11,8 +11,12 @@ struct TodayDailyMissionCard: View {
     let state: TodayDailyMissionState
     var isLoading: Bool = false
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: state.sectionTitle)
 
             TodayHealthIntelligenceLoadingCard(isLoading: isLoading) {
@@ -20,7 +24,7 @@ struct TodayDailyMissionCard: View {
                     VStack(alignment: .leading, spacing: TodayHealthIntelligenceCardSupport.cardContentSpacing) {
                         Text(state.headline)
                             .font(TodayHealthIntelligenceCardTypography.headline)
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .foregroundStyle(theme.primaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.85)
@@ -31,7 +35,7 @@ struct TodayDailyMissionCard: View {
                                     TodayHealthIntelligenceGuidanceRow(
                                         text: line,
                                         iconName: "checkmark.circle.fill",
-                                        iconColor: FormaTokens.Color.textTertiary
+                                        iconAccent: .tertiary
                                     )
                                 }
                             }
@@ -48,7 +52,7 @@ struct TodayDailyMissionCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityIdentifier("today-hi-daily-mission-card")
-        .formaThemeReactive()
+        .todayLiveTheme()
     }
 
     @ViewBuilder
@@ -58,7 +62,7 @@ struct TodayDailyMissionCard: View {
 
             Text(text)
                 .font(TodayHealthIntelligenceCardTypography.detail.weight(.medium))
-                .foregroundStyle(FormaTokens.Theme.primary)
+                .foregroundStyle(theme.accent)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.85)
