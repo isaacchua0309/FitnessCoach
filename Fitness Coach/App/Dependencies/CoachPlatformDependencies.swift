@@ -19,7 +19,7 @@ struct CoachPlatformDependencies {
     /// Builds shared Coach platform dependencies for `AppContainer`.
     static func build(
         session: AuthDependencies,
-        persistence: AppContainer.PersistenceDependenciesBundle,
+        persistence: PersistenceDependencies,
         health: HealthDependencies
     ) -> CoachPlatformDependencies {
         let authManager = session.authManager

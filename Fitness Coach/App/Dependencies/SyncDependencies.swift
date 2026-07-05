@@ -31,7 +31,7 @@ struct SyncDependencies {
     /// Builds restore, cross-device sync, deletion, and export dependencies for `AppContainer`.
     static func build(
         session: AuthDependencies,
-        persistence: AppContainer.PersistenceDependenciesBundle,
+        persistence: PersistenceDependencies,
         health: HealthDependencies,
         inMemory: Bool
     ) -> SyncDependencies {

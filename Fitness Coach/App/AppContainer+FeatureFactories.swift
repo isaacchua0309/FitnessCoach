@@ -172,8 +172,39 @@ extension AppContainer {
     func makeJourneyModel(
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
     ) -> JourneyModel {
-        buildJourneyDependencies(
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+        JourneyModel(
+            dailyLogReader: dailyLogService,
+            weightLogReader: weightLogService,
+            userProfileReader: userProfileService,
+            trainingInsightsStore: trainingInsightsStore,
+            workoutReader: healthKitWorkoutReader,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            weeklyReviewService: weeklyReviewService,
+            healthIntelligenceEngine: healthIntelligenceEngine,
+            healthCacheStore: healthCacheStore,
+            healthActivityQuery: healthActivityQueryService,
+            healthDataRepository: healthDataRepository,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            },
+            restoreSessionState: accountRestoreSessionState,
+            localDataInspector: accountLocalDataInspector,
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator,
+            accountSyncCursorStore: accountSyncCursorStore,
+            accountSyncOutboxStore: accountSyncOutboxStore,
+            accountRestoreStateStore: accountRestoreStateStore
         )
     }
 }
@@ -198,9 +229,34 @@ extension AppContainer {
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
         planAnalyticsCoordinator: PlanAnalyticsCoordinator? = nil
     ) -> PlanModel {
-        buildPlanDependencies(
+        PlanModel(
+            actionCenter: actionCenter,
+            userProfileReader: userProfileService,
+            planTargetCalculator: targetService,
+            dailyLogReader: dailyLogService,
+            weightLogReader: weightLogService,
+            trainingInsightsStore: trainingInsightsStore,
+            analyticsLogger: planAnalyticsLogger,
+            planAnalyticsCoordinator: planAnalyticsCoordinator,
+            healthBaselineService: healthBaselineService,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            healthDataRepository: healthDataRepository,
             healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            planAnalyticsCoordinator: planAnalyticsCoordinator
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            },
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
         )
     }
 }
