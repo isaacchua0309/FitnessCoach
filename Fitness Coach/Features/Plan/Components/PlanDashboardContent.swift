@@ -17,6 +17,7 @@ struct PlanDashboardContent: View {
     var onGoToToday: (() -> Void)? = nil
     var onAdjustActivity: () -> Void = {}
     var onAdjustPlan: () -> Void = {}
+    var onOpenSettings: (() -> Void)? = nil
     var onReviewWeeklyRecommendation: (() -> Void)? = nil
     var onCalculationDetailsOpened: () -> Void = {}
     var onAppleHealthTap: (() -> Void)? = nil
@@ -38,6 +39,10 @@ struct PlanDashboardContent: View {
 
             VStack(alignment: .leading, spacing: PlanLayout.compactSectionSpacing) {
                 secondarySections
+
+                if let onOpenSettings {
+                    PlanSettingsAccessRow(onOpenSettings: onOpenSettings)
+                }
             }
         }
         .accessibilityIdentifier("plan-dashboard")

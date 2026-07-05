@@ -2,7 +2,7 @@
 //  PlanHeaderSection.swift
 //  Fitness Coach
 //
-//  Forma — Compact in-scroll Plan header.
+//  Forma — Plan screen header. Preview/test wrapper around PageHeader.
 //
 
 import SwiftUI
@@ -11,21 +11,20 @@ struct PlanHeaderSection: View {
     let state: PlanHeaderState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(state.subtitle)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .ignore)
+        PageHeader(
+            title: FormaProductCopy.PlanHeader.title,
+            subtitle: FormaProductCopy.PlanHeader.subtitle,
+            trailingAction: {
+                PageActionPill(title: FormaProductCopy.PlanMissionControl.adjustPlanPill)
+            }
+        )
         .accessibilityLabel(state.accessibilitySummary)
     }
 }
 
 #Preview {
     PlanHeaderSection(state: PlanMissionControlFixtures.loseDashboard.header)
-        .padding(.horizontal, PlanLayout.horizontalPadding)
+        .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }

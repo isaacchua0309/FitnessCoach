@@ -162,6 +162,7 @@ struct PlanView: View {
         case .loading:
             MainTabPageScaffold(
                 title: FormaProductCopy.PlanHeader.title,
+                subtitle: FormaProductCopy.PlanHeader.subtitle,
                 scrollMode: .embedded
             ) {
                 FormaScreenLoadingView(message: FormaProductCopy.Loading.plan)
@@ -169,6 +170,7 @@ struct PlanView: View {
         case .empty:
             MainTabPageScaffold(
                 title: FormaProductCopy.PlanHeader.title,
+                subtitle: FormaProductCopy.PlanHeader.subtitle,
                 scrollMode: .embedded
             ) {
                 PlanEmptyStateView {
@@ -180,6 +182,7 @@ struct PlanView: View {
         case .error(let message):
             MainTabPageScaffold(
                 title: FormaProductCopy.PlanHeader.title,
+                subtitle: FormaProductCopy.PlanHeader.subtitle,
                 scrollMode: .embedded
             ) {
                 FormaScreenErrorView(message: message, onRetry: {
@@ -200,7 +203,7 @@ struct PlanView: View {
 
         MainTabPageScaffold(
             title: FormaProductCopy.PlanHeader.title,
-            subtitle: state.header.subtitle,
+            subtitle: FormaProductCopy.PlanHeader.subtitle,
             sectionSpacing: PlanLayout.sectionSpacing,
             showsCrossDeviceRefreshBanner: model.isCrossDeviceRefreshing,
             scrollTarget: MainTabScrollTarget(
@@ -209,7 +212,13 @@ struct PlanView: View {
                 trigger: weeklyRecommendationScrollTrigger
             ),
             trailingAction: {
-                planHeaderTrailingActions(healthConnected: healthConnected)
+                PageActionPill(
+                    title: FormaProductCopy.PlanMissionControl.adjustPlanPill,
+                    accessibilityHint: FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint
+                ) {
+                    model.logPlanAdjustCTATapped(healthConnected: healthConnected)
+                    model.showEditPlan(entryPoint: .adjustPlanCTA)
+                }
             }
         ) {
             PlanDashboardContent(
@@ -231,6 +240,9 @@ struct PlanView: View {
                 onAdjustPlan: {
                     model.logPlanAdjustCTATapped(healthConnected: healthConnected)
                     model.showEditPlan(entryPoint: .adjustPlanCTA)
+                },
+                onOpenSettings: {
+                    model.showSettings()
                 },
                 onReviewWeeklyRecommendation: {
                     model.logWeeklyRecommendationTapped(healthConnected: healthConnected)
@@ -282,29 +294,6 @@ struct PlanView: View {
         }
     }
 
-    @ViewBuilder
-    private func planHeaderTrailingActions(healthConnected: Bool) -> some View {
-        HStack(spacing: FormaTokens.Spacing.sm) {
-            PageActionPill(
-                title: FormaProductCopy.PlanMissionControl.adjustPlan,
-                accessibilityHint: FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint
-            ) {
-                model.logPlanAdjustCTATapped(healthConnected: healthConnected)
-                model.showEditPlan()
-            }
-
-            Button {
-                model.showSettings()
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(FormaTokens.Typography.caption.weight(.medium))
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .frame(width: FormaTokens.Layout.minTouchTarget, height: FormaTokens.Layout.minTouchTarget)
-            }
-            .accessibilityLabel("Settings")
-        }
-    }
-
     private func handlePlanHealthMissingDataAction(
         _ action: PlanHealthMissingDataActionState,
         healthConnected: Bool
@@ -353,8 +342,5 @@ struct PlanView: View {
 }
 
 #Preview("Loaded Plan") {
-    NavigationStack {
-        PlanPreviewScreens.content(.aggressiveCut)
-            .navigationTitle(FormaProductCopy.PlanHeader.title)
-    }
+    PlanPreviewScreens.screen(.aggressiveCut)
 }

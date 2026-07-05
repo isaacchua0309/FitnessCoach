@@ -72,6 +72,7 @@ final class FormaProductCopyEquivalenceTests: XCTestCase {
         XCTAssertEqual(FormaProductCopy.PlanHeader.title, "Plan")
         XCTAssertEqual(FormaProductCopy.PlanRationale.sectionTitle, "Why This Works")
         XCTAssertEqual(FormaProductCopy.PlanMissionControl.adjustPlan, "Adjust Plan")
+        XCTAssertEqual(FormaProductCopy.PlanMissionControl.adjustPlanPill, "Adjust")
         XCTAssertEqual(FormaProductCopy.PlanEditGoal.loseFatTitle, "Lose fat")
         XCTAssertEqual(FormaProductCopy.PlanDailyTargets.sectionTitle, "Daily Targets")
         XCTAssertEqual(FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle, "Body & stats")

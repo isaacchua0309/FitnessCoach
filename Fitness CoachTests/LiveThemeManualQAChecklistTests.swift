@@ -173,7 +173,7 @@ enum LiveThemeManualQAChecklist {
             title: "Coach mounted",
             steps: [
                 "Open Coach.",
-                "Switch theme in Settings (Plan → gear → Theme).",
+                "Switch theme in Settings (Plan → Settings → Theme).",
                 "Return to Coach."
             ],
             expected: [
