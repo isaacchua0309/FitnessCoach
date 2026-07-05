@@ -32,7 +32,7 @@ struct CoachMessageView: View {
             case .nutritionComparison(let state):
                 nutritionComparisonMessage(state)
             case .dailyReview(let payload):
-                dailyReviewMessage(payload)
+                dailyReviewMessage(payload, accessibilityText: message.text)
             case .assistantPhotoAnalysis(let text, let relatedUserMessageID, let kind):
                 assistantPhotoAnalysisMessage(
                     text: text,
@@ -72,38 +72,44 @@ struct CoachMessageView: View {
                 .foregroundStyle(CoachDesignTokens.Color.textLegal)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 32)
+            Spacer(minLength: CoachDesignTokens.Layout.assistantTextTrailingSpacer)
         }
     }
 
     @ViewBuilder
     private func nutritionEstimateMessage(_ state: NutritionEstimateCardState) -> some View {
-        HStack {
+        assistantStructuredCard {
             NutritionEstimateCard(state: state) { action in
                 onNutritionAction?(action)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Spacer(minLength: 16)
         }
     }
 
     @ViewBuilder
     private func nutritionComparisonMessage(_ state: NutritionComparisonCardState) -> some View {
-        HStack {
+        assistantStructuredCard {
             NutritionComparisonCard(state: state) { action in
                 onNutritionAction?(action)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Spacer(minLength: 16)
         }
     }
 
     @ViewBuilder
-    private func dailyReviewMessage(_ payload: DailyReviewPayload) -> some View {
-        HStack {
-            DailyReviewCardView(payload: payload)
+    private func dailyReviewMessage(_ payload: DailyReviewPayload, accessibilityText: String) -> some View {
+        assistantStructuredCard {
+            DailyReviewCard(payload: payload)
+                .accessibilityLabel(accessibilityText)
+        }
+    }
+
+    @ViewBuilder
+    private func assistantStructuredCard<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            content()
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Spacer(minLength: 16)
+            Spacer(minLength: CoachDesignTokens.Layout.structuredAssistantCardTrailingSpacer)
         }
     }
 

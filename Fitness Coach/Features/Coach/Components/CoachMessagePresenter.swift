@@ -38,7 +38,7 @@ enum CoachMessagePresenter {
     static func presentation(for message: ChatMessage) -> CoachMessagePresentation {
         switch message.role {
         case .user:
-            if let attachment = message.imageAttachment, attachment.kind == .mealPhoto {
+            if message.hasRenderableMealPhotoAttachment, let attachment = message.imageAttachment {
                 let caption = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
                 return .userMealPhoto(
                     attachment: attachment,

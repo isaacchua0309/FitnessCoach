@@ -123,6 +123,10 @@ enum CoachDesignTokens {
         static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
         static let messageSpacing = Spacing.lg
         static let maxBubbleWidthRatio: CGFloat = 0.82
+        /// Trailing inset for structured assistant cards (nutrition, daily review).
+        static let structuredAssistantCardTrailingSpacer: CGFloat = 16
+        /// Trailing inset for plain assistant text paragraphs.
+        static let assistantTextTrailingSpacer: CGFloat = 32
     }
 
     // MARK: Animation

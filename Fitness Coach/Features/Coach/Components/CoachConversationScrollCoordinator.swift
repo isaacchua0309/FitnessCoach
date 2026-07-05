@@ -18,6 +18,8 @@ enum CoachConversationScrollMetrics {
     /// Lets keyboard and bottom-accessory layout settle before scrolling.
     static let focusTransitionDelay: TimeInterval = 0.1
     static let layoutTransitionDelay: TimeInterval = 0.05
+    /// Extra beat for tall structured assistant cards (daily review, nutrition).
+    static let structuredCardLayoutDelay: TimeInterval = 0.1
 }
 
 enum CoachConversationScrollReason: Equatable {
@@ -80,6 +82,18 @@ enum CoachConversationScrollCoordinator {
         default:
             return nil
         }
+    }
+
+    /// Lets structured assistant cards finish layout before scrolling them above the composer.
+    static func scrollDelayAfterMessageInsert(
+        reason: CoachConversationScrollReason,
+        lastMessage: ChatMessage?
+    ) -> TimeInterval {
+        guard reason == .assistantResponseArrived,
+              lastMessage?.structuredContent != nil else {
+            return 0
+        }
+        return CoachConversationScrollMetrics.structuredCardLayoutDelay
     }
 
     static func distanceFromBottom(

@@ -180,6 +180,34 @@ final class CoachMessagePresenterTests: XCTestCase {
         XCTAssertTrue(text.contains("Daily Review"))
     }
 
+    func testUserMessageWithoutRenderableImageBytesFallsBackToTextPresentation() {
+        let message = ChatMessage(
+            role: .user,
+            text: "daily review",
+            imageAttachment: ChatMessageImageAttachment(
+                kind: .mealPhoto,
+                imageJPEG: Data(),
+                thumbnailJPEG: Data()
+            )
+        )
+
+        guard case .user(let text) = CoachMessagePresenter.presentation(for: message) else {
+            return XCTFail("Expected plain user text presentation")
+        }
+        XCTAssertEqual(text, "daily review")
+    }
+
+    func testUserMessageWithRenderableImageBytesUsesPhotoPresentation() throws {
+        let attachment = try makeAttachment()
+        let message = ChatMessage.userMealPhoto(caption: nil, attachment: attachment)
+
+        guard case .userMealPhoto(let renderedAttachment, _) =
+            CoachMessagePresenter.presentation(for: message) else {
+            return XCTFail("Expected user meal photo presentation")
+        }
+        XCTAssertFalse(renderedAttachment.thumbnailJPEG.isEmpty)
+    }
+
     private func makeAttachment() throws -> ChatMessageImageAttachment {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24))
         let image = renderer.image { context in
