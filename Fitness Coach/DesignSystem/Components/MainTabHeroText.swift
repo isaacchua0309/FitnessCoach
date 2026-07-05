@@ -16,6 +16,7 @@ struct MainTabHeroText: View {
 
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.theme) private var theme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .largeTitle) private var fontSize: CGFloat
 
     enum Tier {
@@ -54,15 +55,6 @@ struct MainTabHeroText: View {
             case .narrative: return 3
             }
         }
-
-        var minimumScaleFactor: CGFloat {
-            switch self {
-            case .primary: return 0.55
-            case .goal: return 0.65
-            case .metric: return 0.70
-            case .narrative: return 0.72
-            }
-        }
     }
 
     init(
@@ -88,7 +80,8 @@ struct MainTabHeroText: View {
             .font(.system(size: fontSize, weight: .bold, design: .rounded))
             .foregroundStyle(color ?? theme.primaryText)
             .lineLimit(resolvedLineLimit)
-            .minimumScaleFactor(tier.minimumScaleFactor)
+            .minimumScaleFactor(MainTabResponsiveLayout.heroMinimumScaleFactor(for: tier))
+            .multilineTextAlignment(.leading)
             .allowsTightening(true)
             .layoutPriority(1)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -98,19 +91,36 @@ struct MainTabHeroText: View {
     }
 
     private var resolvedLineLimit: Int {
-        lineLimit ?? tier.defaultLineLimit
+        if let lineLimit {
+            return lineLimit
+        }
+        return MainTabResponsiveLayout.heroLineLimit(for: tier, dynamicTypeSize: dynamicTypeSize)
     }
 }
 
 #if DEBUG
-#Preview {
+#Preview("Hero values — small phone") {
     VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
         MainTabHeroText("2,080 remaining", tier: .primary)
         MainTabHeroText("Lose 14.5 kg", tier: .goal)
         MainTabHeroText("2080 kcal", tier: .metric)
         MainTabHeroText("You're building momentum", tier: .narrative)
     }
-    .padding()
+    .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
+    .frame(width: MainTabResponsiveLayout.compactPhoneWidth)
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Hero values — large text") {
+    VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+        MainTabHeroText("2,080 remaining", tier: .primary)
+        MainTabHeroText("Lose 14.5 kg", tier: .goal)
+        Text("3 training sessions/week")
+            .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+    }
+    .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
+    .dynamicTypeSize(.accessibility2)
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }

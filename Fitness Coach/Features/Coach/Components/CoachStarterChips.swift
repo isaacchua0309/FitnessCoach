@@ -23,9 +23,10 @@ struct CoachStarterChips: View {
     }
 
     var body: some View {
-        CoachFlowLayout(
-            horizontalSpacing: FormaTokens.Spacing.xs,
-            verticalSpacing: FormaTokens.Spacing.xs
+        LazyVGrid(
+            columns: MainTabResponsiveLayout.quickActionGridColumns(),
+            alignment: .leading,
+            spacing: FormaTokens.Spacing.xs
         ) {
             ForEach(prompts) { prompt in
                 FormaQuickActionChip(
@@ -38,6 +39,7 @@ struct CoachStarterChips: View {
                     accessibilityHint: prompt.accessibilityHint
                 )
                 .disabled(isDisabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

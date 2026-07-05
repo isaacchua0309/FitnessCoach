@@ -101,6 +101,9 @@ struct FormaQuickActionChip: View {
             Text(title)
         }
         .font(FormaTokens.Typography.caption.weight(.semibold))
+        .lineLimit(2)
+        .minimumScaleFactor(MainTabResponsiveLayout.headerMinimumScaleFloor)
+        .multilineTextAlignment(.leading)
     }
 }
 

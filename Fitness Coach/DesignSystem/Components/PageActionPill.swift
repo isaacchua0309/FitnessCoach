@@ -14,6 +14,7 @@ struct PageActionPill: View {
 
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.theme) private var theme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let _ = themeManager.themeRevision
@@ -39,10 +40,17 @@ struct PageActionPill: View {
         Text(title)
             .font(FormaTokens.Typography.caption2.weight(.semibold))
             .foregroundStyle(theme.accent)
+            .lineLimit(pillLineLimit)
+            .minimumScaleFactor(MainTabResponsiveLayout.headerMinimumScaleFloor)
+            .multilineTextAlignment(.center)
             .padding(.horizontal, FormaTokens.Spacing.sm)
             .padding(.vertical, FormaTokens.Spacing.xs)
             .background(theme.accentSoftBackground)
             .clipShape(Capsule())
+    }
+
+    private var pillLineLimit: Int {
+        dynamicTypeSize >= .accessibility2 ? 2 : 1
     }
 }
 

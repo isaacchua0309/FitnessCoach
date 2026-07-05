@@ -13,9 +13,10 @@ struct CoachLaunchChips: View {
     let onTap: (CoachLaunchChip) -> Void
 
     var body: some View {
-        CoachFlowLayout(
-            horizontalSpacing: FormaTokens.Spacing.xs,
-            verticalSpacing: FormaTokens.Spacing.xs
+        LazyVGrid(
+            columns: MainTabResponsiveLayout.quickActionGridColumns(),
+            alignment: .leading,
+            spacing: FormaTokens.Spacing.xs
         ) {
             ForEach(chips) { chip in
                 FormaQuickActionChip(
@@ -28,6 +29,7 @@ struct CoachLaunchChips: View {
                     accessibilityHint: chip.accessibilityHint
                 )
                 .disabled(isDisabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

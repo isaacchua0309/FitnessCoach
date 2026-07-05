@@ -64,6 +64,8 @@ struct PlanDailyTargetsSection: View {
         Text(text)
             .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
             .foregroundStyle(FormaTokens.Color.textSecondary)
+            .multilineTextAlignment(.leading)
+            .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
     }
 }
