@@ -23,7 +23,7 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         let flow = CoachPhotoLibrarySelectionRaceTestSupport.makeFlow(loading: image)
         let item = CoachPhotoLibrarySelectionRaceTestSupport.testPickerItem
 
-        XCTAssertTrue(flow.beginPhotoLibraryPick(model: model))
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
         let pickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
         XCTAssertEqual(flow.state, .pickerPresented(.library))
 
@@ -56,7 +56,7 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         let flow = CoachPhotoLibrarySelectionRaceTestSupport.makeFlow(loading: image)
         let item = CoachPhotoLibrarySelectionRaceTestSupport.testPickerItem
 
-        XCTAssertTrue(flow.beginPhotoLibraryPick(model: model))
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
         let pickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
         flow.markLibrarySelectionReceived(claimedPickID: pickID)
 
@@ -83,7 +83,7 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         let model = CoachPhotoLibrarySelectionRaceTestSupport.makeModel(container: container)
         let flow = CoachImagePickFlowController()
 
-        XCTAssertTrue(flow.beginPhotoLibraryPick(model: model))
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
         flow.handlePhotoLibraryPickerDismissed()
 
         XCTAssertEqual(flow.state, .idle)
@@ -101,11 +101,11 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         let flow = CoachPhotoLibrarySelectionRaceTestSupport.makeFlow(loading: image)
         let item = CoachPhotoLibrarySelectionRaceTestSupport.testPickerItem
 
-        XCTAssertTrue(flow.beginPhotoLibraryPick(model: model))
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
         let stalePickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
         flow.handlePhotoLibraryPickerDismissed()
 
-        XCTAssertTrue(flow.beginPhotoLibraryPick(model: model))
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
         XCTAssertNotEqual(flow.activeLibraryPickSessionID, stalePickID)
 
         flow.markLibrarySelectionReceived(claimedPickID: stalePickID)
@@ -114,6 +114,7 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         await flow.handlePhotoLibrarySelection(item, model: model)
 
         XCTAssertNil(model.inputState.pendingImage)
+        XCTAssertNil(model.inputState.imageError)
         XCTAssertEqual(flow.state, .pickerPresented(.library))
     }
 
@@ -125,7 +126,7 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         let flow = CoachImagePickFlowController()
 
         flow.setStateForTests(.processingImage(.library))
-        XCTAssertFalse(flow.beginPhotoLibraryPick(model: model))
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .rejectedFlowBusy)
         XCTAssertEqual(flow.state, .processingImage(.library))
         XCTAssertFalse(flow.allowsAttachmentPick)
 

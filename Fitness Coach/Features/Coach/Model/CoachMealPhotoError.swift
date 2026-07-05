@@ -12,13 +12,14 @@ enum CoachMealPhotoError: Equatable, Error {
     case noImage
     case loadFailed
     case encodingFailed
+    case attachFailed
     case cameraUnavailable
     case cameraPermissionDenied
 
     /// Errors surfaced in the composer with a retry action (not as chat bubbles).
     var supportsComposerRetry: Bool {
         switch self {
-        case .encodingFailed, .loadFailed, .noImage:
+        case .attachFailed, .encodingFailed, .loadFailed, .noImage:
             return true
         case .userCancelled, .cameraUnavailable, .cameraPermissionDenied:
             return false

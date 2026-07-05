@@ -80,6 +80,7 @@ enum CoachImageAnalysisDebugLogFormatter {
         case .noImage: return "no_image"
         case .loadFailed: return "load_failed"
         case .encodingFailed: return "encoding_failed"
+        case .attachFailed: return "attach_failed"
         case .cameraUnavailable: return "camera_unavailable"
         case .cameraPermissionDenied: return "camera_permission_denied"
         }

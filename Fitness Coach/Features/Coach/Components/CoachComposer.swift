@@ -84,8 +84,8 @@ struct CoachComposer: View {
         .onChange(of: pendingImage?.status) { _, status in
             #if DEBUG
             if let status {
-                CoachPhotoLibraryPickDebugLogger.log(
-                    event: "coach_composer_pending_image_status_changed",
+                CoachPhotoLibraryPickDebugLogger.logDiagnostic(
+                    label: "coach_composer_pending_image_status_changed",
                     pendingImageStatus: status,
                     extra: ["is_ready": String(pendingImage?.isReady == true)]
                 )
@@ -246,8 +246,8 @@ struct CoachComposer: View {
         }
         .onAppear {
             #if DEBUG
-            CoachPhotoLibraryPickDebugLogger.log(
-                event: "coach_composer_attachment_preview_rendered",
+            CoachPhotoLibraryPickDebugLogger.logDiagnostic(
+                label: "coach_composer_attachment_preview_rendered",
                 pendingImageStatus: pendingImage.status,
                 extra: ["is_ready": String(pendingImage.isReady)]
             )

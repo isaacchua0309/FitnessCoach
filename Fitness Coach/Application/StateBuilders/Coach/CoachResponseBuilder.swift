@@ -117,6 +117,8 @@ enum CoachResponseBuilder {
         switch error {
         case .userCancelled:
             return ""
+        case .attachFailed:
+            return FormaProductCopy.Coach.mealPhotoAttachFailed
         case .noImage, .loadFailed, .encodingFailed:
             return FormaProductCopy.Coach.mealPhotoPreparationFailed
         case .cameraUnavailable:

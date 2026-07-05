@@ -38,7 +38,13 @@ enum CoachPhotoLibrarySelectionRaceTestSupport {
         claimedPickID: UUID
     ) async {
         flow.markLibrarySelectionReceived(claimedPickID: claimedPickID)
-        guard flow.beginPhotoLibrarySelectionHandling() else { return }
+        let selectionWasAccepted = flow.debugLibrarySelectionReceivedForLogging()
+        guard flow.beginPhotoLibrarySelectionHandling() else {
+            if selectionWasAccepted {
+                flow.handleDroppedLibrarySelection(model: model)
+            }
+            return
+        }
         await flow.handlePhotoLibrarySelection(item, model: model)
     }
 

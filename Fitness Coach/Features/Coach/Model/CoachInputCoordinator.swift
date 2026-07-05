@@ -81,8 +81,8 @@ final class CoachInputCoordinator {
     func beginPendingImageProcessing(source: CoachInputAttachmentSource) -> Bool {
         guard state.canStartImageSelection else {
             #if DEBUG
-            CoachPhotoLibraryPickDebugLogger.log(
-                event: "begin_pending_image_processing_rejected",
+            CoachPhotoLibraryPickDebugLogger.logDiagnostic(
+                label: "begin_pending_image_processing_rejected",
                 beganPendingProcessing: false,
                 pendingImageStatus: state.pendingImage?.status,
                 extra: ["source": source == .library ? "library" : "camera"]
@@ -92,8 +92,8 @@ final class CoachInputCoordinator {
         }
         mutateState { $0.beginProcessingNewSelection(source: source) }
         #if DEBUG
-        CoachPhotoLibraryPickDebugLogger.log(
-            event: "begin_pending_image_processing",
+        CoachPhotoLibraryPickDebugLogger.logDiagnostic(
+            label: "begin_pending_image_processing",
             beganPendingProcessing: true,
             pendingImageStatus: state.pendingImage?.status,
             extra: ["source": source == .library ? "library" : "camera"]
@@ -140,8 +140,8 @@ final class CoachInputCoordinator {
 
         guard staged else {
             #if DEBUG
-            CoachPhotoLibraryPickDebugLogger.log(
-                event: "stage_pipeline_processed_photo_rejected",
+            CoachPhotoLibraryPickDebugLogger.logDiagnostic(
+                label: "stage_pipeline_processed_photo_rejected",
                 pendingImageStatus: state.pendingImage?.status,
                 extra: ["source": source == .library ? "library" : "camera"]
             )
@@ -151,8 +151,8 @@ final class CoachInputCoordinator {
 
         CoachMealPhotoPipeline.assertImagePayloadPresent(processed.uploadData)
         #if DEBUG
-        CoachPhotoLibraryPickDebugLogger.log(
-            event: "stage_pipeline_processed_photo",
+        CoachPhotoLibraryPickDebugLogger.logDiagnostic(
+            label: "stage_pipeline_processed_photo",
             pendingImageStatus: state.pendingImage?.status,
             extra: [
                 "source": source == .library ? "library" : "camera",
@@ -166,6 +166,17 @@ final class CoachInputCoordinator {
     func failPendingImageProcessing(_ error: CoachMealPhotoError) {
         guard hasActivePendingImageImport() else { return }
         mutateState { $0.failImageProcessing(error) }
+    }
+
+    func reportComposerImageSelectionError(_ error: CoachMealPhotoError) {
+        guard error != .userCancelled else { return }
+        mutateState { state in
+            if var pending = state.pendingImage, pending.isProcessing {
+                pending.status = .failed
+                state.pendingImage = pending
+            }
+            state.imageError = error
+        }
     }
 
     func revertPendingImageProcessingCancel() {

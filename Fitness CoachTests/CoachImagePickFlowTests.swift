@@ -82,7 +82,7 @@ final class CoachImagePickFlowTests: XCTestCase {
 
         flow.setStateForTests(.processingImage(.library))
 
-        XCTAssertFalse(flow.beginPhotoLibraryPick(model: model))
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .rejectedFlowBusy)
         await flow.beginCameraPick(model: model)
         XCTAssertEqual(flow.state, .processingImage(.library))
     }

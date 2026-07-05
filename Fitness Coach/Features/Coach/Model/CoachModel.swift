@@ -190,6 +190,9 @@ final class CoachModel: ObservableObject {
     }
 
     func failPendingImageProcessing(_ error: CoachMealPhotoError) { inputCoordinator.failPendingImageProcessing(error) }
+    func reportComposerImageSelectionError(_ error: CoachMealPhotoError) {
+        inputCoordinator.reportComposerImageSelectionError(error)
+    }
     func revertPendingImageProcessingCancel() { inputCoordinator.revertPendingImageProcessingCancel() }
 
     // MARK: Send
