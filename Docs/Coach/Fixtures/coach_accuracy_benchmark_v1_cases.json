@@ -1,0 +1,1766 @@
+{
+  "version": 1,
+  "description": "Coach Accuracy Benchmark Harness v1 — deterministic QA cases for food estimate accuracy and trust behavior.",
+  "caseCount": 40,
+  "categories": [
+    "singapore_hawker",
+    "meal_prep",
+    "drinks",
+    "desserts",
+    "photo_scenario",
+    "correction_flow"
+  ],
+  "cases": [
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "portion",
+        "sauce"
+      ],
+      "requiredAssumptionKeywords": [
+        "portion",
+        "sauce"
+      ],
+      "id": "bench_hawker_chicken_rice",
+      "category": "singapore_hawker",
+      "prompt": "log chicken rice",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        450,
+        750
+      ],
+      "expectedProteinRange": [
+        22,
+        45
+      ],
+      "expectedCarbsRange": [
+        55,
+        95
+      ],
+      "expectedFatRange": [
+        8,
+        28
+      ],
+      "expectedComponents": [
+        "rice",
+        "chicken",
+        "sauce"
+      ],
+      "singaporeFixtureId": "sg_01_chicken_rice",
+      "notes": "Classic Hainanese chicken rice decomposition."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "oil",
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "nasi lemak",
+        "portion"
+      ],
+      "id": "bench_hawker_nasi_lemak",
+      "category": "singapore_hawker",
+      "prompt": "log nasi lemak with chicken wing",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        550,
+        900
+      ],
+      "expectedProteinRange": [
+        18,
+        40
+      ],
+      "expectedCarbsRange": [
+        55,
+        95
+      ],
+      "expectedFatRange": [
+        20,
+        45
+      ],
+      "expectedComponents": [
+        "rice",
+        "sambal",
+        "chicken"
+      ],
+      "singaporeFixtureId": "sg_07_nasi_lemak_chicken_wing",
+      "notes": "Nasi lemak with protein add-on."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "oil",
+        "wok"
+      ],
+      "requiredAssumptionKeywords": [
+        "oil",
+        "portion"
+      ],
+      "id": "bench_hawker_char_kway_teow",
+      "category": "singapore_hawker",
+      "prompt": "log char kway teow",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        500,
+        900
+      ],
+      "expectedProteinRange": [
+        12,
+        30
+      ],
+      "expectedCarbsRange": [
+        55,
+        100
+      ],
+      "expectedFatRange": [
+        18,
+        40
+      ],
+      "expectedComponents": [
+        "noodles",
+        "prawn",
+        "egg"
+      ],
+      "notes": "Stir-fried noodles; oil is primary uncertainty."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "coconut",
+        "broth"
+      ],
+      "requiredAssumptionKeywords": [
+        "laksa",
+        "portion"
+      ],
+      "id": "bench_hawker_laksa",
+      "category": "singapore_hawker",
+      "prompt": "log laksa",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        450,
+        800
+      ],
+      "expectedProteinRange": [
+        15,
+        35
+      ],
+      "expectedCarbsRange": [
+        45,
+        85
+      ],
+      "expectedFatRange": [
+        15,
+        40
+      ],
+      "expectedComponents": [
+        "noodles",
+        "coconut",
+        "seafood"
+      ],
+      "notes": "Coconut broth and toppings vary widely."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "oil",
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "portion",
+        "vinegar"
+      ],
+      "id": "bench_hawker_bak_chor_mee",
+      "category": "singapore_hawker",
+      "prompt": "log bak chor mee",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        450,
+        800
+      ],
+      "expectedProteinRange": [
+        18,
+        38
+      ],
+      "expectedCarbsRange": [
+        50,
+        95
+      ],
+      "expectedFatRange": [
+        12,
+        35
+      ],
+      "expectedComponents": [
+        "noodles",
+        "minced pork",
+        "mushroom"
+      ],
+      "notes": "Minced pork noodles with sauce/oil variance."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "skin",
+        "sauce"
+      ],
+      "requiredAssumptionKeywords": [
+        "duck",
+        "portion"
+      ],
+      "id": "bench_hawker_duck_rice",
+      "category": "singapore_hawker",
+      "prompt": "log duck rice",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        500,
+        850
+      ],
+      "expectedProteinRange": [
+        20,
+        42
+      ],
+      "expectedCarbsRange": [
+        55,
+        95
+      ],
+      "expectedFatRange": [
+        15,
+        38
+      ],
+      "expectedComponents": [
+        "rice",
+        "duck",
+        "sauce"
+      ],
+      "notes": "Roast duck rice with skin/fat variance."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "oil",
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "caifan",
+        "portion"
+      ],
+      "id": "bench_hawker_caifan_2meat_1veg",
+      "category": "singapore_hawker",
+      "prompt": "log caifan 2 meat 1 veg",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        500,
+        850
+      ],
+      "expectedProteinRange": [
+        22,
+        45
+      ],
+      "expectedCarbsRange": [
+        55,
+        100
+      ],
+      "expectedFatRange": [
+        12,
+        35
+      ],
+      "expectedComponents": [
+        "rice",
+        "meat",
+        "vegetable"
+      ],
+      "notes": "Economy rice with three dishes plus rice."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "oil",
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "mala",
+        "oil"
+      ],
+      "id": "bench_hawker_mala_xiang_guo",
+      "category": "singapore_hawker",
+      "prompt": "log mala xiang guo",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        550,
+        1000
+      ],
+      "expectedProteinRange": [
+        20,
+        45
+      ],
+      "expectedCarbsRange": [
+        30,
+        80
+      ],
+      "expectedFatRange": [
+        25,
+        55
+      ],
+      "expectedComponents": [
+        "meat",
+        "vegetable",
+        "oil"
+      ],
+      "singaporeFixtureId": "sg_15_mala_xiang_guo",
+      "notes": "Dry mala stir-fry; heavy oil assumption."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "broth",
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "yong tau foo",
+        "portion"
+      ],
+      "id": "bench_hawker_yong_tau_foo",
+      "category": "singapore_hawker",
+      "prompt": "log yong tau foo with noodles",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        400,
+        750
+      ],
+      "expectedProteinRange": [
+        15,
+        35
+      ],
+      "expectedCarbsRange": [
+        45,
+        90
+      ],
+      "expectedFatRange": [
+        8,
+        28
+      ],
+      "expectedComponents": [
+        "tofu",
+        "noodle",
+        "soup"
+      ],
+      "singaporeFixtureId": "sg_14_yong_tau_foo_with_noodles",
+      "notes": "Mixed items with soup or dry option."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "portion",
+        "curry"
+      ],
+      "requiredAssumptionKeywords": [
+        "curry",
+        "portion"
+      ],
+      "id": "bench_hawker_curry_rice",
+      "category": "singapore_hawker",
+      "prompt": "log Japanese curry rice",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        500,
+        850
+      ],
+      "expectedProteinRange": [
+        15,
+        35
+      ],
+      "expectedCarbsRange": [
+        60,
+        110
+      ],
+      "expectedFatRange": [
+        10,
+        30
+      ],
+      "expectedComponents": [
+        "rice",
+        "curry"
+      ],
+      "singaporeFixtureId": "sg_42_japanese_curry_rice",
+      "notes": "Curry rice with portion uncertainty."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "broth",
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "fish soup",
+        "portion"
+      ],
+      "id": "bench_hawker_fish_soup_noodles",
+      "category": "singapore_hawker",
+      "prompt": "log fish soup with rice noodles",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        350,
+        650
+      ],
+      "expectedProteinRange": [
+        18,
+        40
+      ],
+      "expectedCarbsRange": [
+        30,
+        70
+      ],
+      "expectedFatRange": [
+        5,
+        20
+      ],
+      "expectedComponents": [
+        "fish",
+        "soup",
+        "noodles"
+      ],
+      "notes": "Fish soup noodle set."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "oil",
+        "prata"
+      ],
+      "requiredAssumptionKeywords": [
+        "prata",
+        "portion"
+      ],
+      "id": "bench_hawker_prata",
+      "category": "singapore_hawker",
+      "prompt": "log egg prata",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        300,
+        550
+      ],
+      "expectedProteinRange": [
+        8,
+        18
+      ],
+      "expectedCarbsRange": [
+        35,
+        65
+      ],
+      "expectedFatRange": [
+        12,
+        30
+      ],
+      "expectedComponents": [
+        "prata",
+        "egg"
+      ],
+      "singaporeFixtureId": "sg_19_prata_egg",
+      "notes": "Single egg prata typical portion."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "medium",
+        "max": "high"
+      },
+      "requiredUncertaintyKeywords": [],
+      "requiredAssumptionKeywords": [
+        "cooked",
+        "200g"
+      ],
+      "id": "bench_prep_chicken_breast_200g",
+      "category": "meal_prep",
+      "prompt": "log 200g cooked chicken breast",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        280,
+        360
+      ],
+      "expectedProteinRange": [
+        45,
+        62
+      ],
+      "expectedCarbsRange": [
+        0,
+        5
+      ],
+      "expectedFatRange": [
+        5,
+        12
+      ],
+      "expectedComponents": [
+        "chicken breast"
+      ],
+      "singaporeFixtureId": "sg_36_chicken_breast_200g",
+      "notes": "Exact grams should narrow range and raise confidence ceiling."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "medium",
+        "max": "high"
+      },
+      "requiredUncertaintyKeywords": [],
+      "requiredAssumptionKeywords": [
+        "cooked",
+        "300g"
+      ],
+      "id": "bench_prep_chicken_breast_300g",
+      "category": "meal_prep",
+      "prompt": "log 300g cooked chicken breast",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        420,
+        540
+      ],
+      "expectedProteinRange": [
+        68,
+        94
+      ],
+      "expectedCarbsRange": [
+        0,
+        8
+      ],
+      "expectedFatRange": [
+        8,
+        18
+      ],
+      "expectedComponents": [
+        "chicken breast"
+      ],
+      "singaporeFixtureId": "sg_37_chicken_breast_300g",
+      "notes": "Correction-flow baseline for portion edits."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "medium",
+        "max": "high"
+      },
+      "requiredUncertaintyKeywords": [],
+      "requiredAssumptionKeywords": [
+        "150g",
+        "cooked"
+      ],
+      "id": "bench_prep_rice_150g",
+      "category": "meal_prep",
+      "prompt": "log 150g cooked white rice",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        170,
+        220
+      ],
+      "expectedProteinRange": [
+        3,
+        6
+      ],
+      "expectedCarbsRange": [
+        35,
+        50
+      ],
+      "expectedFatRange": [
+        0,
+        2
+      ],
+      "expectedComponents": [
+        "rice"
+      ],
+      "notes": "Gram-specified rice portion."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "medium",
+        "max": "high"
+      },
+      "requiredUncertaintyKeywords": [],
+      "requiredAssumptionKeywords": [
+        "steamed",
+        "100g"
+      ],
+      "id": "bench_prep_broccoli",
+      "category": "meal_prep",
+      "prompt": "log 100g steamed broccoli",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        25,
+        45
+      ],
+      "expectedProteinRange": [
+        2,
+        5
+      ],
+      "expectedCarbsRange": [
+        4,
+        10
+      ],
+      "expectedFatRange": [
+        0,
+        2
+      ],
+      "expectedComponents": [
+        "broccoli"
+      ],
+      "notes": "Low-calorie veg with grams specified."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "medium",
+        "max": "high"
+      },
+      "requiredUncertaintyKeywords": [],
+      "requiredAssumptionKeywords": [
+        "salmon",
+        "150g"
+      ],
+      "id": "bench_prep_salmon_150g",
+      "category": "meal_prep",
+      "prompt": "log 150g cooked salmon",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        250,
+        350
+      ],
+      "expectedProteinRange": [
+        28,
+        40
+      ],
+      "expectedCarbsRange": [
+        0,
+        3
+      ],
+      "expectedFatRange": [
+        12,
+        22
+      ],
+      "expectedComponents": [
+        "salmon"
+      ],
+      "notes": "Exact salmon grams for meal prep."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "brand",
+        "scoop"
+      ],
+      "requiredAssumptionKeywords": [
+        "scoop",
+        "milk"
+      ],
+      "id": "bench_prep_protein_shake",
+      "category": "meal_prep",
+      "prompt": "log protein shake",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        120,
+        350
+      ],
+      "expectedProteinRange": [
+        20,
+        45
+      ],
+      "expectedCarbsRange": [
+        3,
+        25
+      ],
+      "expectedFatRange": [
+        1,
+        10
+      ],
+      "expectedComponents": [
+        "protein shake"
+      ],
+      "singaporeFixtureId": "sg_34_protein_shake",
+      "notes": "Shake brand/scoop size drives uncertainty."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "sugar"
+      ],
+      "requiredAssumptionKeywords": [
+        "kopi",
+        "sugar"
+      ],
+      "id": "bench_drink_kopi_o",
+      "category": "drinks",
+      "prompt": "log kopi o",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        15,
+        60
+      ],
+      "expectedProteinRange": [
+        0,
+        2
+      ],
+      "expectedCarbsRange": [
+        2,
+        12
+      ],
+      "expectedFatRange": [
+        0,
+        2
+      ],
+      "expectedComponents": [
+        "coffee"
+      ],
+      "notes": "Black coffee with sugar; no milk."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "medium",
+        "max": "high"
+      },
+      "requiredUncertaintyKeywords": [],
+      "requiredAssumptionKeywords": [
+        "250ml"
+      ],
+      "id": "bench_drink_milk",
+      "category": "drinks",
+      "prompt": "log 250ml fresh milk",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        120,
+        180
+      ],
+      "expectedProteinRange": [
+        7,
+        10
+      ],
+      "expectedCarbsRange": [
+        10,
+        15
+      ],
+      "expectedFatRange": [
+        5,
+        10
+      ],
+      "expectedComponents": [
+        "milk"
+      ],
+      "notes": "Volume-specified milk."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "sugar",
+        "pearls"
+      ],
+      "requiredAssumptionKeywords": [
+        "sugar",
+        "pearls"
+      ],
+      "id": "bench_drink_bubble_tea",
+      "category": "drinks",
+      "prompt": "log bubble tea full sugar with pearls",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        350,
+        650
+      ],
+      "expectedProteinRange": [
+        2,
+        8
+      ],
+      "expectedCarbsRange": [
+        55,
+        110
+      ],
+      "expectedFatRange": [
+        4,
+        15
+      ],
+      "expectedComponents": [
+        "tea",
+        "pearls",
+        "milk"
+      ],
+      "singaporeFixtureId": "sg_26_bubble_tea_full_sugar_pearls",
+      "notes": "Full sugar BBT with pearls."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "powder",
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "milo",
+        "powder"
+      ],
+      "id": "bench_drink_milo_dinosaur",
+      "category": "drinks",
+      "prompt": "log milo dinosaur",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        250,
+        500
+      ],
+      "expectedProteinRange": [
+        4,
+        12
+      ],
+      "expectedCarbsRange": [
+        35,
+        70
+      ],
+      "expectedFatRange": [
+        4,
+        15
+      ],
+      "expectedComponents": [
+        "milo"
+      ],
+      "notes": "Extra milo powder on top adds uncertainty."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "milk",
+        "size"
+      ],
+      "requiredAssumptionKeywords": [
+        "milk",
+        "size"
+      ],
+      "id": "bench_drink_latte",
+      "category": "drinks",
+      "prompt": "log latte",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        120,
+        280
+      ],
+      "expectedProteinRange": [
+        6,
+        12
+      ],
+      "expectedCarbsRange": [
+        8,
+        20
+      ],
+      "expectedFatRange": [
+        4,
+        12
+      ],
+      "expectedComponents": [
+        "coffee",
+        "milk"
+      ],
+      "notes": "Milk volume/size is main uncertainty."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "sugar cane",
+        "portion"
+      ],
+      "id": "bench_drink_sugar_cane",
+      "category": "drinks",
+      "prompt": "log sugar cane juice",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        120,
+        280
+      ],
+      "expectedProteinRange": [
+        0,
+        2
+      ],
+      "expectedCarbsRange": [
+        28,
+        65
+      ],
+      "expectedFatRange": [
+        0,
+        1
+      ],
+      "expectedComponents": [
+        "sugar cane"
+      ],
+      "notes": "Fresh juice cup size varies."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "portion",
+        "cream"
+      ],
+      "requiredAssumptionKeywords": [
+        "slice",
+        "cream"
+      ],
+      "id": "bench_dessert_tiramisu",
+      "category": "desserts",
+      "prompt": "log tiramisu slice",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        250,
+        500
+      ],
+      "expectedProteinRange": [
+        4,
+        10
+      ],
+      "expectedCarbsRange": [
+        25,
+        55
+      ],
+      "expectedFatRange": [
+        12,
+        30
+      ],
+      "expectedComponents": [
+        "tiramisu"
+      ],
+      "singaporeFixtureId": "sg_48_tiramisu_slice",
+      "notes": "Cafe dessert slice."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "brownie",
+        "portion"
+      ],
+      "id": "bench_dessert_brownie",
+      "category": "desserts",
+      "prompt": "log chocolate brownie",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        200,
+        450
+      ],
+      "expectedProteinRange": [
+        3,
+        8
+      ],
+      "expectedCarbsRange": [
+        25,
+        55
+      ],
+      "expectedFatRange": [
+        10,
+        28
+      ],
+      "expectedComponents": [
+        "brownie"
+      ],
+      "notes": "Homemade vs cafe brownie size variance."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "scoop",
+        "brand"
+      ],
+      "requiredAssumptionKeywords": [
+        "scoop"
+      ],
+      "id": "bench_dessert_ice_cream",
+      "category": "desserts",
+      "prompt": "log ice cream scoop",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        120,
+        300
+      ],
+      "expectedProteinRange": [
+        2,
+        6
+      ],
+      "expectedCarbsRange": [
+        15,
+        35
+      ],
+      "expectedFatRange": [
+        5,
+        18
+      ],
+      "expectedComponents": [
+        "ice cream"
+      ],
+      "notes": "Single scoop assumption."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "slice",
+        "frosting"
+      ],
+      "requiredAssumptionKeywords": [
+        "slice",
+        "frosting"
+      ],
+      "id": "bench_dessert_cake_slice",
+      "category": "desserts",
+      "prompt": "log cake slice",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        250,
+        550
+      ],
+      "expectedProteinRange": [
+        3,
+        8
+      ],
+      "expectedCarbsRange": [
+        30,
+        65
+      ],
+      "expectedFatRange": [
+        10,
+        30
+      ],
+      "expectedComponents": [
+        "cake"
+      ],
+      "notes": "Generic cake slice with frosting variance."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "madeleine",
+        "butter"
+      ],
+      "id": "bench_dessert_madeleine",
+      "category": "desserts",
+      "prompt": "log madeleine",
+      "expectedRoute": "estimate_food",
+      "expectedCaloriesRange": [
+        50,
+        120
+      ],
+      "expectedProteinRange": [
+        1,
+        3
+      ],
+      "expectedCarbsRange": [
+        6,
+        15
+      ],
+      "expectedFatRange": [
+        2,
+        8
+      ],
+      "expectedComponents": [
+        "madeleine"
+      ],
+      "notes": "Small butter cake; count often unspecified."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": true,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "cropped",
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "visible",
+        "portion"
+      ],
+      "id": "bench_photo_cropped_plate",
+      "category": "photo_scenario",
+      "prompt": "meal photo: cropped plate",
+      "expectedRoute": "photo_analysis",
+      "expectedCaloriesRange": [
+        350,
+        650
+      ],
+      "expectedComponents": [
+        "chicken",
+        "rice"
+      ],
+      "mockImageAnalysisResponse": {
+        "summary": "Partial plate with chicken and rice visible; edges cropped.",
+        "items": [
+          {
+            "name": "Poached chicken",
+            "quantity": "about 120 g",
+            "calories": 200,
+            "protein": 35,
+            "carbs": 0,
+            "fat": 5,
+            "confidence": "medium",
+            "assumptions": [
+              "Visible portion only; plate cropped; portion uncertainty"
+            ]
+          },
+          {
+            "name": "Rice",
+            "quantity": "about 1 cup",
+            "calories": 205,
+            "protein": 4,
+            "carbs": 45,
+            "fat": 0.4,
+            "confidence": "medium",
+            "assumptions": [
+              "Cropped plate may hide more rice"
+            ]
+          }
+        ],
+        "total": {
+          "calories": 405,
+          "protein": 39,
+          "carbs": 45,
+          "fat": 5.4
+        },
+        "needsUserReview": true,
+        "clarifyingQuestion": null
+      },
+      "notes": "Cropped photo — partial visibility uncertainty."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": true,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "multiple",
+        "plate"
+      ],
+      "requiredAssumptionKeywords": [],
+      "id": "bench_photo_multiple_plates",
+      "category": "photo_scenario",
+      "prompt": "meal photo: multiple plates",
+      "expectedRoute": "photo_analysis",
+      "expectedCaloriesRange": [
+        400,
+        900
+      ],
+      "expectedComponents": [
+        "plate",
+        "rice"
+      ],
+      "mockImageAnalysisResponse": {
+        "summary": "Two plates visible; unclear which is the user's meal.",
+        "items": [
+          {
+            "name": "Mixed rice plate",
+            "quantity": "1 plate",
+            "calories": 520,
+            "protein": 22,
+            "carbs": 70,
+            "fat": 14,
+            "confidence": "low",
+            "assumptions": [
+              "Multiple plates in frame; clarify which plate"
+            ]
+          }
+        ],
+        "total": {
+          "calories": 520,
+          "protein": 22,
+          "carbs": 70,
+          "fat": 14
+        },
+        "needsUserReview": true,
+        "clarifyingQuestion": "I see more than one plate — which one is yours?"
+      },
+      "notes": "Must clarify which plate to log."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": true,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "sauce",
+        "hidden"
+      ],
+      "requiredAssumptionKeywords": [],
+      "id": "bench_photo_hidden_sauce",
+      "category": "photo_scenario",
+      "prompt": "meal photo: hidden sauce",
+      "expectedRoute": "photo_analysis",
+      "expectedCaloriesRange": [
+        400,
+        800
+      ],
+      "expectedComponents": [
+        "noodles",
+        "sauce"
+      ],
+      "mockImageAnalysisResponse": {
+        "summary": "Noodles with sauce mostly under toppings.",
+        "items": [
+          {
+            "name": "Noodles with sauce",
+            "quantity": "1 bowl",
+            "calories": 550,
+            "protein": 18,
+            "carbs": 75,
+            "fat": 18,
+            "confidence": "low",
+            "assumptions": [
+              "Sauce/oil hidden under toppings; estimate includes typical hawker oil"
+            ]
+          }
+        ],
+        "total": {
+          "calories": 550,
+          "protein": 18,
+          "carbs": 75,
+          "fat": 18
+        },
+        "needsUserReview": true,
+        "clarifyingQuestion": "Was there extra chili oil or gravy I can't see?"
+      },
+      "notes": "Hidden sauce/oil uncertainty."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": true,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "buffet",
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [],
+      "id": "bench_photo_buffet",
+      "category": "photo_scenario",
+      "prompt": "meal photo: buffet spread",
+      "expectedRoute": "photo_analysis",
+      "expectedCaloriesRange": [
+        500,
+        1200
+      ],
+      "expectedComponents": [
+        "buffet",
+        "plate"
+      ],
+      "mockImageAnalysisResponse": {
+        "summary": "Buffet spread with many dishes.",
+        "items": [
+          {
+            "name": "Buffet plate",
+            "quantity": "1 plate",
+            "calories": 750,
+            "protein": 30,
+            "carbs": 85,
+            "fat": 28,
+            "confidence": "low",
+            "assumptions": [
+              "Buffet portions vary; estimate is one medium plate"
+            ]
+          }
+        ],
+        "total": {
+          "calories": 750,
+          "protein": 30,
+          "carbs": 85,
+          "fat": 28
+        },
+        "needsUserReview": true,
+        "clarifyingQuestion": "Which items from the buffet did you take?"
+      },
+      "notes": "Buffet requires clarification or low-confidence pending."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [],
+      "requiredAssumptionKeywords": [
+        "drink",
+        "food"
+      ],
+      "id": "bench_photo_drink_and_food",
+      "category": "photo_scenario",
+      "prompt": "meal photo: drink and food",
+      "expectedRoute": "photo_analysis",
+      "expectedCaloriesRange": [
+        450,
+        900
+      ],
+      "expectedComponents": [
+        "rice",
+        "drink"
+      ],
+      "mockImageAnalysisResponse": {
+        "summary": "Rice plate with iced drink on the side.",
+        "items": [
+          {
+            "name": "Chicken rice",
+            "quantity": "1 plate",
+            "calories": 580,
+            "protein": 28,
+            "carbs": 72,
+            "fat": 16,
+            "confidence": "medium",
+            "assumptions": [
+              "Standard chicken rice plate; includes food and drink"
+            ]
+          },
+          {
+            "name": "Iced drink",
+            "quantity": "1 cup",
+            "calories": 120,
+            "protein": 1,
+            "carbs": 28,
+            "fat": 0,
+            "confidence": "low",
+            "assumptions": [
+              "Sweet drink; sugar level unknown; drink on the side"
+            ]
+          }
+        ],
+        "total": {
+          "calories": 700,
+          "protein": 29,
+          "carbs": 100,
+          "fat": 16
+        },
+        "needsUserReview": true,
+        "clarifyingQuestion": null
+      },
+      "notes": "Food plus drink in same photo."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": true,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "oil",
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [],
+      "id": "bench_photo_mixed_economy_rice",
+      "category": "photo_scenario",
+      "prompt": "meal photo: mixed economy rice",
+      "expectedRoute": "photo_analysis",
+      "expectedCaloriesRange": [
+        450,
+        850
+      ],
+      "expectedComponents": [
+        "rice",
+        "meat",
+        "vegetable"
+      ],
+      "mockImageAnalysisResponse": {
+        "summary": "Economy rice with two meats and vegetables.",
+        "items": [
+          {
+            "name": "Rice",
+            "quantity": "1 scoop",
+            "calories": 200,
+            "protein": 4,
+            "carbs": 44,
+            "fat": 1,
+            "confidence": "medium",
+            "assumptions": [
+              "Standard cai fan rice scoop"
+            ]
+          },
+          {
+            "name": "Stir-fried meat",
+            "quantity": "1 portion",
+            "calories": 220,
+            "protein": 18,
+            "carbs": 6,
+            "fat": 12,
+            "confidence": "low",
+            "assumptions": [
+              "Oil in stir-fry unknown; economy rice portion"
+            ]
+          },
+          {
+            "name": "Vegetables",
+            "quantity": "1 portion",
+            "calories": 80,
+            "protein": 3,
+            "carbs": 10,
+            "fat": 3,
+            "confidence": "low",
+            "assumptions": [
+              "Mixed veg with sauce"
+            ]
+          }
+        ],
+        "total": {
+          "calories": 500,
+          "protein": 25,
+          "carbs": 60,
+          "fat": 16
+        },
+        "needsUserReview": true,
+        "clarifyingQuestion": null
+      },
+      "notes": "Mixed cai fan from photo."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [],
+      "requiredAssumptionKeywords": [
+        "300g",
+        "cooked"
+      ],
+      "id": "bench_correction_chicken_300g",
+      "category": "correction_flow",
+      "prompt": "chicken was 300g not 200g",
+      "expectedRoute": "estimate_food",
+      "baselinePrompt": "log 200g cooked chicken breast",
+      "expectedCaloriesRange": [
+        420,
+        540
+      ],
+      "expectedProteinRange": [
+        68,
+        93
+      ],
+      "expectedComponents": [
+        "chicken breast"
+      ],
+      "notes": "NL correction increases chicken portion."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "portion"
+      ],
+      "requiredAssumptionKeywords": [
+        "half",
+        "rice"
+      ],
+      "id": "bench_correction_rice_half",
+      "category": "correction_flow",
+      "prompt": "rice was half portion",
+      "expectedRoute": "estimate_food",
+      "baselinePrompt": "log chicken rice",
+      "expectedCaloriesRange": [
+        300,
+        550
+      ],
+      "expectedComponents": [
+        "rice",
+        "chicken"
+      ],
+      "notes": "Portion correction on rice component."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [],
+      "requiredAssumptionKeywords": [
+        "chili",
+        "sauce"
+      ],
+      "id": "bench_correction_add_chili_sauce",
+      "category": "correction_flow",
+      "prompt": "add chili sauce",
+      "expectedRoute": "estimate_food",
+      "baselinePrompt": "log chicken rice",
+      "expectedCaloriesRange": [
+        480,
+        820
+      ],
+      "expectedComponents": [
+        "rice",
+        "chicken",
+        "sauce"
+      ],
+      "notes": "User adds missing sauce component."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [
+        "steamed"
+      ],
+      "requiredAssumptionKeywords": [
+        "steamed"
+      ],
+      "id": "bench_correction_steamed_not_roasted",
+      "category": "correction_flow",
+      "prompt": "it was steamed not roasted chicken",
+      "expectedRoute": "estimate_food",
+      "baselinePrompt": "log roasted chicken rice",
+      "expectedCaloriesRange": [
+        430,
+        700
+      ],
+      "expectedComponents": [
+        "rice",
+        "chicken"
+      ],
+      "notes": "Preparation correction lowers fat estimate."
+    },
+    {
+      "shouldLogAutomatically": false,
+      "shouldRequireConfirmation": true,
+      "shouldAskClarification": false,
+      "allowLowConfidencePending": false,
+      "expectedConfidenceBand": {
+        "min": "low",
+        "max": "medium"
+      },
+      "requiredUncertaintyKeywords": [],
+      "requiredAssumptionKeywords": [
+        "no sauce"
+      ],
+      "id": "bench_correction_remove_sauce",
+      "category": "correction_flow",
+      "prompt": "remove the sauce",
+      "expectedRoute": "estimate_food",
+      "baselinePrompt": "log chicken rice",
+      "expectedCaloriesRange": [
+        400,
+        680
+      ],
+      "expectedComponents": [
+        "rice",
+        "chicken"
+      ],
+      "notes": "User removes sauce from estimate."
+    }
+  ]
+}
