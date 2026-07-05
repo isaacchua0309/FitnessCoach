@@ -14,7 +14,7 @@ extension AuthGateCoordinator: AuthOnboardingShellCoordinatorDelegate {
     }
 
     func isSignedIn() -> Bool {
-        AppRouteResolver.isSignedIn(authManager.authState)
+        isUserSignedIn
     }
 
     func rootState() -> RootViewState {

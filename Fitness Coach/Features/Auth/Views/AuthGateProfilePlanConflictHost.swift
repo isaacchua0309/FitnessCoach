@@ -12,7 +12,7 @@ struct AuthGateProfilePlanConflictHost: View {
 
     var body: some View {
         if let cloudDocument = coordinator.conflictCloudDocument,
-           let localProfile = try? coordinator.container.userProfileService.getCurrentProfile() {
+           let localProfile = coordinator.localProfileForPlanConflict() {
             let summary = ProfilePlanConflictSummaryBuilder.build(
                 localProfile: localProfile,
                 cloudDocument: cloudDocument

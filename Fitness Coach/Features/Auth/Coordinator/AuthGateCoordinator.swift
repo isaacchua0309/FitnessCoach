@@ -42,6 +42,9 @@ final class AuthGateCoordinator: ObservableObject {
 
     private var loggedAuthGatePhase: AuthGateLoggedPhase?
     private var cancellables = Set<AnyCancellable>()
+    var didActivateShell = false
+    var lastHandledRoute: AppShellRoute?
+    var shellReactionCancellables = Set<AnyCancellable>()
 
     let publicEntryFlowCoordinator: PublicEntryFlowCoordinator
     let onboardingShellCoordinator: AuthOnboardingShellCoordinator
