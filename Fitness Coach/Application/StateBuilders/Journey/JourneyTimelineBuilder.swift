@@ -282,14 +282,14 @@ enum JourneyTimelineBuilder {
         anchor: JourneyTimelineEvent?
     ) -> [JourneyTimelineEvent] {
         var ordered = nonAnchor.sorted { lhs, rhs in
-            if lhs.date != rhs.date { return lhs.date > rhs.date }
+            if lhs.date != rhs.date { return lhs.date < rhs.date }
             if typePriority(lhs.type) != typePriority(rhs.type) {
-                return typePriority(lhs.type) > typePriority(rhs.type)
+                return typePriority(lhs.type) < typePriority(rhs.type)
             }
             return lhs.id < rhs.id
         }
         if let anchor {
-            ordered.append(anchor)
+            ordered.insert(anchor, at: 0)
         }
         return ordered
     }

@@ -878,8 +878,13 @@ enum UnifiedWeeklyReviewPresentationBuilder {
     ) -> [String] {
         var phrases: [String] = []
 
-        if let averageSteps = stats?.averageSteps, averageSteps > 0 {
-            phrases.append("averaged \(averageSteps.formatted()) steps")
+        let weighIns = stats?.weighIns ?? 0
+        if weighIns > 0 {
+            phrases.append(
+                weighIns == 1
+                    ? "logged your first weigh-in"
+                    : "logged \(weighIns) weigh-ins"
+            )
         }
 
         let workouts = stats?.workouts ?? summary.trainingDays ?? 0
@@ -888,15 +893,6 @@ enum UnifiedWeeklyReviewPresentationBuilder {
                 workouts == 1
                     ? "completed your first workout"
                     : "completed \(workouts) workouts"
-            )
-        }
-
-        let weighIns = stats?.weighIns ?? 0
-        if weighIns > 0 {
-            phrases.append(
-                weighIns == 1
-                    ? "logged your first weigh-in"
-                    : "logged \(weighIns) weigh-ins"
             )
         }
 

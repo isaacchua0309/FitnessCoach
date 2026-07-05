@@ -324,8 +324,20 @@ extension FormaProductCopy {
                 "Longest session: \(durationLabel(minutes: minutes)) \(title)"
             }
 
+            static func longestWorkoutSession(minutes: Int) -> String {
+                "Longest session: \(durationLabel(minutes: minutes))"
+            }
+
             static func mostActiveDay(steps: Int, dateLabel: String) -> String {
                 "Most active day: \(steps.formatted()) steps on \(dateLabel)"
+            }
+
+            static func mostActiveDaySteps(_ steps: Int) -> String {
+                "Most active day: \(steps.formatted()) steps"
+            }
+
+            static func dailyMovement(averageSteps: Int) -> String {
+                "Daily movement: \(averageSteps.formatted()) avg steps"
             }
 
             static func workoutConsistency(days: Int, windowDays: Int) -> String {
@@ -535,6 +547,9 @@ extension FormaProductCopy {
                 static func weekLabel(_ week: Int) -> String {
                     "Week \(week)"
                 }
+
+                static let startedWithFirstWeighInAndWorkout =
+                    "You've started with your first weigh-in and workout."
 
                 static func encouragingSentence(phrases: [String]) -> String {
                     guard let first = phrases.first else { return defaultEncouragingSentence }

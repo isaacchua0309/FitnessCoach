@@ -150,8 +150,8 @@ enum JourneyProgressSectionBuilder {
 
         switch stats.recoveryAvailability {
         case .unavailable:
-            value = copy.limitedData
-            status = .limited
+            value = copy.building
+            status = .building
         case .partial(let days, let required):
             value = copy.buildingProgress(current: days, total: required)
             status = .building

@@ -246,9 +246,9 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         XCTAssertEqual(rawDates, rawDates.sorted(by: >), "Raw timeline events should be newest-first")
 
         if let anchorIndex = display.firstIndex(where: { $0.type == .onboardingStarted }),
-           anchorIndex == display.count - 1 {
-            let nonAnchorDates = display.dropLast().map(\.date)
-            XCTAssertEqual(nonAnchorDates, nonAnchorDates.sorted(by: >))
+           anchorIndex == 0 {
+            let nonAnchorDates = display.dropFirst().map(\.date)
+            XCTAssertEqual(nonAnchorDates, nonAnchorDates.sorted(by: <))
         }
 
         for event in display {

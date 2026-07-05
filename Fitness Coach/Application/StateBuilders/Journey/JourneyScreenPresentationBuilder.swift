@@ -561,18 +561,28 @@ enum JourneyScreenPresentationBuilder {
 
     // MARK: - Story
 
-    /// Story events are shown **newest first** (same ordering policy as `JourneyTimelineBuilder`).
+    /// Story events are shown **oldest first**, with onboarding anchor at the top.
     private static func storyPresentation(
         from events: [JourneyStoryEvent]
     ) -> JourneyStoryPresentationState {
-        let sorted = events.sorted { lhs, rhs in
-            if lhs.date != rhs.date {
-                return lhs.date > rhs.date
+        let anchor = events.first { $0.eventType == .onboardingStarted }
+        let rest = events
+            .filter { $0.eventType != .onboardingStarted }
+            .sorted { lhs, rhs in
+                if lhs.date != rhs.date {
+                    return lhs.date < rhs.date
+                }
+                return lhs.id < rhs.id
             }
-            return lhs.id < rhs.id
+
+        var ordered: [JourneyStoryEvent] = []
+        if let anchor {
+            ordered.append(anchor)
         }
+        ordered.append(contentsOf: rest)
+
         return JourneyStoryPresentationState(
-            events: Array(sorted.prefix(JourneyThresholds.maxDisplayedStoryEvents))
+            events: Array(ordered.prefix(JourneyThresholds.maxDisplayedStoryEvents))
         )
     }
 

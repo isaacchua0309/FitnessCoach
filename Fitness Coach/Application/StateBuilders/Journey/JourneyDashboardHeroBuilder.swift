@@ -63,6 +63,10 @@ enum JourneyDashboardHeroBuilder {
         phase: JourneyPhasePresentationState,
         copy: FormaProductCopy.Journey.Dashboard.Hero.Type
     ) -> String {
+        if stats.workouts == 1, stats.weighIns == 1, stats.mealsLogged == 0 {
+            return copy.startedWithFirstWeighInAndWorkout
+        }
+
         let phrases = JourneyHighlightPhraseBuilder.phrases(
             stats: stats,
             summary: summary
@@ -158,20 +162,20 @@ enum JourneyHighlightPhraseBuilder {
     ) -> [String] {
         var phrases: [String] = []
 
-        if stats.workouts > 0 {
-            phrases.append(
-                stats.workouts == 1
-                    ? "completed your first workout"
-                    : "completed \(stats.workouts) workouts"
-            )
-        }
-
         let weighIns = stats.weighIns
         if weighIns > 0 {
             phrases.append(
                 weighIns == 1
                     ? "logged your first weigh-in"
                     : "logged \(weighIns) weigh-ins"
+            )
+        }
+
+        if stats.workouts > 0 {
+            phrases.append(
+                stats.workouts == 1
+                    ? "completed your first workout"
+                    : "completed \(stats.workouts) workouts"
             )
         }
 

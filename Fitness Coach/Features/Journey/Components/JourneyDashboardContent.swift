@@ -83,10 +83,15 @@ struct JourneyDashboardContent: View {
 
         case .nextAction:
             if let nextActionCard = state.screenPresentation.unlockDashboard.nextActionCard {
-                JourneyNextActionCard(
-                    state: nextActionCard,
-                    onCTA: onWeeklyProgressCTA
-                )
+                VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
+                    JourneySectionLabel(
+                        title: FormaProductCopy.Journey.Unlock.nextAchievementSection
+                    )
+                    JourneyNextActionCard(
+                        state: nextActionCard,
+                        onCTA: onWeeklyProgressCTA
+                    )
+                }
             }
 
         case .weeklyProgress:

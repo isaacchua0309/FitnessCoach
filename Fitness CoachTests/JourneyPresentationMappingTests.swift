@@ -66,9 +66,9 @@ final class JourneyPresentationMappingTests: XCTestCase {
         let hero = dashboard.dashboardHero
         let nextAction = presentation.unlockDashboard.nextActionCard
 
-        XCTAssertTrue(
-            hero.encouragingSentence.localizedCaseInsensitiveContains("weigh-in")
-                || hero.encouragingSentence.localizedCaseInsensitiveContains("workout")
+        XCTAssertEqual(
+            hero.encouragingSentence,
+            FormaProductCopy.Journey.Dashboard.Hero.startedWithFirstWeighInAndWorkout
         )
         XCTAssertEqual(presentation.nextBestAction.kind, .logFirstMeal)
         XCTAssertEqual(nextAction?.title, FormaProductCopy.Journey.NextBestAction.logFirstMeal)
