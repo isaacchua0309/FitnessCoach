@@ -118,12 +118,14 @@ final class DailyReviewPayloadBuilderTests: XCTestCase {
         )
     }
 
-    func testBuildSafelyFallsBackWhenPayloadWouldBeTooVerbose() {
+    func testBuildSafelySanitizesVerboseAIAndWinLanguage() {
         let log = TestFixtureFactory.nutritionLog(.baseline)
-        let summary = buildReviewSummary(for: log)
+        var summary = buildReviewSummary(for: log)
+        summary.hasMetProteinTarget = true
+        summary.hasMetWaterTarget = true
         var review = makeReview(from: summary)
         review.summaryText = String(repeating: "Great job winning the day. ", count: 12)
-        review.tomorrowRecommendation = String(repeating: "Win tomorrow with consistency. ", count: 8)
+        review.tomorrowRecommendation = "Win tomorrow with consistency."
 
         let payload = DailyReviewPayloadBuilder.buildSafely(review: review, summary: summary)
 

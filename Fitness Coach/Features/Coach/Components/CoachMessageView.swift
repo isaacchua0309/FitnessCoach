@@ -101,7 +101,7 @@ struct CoachMessageView: View {
     @ViewBuilder
     private func dailyReviewMessage(_ payload: DailyReviewPayload) -> some View {
         HStack {
-            DailyReviewCard(payload: payload)
+            DailyReviewCardView(payload: payload)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 16)
         }
