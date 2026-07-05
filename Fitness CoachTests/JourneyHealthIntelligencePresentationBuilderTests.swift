@@ -347,6 +347,55 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
     }
 
+    func testBuildSectionUsesSectionLoaderCoreClassificationForStaleAndPartialLabels() {
+        let now = Date()
+        let staleSection = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(
+            for: .staleData,
+            now: now
+        )
+        guard let staleUIState = staleSection?.uiState else {
+            XCTFail("Expected stale uiState")
+            return
+        }
+
+        XCTAssertEqual(staleSection?.uiState?.kind, .staleData)
+        XCTAssertEqual(
+            staleSection?.staleDataLabel,
+            HealthIntelligencePresentationCore.staleDataLabel(for: staleUIState, surface: .journey)
+        )
+
+        let partialSection = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(
+            for: .partialSignals
+        )
+        guard let partialUIState = partialSection?.uiState else {
+            XCTFail("Expected partial uiState")
+            return
+        }
+
+        XCTAssertEqual(
+            partialSection?.partialSignalsNote,
+            HealthIntelligencePresentationCore.partialSignalsNote(for: partialUIState, surface: .journey)
+        )
+    }
+
+    func testConnectHealthSectionUsesNormalizedUIStateCopy() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(
+            for: .healthKitDisconnected
+        )
+        guard let uiState = section?.uiState else {
+            XCTFail("Expected uiState")
+            return
+        }
+
+        let normalized = HealthIntelligencePresentationCore.normalizeUIStateCTACopy(
+            for: uiState,
+            surface: .journey
+        )
+
+        XCTAssertEqual(section?.connectHealthCTA?.title, normalized.title)
+        XCTAssertEqual(section?.connectHealthCTA?.message, normalized.message)
+    }
+
     func testWeeklyReviewBuildingCardDelegatesToPresentationCore() {
         let uiState = HealthIntelligenceUIStateMapper.resolve(
             HealthIntelligenceUIContext(
