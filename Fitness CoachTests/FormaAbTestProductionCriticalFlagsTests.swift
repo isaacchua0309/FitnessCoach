@@ -78,6 +78,14 @@ final class FormaAbTestProductionCriticalFlagsTests: XCTestCase {
         XCTAssertTrue(FormaAbTestSnapshot.production.dataDeletionEnabled)
     }
 
+    func testExportCapabilityUsesAccountDataExportPolicyNotFormaAbTest() {
+        XCTAssertFalse(AccountDataExportPolicy.isEnabled)
+        XCTAssertEqual(
+            SettingsDataExportCapability.isImplemented,
+            AccountDataExportPolicy.isEnabled
+        )
+    }
+
     func testDeletionRowsVisibleWhenCapabilityEnabled() {
         let state = SettingsPresentationBuilder.build(
             input: SettingsPresentationInput(

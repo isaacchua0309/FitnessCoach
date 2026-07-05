@@ -51,6 +51,17 @@ final class FormaAbTestProductionSnapshotTests: XCTestCase {
         )
     }
 
+    func testRemovedDataExportEnabledNotInSnapshotInventory() {
+        let names = FormaAbTestSnapshotMirror.flagPropertyNames(for: .allEnabled)
+        XCTAssertFalse(
+            names.contains("dataExportEnabled"),
+            """
+            dataExportEnabled was removed from FormaAbTest; export uses \
+            AccountDataExportPolicy.isEnabled — do not reintroduce this flag.
+            """
+        )
+    }
+
     // MARK: - Health Intelligence (PHASE_20 ship configuration)
 
     func testProductionHealthIntelligenceSafeDefaults() {
