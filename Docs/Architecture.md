@@ -4,7 +4,7 @@ This document describes how the Forma iOS app is composed today and the layering
 
 **Related:** [JourneyArchitecture.md](./JourneyArchitecture.md) — Journey tab product contract; [FormaCalculationSpec.md](./FormaCalculationSpec.md) — canonical plan-target formulas; [Production/ProductionReadinessChecklist.md](./Production/ProductionReadinessChecklist.md) — release gate checklists.
 
-**Production architecture (PRDX v1):** [Architecture/AppArchitectureOverview.md](./Architecture/AppArchitectureOverview.md) — domain map, ownership, and refactor safety. **Coach (post-decomposition v1):** [Coach/CoachArchitecture.md](./Coach/CoachArchitecture.md), [Coach/CoachModelDecompositionV1.md](./Coach/CoachModelDecompositionV1.md). See also [Architecture/SourceOfTruthMap.md](./Architecture/SourceOfTruthMap.md), [Architecture/DependencyInjectionMap.md](./Architecture/DependencyInjectionMap.md), [Architecture/FeatureFlagRegistry.md](./Architecture/FeatureFlagRegistry.md), [Architecture/LoggingAndPrivacyContract.md](./Architecture/LoggingAndPrivacyContract.md), [Architecture/AnalyticsReadinessChecklist.md](./Architecture/AnalyticsReadinessChecklist.md), [Architecture/TestStrategy.md](./Architecture/TestStrategy.md), [TechnicalDebt/TechnicalDebtRegister.md](./TechnicalDebt/TechnicalDebtRegister.md). Historical sprint artifacts: [Archive/](Archive/).
+**Production architecture (PRDX v1):** [Architecture/AppArchitectureOverview.md](./Architecture/AppArchitectureOverview.md) — domain map, ownership, and refactor safety. **Coach (post-decomposition v1):** [Coach/CoachArchitecture.md](./Coach/CoachArchitecture.md), [Coach/CoachModelDecompositionV1.md](./Coach/CoachModelDecompositionV1.md). **Auth gate (post-decomposition v1):** [Architecture/AuthGateArchitecture.md](./Architecture/AuthGateArchitecture.md). See also [Architecture/SourceOfTruthMap.md](./Architecture/SourceOfTruthMap.md), [Architecture/DependencyInjectionMap.md](./Architecture/DependencyInjectionMap.md), [Architecture/FeatureFlagRegistry.md](./Architecture/FeatureFlagRegistry.md), [Architecture/LoggingAndPrivacyContract.md](./Architecture/LoggingAndPrivacyContract.md), [Architecture/AnalyticsReadinessChecklist.md](./Architecture/AnalyticsReadinessChecklist.md), [Architecture/TestStrategy.md](./Architecture/TestStrategy.md), [TechnicalDebt/TechnicalDebtRegister.md](./TechnicalDebt/TechnicalDebtRegister.md). Historical sprint artifacts: [Archive/](Archive/).
 
 ---
 
@@ -66,7 +66,7 @@ Pure routing helpers (testable without SwiftUI) live in `App/Routing/`:
 - `AuthGateRoutingPolicy` — onboarding session overlays on base route
 - `RootProfileRouteResolver` — profile bootstrap → onboarding vs main
 - `ProfileBootstrapCoordinator` — signed-in reconcile decisions
-- `AuthGateCoordinator` — session state, cloud bootstrap, conflict resolution, analytics
+- `AuthGateCoordinator` — **façade** `ObservableObject` for auth shell views (~170 LOC); delegates lifecycle to child coordinators (see [Architecture/AuthGateArchitecture.md](./Architecture/AuthGateArchitecture.md))
 
 On onboarding completion, `AuthGateView` saves the profile to cloud via `profileBootstrapService` before transitioning to main.
 

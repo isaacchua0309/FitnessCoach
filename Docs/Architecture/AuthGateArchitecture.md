@@ -2,7 +2,7 @@
 
 **Status:** Decomposition v1 (behavior-neutral)  
 **Last updated:** 2026-07-05  
-**Related:** [AppArchitectureOverview.md](./AppArchitectureOverview.md), [../Coach/CoachModelDecompositionV1.md](../Coach/CoachModelDecompositionV1.md)
+**Related:** [AppArchitectureOverview.md](./AppArchitectureOverview.md), [../Coach/CoachModelDecompositionV1.md](../Coach/CoachModelDecompositionV1.md), [../TechnicalDebt/TechnicalDebtRegister.md](../TechnicalDebt/TechnicalDebtRegister.md) (TD-AUTH-001)
 
 ---
 
