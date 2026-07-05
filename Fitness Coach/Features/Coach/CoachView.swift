@@ -239,6 +239,8 @@ struct CoachView: View {
             onRemoveAttachment: {
                 photoLibrarySelectionTask?.cancel()
                 photoLibrarySelectionTask = nil
+                photoPickerItem = nil
+                presentedLibraryPickID = nil
                 model.removeStagedMealPhoto()
                 imagePickFlow.handleAttachmentRemoved()
             },

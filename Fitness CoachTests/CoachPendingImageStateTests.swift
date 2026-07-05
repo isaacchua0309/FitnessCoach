@@ -53,6 +53,33 @@ final class CoachPendingImageStateTests: XCTestCase {
         XCTAssertEqual(processing.thumbnail, ready.thumbnail)
         XCTAssertEqual(processing.status, .processing)
         XCTAssertEqual(processing.source, .library)
+        XCTAssertTrue(ready.showsComposerPreview)
+        XCTAssertTrue(processing.showsComposerPreview)
+    }
+
+    func testShowsComposerPreviewDependsOnStatusNotSource() {
+        let sourceImage = makeTestImage(size: CGSize(width: 400, height: 300))
+        guard case .success(let processed) = CoachImagePipeline.process(image: sourceImage) else {
+            return XCTFail("Expected processed image")
+        }
+
+        let cameraReady = CoachPendingImageState.from(
+            processed: processed,
+            source: .camera,
+            originalEstimatedBytes: 500_000,
+            localReferenceID: UUID()
+        )
+        let libraryReady = CoachPendingImageState.from(
+            processed: processed,
+            source: .library,
+            originalEstimatedBytes: 500_000,
+            localReferenceID: UUID()
+        )
+
+        XCTAssertTrue(cameraReady.showsComposerPreview)
+        XCTAssertTrue(libraryReady.showsComposerPreview)
+        XCTAssertTrue(cameraReady.hasValidReadyAttachment)
+        XCTAssertTrue(libraryReady.hasValidReadyAttachment)
     }
 
     func testProcessingPreservesFailedSelectionMetadataForRetry() {

@@ -28,6 +28,7 @@ final class CoachImagePickFlowTests: XCTestCase {
         XCTAssertFalse(pending.thumbnail.isEmpty)
         XCTAssertNotEqual(pending.uploadData, pending.thumbnail)
         XCTAssertEqual(pending.status, .ready)
+        XCTAssertTrue(pending.hasValidReadyAttachment)
     }
 
     func testCameraCaptureSendUsesProcessedUploadBytes() async throws {

@@ -66,10 +66,14 @@ final class CoachInputCoordinator {
     }
 
     func attachPendingImageLocalReference(_ id: UUID) {
+        let previousID = state.pendingImage?.localReferenceID
         mutateState { state in
             guard var pending = state.pendingImage else { return }
             pending.localReferenceID = id
             state.pendingImage = pending
+        }
+        if let previousID, previousID != id {
+            pendingImageLocalSources.remove(previousID)
         }
     }
 
@@ -151,6 +155,10 @@ final class CoachInputCoordinator {
 
         CoachMealPhotoPipeline.assertImagePayloadPresent(processed.uploadData)
         #if DEBUG
+        assert(
+            state.pendingImage?.hasValidReadyAttachment == true,
+            "Staged pending image must satisfy the unified ready attachment contract"
+        )
         CoachPhotoLibraryPickDebugLogger.logDiagnostic(
             label: "stage_pipeline_processed_photo",
             pendingImageStatus: state.pendingImage?.status,

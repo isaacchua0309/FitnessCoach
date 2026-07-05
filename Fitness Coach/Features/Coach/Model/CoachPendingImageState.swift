@@ -52,6 +52,25 @@ struct CoachPendingImageState: Equatable, Identifiable, Sendable {
         compressionStrategy != nil
     }
 
+    /// True when the composer should render the thumbnail strip.
+    /// Uses pending-image status only (never branches on `source`).
+    var showsComposerPreview: Bool {
+        isReady || hasPreservedPreviewWhileProcessing
+    }
+
+    /// Ready replacement keeps the previous thumbnail visible while a new import is processing.
+    var hasPreservedPreviewWhileProcessing: Bool {
+        isProcessing && byteSize > 0 && !thumbnail.isEmpty && !uploadData.isEmpty
+    }
+
+    /// Validates the unified ready attachment contract shared by camera and library paths.
+    var hasValidReadyAttachment: Bool {
+        isReady
+            && !thumbnail.isEmpty
+            && !uploadData.isEmpty
+            && localReferenceID != nil
+    }
+
     var thumbnailUIImage: UIImage? {
         UIImage(data: thumbnail)
     }

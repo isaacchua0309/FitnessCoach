@@ -61,6 +61,8 @@ final class CoachImagePickFlowController: ObservableObject {
 
     func handleAttachmentRemoved() {
         clearLibraryPickSession()
+        isPhotoPickerPresented = false
+        isCameraPresented = false
         state = .idle
     }
 
@@ -406,7 +408,10 @@ final class CoachImagePickFlowController: ObservableObject {
                 return
             }
             state = .processingImage(.camera)
-            model.beginPendingImageProcessing(source: .camera)
+            guard model.beginPendingImageProcessing(source: .camera) else {
+                state = .idle
+                return
+            }
             let localReferenceID = model.storePendingImageLocalSource(image)
             model.attachPendingImageLocalReference(localReferenceID)
             let importResult = await CoachImagePipeline.importFromCamera(
