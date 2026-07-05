@@ -227,7 +227,7 @@ Enable on DEBUG builds (Xcode console — filter `CoachPhotoLibraryPick`):
 FORMA_COACH_PHOTO_LIBRARY_PICK_DEBUG=1
 ```
 
-(Set in scheme → Run → Arguments → Environment Variables. Default is on unless `FORMA_COACH_PHOTO_LIBRARY_PICK_DEBUG=0`.)
+(Set in scheme → Run → Arguments → Environment Variables. **Off by default** — opt in when investigating picker issues.)
 
 | Event | When to expect |
 |-------|----------------|

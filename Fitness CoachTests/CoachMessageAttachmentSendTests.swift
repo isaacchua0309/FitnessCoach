@@ -34,7 +34,7 @@ final class CoachMessageAttachmentSendTests: XCTestCase {
         XCTAssertNil(model.inputState.pendingImage)
         XCTAssertTrue(model.inputText.isEmpty)
         XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
-        XCTAssertEqual(aiService.receivedImagePayloads.last, model.messages.last?.mealPhotoJPEG)
+        XCTAssertEqual(aiService.receivedImagePayloads.last, userMessage.mealPhotoJPEG)
     }
 
     func testSendTextAndImageUsesCaptionInUserMessage() async throws {

@@ -85,17 +85,6 @@ struct CoachComposer: View {
         .onChange(of: isListening) { _, listening in
             listeningPulse = listening
         }
-        .onChange(of: pendingImage?.status) { _, status in
-            #if DEBUG
-            if let status {
-                CoachPhotoLibraryPickDebugLogger.logDiagnostic(
-                    label: "coach_composer_pending_image_status_changed",
-                    pendingImageStatus: status,
-                    extra: ["is_ready": String(pendingImage?.isReady == true)]
-                )
-            }
-            #endif
-        }
         .onAppear {
             listeningPulse = isListening
         }
@@ -247,15 +236,6 @@ struct CoachComposer: View {
             }
 
             Spacer(minLength: 0)
-        }
-        .onAppear {
-            #if DEBUG
-            CoachPhotoLibraryPickDebugLogger.logDiagnostic(
-                label: "coach_composer_attachment_preview_rendered",
-                pendingImageStatus: pendingImage.status,
-                extra: ["is_ready": String(pendingImage.isReady)]
-            )
-            #endif
         }
     }
 

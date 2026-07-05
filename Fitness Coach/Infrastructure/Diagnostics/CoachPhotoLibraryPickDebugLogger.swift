@@ -2,8 +2,8 @@
 //  CoachPhotoLibraryPickDebugLogger.swift
 //  Fitness Coach
 //
-//  Temporary DEBUG instrumentation for Coach photo library pick flow.
-//  Never logs image bytes, filenames, metadata, user text, or personal data.
+//  Privacy-safe DEBUG instrumentation for Coach photo library pick flow.
+//  Opt-in via FORMA_COACH_PHOTO_LIBRARY_PICK_DEBUG=1. Structured events only.
 //
 
 import Foundation
@@ -27,9 +27,9 @@ enum CoachPhotoLibraryPickDebugLogger {
 
     private static let logger = Logger(subsystem: "Forma", category: "CoachPhotoLibraryPick")
 
-    /// Disable with `FORMA_COACH_PHOTO_LIBRARY_PICK_DEBUG=0`.
+    /// Enable with `FORMA_COACH_PHOTO_LIBRARY_PICK_DEBUG=1` (opt-in; off by default).
     static var isEnabled: Bool {
-        ProcessInfo.processInfo.environment["FORMA_COACH_PHOTO_LIBRARY_PICK_DEBUG"] != "0"
+        ProcessInfo.processInfo.environment["FORMA_COACH_PHOTO_LIBRARY_PICK_DEBUG"] == "1"
     }
 
     static func log(
@@ -46,54 +46,6 @@ enum CoachPhotoLibraryPickDebugLogger {
         guard isEnabled else { return }
 
         var fields: [String: String] = ["event": event.rawValue]
-        if let flowState {
-            fields["flow_state"] = flowState.debugLabel
-        }
-        if let isPhotoPickerPresented {
-            fields["is_photo_picker_presented"] = String(isPhotoPickerPresented)
-        }
-        if let librarySelectionReceived {
-            fields["library_selection_received"] = String(librarySelectionReceived)
-        }
-        if let hasSelectionItem {
-            fields["has_selection_item"] = String(hasSelectionItem)
-        }
-        if let guardPassed {
-            fields["guard_passed"] = String(guardPassed)
-        }
-        if let beganPendingProcessing {
-            fields["began_pending_processing"] = String(beganPendingProcessing)
-        }
-        if let pendingImageStatus {
-            fields["pending_image_status"] = pendingImageStatus.debugLabel
-        }
-        for (key, value) in extra.sorted(by: { $0.key < $1.key }) {
-            fields[key] = value
-        }
-
-        let summary = fields
-            .sorted(by: { $0.key < $1.key })
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: " ")
-
-        logger.debug("\(summary, privacy: .public)")
-    }
-
-    /// Non-flow UI instrumentation (composer previews, etc.).
-    static func logDiagnostic(
-        label: String,
-        flowState: CoachImagePickFlowState? = nil,
-        isPhotoPickerPresented: Bool? = nil,
-        librarySelectionReceived: Bool? = nil,
-        hasSelectionItem: Bool? = nil,
-        guardPassed: Bool? = nil,
-        beganPendingProcessing: Bool? = nil,
-        pendingImageStatus: CoachPendingImageStatus? = nil,
-        extra: [String: String] = [:]
-    ) {
-        guard isEnabled else { return }
-
-        var fields: [String: String] = ["event": label]
         if let flowState {
             fields["flow_state"] = flowState.debugLabel
         }

@@ -128,14 +128,6 @@ struct CoachView: View {
                 matching: .images
             )
             .onChange(of: imagePickFlow.isPhotoPickerPresented) { _, isPresented in
-                #if DEBUG
-                CoachPhotoLibraryPickDebugLogger.logDiagnostic(
-                    label: "coach_view_photo_picker_presented_changed",
-                    flowState: imagePickFlow.state,
-                    isPhotoPickerPresented: isPresented,
-                    librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging()
-                )
-                #endif
                 guard !isPresented else { return }
                 imagePickFlow.handlePhotoLibraryPickerDismissed()
             }
@@ -319,7 +311,6 @@ struct CoachView: View {
             presentedLibraryPickID = nil
         case .rejectedFlowBusy, .rejectedComposerSending:
             presentedLibraryPickID = nil
-            logBlockedPhotoLibraryPick()
         }
     }
 
@@ -328,32 +319,12 @@ struct CoachView: View {
 
         let selectedItem = item
 
-        #if DEBUG
-        CoachPhotoLibraryPickDebugLogger.logDiagnostic(
-            label: "coach_view_photo_picker_item_changed",
-            flowState: imagePickFlow.state,
-            isPhotoPickerPresented: imagePickFlow.isPhotoPickerPresented,
-            librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging(),
-            hasSelectionItem: true
-        )
-        #endif
-
         guard let pickID = presentedLibraryPickID else {
             photoPickerItem = nil
             return
         }
 
         guard photoLibrarySelectionTask == nil else {
-            #if DEBUG
-            CoachPhotoLibraryPickDebugLogger.logDiagnostic(
-                label: "coach_view_photo_library_selection_task_already_active",
-                flowState: imagePickFlow.state,
-                isPhotoPickerPresented: imagePickFlow.isPhotoPickerPresented,
-                librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging(),
-                hasSelectionItem: true,
-                guardPassed: false
-            )
-            #endif
             photoPickerItem = nil
             return
         }
@@ -374,22 +345,6 @@ struct CoachView: View {
             await imagePickFlow.handlePhotoLibrarySelection(selectedItem, model: model)
             photoLibrarySelectionTask = nil
         }
-    }
-
-    private func logBlockedPhotoLibraryPick() {
-        #if DEBUG
-        CoachPhotoLibraryPickDebugLogger.logDiagnostic(
-            label: "coach_view_photo_library_pick_blocked",
-            flowState: imagePickFlow.state,
-            isPhotoPickerPresented: imagePickFlow.isPhotoPickerPresented,
-            librarySelectionReceived: imagePickFlow.debugLibrarySelectionReceivedForLogging(),
-            guardPassed: false,
-            extra: [
-                "composer_can_start_selection": String(model.inputState.canStartImageSelection),
-                "flow_allows_attachment_pick": String(imagePickFlow.allowsAttachmentPick)
-            ]
-        )
-        #endif
     }
 
     private func dismissKeyboard() {

@@ -84,25 +84,9 @@ final class CoachInputCoordinator {
     @discardableResult
     func beginPendingImageProcessing(source: CoachInputAttachmentSource) -> Bool {
         guard state.canStartImageSelection else {
-            #if DEBUG
-            CoachPhotoLibraryPickDebugLogger.logDiagnostic(
-                label: "begin_pending_image_processing_rejected",
-                beganPendingProcessing: false,
-                pendingImageStatus: state.pendingImage?.status,
-                extra: ["source": source == .library ? "library" : "camera"]
-            )
-            #endif
             return false
         }
         mutateState { $0.beginProcessingNewSelection(source: source) }
-        #if DEBUG
-        CoachPhotoLibraryPickDebugLogger.logDiagnostic(
-            label: "begin_pending_image_processing",
-            beganPendingProcessing: true,
-            pendingImageStatus: state.pendingImage?.status,
-            extra: ["source": source == .library ? "library" : "camera"]
-        )
-        #endif
         return true
     }
 
@@ -143,13 +127,6 @@ final class CoachInputCoordinator {
         }
 
         guard staged else {
-            #if DEBUG
-            CoachPhotoLibraryPickDebugLogger.logDiagnostic(
-                label: "stage_pipeline_processed_photo_rejected",
-                pendingImageStatus: state.pendingImage?.status,
-                extra: ["source": source == .library ? "library" : "camera"]
-            )
-            #endif
             return false
         }
 
@@ -158,14 +135,6 @@ final class CoachInputCoordinator {
         assert(
             state.pendingImage?.hasValidReadyAttachment == true,
             "Staged pending image must satisfy the unified ready attachment contract"
-        )
-        CoachPhotoLibraryPickDebugLogger.logDiagnostic(
-            label: "stage_pipeline_processed_photo",
-            pendingImageStatus: state.pendingImage?.status,
-            extra: [
-                "source": source == .library ? "library" : "camera",
-                "is_ready": String(state.pendingImage?.isReady == true)
-            ]
         )
         #endif
         return true
