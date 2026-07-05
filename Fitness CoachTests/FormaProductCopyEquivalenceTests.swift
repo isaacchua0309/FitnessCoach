@@ -31,7 +31,7 @@ final class FormaProductCopyEquivalenceTests: XCTestCase {
     func testCoachCopyReturnsExpectedRepresentativeStrings() {
         XCTAssertEqual(
             FormaProductCopy.Coach.headerSubtitle,
-            "What do you want to log or ask?"
+            "Log food, water, weight, or training — or ask what to do next."
         )
         XCTAssertEqual(FormaProductCopy.Coach.composerPlaceholder, "Message Coach…")
         XCTAssertEqual(

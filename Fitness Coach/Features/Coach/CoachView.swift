@@ -30,21 +30,11 @@ struct CoachView: View {
         self.isActive = isActive
     }
 
-    private var coachSubtitle: String? {
-        if let launchPresentation = model.activeLaunchPresentation, !launchPresentation.body.isEmpty {
-            return launchPresentation.body
-        }
-        if let todayContext = model.todayContext {
-            return todayContext.caloriesLine
-        }
-        return FormaProductCopy.EmptyState.CoachConversation.body
-    }
-
     var body: some View {
         NavigationStack {
             MainTabPageScaffold(
                 title: FormaProductCopy.Coach.screenTitle,
-                subtitle: coachSubtitle,
+                subtitle: FormaProductCopy.Coach.headerSubtitle,
                 scrollMode: .embedded
             ) {
                 CoachConversationView(

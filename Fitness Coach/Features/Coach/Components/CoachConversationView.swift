@@ -132,8 +132,8 @@ struct CoachConversationView<BottomAccessory: View>: View {
                 .frame(height: 1)
                 .id(CoachConversationScrollAnchor.bottom)
         }
-        .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
-        .padding(.top, CoachDesignTokens.Spacing.sm)
+        .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
+        .padding(.top, CoachDesignTokens.Spacing.xs)
         .padding(.bottom, CoachDesignTokens.Spacing.md)
     }
 

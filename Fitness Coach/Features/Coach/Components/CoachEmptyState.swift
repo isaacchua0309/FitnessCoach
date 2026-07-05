@@ -32,18 +32,16 @@ struct CoachEmptyState: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.md) {
+        VStack(alignment: .leading, spacing: FormaMainTabLayout.sectionSpacing) {
             if let launchPresentation {
                 launchStarterBlock(launchPresentation)
-            } else {
-                Text(FormaProductCopy.EmptyState.CoachConversation.body)
-                    .font(CoachDesignTokens.Typography.subtitle)
-                    .foregroundStyle(CoachDesignTokens.Color.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if let todayContext {
-                CoachTodayContextCard(state: todayContext)
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                    SectionLabel(title: FormaProductCopy.Coach.todaySoFarSectionTitle)
+                    CoachTodayContextCard(state: todayContext)
+                }
             }
 
             if let launchPresentation, let onLaunchChipTap {
@@ -52,9 +50,8 @@ struct CoachEmptyState: View {
                 defaultQuickActionsSection
             }
         }
-        .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
-        .padding(.top, CoachDesignTokens.Spacing.sm)
-        .padding(.bottom, CoachDesignTokens.Spacing.md)
+        .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
+        .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
         .accessibilityElement(children: .contain)
     }
 
@@ -64,6 +61,13 @@ struct CoachEmptyState: View {
                 .font(CoachDesignTokens.Typography.confirmationTitle)
                 .foregroundStyle(CoachDesignTokens.Color.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if !presentation.body.isEmpty {
+                Text(presentation.body)
+                    .font(CoachDesignTokens.Typography.hint)
+                    .foregroundStyle(CoachDesignTokens.Color.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -92,21 +96,24 @@ struct CoachEmptyState: View {
 }
 
 #Preview {
-    ScrollView {
-        CoachEmptyState(
-            todayContext: CoachTodayContextState(
-                caloriesLine: "0 eaten · 2,249 target",
-                proteinLine: "Protein 0 / 180 g",
-                waterLine: "Water 0 / 3150 ml",
-                activityLines: [],
-                activityHintLine: nil,
-                suggestedFocus: FormaProductCopy.Today.focusProteinLow
-            ),
-            launchPresentation: CoachLaunchPresentationBuilder.presentation(for: .logMeal(mealType: nil)),
-            isDisabled: false,
-            onLaunchChipTap: { _ in }
-        ) { _ in }
+    MainTabPageScaffold(
+        title: FormaProductCopy.Coach.screenTitle,
+        subtitle: FormaProductCopy.Coach.headerSubtitle,
+        scrollMode: .embedded
+    ) {
+        ScrollView {
+            CoachEmptyState(
+                todayContext: CoachTodayContextState(
+                    caloriesLine: "0 eaten · 2,249 target",
+                    proteinLine: "Protein 0 / 180 g",
+                    waterLine: "Water 0 / 3150 ml",
+                    activityLines: ["0 steps"],
+                    activityHintLine: nil,
+                    suggestedFocus: FormaProductCopy.Today.focusProteinLow
+                ),
+                isDisabled: false
+            ) { _ in }
+        }
     }
-    .background(CoachDesignTokens.Color.background)
     .formaThemePreview()
 }

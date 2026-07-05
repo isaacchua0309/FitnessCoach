@@ -11,12 +11,16 @@ struct CoachTodayContextCard: View {
     let state: CoachTodayContextState
 
     var body: some View {
-        FormaPlanCard {
+        MainTabCard {
             VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.sm) {
-                contextSection(
-                    title: FormaProductCopy.Coach.todaySoFarSectionTitle,
-                    lines: todaySoFarLines
-                )
+                VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xxs) {
+                    ForEach(Array(todaySoFarLines.enumerated()), id: \.offset) { index, line in
+                        Text(line.text)
+                            .font(lineFont(for: line, index: index))
+                            .foregroundStyle(lineColor(for: line, index: index))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
 
                 CoachContextDivider()
 
@@ -49,25 +53,6 @@ struct CoachTodayContextCard: View {
             lines.append(.hint(hint))
         }
         return lines
-    }
-
-    private func contextSection(title: String, lines: [CoachTodayContextLine]) -> some View {
-        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xxs) {
-            Text(title)
-                .font(CoachDesignTokens.Typography.hintLabel)
-                .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
-                .textCase(.uppercase)
-                .tracking(0.4)
-
-            VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xxs) {
-                ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
-                    Text(line.text)
-                        .font(lineFont(for: line, index: index))
-                        .foregroundStyle(lineColor(for: line, index: index))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
     }
 
     private func lineFont(for line: CoachTodayContextLine, index: Int) -> Font {
@@ -126,21 +111,24 @@ private struct CoachContextDivider: View {
 }
 
 #Preview {
-    CoachTodayContextCard(
-        state: CoachTodayContextState(
-            caloriesLine: "0 eaten · 2,249 target",
-            proteinLine: "Protein 0 / 180 g",
-            waterLine: "Water 0 / 3150 ml",
-            activityLines: [
-                "Latest: Chicken rice · 650 kcal",
-                "8,420 steps",
-                "Workout: Completed"
-            ],
-            activityHintLine: nil,
-            suggestedFocus: FormaProductCopy.Today.focusProteinLow
+    VStack(alignment: .leading, spacing: FormaMainTabLayout.sectionLabelBottomSpacing) {
+        SectionLabel(title: FormaProductCopy.Coach.todaySoFarSectionTitle)
+        CoachTodayContextCard(
+            state: CoachTodayContextState(
+                caloriesLine: "0 eaten · 2,249 target",
+                proteinLine: "Protein 0 / 180 g",
+                waterLine: "Water 0 / 3150 ml",
+                activityLines: [
+                    "Latest: Chicken rice · 650 kcal",
+                    "8,420 steps",
+                    "Workout: Completed"
+                ],
+                activityHintLine: nil,
+                suggestedFocus: FormaProductCopy.Today.focusProteinLow
+            )
         )
-    )
-    .padding()
+    }
+    .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
     .background(CoachDesignTokens.Color.background)
     .formaThemePreview()
 }
