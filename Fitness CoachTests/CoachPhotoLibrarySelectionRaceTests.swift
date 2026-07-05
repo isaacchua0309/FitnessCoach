@@ -24,27 +24,27 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         let item = CoachPhotoLibrarySelectionRaceTestSupport.testPickerItem
 
         XCTAssertTrue(flow.beginPhotoLibraryPick(model: model))
+        let pickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
         XCTAssertEqual(flow.state, .pickerPresented(.library))
 
-        // PhotosPicker dismisses before `photoPickerItem` onChange (librarySelectionReceived still false).
+        // PhotosPicker dismisses before `photoPickerItem` onChange (no in-flight selection yet).
         flow.handlePhotoLibraryPickerDismissed()
         XCTAssertEqual(flow.state, .idle, "Precondition: dismiss wins the race and resets flow state")
 
         await CoachPhotoLibrarySelectionRaceTestSupport.simulateCoachViewLibrarySelectionCallback(
             flow: flow,
             item: item,
-            model: model
+            model: model,
+            claimedPickID: pickID
         )
 
         XCTAssertEqual(
-            flow.state,
-            .processingImage(.library),
-            "Selection with a valid item must claim the flow before async loading"
+            model.inputState.pendingImage?.status,
+            .ready,
+            "Selection after dismiss must stage a ready pending image instead of being silently dropped"
         )
-        XCTAssertTrue(
-            model.inputState.pendingImage?.isProcessing == true,
-            "Model must begin pending image processing when a library item is selected"
-        )
+        XCTAssertEqual(model.inputState.pendingImage?.source, .library)
+        XCTAssertEqual(flow.state, .idle)
     }
 
     // MARK: - Test 2 — selection started, dismiss during early window
@@ -57,7 +57,8 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         let item = CoachPhotoLibrarySelectionRaceTestSupport.testPickerItem
 
         XCTAssertTrue(flow.beginPhotoLibraryPick(model: model))
-        flow.markLibrarySelectionReceived()
+        let pickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
+        flow.markLibrarySelectionReceived(claimedPickID: pickID)
 
         flow.debugPhotoLibrarySelectionEntryHook = {
             flow.handlePhotoLibraryPickerDismissed()
@@ -67,14 +68,12 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         flow.debugPhotoLibrarySelectionEntryHook = nil
 
         XCTAssertEqual(
-            flow.state,
-            .processingImage(.library),
+            model.inputState.pendingImage?.status,
+            .ready,
             "Dismiss during the early selection window must not reset an in-flight library pick"
         )
-        XCTAssertTrue(
-            model.inputState.pendingImage?.isProcessing == true || model.inputState.pendingImage?.isReady == true,
-            "In-flight selection must continue into processing or complete staging"
-        )
+        XCTAssertEqual(model.inputState.pendingImage?.source, .library)
+        XCTAssertEqual(flow.state, .idle)
     }
 
     // MARK: - Test 3 — cancel without selection
@@ -93,6 +92,29 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         XCTAssertNil(model.inputState.pendingImage)
         XCTAssertNil(model.inputState.imageError)
         XCTAssertFalse(model.inputState.isImageProcessing)
+    }
+
+    func testStaleLibrarySelectionFromPreviousPickIsIgnored() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = CoachPhotoLibrarySelectionRaceTestSupport.makeModel(container: container)
+        let image = CoachPhotoLibrarySelectionRaceTestSupport.makeTestImage()
+        let flow = CoachPhotoLibrarySelectionRaceTestSupport.makeFlow(loading: image)
+        let item = CoachPhotoLibrarySelectionRaceTestSupport.testPickerItem
+
+        XCTAssertTrue(flow.beginPhotoLibraryPick(model: model))
+        let stalePickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
+        flow.handlePhotoLibraryPickerDismissed()
+
+        XCTAssertTrue(flow.beginPhotoLibraryPick(model: model))
+        XCTAssertNotEqual(flow.activeLibraryPickSessionID, stalePickID)
+
+        flow.markLibrarySelectionReceived(claimedPickID: stalePickID)
+
+        XCTAssertFalse(flow.beginPhotoLibrarySelectionHandling())
+        await flow.handlePhotoLibrarySelection(item, model: model)
+
+        XCTAssertNil(model.inputState.pendingImage)
+        XCTAssertEqual(flow.state, .pickerPresented(.library))
     }
 
     // MARK: - Test 4 — blocked pick while busy

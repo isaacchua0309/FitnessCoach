@@ -152,7 +152,7 @@ final class CoachImagePickFlowTests: XCTestCase {
         let flow = CoachImagePickFlowController()
         flow.setStateForTests(.pickerPresented(.library))
 
-        flow.markLibrarySelectionReceived()
+        flow.markLibrarySelectionReceived(claimedPickID: try XCTUnwrap(flow.activeLibraryPickSessionID))
         flow.handlePhotoLibraryPickerDismissed()
 
         XCTAssertEqual(flow.state, .pickerPresented(.library))

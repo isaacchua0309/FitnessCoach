@@ -23,13 +23,18 @@ final class CoachImagePickFlowController: ObservableObject {
 
     /// Set before `fullScreenCover` dismiss runs so a delivered capture is not dropped.
     private var cameraDeliveredResult = false
-    /// Set when `PhotosPicker` hands off an item before the dismiss callback runs.
-    private var librarySelectionReceived = false
+
+    /// Generation token for the active photo-library picker session.
+    private var activeLibraryPickID: UUID?
+    /// Selection received for `activeLibraryPickID` and not yet finished processing.
+    private var librarySelectionInFlightID: UUID?
+    /// After dismiss, accept a late callback only when it matches this pick generation.
+    private var awaitingLateSelectionPickID: UUID?
 
     private let photoLibraryImageLoader: CoachPhotoLibraryImageLoader
 
     #if DEBUG
-    /// Test-only hook invoked after clearing `librarySelectionReceived` and before the picker-state guard.
+    /// Test-only hook invoked before claiming a library selection for processing.
     var debugPhotoLibrarySelectionEntryHook: (@MainActor () async -> Void)?
     #endif
 
@@ -49,28 +54,83 @@ final class CoachImagePickFlowController: ObservableObject {
         state.isProcessingImage
     }
 
+    /// Active photo-library pick generation token; nil when no library pick is open.
+    var activeLibraryPickSessionID: UUID? {
+        activeLibraryPickID
+    }
+
     func handleAttachmentRemoved() {
-        librarySelectionReceived = false
+        clearLibraryPickSession()
         state = .idle
     }
 
-    func markLibrarySelectionReceived() {
-        librarySelectionReceived = true
+    func markLibrarySelectionReceived(claimedPickID: UUID) {
+        guard claimedPickID == activeLibraryPickID else {
+            logStaleLibrarySelection(reason: "claimed_pick_mismatch")
+            return
+        }
+
+        guard let pickID = activeLibraryPickID else {
+            logStaleLibrarySelection(reason: "no_active_pick")
+            return
+        }
+
+        guard canAcceptLibrarySelection(for: pickID) else {
+            logStaleLibrarySelection(reason: "stale_pick_generation")
+            return
+        }
+
+        librarySelectionInFlightID = pickID
         #if DEBUG
         CoachPhotoLibraryPickDebugLogger.log(
             event: "mark_library_selection_received",
             flowState: state,
             isPhotoPickerPresented: isPhotoPickerPresented,
-            librarySelectionReceived: true
+            librarySelectionReceived: true,
+            extra: libraryPickDebugFields()
         )
         #endif
     }
 
     #if DEBUG
     func debugLibrarySelectionReceivedForLogging() -> Bool {
-        librarySelectionReceived
+        librarySelectionInFlightID != nil
     }
     #endif
+
+    /// Synchronously claims a received library selection before async loading.
+    @discardableResult
+    func beginPhotoLibrarySelectionHandling() -> Bool {
+        guard let pickID = librarySelectionInFlightID, pickID == activeLibraryPickID else {
+            logStaleLibrarySelection(reason: "missing_or_mismatched_in_flight_pick")
+            return false
+        }
+
+        if case .processingImage(.library) = state {
+            return true
+        }
+
+        guard state == .pickerPresented(.library) || state == .idle else {
+            logStaleLibrarySelection(reason: "invalid_state_for_claim")
+            return false
+        }
+
+        awaitingLateSelectionPickID = nil
+        isPhotoPickerPresented = false
+        state = .processingImage(.library)
+
+        #if DEBUG
+        CoachPhotoLibraryPickDebugLogger.log(
+            event: "begin_photo_library_selection_handling",
+            flowState: state,
+            isPhotoPickerPresented: isPhotoPickerPresented,
+            librarySelectionReceived: true,
+            guardPassed: true,
+            extra: libraryPickDebugFields()
+        )
+        #endif
+        return true
+    }
 
     @discardableResult
     func beginPhotoLibraryPick(model: CoachModel) -> Bool {
@@ -80,8 +140,9 @@ final class CoachImagePickFlowController: ObservableObject {
                 event: "begin_photo_library_pick_rejected_busy",
                 flowState: state,
                 isPhotoPickerPresented: isPhotoPickerPresented,
-                librarySelectionReceived: librarySelectionReceived,
-                guardPassed: false
+                librarySelectionReceived: false,
+                guardPassed: false,
+                extra: libraryPickDebugFields()
             )
             #endif
             return false
@@ -92,13 +153,16 @@ final class CoachImagePickFlowController: ObservableObject {
                 event: "begin_photo_library_pick_rejected_composer",
                 flowState: state,
                 isPhotoPickerPresented: isPhotoPickerPresented,
-                librarySelectionReceived: librarySelectionReceived,
-                guardPassed: false
+                librarySelectionReceived: false,
+                guardPassed: false,
+                extra: libraryPickDebugFields()
             )
             #endif
             return false
         }
 
+        clearLibraryPickSession()
+        activeLibraryPickID = UUID()
         state = .pickerPresented(.library)
         isPhotoPickerPresented = true
         #if DEBUG
@@ -106,8 +170,9 @@ final class CoachImagePickFlowController: ObservableObject {
             event: "begin_photo_library_pick",
             flowState: state,
             isPhotoPickerPresented: isPhotoPickerPresented,
-            librarySelectionReceived: librarySelectionReceived,
-            guardPassed: true
+            librarySelectionReceived: false,
+            guardPassed: true,
+            extra: libraryPickDebugFields()
         )
         #endif
         return true
@@ -133,20 +198,35 @@ final class CoachImagePickFlowController: ObservableObject {
     }
 
     func handlePhotoLibraryPickerDismissed() {
-        guard case .pickerPresented(.library) = state else { return }
-        if librarySelectionReceived {
-            librarySelectionReceived = false
+        if case .processingImage(.library) = state {
             #if DEBUG
             CoachPhotoLibraryPickDebugLogger.log(
-                event: "handle_photo_library_picker_dismissed_pending_selection",
+                event: "handle_photo_library_picker_dismissed_skipped_processing",
                 flowState: state,
                 isPhotoPickerPresented: isPhotoPickerPresented,
-                librarySelectionReceived: false
+                librarySelectionReceived: librarySelectionInFlightID != nil,
+                extra: libraryPickDebugFields()
             )
             #endif
             return
         }
 
+        if librarySelectionInFlightID != nil {
+            #if DEBUG
+            CoachPhotoLibraryPickDebugLogger.log(
+                event: "handle_photo_library_picker_dismissed_skipped_in_flight",
+                flowState: state,
+                isPhotoPickerPresented: isPhotoPickerPresented,
+                librarySelectionReceived: true,
+                extra: libraryPickDebugFields()
+            )
+            #endif
+            return
+        }
+
+        guard case .pickerPresented(.library) = state else { return }
+
+        awaitingLateSelectionPickID = activeLibraryPickID
         state = .idle
         isPhotoPickerPresented = false
         #if DEBUG
@@ -154,7 +234,8 @@ final class CoachImagePickFlowController: ObservableObject {
             event: "handle_photo_library_picker_dismissed_reset_idle",
             flowState: state,
             isPhotoPickerPresented: isPhotoPickerPresented,
-            librarySelectionReceived: librarySelectionReceived
+            librarySelectionReceived: false,
+            extra: libraryPickDebugFields()
         )
         #endif
     }
@@ -168,46 +249,54 @@ final class CoachImagePickFlowController: ObservableObject {
             event: "handle_photo_library_selection_entered",
             flowState: state,
             isPhotoPickerPresented: isPhotoPickerPresented,
-            librarySelectionReceived: librarySelectionReceived,
-            hasSelectionItem: true
+            librarySelectionReceived: librarySelectionInFlightID != nil,
+            hasSelectionItem: true,
+            extra: libraryPickDebugFields()
         )
-        #endif
-
-        librarySelectionReceived = false
-        #if DEBUG
         if let debugPhotoLibrarySelectionEntryHook {
             await debugPhotoLibrarySelectionEntryHook()
         }
         #endif
-        guard case .pickerPresented(.library) = state else {
-            #if DEBUG
-            CoachPhotoLibraryPickDebugLogger.log(
-                event: "handle_photo_library_selection_guard_failed",
-                flowState: state,
-                isPhotoPickerPresented: isPhotoPickerPresented,
-                librarySelectionReceived: librarySelectionReceived,
-                hasSelectionItem: true,
-                guardPassed: false
-            )
-            #endif
+
+        guard beginPhotoLibrarySelectionHandling() else {
             return
         }
 
-        isPhotoPickerPresented = false
-        state = .processingImage(.library)
-        let beganPendingProcessing = model.beginPendingImageProcessing(source: .library)
+        guard model.beginPendingImageProcessing(source: .library) else {
+            #if DEBUG
+            CoachPhotoLibraryPickDebugLogger.log(
+                event: "handle_photo_library_selection_begin_pending_failed",
+                flowState: state,
+                isPhotoPickerPresented: isPhotoPickerPresented,
+                librarySelectionReceived: librarySelectionInFlightID != nil,
+                hasSelectionItem: true,
+                guardPassed: false,
+                beganPendingProcessing: false,
+                extra: libraryPickDebugFields()
+            )
+            #endif
+            state = .idle
+            clearLibraryPickSession()
+            return
+        }
+
         #if DEBUG
         CoachPhotoLibraryPickDebugLogger.log(
             event: "handle_photo_library_selection_processing",
             flowState: state,
             isPhotoPickerPresented: isPhotoPickerPresented,
-            librarySelectionReceived: librarySelectionReceived,
+            librarySelectionReceived: librarySelectionInFlightID != nil,
             hasSelectionItem: true,
             guardPassed: true,
-            beganPendingProcessing: beganPendingProcessing,
-            pendingImageStatus: model.inputState.pendingImage?.status
+            beganPendingProcessing: true,
+            pendingImageStatus: model.inputState.pendingImage?.status,
+            extra: libraryPickDebugFields()
         )
         #endif
+
+        defer {
+            clearLibraryPickSession()
+        }
 
         switch await photoLibraryImageLoader(item) {
         case .failure(let error):
@@ -314,6 +403,54 @@ final class CoachImagePickFlowController: ObservableObject {
         state = .idle
         isCameraPresented = false
     }
+
+    // MARK: - Library pick session
+
+    private func canAcceptLibrarySelection(for pickID: UUID) -> Bool {
+        guard activeLibraryPickID == pickID else { return false }
+        if case .pickerPresented(.library) = state { return true }
+        return awaitingLateSelectionPickID == pickID
+    }
+
+    private func clearLibraryPickSession() {
+        activeLibraryPickID = nil
+        librarySelectionInFlightID = nil
+        awaitingLateSelectionPickID = nil
+    }
+
+    private func logStaleLibrarySelection(reason: String) {
+        #if DEBUG
+        CoachPhotoLibraryPickDebugLogger.log(
+            event: "library_selection_stale_or_invalid",
+            flowState: state,
+            isPhotoPickerPresented: isPhotoPickerPresented,
+            librarySelectionReceived: librarySelectionInFlightID != nil,
+            guardPassed: false,
+            extra: libraryPickDebugFields(reason: reason)
+        )
+        #endif
+    }
+
+    #if DEBUG
+    private func libraryPickDebugFields(reason: String? = nil) -> [String: String] {
+        var fields: [String: String] = [:]
+        if let activeLibraryPickID {
+            fields["active_library_pick_id"] = activeLibraryPickID.uuidString
+        }
+        if let librarySelectionInFlightID {
+            fields["library_selection_in_flight_id"] = librarySelectionInFlightID.uuidString
+        }
+        if let awaitingLateSelectionPickID {
+            fields["awaiting_late_selection_pick_id"] = awaitingLateSelectionPickID.uuidString
+        }
+        if let reason {
+            fields["reason"] = reason
+        }
+        return fields
+    }
+    #else
+    private func libraryPickDebugFields(reason: String? = nil) -> [String: String] { [:] }
+    #endif
 
     private func completeImport(
         _ result: Result<CoachImagePipeline.ProcessedImageImport, CoachMealPhotoError>,

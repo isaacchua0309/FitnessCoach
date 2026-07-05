@@ -21,6 +21,7 @@ struct CoachView: View {
     var isActive: Bool = true
 
     @State private var photoPickerItem: PhotosPickerItem?
+    @State private var presentedLibraryPickID: UUID?
     @State private var isRetryingCoachSession = false
 
     init(model: CoachModel, isActive: Bool = true) {
@@ -149,8 +150,10 @@ struct CoachView: View {
                 )
                 #endif
                 guard let item else { return }
+                guard let presentedLibraryPickID else { return }
                 photoPickerItem = nil
-                imagePickFlow.markLibrarySelectionReceived()
+                imagePickFlow.markLibrarySelectionReceived(claimedPickID: presentedLibraryPickID)
+                guard imagePickFlow.beginPhotoLibrarySelectionHandling() else { return }
                 Task {
                     await imagePickFlow.handlePhotoLibrarySelection(item, model: model)
                 }
@@ -295,7 +298,7 @@ struct CoachView: View {
         speechService.stopRecording()
         switch prompt.behavior {
         case .openPhotoPicker:
-            _ = imagePickFlow.beginPhotoLibraryPick(model: model)
+            presentedLibraryPickID = beginPhotoLibraryPick() ? imagePickFlow.activeLibraryPickSessionID : nil
         case .prefill:
             Task { await model.applyStarterPromptSpec(prompt) }
             isInputFocused = true
@@ -312,8 +315,13 @@ struct CoachView: View {
                 await imagePickFlow.beginCameraPick(model: model)
             }
         case .choosePhoto:
-            _ = imagePickFlow.beginPhotoLibraryPick(model: model)
+            presentedLibraryPickID = beginPhotoLibraryPick() ? imagePickFlow.activeLibraryPickSessionID : nil
         }
+    }
+
+    @discardableResult
+    private func beginPhotoLibraryPick() -> Bool {
+        imagePickFlow.beginPhotoLibraryPick(model: model)
     }
 
     private func dismissKeyboard() {

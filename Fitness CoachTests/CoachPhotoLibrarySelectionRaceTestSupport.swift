@@ -30,13 +30,15 @@ enum CoachPhotoLibrarySelectionRaceTestSupport {
         PhotosPickerItem(itemIdentifier: "coach-photo-library-race-test-fixture")
     }
 
-    /// Mirrors the current production `CoachView` library selection callback (no sync claim step).
+    /// Mirrors the production `CoachView` library selection callback.
     static func simulateCoachViewLibrarySelectionCallback(
         flow: CoachImagePickFlowController,
         item: PhotosPickerItem,
-        model: CoachModel
+        model: CoachModel,
+        claimedPickID: UUID
     ) async {
-        flow.markLibrarySelectionReceived()
+        flow.markLibrarySelectionReceived(claimedPickID: claimedPickID)
+        guard flow.beginPhotoLibrarySelectionHandling() else { return }
         await flow.handlePhotoLibrarySelection(item, model: model)
     }
 
