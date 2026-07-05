@@ -2,13 +2,13 @@
 
 **Last updated:** 2026-07-04  
 **Related:** [FeatureFlagRegistry.md](./FeatureFlagRegistry.md), [AppArchitectureOverview.md](./AppArchitectureOverview.md)  
-**Implementation:** `Fitness Coach/Infrastructure/Diagnostics/LogRedactor.swift`, `PrivacySafeLogValue.swift`
+**Implementation:** `Fitness Coach/Infrastructure/Diagnostics/FormaLogRedactor.swift`, `LogRedactor.swift`, `PrivacySafeLogValue.swift`
 
 ---
 
 ## 1. Purpose
 
-Define what the app may log, where, and which data classes must never appear in **Release** logs or analytics. All new diagnostics must use `LogRedactor` or `PrivacySafeLogValue`.
+Define what the app may log, where, and which data classes must never appear in **Release** logs or analytics. All new diagnostics must use `FormaLogRedactor` / `LogRedactor` or `PrivacySafeLogValue`.
 
 ---
 
@@ -90,20 +90,30 @@ The following **must not** appear in Release `Logger` / `print` / OSLog output:
 
 ---
 
-## 5. Redaction Rules (`LogRedactor`)
+## 5. Redaction Rules (`FormaLogRedactor` + `LogRedactor`)
 
-### Shared API
+### Core text redaction (`FormaLogRedactor`)
 
 | API | Purpose |
 |-----|---------|
 | `hashedUID(_:)` | 8-char SHA-256 prefix for correlation |
 | `redactUID(_:)` | Suffix-only UID (`***suffix`) |
-| `redactSecrets(in:)` | Bearer/JWT/base64/email in free text → `[REDACTED]` |
+| `redactSecrets(in:)` / `redact(_:)` | Bearer/JWT/base64/email/URL-query/UID paths in free text → `[REDACTED]` |
+| `redactURLQueryValues(in:)` | Query parameter values only; preserves names and host |
+| `containsObviousSecrets(_:)` | Predicate for domain validators |
+| `truncate(_:maxLength:)` | Length cap with ellipsis |
+
+### Field / JSON / OSLog policies (`LogRedactor`)
+
+| API | Purpose |
+|-----|---------|
 | `redactSensitiveJSONFields(_:)` | JSON field redaction → `"<redacted>"` |
 | `sanitizeLogFields(_:options:)` | Drop/strip sensitive keys and values |
 | `calorieBucket(_:)` / `weightBucketKg(_:)` | Production-safe numeric buckets |
 | `safeErrorFields(from:includeDescription:)` | NSError domain/code; description DEBUG-only |
 | `emitOSLogTrace(prefix:logger:message:fields:)` | Sanitized OSLog line for DEBUG traces |
+
+Delegates identifier and free-text redaction to `FormaLogRedactor`.
 
 ### Typed safe values (`PrivacySafeLogValue`)
 
