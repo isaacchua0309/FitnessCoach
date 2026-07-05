@@ -72,7 +72,11 @@ enum AuthSignInDebugLogger {
     }
 
     nonisolated private static func emit(_ event: String, fields: [String: String] = [:]) {
+        #if DEBUG
         guard isEnabled else { return }
+        #else
+        return
+        #endif
 
         let fieldLine = fields
             .sorted { $0.key < $1.key }

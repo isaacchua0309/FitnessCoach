@@ -110,7 +110,7 @@ enum AccountDeletionPolicy {
 
     /// Privacy-safe diagnostics field: UID prefix only, never full payload contents.
     static func privacySafeUIDField(_ uid: String) -> String {
-        LogRedactor.hashedUID(uid)
+        FormaLogRedactor.hashedUID(uid)
     }
 
     // MARK: - Product copy guardrails

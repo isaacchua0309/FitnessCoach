@@ -14,7 +14,7 @@ enum AccountSyncLogger {
 
     /// Short stable hash for correlating logs without logging full Firebase UIDs.
     nonisolated static func hashedUID(_ uid: String) -> String {
-        LogRedactor.hashedUID(uid)
+        FormaLogRedactor.hashedUID(uid)
     }
 
     nonisolated static func errorCategory(from error: Error) -> String {

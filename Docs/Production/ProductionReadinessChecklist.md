@@ -161,7 +161,7 @@ Cross-reference: [PrivacyReviewChecklist.md](./PrivacyReviewChecklist.md) § Log
 | 11.1 | `FormaAbTest` shipping snapshot | Eng | Review `Fitness Coach/Configuration/FormaAbTest.swift` + RC binary behavior | Production defaults match intent (no debug-only surfaces) |
 | 11.2 | Health Intelligence flags | Eng | `HealthIntelligenceFeatureFlags.swift` env table | UI / remote sync / weekly review match ship plan — [PHASE_20_RELEASE_READINESS.md](../HealthIntelligence/PHASE_20_RELEASE_READINESS.md) |
 | 11.3 | Account persistence flags | Eng | `AccountPersistenceFeatureFlags.swift` | Sync + restore + cross-device match rollout stage |
-| 11.4 | Settings gates | Eng | `dataDeletionEnabled`, `dataExportEnabled`, `developerSectionVisible` | Deletion on; export/developer off unless internal build |
+| 11.4 | Settings gates | Eng | `dataDeletionEnabled`, `AccountDataExportPolicy`, `developerSectionVisible` | Deletion on; export/developer off unless internal build |
 | 11.5 | Build configuration | Eng | `FormaBuildConfiguration` / `FormaAbTest.Build` | `internalBuildEnabled` false for App Store archive |
 
 ---

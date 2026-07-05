@@ -99,7 +99,7 @@ Confirm **App Store archive** uses shipping defaults (not test `allEnabled` snap
 | `FormaAbTest.Build.internalBuildEnabled` | `false` | Settings has no dev section |
 | `FormaAbTest.Settings.developerSectionVisible` | `false` | — |
 | `FormaAbTest.Settings.dataDeletionEnabled` | `true` | Deletion visible |
-| `FormaAbTest.Settings.dataExportEnabled` | `false` unless export ships | Export row disabled copy |
+| `AccountDataExportPolicy.accountDataExportEnabled` | `false` unless export ships | Export row disabled copy |
 | `HealthIntelligenceFeatureFlags` UI | Per ship plan (often **off**) | [PHASE_20_RELEASE_READINESS.md](../HealthIntelligence/PHASE_20_RELEASE_READINESS.md) |
 | HI remote summary sync | **Off** unless privacy sign-off | Consent + flag |
 | `AccountPersistenceFeatureFlags` | Sync + cross-device per rollout | Two-device smoke |

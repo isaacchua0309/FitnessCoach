@@ -108,8 +108,9 @@ final class CoachTimelineBackfillService: CoachTimelineBackfilling {
             guard !newEvents.isEmpty else { return }
             try await timelineStore.appendMany(newEvents)
         } catch {
+            let redactedError = FormaLogRedactor.redactSecrets(in: error.localizedDescription)
             logger.error(
-                "Coach timeline backfill failed: \(error.localizedDescription, privacy: .public)"
+                "Coach timeline backfill failed: \(redactedError, privacy: .public)"
             )
             #if DEBUG
             FormaPipelineTracer.event(
