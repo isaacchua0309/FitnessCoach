@@ -58,6 +58,8 @@ struct TodayMissionHero: View {
                 supportingLinesBlock
             }
 
+            nextStepBlock
+
             if !mission.statusLine.isEmpty {
                 Text(mission.statusLine)
                     .font(FormaTokens.Typography.caption.weight(.medium))
@@ -73,10 +75,14 @@ struct TodayMissionHero: View {
     private var showsSupportingLines: Bool {
         switch mission.primaryKind {
         case .targetReached:
-            return !mission.proteinRemainingLine.isEmpty
+            return !mission.proteinRemainingLine.isEmpty || !mission.waterRemainingLine.isEmpty
         case .remaining, .over, .missingTarget:
             return true
         }
+    }
+
+    private var showsNextStepLine: Bool {
+        !mission.nextStepLine.isEmpty
     }
 
     private var supportingLinesBlock: some View {
@@ -86,6 +92,21 @@ struct TodayMissionHero: View {
                 supportingLine(mission.consumedLine)
             }
             supportingLine(mission.proteinRemainingLine)
+            if !mission.waterRemainingLine.isEmpty {
+                supportingLine(mission.waterRemainingLine)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var nextStepBlock: some View {
+        if showsNextStepLine {
+            Text(mission.nextStepLine)
+                .font(FormaTokens.Typography.caption.weight(.medium))
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(3)
+                .padding(.top, FormaTokens.Spacing.xs)
         }
     }
 
