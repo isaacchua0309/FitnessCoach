@@ -109,11 +109,13 @@ struct TodayQuickActionsSection: View {
             .frame(minHeight: 72)
             .padding(.horizontal, FormaTokens.Spacing.sm)
             .padding(.vertical, FormaTokens.Spacing.sm)
-            .background(
-                isPrimary
-                    ? theme.buttonBackground
-                    : FormaCardChrome.background(.bordered)
-            )
+            .background {
+                if isPrimary {
+                    theme.buttonBackground
+                } else {
+                    FormaCardChrome.background(.bordered)
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous))
         }
         .buttonStyle(TodaySurfaceCardPressStyle())

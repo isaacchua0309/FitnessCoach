@@ -41,6 +41,10 @@ struct HealthPermissionStatus: Equatable, Sendable {
         !availableSignals.isEmpty
     }
 
+    var hasAnyReadableSignal: Bool {
+        hasAnyAvailableReadAccess
+    }
+
     var allRequiredSignalsAvailable: Bool {
         HealthSignalKind.required.allSatisfy { access(for: $0).isReadable }
     }

@@ -165,7 +165,7 @@ struct DiscardChangesConfirmationView: View {
             onDiscard: {}
         )
     }
-    .formaThemePreview(palette: .oceanBlue, appearance: .dark)
+    .formaThemePreview(appearance: .dark, palette: .oceanBlue)
 }
 
 #Preview("Discard changes — Blossom Pink") {
@@ -182,7 +182,7 @@ struct DiscardChangesConfirmationView: View {
             onDiscard: {}
         )
     }
-    .formaThemePreview(palette: .blossomPink, appearance: .light)
+    .formaThemePreview(appearance: .light, palette: .blossomPink)
 }
 
 #Preview("Discard changes — Small iPhone") {
@@ -199,7 +199,7 @@ struct DiscardChangesConfirmationView: View {
             onDiscard: {}
         )
     }
-    .formaThemePreview(palette: .oceanBlue, appearance: .dark)
+    .formaThemePreview(appearance: .dark, palette: .oceanBlue)
     .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
     .environment(\.dynamicTypeSize, .accessibility3)
 }

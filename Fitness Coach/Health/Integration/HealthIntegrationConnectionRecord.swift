@@ -67,7 +67,7 @@ struct UserDefaultsHealthIntegrationConnectionStore: HealthIntegrationConnection
     }
 }
 
-struct LockedHealthIntegrationConnectionStore: HealthIntegrationConnectionStoring, @unchecked Sendable {
+final class LockedHealthIntegrationConnectionStore: HealthIntegrationConnectionStoring, @unchecked Sendable {
 
     private var record: HealthIntegrationConnectionRecord = .empty
     private let lock = NSLock()

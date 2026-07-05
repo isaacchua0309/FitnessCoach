@@ -77,6 +77,8 @@ struct TodayNextBestActionCard: View {
             return FormaProductCopy.Today.NextAction.ctaLogWeight
         case .connectHealth:
             return FormaProductCopy.Today.NextAction.ctaConnectHealth
+        case .refreshHealthData, .manageHealthPermissions:
+            return state.title
         case .none:
             return nil
         }
