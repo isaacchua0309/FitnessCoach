@@ -2,11 +2,7 @@
 
 Forma iOS talks to optional backend services for AI and cloud profile sync. This document describes the contracts the app expects today.
 
-<<<<<<< HEAD
-**Related:** [Architecture.md](./Architecture.md) — app composition and `AppContainer` wiring. Backend route registry and env reference: [Backend/BackendRouteMap.md](./Backend/BackendRouteMap.md), [Backend/EnvironmentVariables.md](./Backend/EnvironmentVariables.md).
-=======
-**Related:** [Architecture.md](./Architecture.md) — app composition and `AppContainer` wiring. Production release gate: [Production/ProductionReadinessChecklist.md](./Production/ProductionReadinessChecklist.md).
->>>>>>> origin/cursor/production-readiness-docs-6323
+**Related:** [Architecture.md](./Architecture.md) — app composition and `AppContainer` wiring. Backend route registry and env reference: [Backend/BackendRouteMap.md](./Backend/BackendRouteMap.md), [Backend/EnvironmentVariables.md](./Backend/EnvironmentVariables.md). Production release gate: [Production/ProductionReadinessChecklist.md](./Production/ProductionReadinessChecklist.md).
 
 ---
 
