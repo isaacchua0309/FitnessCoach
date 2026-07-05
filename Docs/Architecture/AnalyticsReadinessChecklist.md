@@ -152,7 +152,7 @@ let loggers = AnalyticsLoggerFactory.makeAppLoggers(
 // Release → NoOp*AnalyticsLogger per domain (intentional)
 ```
 
-`AppContainer.buildAnalyticsDependencies` passes `configuration: .current`.
+`AnalyticsDependencies.build` passes `configuration: .current` to `AnalyticsLoggerFactory.makeAppLoggers`.
 
 Coach nutrition-card analytics use `AnalyticsLoggerFactory.coach(_:configuration:)` at `CoachModel` init (not container-wired).
 
