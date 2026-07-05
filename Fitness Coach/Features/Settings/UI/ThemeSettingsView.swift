@@ -118,8 +118,7 @@ private struct ThemeAppearanceOptionRow: View {
     let onSelect: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let _ = themeManager.themeRevision
@@ -128,12 +127,12 @@ private struct ThemeAppearanceOptionRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(mode.displayName)
                         .font(FormaTokens.Typography.body)
-                        .foregroundStyle(colors.textPrimary)
+                        .foregroundStyle(theme.primaryText)
                         .multilineTextAlignment(.leading)
 
                     Text(mode.description)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(colors.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -142,7 +141,7 @@ private struct ThemeAppearanceOptionRow: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(FormaTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(palette.primary)
+                        .foregroundStyle(theme.accent)
                         .accessibilityHidden(true)
                 }
             }
@@ -152,11 +151,11 @@ private struct ThemeAppearanceOptionRow: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                        .fill(FormaTokens.Theme.softBackground)
+                        .fill(theme.accentSoftBackground)
                         .overlay {
                             RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                                 .stroke(
-                                    FormaTokens.Theme.primary.opacity(0.72),
+                                    theme.accentBorder,
                                     lineWidth: ThemeSettingsPickerAccessibility.appearanceRowSelectedBorderLineWidth
                                 )
                         }

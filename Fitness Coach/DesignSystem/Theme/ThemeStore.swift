@@ -66,8 +66,8 @@ final class ThemeStore: ObservableObject {
     }
 
     /// Semantic tokens for the active theme resolved with the current system color scheme.
-    func tokens(systemColorScheme: ColorScheme) -> FormaThemeColors {
-        ThemeColorProvider.colors(from: resolvedTheme(systemColorScheme: systemColorScheme))
+    func tokens(systemColorScheme: ColorScheme) -> ThemeTokens {
+        ThemeTokensProvider.tokens(from: resolvedTheme(systemColorScheme: systemColorScheme))
     }
 
     var preferredColorScheme: ColorScheme? {

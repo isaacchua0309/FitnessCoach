@@ -13,8 +13,7 @@ struct TodayWaterQuickLogSection: View {
     let onAddWater: (Int) -> Bool
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var pendingAddedMl = 0
@@ -62,7 +61,7 @@ struct TodayWaterQuickLogSection: View {
 
                     Text(remainingText)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(colors.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .monospacedDigit()
                         .animation(valueAnimation, value: displayedWater.consumedMl)
 
@@ -82,11 +81,11 @@ struct TodayWaterQuickLogSection: View {
             Image(systemName: FormaProductCopy.Today.Water.symbolName)
                 .font(.system(size: 18, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(palette.primary)
+                .foregroundStyle(theme.accent)
 
             Text(FormaProductCopy.Today.MacroBalance.water)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(colors.textPrimary)
+                .foregroundStyle(theme.primaryText)
 
             Spacer(minLength: FormaTokens.Spacing.xs)
 
@@ -95,7 +94,7 @@ struct TodayWaterQuickLogSection: View {
                 targetMl: displayedWater.targetMl
             ))
             .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
-            .foregroundStyle(colors.textPrimary)
+            .foregroundStyle(theme.primaryText)
             .monospacedDigit()
             .modifier(WaterValueTransitionModifier(reduceMotion: reduceMotion))
             .animation(valueAnimation, value: displayedWater.consumedMl)
@@ -180,8 +179,7 @@ private struct TodayWaterQuickAddButtonLabel: View {
     let isSelected: Bool
     let isDisabled: Bool
 
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     var body: some View {
         Text(FormaProductCopy.Today.Water.quickAddLabel(amountMl))
@@ -200,21 +198,21 @@ private struct TodayWaterQuickAddButtonLabel: View {
     }
 
     private var foregroundColor: Color {
-        if isDisabled { return colors.textTertiary }
-        if isSelected { return palette.textOnAccent }
-        return palette.primary
+        if isDisabled { return theme.tertiaryText }
+        if isSelected { return theme.buttonText }
+        return theme.accent
     }
 
     private var backgroundColor: Color {
-        if isDisabled { return colors.surfaceSubtle }
-        if isSelected { return palette.primary }
-        return palette.softBackground
+        if isDisabled { return theme.accentSoftBackground.opacity(0.45) }
+        if isSelected { return theme.buttonBackground }
+        return theme.accentSoftBackground
     }
 
     private var borderColor: Color {
-        if isDisabled { return colors.border.opacity(0.45) }
-        if isSelected { return palette.primary.opacity(0.5) }
-        return palette.borderTint.opacity(0.28)
+        if isDisabled { return theme.inputBorder.opacity(0.45) }
+        if isSelected { return theme.accentBorder }
+        return theme.accentBorder.opacity(0.62)
     }
 }
 

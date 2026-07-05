@@ -165,12 +165,20 @@ final class MainTabThemeSmokeTests: XCTestCase {
         )
 
         XCTAssertTrue(
-            mainTabSource.contains("@Environment(\\.formaResolvedTheme)"),
-            "MainTabView must observe the resolved theme so tab chrome tints update live."
+            mainTabSource.contains("@Environment(\\.theme)"),
+            "MainTabView must observe semantic theme tokens so tab chrome tints update live."
         )
         XCTAssertFalse(
             mainTabSource.contains(".tint(FormaTokens.Color.accent)"),
             "MainTabView must not pin tab tint to the static token bridge."
+        )
+        XCTAssertFalse(
+            mainTabSource.contains("resolvedTheme.themePalette.primary"),
+            "MainTabView must use semantic tabBarSelectedIcon instead of palette.primary."
+        )
+        XCTAssertTrue(
+            rootModifierSource.contains(".environment(\\.theme, theme)"),
+            "Root theme injection must publish semantic ThemeTokens on the environment."
         )
         XCTAssertTrue(
             rootModifierSource.contains(".formaThemeReactive()"),

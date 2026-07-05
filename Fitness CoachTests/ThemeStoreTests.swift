@@ -65,8 +65,9 @@ final class ThemeStoreTests: XCTestCase {
             store.setTheme(.sunsetOrange)
             let tokens = store.tokens(systemColorScheme: .dark)
             let resolved = store.resolvedTheme(systemColorScheme: .dark)
-            XCTAssertEqual(tokens.accent, resolved.colors.accent)
-            XCTAssertEqual(tokens.themePalette.primary, resolved.themePalette.primary)
+            XCTAssertEqual(tokens.accent, resolved.themePalette.primary)
+            XCTAssertEqual(tokens.cardBackground, resolved.colors.surface)
+            XCTAssertEqual(tokens.progressFill, resolved.colors.progress)
         }
     }
 

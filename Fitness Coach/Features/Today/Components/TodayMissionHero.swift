@@ -15,9 +15,7 @@ struct TodayMissionHero: View {
     var onViewed: (() -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
     @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 48
 
     var body: some View {
@@ -37,7 +35,7 @@ struct TodayMissionHero: View {
 
                     Text(FormaProductCopy.Today.QuickActions.logMealMicrocopy)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(colors.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.top, FormaTokens.Spacing.xs)
@@ -97,7 +95,7 @@ struct TodayMissionHero: View {
     private func supportingLine(_ text: String) -> some View {
         Text(text)
             .font(FormaTokens.Typography.caption)
-            .foregroundStyle(colors.textTertiary)
+            .foregroundStyle(theme.tertiaryText)
             .lineLimit(2)
             .minimumScaleFactor(0.85)
             .fixedSize(horizontal: false, vertical: true)
@@ -106,22 +104,22 @@ struct TodayMissionHero: View {
     private var primaryValueColor: Color {
         switch mission.primaryKind {
         case .over:
-            return colors.destructive
+            return theme.destructive
         case .targetReached:
-            return palette.primary
+            return theme.accent
         case .remaining, .missingTarget:
-            return colors.textPrimary
+            return theme.primaryText
         }
     }
 
     private var statusLineColor: Color {
         switch mission.primaryKind {
         case .over:
-            return colors.destructive.opacity(0.9)
+            return theme.destructive.opacity(0.9)
         case .targetReached:
-            return palette.primary
+            return theme.accent
         case .remaining, .missingTarget:
-            return colors.textLegal
+            return theme.secondaryText.opacity(0.62)
         }
     }
 }

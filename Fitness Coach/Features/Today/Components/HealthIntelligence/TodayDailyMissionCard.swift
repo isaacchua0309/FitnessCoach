@@ -11,8 +11,7 @@ struct TodayDailyMissionCard: View {
     let state: TodayDailyMissionState
     var isLoading: Bool = false
 
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
@@ -23,7 +22,7 @@ struct TodayDailyMissionCard: View {
                     VStack(alignment: .leading, spacing: TodayHealthIntelligenceCardSupport.cardContentSpacing) {
                         Text(state.headline)
                             .font(TodayHealthIntelligenceCardTypography.headline)
-                            .foregroundStyle(colors.textPrimary)
+                            .foregroundStyle(theme.primaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.85)
@@ -61,7 +60,7 @@ struct TodayDailyMissionCard: View {
 
             Text(text)
                 .font(TodayHealthIntelligenceCardTypography.detail.weight(.medium))
-                .foregroundStyle(palette.primary)
+                .foregroundStyle(theme.accent)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.85)

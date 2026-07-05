@@ -12,6 +12,8 @@ struct TodayHealthIntelligenceSection: View {
     var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     var onNextBestAction: ((TodayHealthNextBestActionDestination) -> Void)?
 
+    @Environment(\.theme) private var theme
+
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.loggedZoneSpacing) {
             if let staleDataLabel = state.staleDataLabel {
@@ -95,12 +97,12 @@ struct TodayHealthIntelligenceSection: View {
         HStack(spacing: FormaTokens.Spacing.xs) {
             Image(systemName: "clock.arrow.circlepath")
                 .font(FormaTokens.Typography.caption2)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .foregroundStyle(theme.tertiaryText)
                 .accessibilityHidden(true)
 
             Text(label)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .foregroundStyle(theme.tertiaryText)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
@@ -110,11 +112,11 @@ struct TodayHealthIntelligenceSection: View {
     private var fallbackForegroundColor: Color {
         switch state.uiState?.severity {
         case .error:
-            return FormaTokens.Color.warning
+            return theme.warning
         case .warning:
-            return FormaTokens.Color.textSecondary
+            return theme.secondaryText
         case .info, .none:
-            return FormaTokens.Color.textSecondary
+            return theme.secondaryText
         }
     }
 }

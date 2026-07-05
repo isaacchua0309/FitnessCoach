@@ -97,7 +97,7 @@ struct TodayMetricProgressBar: View {
     var subdued: Bool = true
     var isOverTarget: Bool = false
 
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     private var clampedProgress: Double {
         min(max(progress, 0), 1)
@@ -105,16 +105,16 @@ struct TodayMetricProgressBar: View {
 
     private var fillColor: Color {
         if isOverTarget {
-            return colors.destructive.opacity(subdued ? 0.8 : 1)
+            return theme.destructive.opacity(subdued ? 0.8 : 1)
         }
-        return colors.progress.opacity(subdued ? 0.6 : 1)
+        return theme.progressFill.opacity(subdued ? 0.6 : 1)
     }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
-                    .fill(colors.progressTrack)
+                    .fill(theme.progressTrack)
 
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
                     .fill(fillColor)

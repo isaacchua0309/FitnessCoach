@@ -32,8 +32,7 @@ enum FormaCardChrome {
 private struct FormaCardChromeBackground: View {
     let style: FormaCardChrome.Style
 
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     var body: some View {
         switch style {
@@ -50,41 +49,41 @@ private struct FormaCardChromeBackground: View {
 
     private var subtleBackground: some View {
         RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-            .fill(colors.surfaceSubtle)
+            .fill(theme.accentSoftBackground)
             .overlay {
                 RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                    .stroke(colors.border.opacity(0.55), lineWidth: 0.5)
+                    .stroke(theme.inputBorder.opacity(0.55), lineWidth: 0.5)
             }
     }
 
     private var borderedBackground: some View {
         RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-            .fill(colors.surface)
+            .fill(theme.cardBackground)
             .overlay {
                 RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                    .stroke(colors.border, lineWidth: 1)
+                    .stroke(theme.inputBorder, lineWidth: 1)
             }
     }
 
     private func surfaceBackground(accentLeading: Bool) -> some View {
         RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-            .fill(colors.surface)
+            .fill(theme.cardBackground)
             .overlay {
                 RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                     .stroke(
                         accentLeading
                             ? LinearGradient(
                                 colors: [
-                                    palette.primary.opacity(0.22),
-                                    colors.border
+                                    theme.accent.opacity(0.22),
+                                    theme.inputBorder
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                             : LinearGradient(
                                 colors: [
-                                    palette.primary.opacity(0.14),
-                                    colors.border
+                                    theme.accent.opacity(0.14),
+                                    theme.inputBorder
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -95,7 +94,7 @@ private struct FormaCardChromeBackground: View {
             .overlay(alignment: .leading) {
                 if accentLeading {
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .fill(palette.primary.opacity(0.55))
+                        .fill(theme.accentLine)
                         .frame(width: 3)
                         .padding(.vertical, FormaTokens.Spacing.sm)
                         .padding(.leading, 1)

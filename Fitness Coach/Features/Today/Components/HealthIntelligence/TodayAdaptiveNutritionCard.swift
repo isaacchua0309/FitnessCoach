@@ -12,7 +12,7 @@ struct TodayAdaptiveNutritionCard: View {
     var isLoading: Bool = false
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let _ = themeManager.themeRevision
@@ -24,7 +24,7 @@ struct TodayAdaptiveNutritionCard: View {
                     VStack(alignment: .leading, spacing: TodayHealthIntelligenceCardSupport.cardContentSpacing) {
                         Text(state.title)
                             .font(TodayHealthIntelligenceCardTypography.headline)
-                            .foregroundStyle(colors.textPrimary)
+                            .foregroundStyle(theme.primaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.85)
@@ -32,7 +32,7 @@ struct TodayAdaptiveNutritionCard: View {
                         if let subtitle = state.subtitle {
                             Text(subtitle)
                                 .font(TodayHealthIntelligenceCardTypography.detail)
-                                .foregroundStyle(colors.textSecondary)
+                                .foregroundStyle(theme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .lineLimit(nil)
                                 .minimumScaleFactor(0.85)

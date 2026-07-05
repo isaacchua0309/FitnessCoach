@@ -16,8 +16,7 @@ struct TodayMealsPreview: View {
     let onDeleteEntry: (FoodEntry) -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     private var section: TodayMealsSectionState {
         TodayMealsGroupingEngine.build(entries: entries, date: date)
@@ -64,7 +63,7 @@ struct TodayMealsPreview: View {
             } label: {
                 Text(FormaProductCopy.Today.Meals.addAction)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(palette.primary)
+                    .foregroundStyle(theme.accent)
                     .frame(minHeight: FormaTokens.Layout.minTouchTarget)
             }
             .buttonStyle(.plain)
@@ -88,7 +87,7 @@ struct TodayMealsPreview: View {
 
                 Image(systemName: "checkmark.circle.fill")
                     .font(.body)
-                    .foregroundStyle(palette.primary)
+                    .foregroundStyle(theme.accent)
                     .symbolRenderingMode(.hierarchical)
                     .accessibilityHidden(true)
             }
@@ -134,23 +133,23 @@ struct TodayMealsPreview: View {
             HStack(spacing: FormaTokens.Spacing.xs) {
                 Text(display.title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(colors.textPrimary)
+                    .foregroundStyle(theme.primaryText)
 
                 if display.isOptional {
                     Text(FormaProductCopy.Today.Meals.optionalLabel)
                         .font(FormaTokens.Typography.caption2)
-                        .foregroundStyle(colors.textTertiary)
+                        .foregroundStyle(theme.tertiaryText)
                 }
             }
 
             Text(display.statusLine)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(isLogged ? colors.textSecondary : colors.textTertiary)
+                .foregroundStyle(isLogged ? theme.secondaryText : theme.tertiaryText)
 
             if let detailLine = display.detailLine {
                 Text(detailLine)
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(colors.textSecondary)
+                    .foregroundStyle(theme.secondaryText)
             }
         }
     }

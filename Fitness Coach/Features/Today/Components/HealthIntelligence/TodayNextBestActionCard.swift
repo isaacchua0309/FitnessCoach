@@ -13,7 +13,7 @@ struct TodayNextBestActionCard: View {
     var onAction: (() -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let _ = themeManager.themeRevision
@@ -25,7 +25,7 @@ struct TodayNextBestActionCard: View {
                     VStack(alignment: .leading, spacing: TodayHealthIntelligenceCardSupport.cardContentSpacing) {
                         Text(state.title)
                             .font(TodayHealthIntelligenceCardTypography.headline)
-                            .foregroundStyle(colors.textPrimary)
+                            .foregroundStyle(theme.primaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.85)
@@ -33,7 +33,7 @@ struct TodayNextBestActionCard: View {
                         if let message = state.message {
                             Text(message)
                                 .font(TodayHealthIntelligenceCardTypography.body)
-                                .foregroundStyle(colors.textSecondary)
+                                .foregroundStyle(theme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .lineLimit(nil)
                                 .minimumScaleFactor(0.85)

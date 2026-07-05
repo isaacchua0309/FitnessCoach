@@ -12,8 +12,7 @@ struct TodayActivitySection: View {
     let onConnectAppleHealth: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     private var display: TodayActivityCompactDisplayModel {
         TodayActivitySectionFormatting.displayModel(for: activity)
@@ -28,14 +27,14 @@ struct TodayActivitySection: View {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                     Text(display.stepsLine)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(colors.textPrimary)
+                        .foregroundStyle(theme.primaryText)
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
 
                     Text(display.workoutLine)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(colors.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
 
@@ -61,7 +60,7 @@ struct TodayActivitySection: View {
                 onConnectAppleHealth()
             }
             .font(FormaTokens.Typography.caption)
-            .foregroundStyle(palette.primary)
+            .foregroundStyle(theme.accent)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, FormaTokens.Spacing.xs)
             .accessibilityLabel(actionTitle)
@@ -69,7 +68,7 @@ struct TodayActivitySection: View {
         } else {
             Text(note)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(colors.textTertiary)
+                .foregroundStyle(theme.tertiaryText)
                 .padding(.top, FormaTokens.Spacing.xs)
         }
     }

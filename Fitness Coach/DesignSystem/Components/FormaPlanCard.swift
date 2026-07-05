@@ -28,7 +28,7 @@ struct FormaPlanDisplayRow: View {
     let value: String
     var multilineValue = false
 
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     var body: some View {
         Group {
@@ -36,10 +36,10 @@ struct FormaPlanDisplayRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(label)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(colors.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                     Text(value)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(colors.textPrimary)
+                        .foregroundStyle(theme.primaryText)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
@@ -47,7 +47,7 @@ struct FormaPlanDisplayRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
                     Text(label)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(colors.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .frame(
                             width: SettingsChromeAccessibility.detailLabelColumnWidth,
                             alignment: .leading
@@ -56,7 +56,7 @@ struct FormaPlanDisplayRow: View {
                         .minimumScaleFactor(0.9)
                     Text(value)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(colors.textPrimary)
+                        .foregroundStyle(theme.primaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.leading)
@@ -69,10 +69,10 @@ struct FormaPlanDisplayRow: View {
 }
 
 struct FormaPlanRowDivider: View {
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     var body: some View {
         Divider()
-            .overlay(colors.border)
+            .overlay(theme.inputBorder)
     }
 }

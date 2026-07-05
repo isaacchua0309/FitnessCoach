@@ -31,8 +31,7 @@ struct CoachComposer: View {
     let onRetryImageSelection: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     @State private var isAttachmentMenuPresented = false
     @State private var listeningPulse = false
@@ -72,7 +71,7 @@ struct CoachComposer: View {
                 .padding(.top, CoachDesignTokens.Spacing.xs)
                 .padding(.bottom, CoachDesignTokens.Spacing.sm)
         }
-        .background(colors.canvas)
+        .background(theme.appBackground)
         .animation(CoachDesignTokens.Motion.spring, value: pendingImage?.id)
         .animation(CoachDesignTokens.Motion.standard, value: canSend)
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)
@@ -105,7 +104,7 @@ struct CoachComposer: View {
                 HStack(alignment: .firstTextBaseline, spacing: CoachDesignTokens.Spacing.sm) {
                     Text(attachmentError)
                         .font(CoachDesignTokens.Typography.confirmationMetric)
-                        .foregroundStyle(colors.textTertiary)
+                        .foregroundStyle(theme.tertiaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     if showsImageErrorRetry {
@@ -113,7 +112,7 @@ struct CoachComposer: View {
                             Text(FormaProductCopy.Coach.composerImageRetry)
                                 .font(CoachDesignTokens.Typography.confirmationMetric)
                                 .fontWeight(.semibold)
-                                .foregroundStyle(colors.accent)
+                                .foregroundStyle(theme.accent)
                         }
                         .buttonStyle(.plain)
                     }
@@ -126,7 +125,7 @@ struct CoachComposer: View {
             if isProcessingImage {
                 Text(FormaProductCopy.Coach.composerImageProcessing)
                     .font(CoachDesignTokens.Typography.confirmationMetric)
-                    .foregroundStyle(colors.textTertiary)
+                    .foregroundStyle(theme.tertiaryText)
                     .padding(.horizontal, CoachDesignTokens.Spacing.sm)
                     .padding(.bottom, CoachDesignTokens.Spacing.xs)
                     .transition(.opacity)
@@ -135,7 +134,7 @@ struct CoachComposer: View {
             if let speechError {
                 Text(speechError)
                     .font(CoachDesignTokens.Typography.confirmationMetric)
-                    .foregroundStyle(colors.textTertiary)
+                    .foregroundStyle(theme.tertiaryText)
                     .padding(.horizontal, CoachDesignTokens.Spacing.sm)
                     .padding(.bottom, CoachDesignTokens.Spacing.xs)
                     .transition(.opacity)
@@ -148,18 +147,18 @@ struct CoachComposer: View {
             composerControlRow
         }
         .background(
-            colors.surfaceElevated,
+            theme.inputBackground,
             in: RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.composer, style: .continuous)
         )
         .overlay(
             RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.composer, style: .continuous)
-                .strokeBorder(colors.border, lineWidth: 0.5)
+                .strokeBorder(theme.inputBorder, lineWidth: 0.5)
         )
     }
 
     private var composerDivider: some View {
         Rectangle()
-            .fill(colors.border.opacity(0.45))
+            .fill(theme.inputBorder.opacity(0.45))
             .frame(height: 0.5)
             .padding(.horizontal, CoachDesignTokens.Spacing.sm)
             .transition(.opacity)
@@ -171,7 +170,7 @@ struct CoachComposer: View {
 
             TextField(isListening ? FormaProductCopy.Coach.composerListeningPlaceholder : textFieldPlaceholder, text: $text)
                 .font(CoachDesignTokens.Typography.composer)
-                .foregroundStyle(colors.textPrimary)
+                .foregroundStyle(theme.primaryText)
                 .textFieldStyle(.plain)
                 .lineLimit(1)
                 .multilineTextAlignment(.leading)
@@ -224,7 +223,7 @@ struct CoachComposer: View {
                         cornerRadius: CoachDesignTokens.Layout.composerAttachmentCornerRadius,
                         style: .continuous
                     )
-                    .strokeBorder(colors.border.opacity(0.55), lineWidth: 0.5)
+                    .strokeBorder(theme.inputBorder.opacity(0.55), lineWidth: 0.5)
                 }
                 .accessibilityHidden(true)
 
@@ -256,7 +255,7 @@ struct CoachComposer: View {
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(colors.textSecondary)
+                .foregroundStyle(theme.secondaryText)
                 .frame(
                     width: CoachDesignTokens.Layout.composerTrailingWidth,
                     height: CoachDesignTokens.Layout.composerBarHeight
@@ -276,9 +275,9 @@ struct CoachComposer: View {
             Button(action: performSend) {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(palette.textOnAccent)
+                    .foregroundStyle(theme.buttonText)
                     .frame(width: 30, height: 30)
-                    .background(palette.primaryButtonBackground, in: Circle())
+                    .background(theme.buttonBackground, in: Circle())
             }
             .buttonStyle(CoachComposerButtonStyle())
             .transition(.scale(scale: 0.85).combined(with: .opacity))
@@ -288,7 +287,7 @@ struct CoachComposer: View {
                 ZStack {
                     if isListening {
                         Circle()
-                            .fill(colors.accent.opacity(listeningPulse ? 0.22 : 0.12))
+                            .fill(theme.accent.opacity(listeningPulse ? 0.22 : 0.12))
                             .frame(width: 34, height: 34)
                             .animation(
                                 .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
@@ -298,7 +297,7 @@ struct CoachComposer: View {
 
                     Image(systemName: isListening ? "mic.fill" : "mic")
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(isListening ? colors.accent : colors.textSecondary)
+                        .foregroundStyle(isListening ? theme.accent : theme.secondaryText)
                         .symbolEffect(.pulse, options: .repeating, isActive: isListening)
                 }
                 .frame(
@@ -327,21 +326,21 @@ struct CoachComposer: View {
 }
 
 private struct CoachComposerAttachmentRemoveButton: View {
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     var body: some View {
         ZStack {
             Circle()
-                .fill(colors.surfaceElevated.opacity(0.96))
+                .fill(theme.inputBackground.opacity(0.96))
                 .overlay {
                     Circle()
-                        .strokeBorder(colors.border.opacity(0.7), lineWidth: 0.5)
+                        .strokeBorder(theme.inputBorder.opacity(0.7), lineWidth: 0.5)
                 }
-                .shadow(color: colors.shadow.opacity(0.35), radius: 2, y: 1)
+                .shadow(color: Color.black.opacity(0.25), radius: 2, y: 1)
 
             Image(systemName: "xmark")
                 .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(colors.textPrimary)
+                .foregroundStyle(theme.primaryText)
         }
         .frame(width: 20, height: 20)
     }
@@ -426,7 +425,7 @@ private struct CoachComposerPreviewHost: View {
                 onRetryImageSelection: {}
             )
         }
-        .background(colors.canvas)
+        .background(FormaTokens.Color.canvas)
         .formaThemePreview()
     }
 }

@@ -13,14 +13,15 @@ struct FormaRootThemeModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         let state = FormaThemeRootState.make(store: themeStore, systemColorScheme: systemColorScheme)
+        let theme = ThemeTokensProvider.tokens(from: state.resolved)
         FormaThemeAccess.update(resolved: state.resolved)
 
         return content
             .preferredColorScheme(state.preferredColorScheme)
             .environment(\.formaResolvedTheme, state.resolved)
             .environment(\.formaThemePalette, state.legacyPalette)
-            .environment(\.themePalette, state.resolved.themePalette)
-            .tint(state.resolved.themePalette.primary)
+            .environment(\.theme, theme)
+            .tint(theme.tabBarSelectedIcon)
             .formaThemeReactive()
     }
 }

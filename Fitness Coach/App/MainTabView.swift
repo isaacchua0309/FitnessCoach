@@ -42,8 +42,7 @@ struct MainTabView: View {
     private let todayActionCoordinator: TodayActionCoordinator
 
     @Environment(\.scenePhase) private var scenePhase
-    @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.formaResolvedTheme) private var resolvedTheme
+    @Environment(\.theme) private var theme
 
     @StateObject private var todayModel: TodayModel
     @StateObject private var coachModel: CoachModel
@@ -157,9 +156,8 @@ struct MainTabView: View {
                 }
             .tag(AppTab.plan)
         }
-        .tint(resolvedTheme.themePalette.primary)
+        .tint(theme.tabBarSelectedIcon)
         .formaThemeReactive()
-        .onChange(of: themeManager.themeRevision) { _, _ in }
         .environmentObject(container.refreshCenter)
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)

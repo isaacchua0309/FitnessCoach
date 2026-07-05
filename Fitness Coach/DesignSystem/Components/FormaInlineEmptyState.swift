@@ -56,7 +56,7 @@ struct FormaQuickActionChip: View {
     var style: FormaQuickActionChipStyle = .secondary
     var accessibilityHint: String?
 
-    @Environment(\.themePalette) private var palette
+    @Environment(\.theme) private var theme
 
     var body: some View {
         Group {
@@ -67,7 +67,7 @@ struct FormaQuickActionChip: View {
             case .primary:
                 Button(title, action: action)
                     .buttonStyle(.borderedProminent)
-                    .tint(palette.primaryButtonBackground)
+                    .tint(theme.buttonBackground)
             }
         }
         .font(FormaTokens.Typography.caption.weight(.semibold))
@@ -79,8 +79,7 @@ struct FormaQuickActionChip: View {
 private struct FormaThemedChipButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -98,23 +97,23 @@ private struct FormaThemedChipButtonStyle: ButtonStyle {
     }
 
     private func foreground(isPressed: Bool) -> Color {
-        guard isEnabled else { return colors.textTertiary }
+        guard isEnabled else { return theme.tertiaryText }
         return isPressed
-            ? palette.primary.opacity(0.85)
-            : palette.primary
+            ? theme.accent.opacity(0.85)
+            : theme.accent
     }
 
     private func background(isPressed: Bool) -> Color {
-        guard isEnabled else { return colors.surfaceSubtle }
+        guard isEnabled else { return theme.accentSoftBackground.opacity(0.45) }
         return isPressed
-            ? palette.softBackground.opacity(0.9)
-            : palette.softBackground
+            ? theme.accentSoftBackground.opacity(0.9)
+            : theme.accentSoftBackground
     }
 
     private var borderColor: Color {
         isEnabled
-            ? palette.borderTint.opacity(0.35)
-            : colors.border.opacity(0.45)
+            ? theme.accentBorder.opacity(0.78)
+            : theme.inputBorder.opacity(0.45)
     }
 
     private func scale(isPressed: Bool) -> CGFloat {

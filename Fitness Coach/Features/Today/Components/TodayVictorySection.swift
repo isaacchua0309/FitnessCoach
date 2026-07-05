@@ -12,8 +12,7 @@ struct TodayVictorySection: View {
     var onViewed: (() -> Void)?
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.themePalette) private var palette
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let _ = themeManager.themeRevision
@@ -23,23 +22,23 @@ struct TodayVictorySection: View {
                     if victory.kind == .startEncouragement {
                         Text(victory.message)
                             .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(colors.textTertiary)
+                            .foregroundStyle(theme.tertiaryText)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } else {
                         Text(victory.message)
                             .font(FormaTokens.Typography.caption.weight(.semibold))
-                            .foregroundStyle(palette.primary)
+                            .foregroundStyle(theme.accent)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, FormaTokens.Spacing.sm)
                             .padding(.vertical, FormaTokens.Spacing.xs)
                             .background(
                                 RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                                    .fill(palette.softBackground.opacity(0.72))
+                                    .fill(theme.accentSoftBackground.opacity(0.72))
                             )
                             .overlay {
                                 RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                                    .stroke(palette.borderTint.opacity(0.35), lineWidth: 0.5)
+                                    .stroke(theme.accentBorder.opacity(0.78), lineWidth: 0.5)
                             }
                     }
                 }

@@ -13,7 +13,7 @@ struct TodayNutritionProgressCard: View {
     let calorieSummary: CalorieSummary
 
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.formaColors) private var colors
+    @Environment(\.theme) private var theme
 
     private var display: TodayNutritionProgressCardDisplayModel {
         TodayNutritionProgressFormatting.displayModel(
@@ -109,18 +109,18 @@ struct TodayNutritionProgressCard: View {
     private func titleColor(for emphasis: TodayNutritionRowEmphasis) -> Color {
         switch emphasis {
         case .primary:
-            return colors.textPrimary
+            return theme.primaryText
         case .secondary, .standard:
-            return colors.textSecondary
+            return theme.secondaryText
         }
     }
 
     private func valueColor(for emphasis: TodayNutritionRowEmphasis) -> Color {
         switch emphasis {
         case .primary:
-            return colors.textPrimary
+            return theme.primaryText
         case .secondary, .standard:
-            return colors.textSecondary
+            return theme.secondaryText
         }
     }
 
@@ -129,7 +129,7 @@ struct TodayNutritionProgressCard: View {
         state: TodayNutritionDisplayState
     ) -> Color {
         if state == .overTarget {
-            return colors.destructive
+            return theme.destructive
         }
         return valueColor(for: emphasis)
     }
@@ -137,11 +137,11 @@ struct TodayNutritionProgressCard: View {
     private func remainingTextColor(for state: TodayNutritionDisplayState) -> Color {
         switch state {
         case .overTarget:
-            colors.destructive.opacity(0.9)
+            theme.destructive.opacity(0.9)
         case .missingTarget:
-            colors.textTertiary
+            theme.tertiaryText
         case .nearTarget, .belowTarget:
-            colors.textSecondary
+            theme.secondaryText
         }
     }
 }

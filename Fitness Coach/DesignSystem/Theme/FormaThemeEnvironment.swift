@@ -29,6 +29,10 @@ private struct ThemePaletteKey: EnvironmentKey {
     static let defaultValue = FormaThemeEnvironment.defaultResolvedTheme.themePalette
 }
 
+private struct ThemeTokensKey: EnvironmentKey {
+    static let defaultValue = ThemeTokensProvider.productDefault
+}
+
 private struct FormaPlanColorsKey: EnvironmentKey {
     static let defaultValue = PlanThemeColorProvider.productDefault
 }
@@ -42,8 +46,15 @@ extension EnvironmentValues {
             self[FormaResolvedThemeKey.self] = newValue
             self[FormaColorsKey.self] = newValue.colors
             self[ThemePaletteKey.self] = newValue.themePalette
+            self[ThemeTokensKey.self] = ThemeTokensProvider.tokens(from: newValue)
             self[FormaPlanColorsKey.self] = PlanThemeColorProvider.planColors(from: newValue)
         }
+    }
+
+    /// Canonical semantic theme roles for the active resolved theme.
+    var theme: ThemeTokens {
+        get { self[ThemeTokensKey.self] }
+        set { self[ThemeTokensKey.self] = newValue }
     }
 
     /// Semantic color palette for the active resolved theme.
