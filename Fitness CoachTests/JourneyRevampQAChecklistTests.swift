@@ -22,25 +22,23 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
         JourneyRevampQAChecklistSupport.assertHeroDoesNotShowZeroKgLost(dashboard.transformation)
         JourneyRevampQAChecklistSupport.assertNoFakeZeroPercentMonthlyRecap(dashboard.monthlyRecap)
 
-        XCTAssertEqual(dashboard.transformation.variant, .newUser)
-        XCTAssertTrue(
-            dashboard.transformation.primaryMessage.localizedCaseInsensitiveContains("starting")
-                || dashboard.transformation.title.localizedCaseInsensitiveContains("starting")
-        )
+        XCTAssertFalse(dashboard.showsStartingEmptyState)
+        XCTAssertTrue(dashboard.showsDashboardHeroSection)
+        XCTAssertTrue(dashboard.showsNextActionSection)
+        XCTAssertTrue(dashboard.showsWeeklyProgressSection)
+        XCTAssertTrue(dashboard.showsProgressSection)
+        XCTAssertTrue(dashboard.showsChapterSection)
         XCTAssertEqual(
-            dashboard.milestone.title,
-            FormaProductCopy.Journey.Milestones.NextAchievement.firstMealTitle
+            dashboard.screenPresentation.unlockDashboard.nextActionCard?.title,
+            FormaProductCopy.Journey.NextBestAction.logFirstMeal
         )
 
-        XCTAssertTrue(dashboard.showsStartingEmptyState)
-        XCTAssertFalse(dashboard.showsMonthlyRecapSection)
-        XCTAssertFalse(dashboard.showsStoryTimelineSection)
-        XCTAssertFalse(dashboard.showsChapterSection)
-
-        XCTAssertEqual(
-            Set(sections),
-            [.header, .transformation, .milestones, .startingEmptyState]
-        )
+        XCTAssertTrue(sections.contains(.hero))
+        XCTAssertTrue(sections.contains(.nextAction))
+        XCTAssertTrue(sections.contains(.weeklyProgress))
+        XCTAssertTrue(sections.contains(.progress))
+        XCTAssertTrue(sections.contains(.chapters))
+        XCTAssertFalse(sections.contains(.highlights))
     }
 
     // MARK: - 2. Food logs only
@@ -48,7 +46,7 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
     func testQA02_FoodLogsOnly_ShowsWeeklyFoodAndLockedProjection() {
         let dashboard = JourneyPreviewData.foodLogsOnly
 
-        XCTAssertTrue(dashboard.showsWeeklyReviewSection)
+        XCTAssertTrue(dashboard.showsWeeklyProgressSection)
         XCTAssertTrue(dashboard.weeklyHabit.showsHabitRows)
         XCTAssertGreaterThan(dashboard.weeklyReview.foodLoggedDays, 0)
 
@@ -56,8 +54,7 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
         XCTAssertNotNil(foodHabit)
         XCTAssertTrue(foodHabit?.showsDayProgress == true)
 
-        XCTAssertTrue(dashboard.showsGoalProjectionSection)
-        JourneyRevampQAChecklistSupport.assertProjectionIsLockedOrLearning(dashboard.goalProjection)
+        XCTAssertTrue(dashboard.progressSection.rows.contains { $0.id == "nutrition" })
 
         XCTAssertTrue(
             dashboard.storyTimeline.displayEvents.contains { $0.type == .firstMealLogged }
@@ -117,7 +114,7 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
     func testQA05_UserWithWorkouts_ShowsTrainingConsistencyAndStory() {
         let dashboard = JourneyPreviewData.healthConnected
 
-        XCTAssertTrue(dashboard.showsWeeklyReviewSection)
+        XCTAssertTrue(dashboard.showsWeeklyProgressSection)
         XCTAssertGreaterThan(dashboard.weeklyReview.trainingDays, 0)
         XCTAssertTrue(dashboard.weeklyReview.training.showsWorkoutRow)
 
@@ -136,14 +133,14 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
     func testQA06_StrongConsistency_UpgradesMomentumAndChapter() {
         let dashboard = JourneyPreviewData.highlyConsistent
 
-        XCTAssertTrue(dashboard.showsMomentumSection)
+        XCTAssertTrue(dashboard.showsDashboardHeroSection)
         XCTAssertGreaterThan(dashboard.momentum.streakDays, 0)
         XCTAssertTrue(
             dashboard.transformation.variant == .weightLossProgress
                 || dashboard.transformation.variant == .strongConsistency
         )
 
-        XCTAssertTrue(dashboard.showsWeeklyReviewSection)
+        XCTAssertTrue(dashboard.showsWeeklyProgressSection)
         XCTAssertGreaterThanOrEqual(dashboard.weeklyReview.foodLoggedDays, 6)
 
         let foodHabit = dashboard.weeklyHabit.habits.first { $0.id == "food" }
@@ -169,8 +166,11 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
         }
 
         XCTAssertGreaterThan(
-            FormaMainTabLayout.scrollBottomInset,
-            FormaTokens.Layout.floatingTabBarHeight
+            JourneyLayout.scrollBottomInset(
+                bottomSafeArea: FormaTokens.Layout.homeIndicatorSafeAreaEstimate,
+                dynamicTypeSize: .large
+            ),
+            FormaTokens.Layout.floatingTabBarHeight + FormaTokens.Layout.homeIndicatorSafeAreaEstimate
         )
     }
 
@@ -234,8 +234,8 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
     // MARK: - Layout regression guard
 
     func testQA_LayoutOrder_MatchesRevampSpec() {
-        XCTAssertEqual(JourneyProductLayout.sectionOrder.first, .header)
-        XCTAssertEqual(JourneyProductLayout.sectionOrder.last, .startingEmptyState)
+        XCTAssertEqual(JourneyProductLayout.sectionOrder.first, .hero)
+        XCTAssertEqual(JourneyProductLayout.sectionOrder.last, .chapters)
         JourneyRevampQAChecklistSupport.assertNoRemovedClutter()
         JourneyRevampQAChecklistSupport.assertNoBannedLiveCopy(in: JourneyPreviewData.strongMomentum)
     }

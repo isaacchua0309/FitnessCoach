@@ -79,35 +79,84 @@ enum JourneyPresentationBuilder {
 
         let chapter = JourneyChapterBuilder.build(
             JourneyChapterBuilder.Input(
+                profile: context.profile,
                 maturityLogs: context.maturityLogs,
                 allWeights: context.allWeights,
                 healthWorkoutDayStarts: context.healthWorkoutDayStarts,
                 isAppleHealthConnected: context.weeklyTraining.isConnected,
                 unlockedMilestoneCount: milestoneResult.unlockedCount,
+                checkInStreakDays: streakSummary.checkInStreak,
+                weeklyReviewUnlocked: weeklyProgressSummary.foodLoggedDays > 0
+                    && weeklyProgressSummary.totalDays >= JourneyThresholds.requiredCalendarSpanDays,
                 calendar: context.calendar
             )
         )
 
-        let momentumState = momentum(context: context, loggedDays: loggedDays)
+        let events = storyEvents(from: timeline, calendar: context.calendar)
+        let insightState = personalizedInsights(context: context)
+        let projectionState = goalProjection(context: context)
+        let recapState = monthlyRecapState(from: monthlyRecap)
+
+        let screenPresentation = JourneyScreenPresentationBuilder.build(
+            JourneyScreenPresentationBuilder.Input(
+                context: context,
+                weeklyProgressSummary: weeklyProgressSummary,
+                chapter: chapter,
+                storyEvents: events,
+                insight: insightState,
+                goalProjection: projectionState,
+                freshnessInput: nil
+            )
+        )
+        let momentumState = momentum(from: screenPresentation)
         let transformationState = hero(
             context: context,
             loggedDays: loggedDays,
             hasProfile: hasProfile
+        )
+        let unifiedWeeklyReview = UnifiedWeeklyReviewPresentationBuilder.build(
+            UnifiedWeeklyReviewInput(
+                summary: weeklyProgressSummary,
+                weeklyHabit: weeklyHabit,
+                profile: context.profile,
+                goalDirection: context.baseline.goalDirection,
+                dailyReviewsThisWeekCount: context.weekLogs.filter { $0.dailyReviewId != nil }.count,
+                screenPresentation: screenPresentation
+            )
+        )
+        let dashboardHero = JourneyDashboardHeroBuilder.build(
+            JourneyDashboardHeroBuilder.Input(
+                screenPresentation: screenPresentation,
+                weeklySummary: weeklyProgressSummary,
+                hasProfile: hasProfile
+            )
+        )
+        let progressSection = JourneyProgressSectionBuilder.build(
+            JourneyProgressSectionBuilder.Input(
+                screenPresentation: screenPresentation,
+                unifiedWeeklyReview: unifiedWeeklyReview,
+                goalProjection: projectionState,
+                connectHealthCTA: nil
+            )
         )
 
         return JourneyDashboardState(
             hasProfile: hasProfile,
             baseline: context.baseline,
             streaks: context.journeyStreaks,
+            screenPresentation: screenPresentation,
+            unifiedWeeklyReview: unifiedWeeklyReview,
+            dashboardHero: dashboardHero,
+            progressSection: progressSection,
             header: header(momentum: momentumState, transformation: transformationState),
             momentum: momentumState,
             transformation: transformationState,
-            goalProjection: goalProjection(context: context),
+            goalProjection: projectionState,
             milestone: milestoneResult.presentation,
-            storyEvents: storyEvents(from: timeline, calendar: context.calendar),
-            insight: personalizedInsights(context: context),
+            storyEvents: events,
+            insight: insightState,
             weeklyHabit: weeklyHabit,
-            monthlyRecap: monthlyRecapState(from: monthlyRecap),
+            monthlyRecap: recapState,
             chapter: chapter,
             weeklyProgressSummary: weeklyProgressSummary,
             dailyReviewsThisWeekCount: context.weekLogs.filter { $0.dailyReviewId != nil }.count
@@ -135,15 +184,12 @@ enum JourneyPresentationBuilder {
     // MARK: - Momentum
 
     static func momentum(
-        context: JourneyDashboardBuilder.Context,
-        loggedDays: Int
+        from presentation: JourneyScreenPresentationState
     ) -> JourneyMomentumState {
         let copy = FormaProductCopy.Journey.Momentum.self
-        let streaks = context.journeyStreaks
-        let loggingStreak = streaks.currentLoggingStreakDays
-        let longestStreak = streaks.longestLoggingStreakDays
+        let streaks = presentation.streaks
 
-        guard loggedDays > 0 || loggingStreak > 0 else {
+        guard streaks.primaryMomentumDays > 0 else {
             return JourneyMomentumState(
                 isVisible: false,
                 sectionTitle: copy.sectionTitle,
@@ -154,27 +200,51 @@ enum JourneyPresentationBuilder {
             )
         }
 
-        let headline = loggingStreak > 0
-            ? copy.activeHeadline(days: loggingStreak)
-            : copy.buildingHeadline
-
-        var detail: String?
-        if longestStreak > loggingStreak {
-            detail = copy.longestStreakDetail(days: longestStreak)
-        } else if !streaks.isTodayLogged, loggingStreak > 0 {
-            detail = copy.keepStreakAlive
-        } else if let keepAlive = streaks.keepStreakAliveCopy {
-            detail = keepAlive
-        }
-
         return JourneyMomentumState(
             isVisible: true,
             sectionTitle: copy.sectionTitle,
-            headline: headline,
-            detail: detail,
-            streakDays: loggingStreak,
+            headline: streaks.primaryMomentumLabel,
+            detail: streaks.momentumDetail,
+            streakDays: streaks.primaryMomentumDays,
             emptyMessage: nil
         )
+    }
+
+    /// Legacy entry point retained for fixture assembly paths.
+    static func momentum(
+        context: JourneyDashboardBuilder.Context,
+        loggedDays: Int
+    ) -> JourneyMomentumState {
+        let presentation = JourneyScreenPresentationBuilder.build(
+            JourneyScreenPresentationBuilder.Input(
+                context: context,
+                weeklyProgressSummary: JourneyDashboardBuilder.weeklyProgressSummary(context: context),
+                chapter: JourneyChapterBuilder.build(
+                    JourneyChapterBuilder.Input(
+                        profile: context.profile,
+                        maturityLogs: context.maturityLogs,
+                        allWeights: context.allWeights,
+                        healthWorkoutDayStarts: context.healthWorkoutDayStarts,
+                        isAppleHealthConnected: context.weeklyTraining.isConnected,
+                        unlockedMilestoneCount: 0,
+                        checkInStreakDays: StreakCalculator.calculate(
+                            logs: context.maturityLogs,
+                            workoutDates: context.healthWorkoutDayStarts,
+                            asOf: context.asOf,
+                            calendar: context.calendar
+                        ).checkInStreak,
+                        weeklyReviewUnlocked: false,
+                        calendar: context.calendar
+                    )
+                ),
+                storyEvents: [],
+                insight: personalizedInsights(context: context),
+                goalProjection: goalProjection(context: context),
+                freshnessInput: nil
+            )
+        )
+        _ = loggedDays
+        return momentum(from: presentation)
     }
 
     // MARK: - Hero
@@ -369,68 +439,11 @@ enum JourneyPresentationBuilder {
         )
 
         if maturityLogs.isEmpty, weekLogs.isEmpty {
-            let momentumState = momentum(context: context, loggedDays: loggedDays)
-            let transformationState = hero(
+            return buildDashboard(
+                hasProfile: hasProfile,
                 context: context,
                 loggedDays: loggedDays,
-                hasProfile: hasProfile
-            )
-            let monthName = asOf.formatted(.dateTime.month(.wide))
-            let recapCopy = FormaProductCopy.Journey.MonthlyRecap.self
-            let chapterCopy = FormaProductCopy.Journey.Chapters.self
-
-            return JourneyDashboardState(
-                hasProfile: hasProfile,
-                baseline: baseline,
-                streaks: streaks,
-                header: header(momentum: momentumState, transformation: transformationState),
-                momentum: momentumState,
-                transformation: transformationState,
-                goalProjection: Self.goalProjection(context: context),
-                milestone: milestoneResult.presentation,
-                storyEvents: storyEvents(from: storyTimeline, calendar: calendar),
-                insight: personalizedInsights(
-                    profile: profile,
-                    baseline: baseline,
-                    weekLogs: [],
-                    allWeights: [],
-                    healthWorkoutDayStarts: [],
-                    isAppleHealthConnected: training.isConnected,
-                    asOf: asOf,
-                    calendar: calendar
-                ),
-                weeklyHabit: weeklyHabit,
-                monthlyRecap: JourneyMonthlyRecapState(
-                    isVisible: false,
-                    sectionTitle: recapCopy.sectionTitle(monthName: monthName),
-                    showsTeaser: false,
-                    teaserTitle: nil,
-                    teaserDetail: nil,
-                    overallGrade: nil,
-                    overallGradeLabel: nil,
-                    loggedDays: 0,
-                    monthWeightDeltaKg: nil,
-                    calorieAdherencePercent: nil,
-                    proteinAdherencePercent: nil,
-                    waterAdherencePercent: nil,
-                    trainingSessions: nil,
-                    bestStreakDays: nil,
-                    rows: [],
-                    accessibilitySummary: recapCopy.sectionTitle(monthName: monthName)
-                ),
-                chapter: JourneyChapterState(
-                    isVisible: true,
-                    sectionTitle: chapterCopy.sectionTitle,
-                    chapterNumber: 1,
-                    chapterTitle: chapterCopy.title(for: 1),
-                    nextUnlockLabel: chapterCopy.nextUnlock(chapterCopy.title(for: 2)),
-                    progressPercent: 0,
-                    emptyMessage: chapterCopy.emptyBody,
-                    totalXP: 0,
-                    accessibilitySummary: "\(chapterCopy.sectionTitle). \(chapterCopy.chapterLabel(1))"
-                ),
-                weeklyProgressSummary: weeklyProgressSummary,
-                dailyReviewsThisWeekCount: 0
+                weeklyProgressSummaryBuilder: weeklyProgressSummaryBuilder
             )
         }
 

@@ -14,10 +14,8 @@ struct JourneySectionLabel: View {
 
     var body: some View {
         Text(title)
-            .font(FormaTokens.Typography.caption.weight(.semibold))
-            .foregroundStyle(FormaTokens.Color.textTertiary)
-            .textCase(.uppercase)
-            .tracking(0.6)
+            .font(JourneyTypography.cardHeadline)
+            .foregroundStyle(FormaTokens.Color.textPrimary)
             .accessibilityAddTraits(.isHeader)
     }
 }

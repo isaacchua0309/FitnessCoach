@@ -445,6 +445,8 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
             JourneyStreakBuilder.Input(
                 streakSummary: StreakSummary(
                     loggingStreak: 0,
+                    mealLoggingStreak: 0,
+                    checkInStreak: 0,
                     proteinStreak: 0,
                     hydrationStreak: 0,
                     workoutStreak: 0
@@ -531,6 +533,8 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
                 JourneyStreakBuilder.Input(
                     streakSummary: StreakSummary(
                         loggingStreak: 1,
+                        mealLoggingStreak: 1,
+                        checkInStreak: 1,
                         proteinStreak: 1,
                         hydrationStreak: 0,
                         workoutStreak: 0

@@ -157,8 +157,7 @@ struct WeeklyProgressHeroCard: View {
                 WeeklyReviewConfidenceBadge(
                     label: state.confidenceLabel,
                     isLimited: state.isInsufficientData
-                        || state.confidenceLabel == FormaProductCopy.WeeklyReviewPresentation.confidenceLow
-                        || state.confidenceLabel == FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+                        || state.confidenceLabel == FormaProductCopy.Journey.WeeklyConfidence.building
                 )
             }
         }
@@ -260,15 +259,35 @@ struct WeeklyProgressHeroCard: View {
     }
 
     private var insufficientDataGuidanceTitle: String {
-        FormaProductCopy.WeeklyReviewPresentation.notEnoughDataRequirements
+        state.insufficientDataHeadline
+            ?? FormaProductCopy.Journey.EmptyState.buildingFirstTrend
     }
 
     private var insufficientDataGuidance: [String] {
-        let guidance = state.caveats.filter { !$0.isEmpty }
-        if guidance.isEmpty {
-            return [state.confidenceAccessibilityLabel]
+        var items: [String] = []
+        if let requirement = state.insufficientDataRequirement, !requirement.isEmpty {
+            items.append(requirement)
+        } else if let summary = state.insufficientDataSummary, !summary.isEmpty {
+            items.append(summary)
         }
-        return guidance
+        if let progress = state.insufficientDataProgressLabel, !progress.isEmpty {
+            items.append(progress)
+        }
+        if let primaryCTA = state.primaryCTA {
+            if let subtitle = primaryCTA.subtitle, !subtitle.isEmpty {
+                items.append("\(primaryCTA.title). \(subtitle)")
+            } else {
+                items.append(primaryCTA.title)
+            }
+        }
+        if items.isEmpty {
+            let guidance = state.caveats.filter { !$0.isEmpty }
+            if guidance.isEmpty {
+                return [state.confidenceAccessibilityLabel]
+            }
+            return guidance
+        }
+        return items
     }
 
     private var insufficientDataAccessibilityLabel: String {

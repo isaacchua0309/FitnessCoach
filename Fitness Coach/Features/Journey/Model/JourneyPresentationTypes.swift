@@ -329,5 +329,6 @@ struct JourneyChapterState: Equatable {
     var progressPercent: Double
     var emptyMessage: String?
     var totalXP: Int
+    var progressItems: [JourneyUnlockChecklistItem]
     var accessibilitySummary: String
 }

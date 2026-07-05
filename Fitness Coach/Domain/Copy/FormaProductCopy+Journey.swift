@@ -25,11 +25,11 @@ extension FormaProductCopy {
             static let keepStreakAlive = "Log today to keep your streak alive."
 
             static func activeHeadline(days: Int) -> String {
-                "\(days)-day logging streak"
+                "\(days)-day check-in streak"
             }
 
             static func longestStreakDetail(days: Int) -> String {
-                "Your longest streak is \(days) days."
+                "Your longest check-in streak is \(days) days."
             }
         }
 
@@ -219,7 +219,7 @@ extension FormaProductCopy {
             static let proteinFiveDays = "Hit protein target 5 days"
             static let waterFiveDays = "Hit water target 5 days"
             static let loggedFirstWorkout = "Logged first workout"
-            static let loggingStreakSeven = "7-day logging streak"
+            static let loggingStreakSeven = "7-day check-in streak"
             static let loggedThirtyMeals = "Logged 30 meals"
             static let halfwayToGoal = "Halfway to goal"
             static let loggedHundredMeals = "Logged 100 meals"
@@ -324,8 +324,20 @@ extension FormaProductCopy {
                 "Longest session: \(durationLabel(minutes: minutes)) \(title)"
             }
 
+            static func longestWorkoutSession(minutes: Int) -> String {
+                "Longest session: \(durationLabel(minutes: minutes))"
+            }
+
             static func mostActiveDay(steps: Int, dateLabel: String) -> String {
                 "Most active day: \(steps.formatted()) steps on \(dateLabel)"
+            }
+
+            static func mostActiveDaySteps(_ steps: Int) -> String {
+                "Most active day: \(steps.formatted()) steps"
+            }
+
+            static func dailyMovement(averageSteps: Int) -> String {
+                "Daily movement: \(averageSteps.formatted()) avg steps"
             }
 
             static func workoutConsistency(days: Int, windowDays: Int) -> String {
@@ -527,9 +539,112 @@ extension FormaProductCopy {
             static let title = "Your journey"
         }
 
+        enum Dashboard {
+            enum Hero {
+                static let defaultEncouragingSentence =
+                    "Every log helps Forma learn your rhythm."
+
+                static func weekLabel(_ week: Int) -> String {
+                    "Week \(week)"
+                }
+
+                static let startedWithFirstWeighInAndWorkout =
+                    "You've started with your first weigh-in and workout."
+
+                static func encouragingSentence(phrases: [String]) -> String {
+                    guard let first = phrases.first else { return defaultEncouragingSentence }
+                    if phrases.count == 1 {
+                        return "You've \(first)."
+                    }
+                    if phrases.count == 2 {
+                        return "You've \(first) and \(phrases[1])."
+                    }
+                    let leading = phrases.dropLast().joined(separator: ", ")
+                    return "You've \(leading), and \(phrases.last!)."
+                }
+
+                static func checkInStreak(_ days: Int) -> String {
+                    days == 1 ? "1-day check-in streak" : "\(days)-day check-in streak"
+                }
+
+                static func mealStreak(_ days: Int) -> String {
+                    days == 1 ? "1-day meal streak" : "\(days)-day meal streak"
+                }
+
+                static func workouts(_ count: Int) -> String {
+                    count == 1 ? "1 workout" : "\(count) workouts"
+                }
+
+                static func weighIns(_ count: Int) -> String {
+                    count == 1 ? "1 weigh-in" : "\(count) weigh-ins"
+                }
+
+                static func mealDays(_ count: Int) -> String {
+                    count == 1 ? "1 meal day" : "\(count) meal days"
+                }
+
+                static func averageSteps(_ count: Int) -> String {
+                    "\(count.formatted()) avg steps"
+                }
+            }
+
+            enum Progress {
+                static let sectionTitle = "Progress"
+
+                static let nutritionTitle = "Nutrition"
+                static let weightTrendTitle = "Weight trend"
+                static let trainingTitle = "Training"
+                static let recoveryTitle = "Recovery"
+                static let stepsTitle = "Steps"
+                static let goalProjectionTitle = "Goal pace"
+
+                static let notStarted = "Not started"
+                static let building = "Building"
+                static let ready = "Ready"
+                static let limitedData = "Limited data"
+
+                static func sessions(_ count: Int) -> String {
+                    count == 1 ? "1 session" : "\(count) sessions"
+                }
+
+                static func averageSteps(_ count: Int) -> String {
+                    "\(count.formatted()) avg"
+                }
+
+                static func buildingProgress(current: Int, total: Int) -> String {
+                    "Building · \(current)/\(total) days"
+                }
+
+                static func rowAccessibility(title: String, value: String) -> String {
+                    "\(title). \(value)"
+                }
+            }
+
+            enum Highlights {
+                static let sectionTitle = "Highlights"
+            }
+
+            enum Story {
+                static let sectionTitle = "Story"
+                static let recentFirstHint = "Most recent first"
+            }
+        }
+
         enum Chapters {
-            static let sectionTitle = "Your chapter"
+            static let sectionTitle = "Chapter"
             static let emptyBody = "Log your first meal to begin Chapter 1."
+            static let startedForma = Timeline.startedForma
+            static let firstWeighIn = Unlock.firstWeighInLogged
+            static let firstWorkout = Unlock.firstWorkoutCompleted
+            static let firstMeal = Unlock.firstMealLogged
+
+            static func checkInStreak(days: Int) -> String {
+                "\(days)-day check-in streak"
+            }
+
+            static func weeklyReviewUnlocked(days: Int) -> String {
+                "\(days)-day review unlocked"
+            }
 
             static func chapterLabel(_ number: Int) -> String {
                 "Chapter \(number)"
@@ -668,12 +783,44 @@ extension FormaProductCopy {
             static let buildingConsistency = "You're building consistency."
             static let keepStreakAlive = "Log today to keep your streak alive."
 
-            static func loggingStreak(days: Int) -> String {
-                "\(days)-day logging streak"
+            static func mealStreak(days: Int) -> String {
+                days == 1 ? "1-day meal streak" : "\(days)-day meal streak"
             }
 
+            /// Legacy alias — prefer `mealStreak(days:)`.
+            static func mealLoggingStreak(days: Int) -> String {
+                mealStreak(days: days)
+            }
+
+            static func checkInStreak(days: Int) -> String {
+                days == 1 ? "1-day check-in streak" : "\(days)-day check-in streak"
+            }
+
+            static func activityStreak(days: Int) -> String {
+                days == 1 ? "1-day activity streak" : "\(days)-day activity streak"
+            }
+
+            /// Legacy label — prefer `checkInStreak(days:)`.
+            static func loggingStreak(days: Int) -> String {
+                checkInStreak(days: days)
+            }
+
+            static func longestMealStreak(days: Int) -> String {
+                "Your longest meal streak is \(days) days."
+            }
+
+            /// Legacy alias — prefer `longestMealStreak(days:)`.
+            static func longestMealLoggingStreak(days: Int) -> String {
+                longestMealStreak(days: days)
+            }
+
+            static func longestCheckInStreak(days: Int) -> String {
+                "Your longest check-in streak is \(days) days."
+            }
+
+            /// Legacy label — prefer `longestCheckInStreak(days:)`.
             static func longestLoggingStreak(days: Int) -> String {
-                "Your longest streak is \(days) days."
+                longestCheckInStreak(days: days)
             }
 
             static func proteinStreak(days: Int) -> String {
@@ -693,6 +840,125 @@ extension FormaProductCopy {
             }
         }
 
+        enum WeeklyConfidence {
+            static let building = "Confidence building"
+            static let moderate = "Moderate confidence"
+            static let high = "High confidence"
+        }
+
+        enum Sync {
+            static let healthDataSyncing = "Some health data is still syncing."
+        }
+
+        enum Unlock {
+            static let checklistTitle = "Unlock your first full review"
+            static let nextAchievementSection = "Next achievement"
+
+            static let firstWeighInLogged = "First weigh-in logged"
+            static let firstWorkoutCompleted = "First workout completed"
+            static let firstMealLogged = "First meal logged"
+
+            static let firstMealUnlockDetail =
+                "Unlock nutrition insights and your first weekly review."
+
+            static let maintenanceLockedTitle =
+                "Log meals to unlock your first maintenance estimate"
+
+            static let weightTrendBuildingTitle = "Building your weight trend"
+            static let weightTrendBuildingDetail =
+                "A few more weigh-ins will smooth out weekly noise."
+
+            static func mealLoggingDays(required: Int) -> String {
+                "\(required) meal-logging days"
+            }
+
+            static func moreWeighIns(remaining: Int) -> String {
+                remaining == 1 ? "1 more weigh-in" : "\(remaining) more weigh-ins"
+            }
+
+            static func weighInsComplete(required: Int) -> String {
+                "\(required) weigh-ins"
+            }
+
+            static func mealCountProgress(current: Int, total: Int) -> String {
+                "\(current) / \(total) meals"
+            }
+
+            static func mealDayProgress(current: Int, total: Int) -> String {
+                "\(current) / \(total) meal days"
+            }
+
+            static func weighInProgress(current: Int, total: Int) -> String {
+                "\(current) / \(total) weigh-ins"
+            }
+
+            static func workoutProgress(current: Int, total: Int) -> String {
+                "\(current) / \(total) workouts"
+            }
+
+            static func checklistAccessibility(
+                completed: Int,
+                total: Int,
+                items: [JourneyUnlockChecklistItem]
+            ) -> String {
+                let progress = progressAccessibility(completed: completed, total: total)
+                guard !items.isEmpty else { return "\(checklistTitle). \(progress)" }
+                let rows = items.map(\.accessibilityLabel).joined(separator: ". ")
+                return "\(checklistTitle). \(progress). \(rows)"
+            }
+
+            static func progressAccessibility(completed: Int, total: Int) -> String {
+                "\(completed) of \(total) complete"
+            }
+
+            static func rowAccessibility(
+                title: String,
+                status: JourneyUnlockChecklistItemStatus
+            ) -> String {
+                switch status {
+                case .completed:
+                    return "\(title). Completed."
+                case .pending:
+                    return "\(title). Not yet completed."
+                case .inProgress(let current, let total):
+                    return "\(title). \(current) of \(total) complete."
+                }
+            }
+        }
+
+        enum NextBestAction {
+            static let logFirstMeal = "Log your first meal"
+            static let logFirstMealDetail = "Log your first meal to unlock nutrition insights."
+
+            static let logMealsConsistently = "Log a few more meals"
+            static let logMealsConsistentlyDetail =
+                "A few more meal logs will help Forma estimate your maintenance."
+
+            static func logMealsConsistentlyProgressDetail(logged: Int, required: Int) -> String {
+                "You've logged meals on \(logged) of the last 7 days. Aim for \(required) to unlock your weekly review."
+            }
+
+            static let logWeightMoreOften = "Log weight more often"
+            static func logWeightMoreOftenDetail(logged: Int, required: Int) -> String {
+                "Add \(max(required - logged, 1)) more weigh-in\(required - logged == 1 ? "" : "s") this week for a clearer trend."
+            }
+
+            static let completeFirstWorkout = "Complete your first workout"
+            static let completeFirstWorkoutDetail = "Log a workout in Today or connect Apple Health to track training."
+            static let completeFirstWorkoutHealthDetail = "Your next workout will appear here automatically from Apple Health."
+
+            static let syncRecoveryData = "Keep wearing your watch"
+            static let syncRecoveryDataDetail = "Recovery insights need a few more days of sleep and heart-rate data."
+            static let connectHealthForRecoveryDetail = "Connect Apple Health to unlock recovery insights."
+
+            static let keepStreakGoing = "Keep your streak going"
+            static func keepStreakGoingDetail(days: Int) -> String {
+                days == 1
+                    ? "You're on a 1-day streak. Log today to keep it alive."
+                    : "You're on a \(days)-day streak. Log today to keep it alive."
+            }
+        }
+
         enum EmptyState {
             static let weightTrendBody = FormaProductCopy.EmptyState.WeightTrend.body
             static let weightTrendAction = FormaProductCopy.EmptyState.WeightTrend.action
@@ -700,10 +966,39 @@ extension FormaProductCopy {
             static let consistencyBody = FormaProductCopy.EmptyState.Consistency.body
             static let timelineBody = Timeline.emptyBody
             static let milestonesBody = Milestones.emptyBody
+
+            static let buildingFirstTrend = "Building your first trend"
+
+            static func unlockRequirement(
+                mealsNeeded: Int,
+                weighInsNeeded: Int
+            ) -> String {
+                var parts: [String] = []
+                if mealsNeeded > 0 {
+                    let mealLabel = mealsNeeded == 1 ? "meal" : "meals"
+                    parts.append("\(mealsNeeded) \(mealLabel)")
+                }
+                if weighInsNeeded > 0 {
+                    let weighInLabel = weighInsNeeded == 1 ? "weigh-in" : "weigh-ins"
+                    parts.append("\(weighInsNeeded) more \(weighInLabel)")
+                }
+                guard !parts.isEmpty else {
+                    return "Keep logging this week to unlock your first estimate."
+                }
+                return "Log \(parts.joined(separator: " and ")) to unlock your first estimate."
+            }
+
+            static func mealProgressLabel(logged: Int, required: Int) -> String {
+                "\(logged)/\(required) meal days"
+            }
+
+            static func weighInProgressLabel(logged: Int, required: Int) -> String {
+                "\(logged)/\(required) weigh-ins"
+            }
         }
 
         enum WeeklyReview {
-            static let sectionTitle = "This week"
+            static let sectionTitle = "This Week"
             static let foodTitle = "Food Logging"
             static let proteinTitle = "Protein"
             static let waterTitle = "Water"
@@ -712,7 +1007,8 @@ extension FormaProductCopy {
             static let weightTitle = "Weight Logging"
             static let trainingNone = "None yet"
 
-            static let weightUnavailable = "Log weight to see weekly change"
+            static let weightUnavailable = FormaProductCopy.Journey.Unlock.weightTrendBuildingTitle
+            static let weightTrendBuildingDetail = FormaProductCopy.Journey.Unlock.weightTrendBuildingDetail
             static let trainingConnectAppleHealth = TrainingIntegrationCopy.includeWorkoutsInProgress
             static let noFoodLogsSummary = "Log a meal to start building your weekly pattern."
             static let emptyState = "Your weekly pattern starts today."
@@ -777,6 +1073,36 @@ extension FormaProductCopy {
                 "Training \(achieved) vs \(previousAchieved) last week"
             }
         }
+
+        enum ThisWeek {
+            static let gettingStarted = "Getting started"
+            static let weeklyReviewReady = "Your weekly review is ready"
+            static let buildingConsistency = "You're building consistency"
+
+            static func averageSteps(_ count: Int) -> String {
+                "\(count.formatted()) avg steps"
+            }
+
+            static func workouts(_ count: Int) -> String {
+                count == 1 ? "1 workout" : "\(count) workouts"
+            }
+
+            static func weighIns(_ count: Int) -> String {
+                count == 1 ? "1 weigh-in" : "\(count) weigh-ins"
+            }
+
+            static func mealsLogged(_ count: Int) -> String {
+                count == 1 ? "1 meal" : "\(count) meals"
+            }
+
+            static func proteinDays(_ count: Int) -> String {
+                count == 1 ? "1 protein day" : "\(count) protein days"
+            }
+
+            static func waterDays(_ count: Int) -> String {
+                count == 1 ? "1 water day" : "\(count) water days"
+            }
+        }
     }
     // MARK: - Weekly review presentation
 
@@ -786,11 +1112,10 @@ extension FormaProductCopy {
         static let loadingSubtitle = "Summarizing your week."
         static let loadingAccessibilityLabel = "Loading weekly health review"
         static let emptyTitle = "Weekly review building"
-        static let notEnoughDataTitle = "Not enough data yet"
+        static let notEnoughDataTitle = FormaProductCopy.Journey.EmptyState.buildingFirstTrend
         static let notEnoughDataSummary =
-            "Log meals, workouts, and recovery signals for at least 7 days to unlock your weekly review."
-        static let notEnoughDataRequirements =
-            "Requires: 7 days of activity or recovery signals, plus consistent meal logging."
+            "Keep logging meals, workouts, and weigh-ins to unlock your first weekly review."
+        static let notEnoughDataRequirements = ""
         static let emptySummary =
             "Keep logging meals, workouts, and recovery signals to unlock your weekly health review."
         static let emptyAccessibilityLabel = "Weekly health review unavailable. Keep logging to unlock it."
@@ -799,10 +1124,10 @@ extension FormaProductCopy {
 
         static let confidenceHigh = "High confidence"
         static let confidenceModerate = "Moderate confidence"
-        static let confidenceLow = "Limited confidence"
+        static let confidenceLow = FormaProductCopy.Journey.WeeklyConfidence.building
 
         static let statUnavailable = "Not enough data"
-        static let weightUnavailable = "Log weight to see weekly change"
+        static let weightUnavailable = FormaProductCopy.Journey.Unlock.weightTrendBuildingTitle
         static let nutritionLimitedDetail = "Limited nutrition data this week"
         static let activityLimitedDetail = "Limited activity data this week"
         static let recoveryLimitedDetail = "Limited recovery data this week"

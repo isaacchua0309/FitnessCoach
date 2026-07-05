@@ -358,9 +358,8 @@ enum JourneyHealthIntelligencePresentationBuilder {
         }
 
         if let longest = longestWorkout(from: workoutRecords) {
-            let title = FormaProductCopy.Journey.HealthIntelligence.longestWorkout(
-                minutes: longest.durationMinutes,
-                title: longest.title
+            let title = FormaProductCopy.Journey.HealthIntelligence.longestWorkoutSession(
+                minutes: longest.durationMinutes
             )
             items.append(
                 JourneyHealthMilestoneState(
@@ -377,9 +376,8 @@ enum JourneyHealthIntelligencePresentationBuilder {
         }
 
         if let mostActive = mostActiveDay(from: recoveryDays, calendar: calendar) {
-            let title = FormaProductCopy.Journey.HealthIntelligence.mostActiveDay(
-                steps: mostActive.steps,
-                dateLabel: mostActive.dateLabel
+            let title = FormaProductCopy.Journey.HealthIntelligence.mostActiveDaySteps(
+                mostActive.steps
             )
             items.append(
                 JourneyHealthMilestoneState(
@@ -387,6 +385,24 @@ enum JourneyHealthIntelligencePresentationBuilder {
                     kind: .mostActiveDay,
                     title: title,
                     detail: "Your highest step day in the recent window.",
+                    status: .achieved,
+                    statusLabel: FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved,
+                    progressLabel: nil,
+                    accessibilityLabel: "\(title). \(FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved)."
+                )
+            )
+        }
+
+        if let averageSteps = averageDailySteps(from: recoveryDays), averageSteps > 0 {
+            let title = FormaProductCopy.Journey.HealthIntelligence.dailyMovement(
+                averageSteps: averageSteps
+            )
+            items.append(
+                JourneyHealthMilestoneState(
+                    id: "daily-movement",
+                    kind: .weeklyWin,
+                    title: title,
+                    detail: "Your recent daily step average.",
                     status: .achieved,
                     statusLabel: FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved,
                     progressLabel: nil,
@@ -925,6 +941,14 @@ enum JourneyHealthIntelligencePresentationBuilder {
             steps: best.0,
             dateLabel: JourneyFormatter.timelineDayLabel(best.1, calendar: calendar)
         )
+    }
+
+    private static func averageDailySteps(
+        from recoveryDays: [JourneyHealthIntelligenceRecoveryDayInput]
+    ) -> Int? {
+        let stepValues = recoveryDays.compactMap(\.steps).filter { $0 > 0 }
+        guard !stepValues.isEmpty else { return nil }
+        return stepValues.reduce(0, +) / stepValues.count
     }
 
     // MARK: - Recovery mapping

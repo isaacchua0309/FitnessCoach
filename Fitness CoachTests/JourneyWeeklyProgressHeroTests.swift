@@ -47,10 +47,14 @@ final class JourneyWeeklyProgressHeroTests: XCTestCase {
         let state = UnifiedWeeklyReviewPresentationBuilder.build(dashboard: dashboard)
 
         XCTAssertTrue(state.isInsufficientData)
-        XCTAssertEqual(state.primaryCTA?.kind, .keepLogging)
+        XCTAssertEqual(state.primaryCTA?.kind, .logFood)
         XCTAssertEqual(
             state.confidenceLabel,
-            FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+            FormaProductCopy.Journey.WeeklyConfidence.building
+        )
+        XCTAssertEqual(
+            state.cardStateTitle,
+            FormaProductCopy.Journey.ThisWeek.gettingStarted
         )
         XCTAssertNil(state.maintenanceBlock?.estimatedMaintenanceKcal)
         XCTAssertNil(state.planRecommendationBlock)

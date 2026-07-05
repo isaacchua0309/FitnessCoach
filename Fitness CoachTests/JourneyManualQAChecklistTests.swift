@@ -100,7 +100,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             JourneyHeroBuilder.Input(
                 baseline: baseline,
                 loggedDays: 0,
-                journeyStreaks: JourneyStreakState(
+                journeyStreaks: JourneyStreakState.legacy(
                     currentLoggingStreakDays: 0,
                     longestLoggingStreakDays: 0,
                     currentProteinStreakDays: 0,
@@ -246,9 +246,9 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         XCTAssertEqual(rawDates, rawDates.sorted(by: >), "Raw timeline events should be newest-first")
 
         if let anchorIndex = display.firstIndex(where: { $0.type == .onboardingStarted }),
-           anchorIndex == display.count - 1 {
-            let nonAnchorDates = display.dropLast().map(\.date)
-            XCTAssertEqual(nonAnchorDates, nonAnchorDates.sorted(by: >))
+           anchorIndex == 0 {
+            let nonAnchorDates = display.dropFirst().map(\.date)
+            XCTAssertEqual(nonAnchorDates, nonAnchorDates.sorted(by: <))
         }
 
         for event in display {
@@ -363,18 +363,24 @@ final class JourneyManualQAChecklistTests: XCTestCase {
 
     func testManualQA_LeanLayoutMountsOnlyRevampSections() {
         let order = JourneyProductLayout.sectionOrder.map(\.rawValue)
-        XCTAssertEqual(order.first, "header")
-        XCTAssertTrue(order.contains("transformation"))
-        XCTAssertTrue(order.contains("goalProjection"))
-        XCTAssertTrue(order.contains("weeklyProgress"))
-        XCTAssertTrue(order.contains("healthIntelligence"))
-        XCTAssertTrue(order.contains("weeklyReview"))
-        XCTAssertTrue(order.contains("insights"))
-        XCTAssertTrue(order.contains("milestones"))
-        XCTAssertTrue(order.contains("storyTimeline"))
-        XCTAssertTrue(order.contains("monthlyRecap"))
-        XCTAssertTrue(order.contains("chapters"))
-        XCTAssertEqual(order.last, "startingEmptyState")
+        XCTAssertEqual(order, [
+            "hero",
+            "nextAction",
+            "weeklyProgress",
+            "progress",
+            "highlights",
+            "storyTimeline",
+            "chapters"
+        ])
+        XCTAssertFalse(order.contains("header"))
+        XCTAssertFalse(order.contains("transformation"))
+        XCTAssertFalse(order.contains("goalProjection"))
+        XCTAssertFalse(order.contains("healthIntelligence"))
+        XCTAssertFalse(order.contains("weeklyReview"))
+        XCTAssertFalse(order.contains("insights"))
+        XCTAssertFalse(order.contains("milestones"))
+        XCTAssertFalse(order.contains("monthlyRecap"))
+        XCTAssertFalse(order.contains("startingEmptyState"))
         XCTAssertFalse(order.contains("detailedAnalytics"))
         XCTAssertFalse(order.contains("consistencyCalendar"))
         XCTAssertFalse(order.contains("beforeToday"))

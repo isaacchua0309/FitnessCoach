@@ -114,7 +114,7 @@ final class JourneyHeroBuilderTests: XCTestCase {
         streakDays: Int = 0,
         baseline: JourneyBaseline
     ) -> JourneyTransformationState {
-        let streaks = JourneyStreakState(
+        let streaks = JourneyStreakState.legacy(
             currentLoggingStreakDays: streakDays,
             longestLoggingStreakDays: max(streakDays, 1),
             currentProteinStreakDays: 0,

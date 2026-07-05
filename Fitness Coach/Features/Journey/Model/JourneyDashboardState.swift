@@ -12,6 +12,11 @@ struct JourneyDashboardState: Equatable {
 
     var baseline: JourneyBaseline
     var streaks: JourneyStreakState
+    var screenPresentation: JourneyScreenPresentationState
+    var unifiedWeeklyReview: UnifiedWeeklyReviewState
+
+    var dashboardHero: JourneyDashboardHeroState
+    var progressSection: JourneyProgressSectionState
 
     var header: JourneyHeaderState
     var momentum: JourneyMomentumState
@@ -37,7 +42,7 @@ extension JourneyDashboardState {
     }
 
     var storyTimeline: JourneyStoryTimelineState {
-        let events = storyEvents.map(\.timelineEvent)
+        let events = screenPresentation.story.events.map(\.timelineEvent)
         return JourneyStoryTimelineState(
             events: events,
             displayEvents: events,
@@ -47,54 +52,70 @@ extension JourneyDashboardState {
         )
     }
 
+    var storyEventsFromPresentation: [JourneyStoryEvent] {
+        screenPresentation.story.events
+    }
+
     var hasMeaningfulJourneyData: Bool {
         weeklyHabit.showsHabitRows
             || !milestones.unlocked.isEmpty
             || baseline.hasRealWeightEntries
-            || streaks.currentLoggingStreakDays >= 2
+            || screenPresentation.streaks.checkInStreakDays >= JourneyThresholds.meaningfulCheckInStreakDays
             || insight.isUnlocked
     }
 
     var showsMilestonesSection: Bool {
-        milestone.isVisible
+        guard milestone.isVisible else { return false }
+        return !screenPresentation.unlockDashboard.suppressesMilestonesSection
     }
 
     var showsStoryTimelineSection: Bool {
-        hasMeaningfulJourneyData && !storyEvents.isEmpty
-    }
-
-    var showsStartingEmptyState: Bool {
-        !hasMeaningfulJourneyData
-    }
-
-    var showsMomentumSection: Bool {
-        momentum.isVisible
-    }
-
-    var showsGoalProjectionSection: Bool {
-        hasMeaningfulJourneyData && goalProjection.isVisible
-    }
-
-    var showsWeeklyReviewSection: Bool {
-        hasMeaningfulJourneyData && weeklyHabit.isVisible
-    }
-
-    var showsWeeklyProgressSection: Bool {
-        guard hasProfile else { return false }
-        if weeklyProgressSummary.foodLoggedDays > 0 { return true }
-        if weeklyHabit.showsHabitRows { return true }
-        return hasMeaningfulJourneyData && weeklyHabit.isVisible
-    }
-
-    var showsInsightSection: Bool {
-        hasMeaningfulJourneyData && insight.isVisible
-    }
-
-    var showsMonthlyRecapSection: Bool {
-        hasMeaningfulJourneyData && monthlyRecap.isVisible
+        !screenPresentation.story.events.isEmpty
     }
 
     var showsChapterSection: Bool {
-        hasMeaningfulJourneyData
+        hasProfile
     }
+
+    var showsWeeklyProgressSection: Bool {
+        hasProfile
+    }
+
+    var showsProgressSection: Bool {
+        hasProfile && progressSection.isVisible
+    }
+
+    var showsHighlightsSection: Bool {
+        false
+    }
+
+    var showsNextActionSection: Bool {
+        screenPresentation.unlockDashboard.showsProminentNextActionCard
+            && screenPresentation.unlockDashboard.nextActionCard != nil
+    }
+
+    var showsDashboardHeroSection: Bool {
+        hasProfile && dashboardHero.isVisible
+    }
+
+    // MARK: - Legacy visibility (analytics + tests)
+
+    var showsStartingEmptyState: Bool { false }
+
+    var showsMomentumSection: Bool { false }
+
+    var showsGoalProjectionSection: Bool {
+        switch goalProjection.status {
+        case .hidden, .insufficientData:
+            return false
+        case .towardGoal, .flatTrend, .awayFromGoal, .goalReached:
+            return true
+        }
+    }
+
+    var showsWeeklyReviewSection: Bool { false }
+
+    var showsInsightSection: Bool { false }
+
+    var showsMonthlyRecapSection: Bool { false }
 }

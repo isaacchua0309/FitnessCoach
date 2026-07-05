@@ -648,9 +648,11 @@ enum JourneyPreviewData {
                 streaks: dashboard.streaks,
                 streakSummary: StreakSummary(
                     loggingStreak: dashboard.streaks.currentLoggingStreakDays,
+                    mealLoggingStreak: dashboard.streaks.currentMealLoggingStreakDays,
+                    checkInStreak: dashboard.streaks.currentCheckInStreakDays,
                     proteinStreak: dashboard.streaks.currentProteinStreakDays,
                     hydrationStreak: dashboard.streaks.currentWaterStreakDays,
-                    workoutStreak: 0
+                    workoutStreak: dashboard.streaks.currentActivityStreakDays
                 ),
                 weeklyReview: review,
                 asOf: today,
@@ -1259,7 +1261,7 @@ enum JourneyPreviewData {
             ? copy.longestLoggingStreak(days: longestLogging)
             : nil
 
-        return JourneyStreakState(
+        return JourneyStreakState.legacy(
             currentLoggingStreakDays: currentLogging,
             longestLoggingStreakDays: longestLogging,
             currentProteinStreakDays: proteinStreak,
@@ -1269,7 +1271,8 @@ enum JourneyPreviewData {
             heroStreakChip: heroChip,
             weeklyConsistencyHeadline: headline,
             weeklyConsistencyDetail: detail,
-            keepStreakAliveCopy: nil
+            keepStreakAliveCopy: nil,
+            mealLoggingStreakDays: currentLogging
         )
     }
 

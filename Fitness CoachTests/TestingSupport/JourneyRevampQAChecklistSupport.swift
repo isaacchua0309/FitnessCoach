@@ -32,6 +32,12 @@ enum JourneyRevampQAChecklistSupport {
         "Your consistency is starting to create a useful pattern",
         "Level 1 / 25 XP",
         "Keep logging to unlock habit insights",
+        "Not enough data yet",
+        "Maintenance estimate building",
+        "Log weight to see weekly change",
+        "Missing signals:",
+        "Limited confidence",
+        "Requires: 7 days",
     ]
 
     static let shamePhrases: [String] = [
@@ -46,39 +52,7 @@ enum JourneyRevampQAChecklistSupport {
 
     /// Mirrors `JourneyDashboardContent.visibleSections` for deterministic QA.
     static func visibleSections(for state: JourneyDashboardState) -> [JourneyProductSection] {
-        JourneyProductLayout.sectionOrder.filter { section in
-            switch section {
-            case .header:
-                return true
-            case .transformation:
-                return true
-            case .goalProjection:
-                return state.showsGoalProjectionSection
-            case .weeklyProgress:
-                return state.showsWeeklyProgressSection
-            case .healthIntelligence:
-                return false
-            case .milestones:
-                return state.showsMilestonesSection
-            case .weeklyReview:
-                return JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
-                    dashboard: state,
-                    showsWeeklyProgressHero: state.showsWeeklyProgressSection,
-                    isHealthIntelligenceUIEnabled: false,
-                    healthIntelligenceSectionState: nil
-                )
-            case .storyTimeline:
-                return state.showsStoryTimelineSection
-            case .insights:
-                return state.showsInsightSection
-            case .monthlyRecap:
-                return state.showsMonthlyRecapSection
-            case .chapters:
-                return state.showsChapterSection
-            case .startingEmptyState:
-                return state.showsStartingEmptyState
-            }
-        }
+        JourneyDashboardSectionSupport.visibleSections(for: state)
     }
 
     static func assertNoRemovedClutter(file: StaticString = #filePath, line: UInt = #line) {
@@ -194,6 +168,8 @@ enum JourneyRevampQAChecklistSupport {
         line: UInt = #line
     ) {
         XCTAssertFalse(dashboard.transformation.accessibilitySummary.isEmpty, file: file, line: line)
+        XCTAssertFalse(dashboard.dashboardHero.accessibilitySummary.isEmpty, file: file, line: line)
+        XCTAssertFalse(dashboard.progressSection.accessibilitySummary.isEmpty, file: file, line: line)
         XCTAssertFalse(dashboard.milestone.accessibilitySummary.isEmpty, file: file, line: line)
         XCTAssertFalse(dashboard.insight.accessibilitySummary.isEmpty, file: file, line: line)
         XCTAssertFalse(dashboard.monthlyRecap.accessibilitySummary.isEmpty, file: file, line: line)
@@ -222,7 +198,8 @@ enum JourneyRevampQAChecklistSupport {
         let detail = UnifiedWeeklyReviewPresentationBuilder.buildDetail(dashboard: dashboard)
 
         XCTAssertFalse(unified.confidenceAccessibilityLabel.isEmpty, file: file, line: line)
-        XCTAssertFalse(unified.headline.isEmpty, file: file, line: line)
+        XCTAssertFalse(unified.cardStateTitle.isEmpty, file: file, line: line)
+        XCTAssertFalse(unified.cardSummary.isEmpty, file: file, line: line)
         XCTAssertFalse(detail.accessibilityLabel.isEmpty, file: file, line: line)
         XCTAssertTrue(
             detail.accessibilityLabel.contains(unified.confidenceAccessibilityLabel),
@@ -246,15 +223,32 @@ enum JourneyRevampQAChecklistSupport {
         )
 
         XCTAssertGreaterThan(contentWidth, 280, file: file, line: line)
-        XCTAssertGreaterThan(FormaMainTabLayout.scrollBottomInset, FormaMainTabLayout.scrollContentBottomPadding)
-        XCTAssertGreaterThanOrEqual(JourneyLayout.scrollBottomContentPadding, FormaTokens.Spacing.md)
-        XCTAssertGreaterThan(JourneyLayout.sectionSpacing, FormaTokens.Spacing.sm)
+
+        let journeyInset = JourneyLayout.scrollBottomInset(
+            bottomSafeArea: FormaTokens.Layout.homeIndicatorSafeAreaEstimate,
+            dynamicTypeSize: .large
+        )
+        XCTAssertGreaterThan(
+            journeyInset,
+            FormaTokens.Layout.floatingTabBarHeight + FormaTokens.Layout.homeIndicatorSafeAreaEstimate,
+            file: file,
+            line: line
+        )
+        XCTAssertGreaterThanOrEqual(JourneyLayout.tabBarBreathingRoom, FormaTokens.Spacing.lg, file: file, line: line)
+        XCTAssertGreaterThanOrEqual(JourneyLayout.scrollBottomContentPadding, FormaTokens.Spacing.sm, file: file, line: line)
+        XCTAssertGreaterThan(JourneyLayout.sectionSpacing, FormaTokens.Spacing.sm, file: file, line: line)
     }
 
     private static func allCopyStrings(from dashboard: JourneyDashboardState) -> String {
         [
             dashboard.header.title,
             dashboard.header.subtitle,
+            dashboard.dashboardHero.weekLabel,
+            dashboard.dashboardHero.chapterTitle,
+            dashboard.dashboardHero.encouragingSentence,
+            dashboard.dashboardHero.compactStats.map(\.label).joined(separator: " "),
+            dashboard.progressSection.sectionTitle,
+            dashboard.progressSection.rows.map { "\($0.title) \($0.value)" }.joined(separator: " "),
             dashboard.transformation.title,
             dashboard.transformation.primaryMessage,
             dashboard.transformation.body,
@@ -272,6 +266,9 @@ enum JourneyRevampQAChecklistSupport {
             dashboard.chapter.chapterTitle,
             dashboard.chapter.nextUnlockLabel ?? "",
             dashboard.chapter.emptyMessage ?? "",
+            dashboard.chapter.progressItems.map(\.title).joined(separator: " "),
+            dashboard.screenPresentation.unlockDashboard.nextActionCard?.title ?? "",
+            dashboard.screenPresentation.unlockDashboard.nextActionCard?.detail ?? "",
         ]
         .joined(separator: " ")
         + " "

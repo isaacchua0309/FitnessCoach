@@ -23,6 +23,17 @@ struct JourneyDashboardContent: View {
 
     var body: some View {
         LazyVStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
+            if state.screenPresentation.sync.showsHealthSyncNotice,
+               let notice = state.screenPresentation.sync.healthSyncNotice {
+                JourneyCard(elevation: .quiet) {
+                    Text(notice)
+                        .font(JourneyTypography.cardSupporting)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .healthIntelligenceMultilineText()
+                }
+                .accessibilityIdentifier("journey-sync-notice")
+            }
+
             ForEach(visibleSections, id: \.self) { section in
                 sectionView(for: section)
             }
@@ -35,61 +46,30 @@ struct JourneyDashboardContent: View {
         .accessibilityIdentifier("journey-dashboard")
     }
 
-    private var showsHealthIntelligenceSection: Bool {
-        JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
-            isUIEnabled: healthIntelligenceUIEnabled,
-            sectionState: healthIntelligenceSectionState
-        )
-    }
-
-    private var showsWeeklyProgressHero: Bool {
-        state.showsWeeklyProgressSection
-    }
-
     private var unifiedWeeklyReview: UnifiedWeeklyReviewState {
-        UnifiedWeeklyReviewPresentationBuilder.build(
-            dashboard: state,
-            healthIntelligence: healthIntelligenceSectionState,
-            freshnessInput: weeklyProgressFreshnessInput
-        )
+        state.unifiedWeeklyReview
     }
 
     private var visibleSections: [JourneyProductSection] {
         JourneyProductLayout.sectionOrder.filter { section in
             switch section {
-            case .header:
-                return true
-            case .transformation:
-                return true
-            case .goalProjection:
-                return state.showsGoalProjectionSection
+            case .hero:
+                return state.showsDashboardHeroSection
+            case .nextAction:
+                return state.showsNextActionSection
             case .weeklyProgress:
-                return showsWeeklyProgressHero
-            case .healthIntelligence:
-                return showsHealthIntelligenceSection
-            case .milestones:
-                return state.showsMilestonesSection
-            case .weeklyReview:
-                return JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
-                    dashboard: state,
-                    showsWeeklyProgressHero: showsWeeklyProgressHero,
-                    isHealthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
-                    healthIntelligenceSectionState: healthIntelligenceSectionState
+                return state.showsWeeklyProgressSection
+            case .progress:
+                return state.showsProgressSection
+            case .highlights:
+                return JourneyDashboardCompositionPolicy.showsHighlightsSection(
+                    isUIEnabled: healthIntelligenceUIEnabled,
+                    sectionState: healthIntelligenceSectionState
                 )
             case .storyTimeline:
                 return state.showsStoryTimelineSection
-            case .insights:
-                return JourneyDashboardCompositionPolicy.showsLegacyInsightsSection(
-                    isUIEnabled: healthIntelligenceUIEnabled,
-                    sectionState: healthIntelligenceSectionState,
-                    dashboardShowsInsights: state.showsInsightSection
-                )
-            case .monthlyRecap:
-                return state.showsMonthlyRecapSection
             case .chapters:
                 return state.showsChapterSection
-            case .startingEmptyState:
-                return state.showsStartingEmptyState
             }
         }
     }
@@ -97,105 +77,72 @@ struct JourneyDashboardContent: View {
     @ViewBuilder
     private func sectionView(for section: JourneyProductSection) -> some View {
         switch section {
-        case .header:
-            JourneyHeaderSection(state: state.header)
+        case .hero:
+            JourneyDashboardHeroSection(state: state.dashboardHero)
+                .onAppear { analyticsCoordinator?.logHeroViewed() }
 
-        case .transformation:
-            VStack(alignment: .leading, spacing: JourneyLayout.heroStackSpacing) {
-                if state.showsMomentumSection {
-                    JourneyMomentumStrip(state: state.momentum)
+        case .nextAction:
+            if let nextActionCard = state.screenPresentation.unlockDashboard.nextActionCard {
+                VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
+                    JourneySectionLabel(
+                        title: FormaProductCopy.Journey.Unlock.nextAchievementSection
+                    )
+                    JourneyNextActionCard(
+                        state: nextActionCard,
+                        onCTA: onWeeklyProgressCTA
+                    )
                 }
-                JourneyTransformationHeroSection(state: state.transformation, onCTA: onCTA)
             }
-            .padding(.bottom, JourneyLayout.heroBottomSpacing)
-            .onAppear { analyticsCoordinator?.logHeroViewed() }
-
-        case .goalProjection:
-            JourneyGoalProjectionSection(state: state.goalProjection, onCTA: onCTA)
-                .onAppear { analyticsCoordinator?.logProjectionViewed() }
 
         case .weeklyProgress:
-            WeeklyProgressHeroSection(
+            ThisWeekSection(
                 state: unifiedWeeklyReview,
                 summary: state.weeklyProgressSummary,
-                foodLoggedDays: state.weeklyProgressSummary.foodLoggedDays,
-                totalDays: state.weeklyProgressSummary.totalDays,
                 weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator,
                 freshnessInput: weeklyProgressFreshnessInput,
                 onPrimaryCTA: onWeeklyProgressCTA,
-                onSecondaryCTA: onWeeklyProgressCTA,
-                onOpenWeeklyReviewDetail: weeklyReviewDetailAction
+                onOpenWeeklyReviewDetail: onOpenWeeklyProgressDetail
             )
 
-        case .healthIntelligence:
+        case .progress:
+            JourneyProgressSection(
+                state: resolvedProgressSection,
+                onConnectHealth: onConnectHealth
+            )
+            .onAppear { analyticsCoordinator?.logProjectionViewed() }
+
+        case .highlights:
             if let healthIntelligenceSectionState {
-                JourneyHealthIntelligenceSection(
-                    state: healthIntelligenceSectionState,
-                    healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-                    onConnectHealth: onConnectHealth,
-                    onWeeklyReviewSelected: { _ in onOpenWeeklyProgressDetail?() }
+                JourneyHighlightsSection(
+                    state: healthIntelligenceSectionState.milestones,
+                    isLoading: healthIntelligenceSectionState.isLoading
                 )
-                .accessibilityIdentifier("journey-health-intelligence-section")
-            }
-
-        case .milestones:
-            JourneyMilestonesSection(state: state.milestone)
                 .onAppear { analyticsCoordinator?.logMilestoneViewed() }
-
-        case .weeklyReview:
-            // Legacy training habit row — pending removal after Health Intelligence rollout.
-            JourneyWeeklyReviewSection(
-                state: state.weeklyHabit,
-                hidesTrainingHabitRow: JourneyDashboardCompositionPolicy.hidesTrainingHabitRow(
-                    isUIEnabled: healthIntelligenceUIEnabled,
-                    sectionState: healthIntelligenceSectionState
-                ),
-                hidesHabitRows: JourneyDashboardCompositionPolicy.collapsesLegacyWeeklyHabitRows(
-                    showsWeeklyProgressHero: showsWeeklyProgressHero
-                ),
-                onCTA: onCTA
-            )
-            .onAppear { analyticsCoordinator?.logWeeklyConsistencyViewed() }
+            }
 
         case .storyTimeline:
             JourneyStoryTimelineSection(state: state.storyTimeline)
                 .onAppear { analyticsCoordinator?.logStoryViewed() }
 
-        case .insights:
-            // Legacy training insights — pending removal after Health Intelligence rollout.
-            JourneyInsightsSection(state: state.insight)
-                .onAppear { analyticsCoordinator?.logInsightsViewed() }
-
-        case .monthlyRecap:
-            // Legacy monthly workout metrics — pending removal after Health Intelligence rollout.
-            JourneyMonthlyRecapSection(
-                state: state.monthlyRecap,
-                hidesWorkoutMetrics: JourneyDashboardCompositionPolicy.hidesWorkoutMetrics(
-                    isUIEnabled: healthIntelligenceUIEnabled,
-                    sectionState: healthIntelligenceSectionState
-                )
-            )
-            .onAppear { analyticsCoordinator?.logMonthlyRecapViewed() }
-
         case .chapters:
             JourneyChapterSection(state: state.chapter)
                 .onAppear { analyticsCoordinator?.logChapterViewed() }
-
-        case .startingEmptyState:
-            JourneyStartingEmptyStateView {
-                analyticsCoordinator?.logGoToTodayTapped()
-                onGoToToday()
-            }
         }
     }
 
-    private var weeklyReviewDetailAction: (() -> Void)? {
-        onOpenWeeklyProgressDetail
+    private var resolvedProgressSection: JourneyProgressSectionState {
+        var progress = state.progressSection
+        if progress.connectHealthCTA == nil {
+            progress.connectHealthCTA = JourneyDashboardCompositionPolicy.connectHealthCTA(
+                from: healthIntelligenceSectionState
+            )
+        }
+        return progress
     }
 }
 
 #if DEBUG
-#Preview("Health Intelligence enabled") {
+#Preview("Strong momentum") {
     ScrollView {
         JourneyDashboardContent(
             state: JourneyPreviewData.strongMomentum,
@@ -204,32 +151,20 @@ struct JourneyDashboardContent: View {
             onConnectHealth: {}
         )
     }
-    .formaMainTabScrollInsets()
+    .formaJourneyScrollInsets()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }
 
-#Preview("Health Intelligence disabled") {
+#Preview("Brand new user") {
     ScrollView {
         JourneyDashboardContent(
-            state: JourneyPreviewData.strongMomentum,
+            state: JourneyPreviewData.brandNewUser,
             healthIntelligenceUIEnabled: false
         )
     }
-    .formaMainTabScrollInsets()
+    .formaJourneyScrollInsets()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
-}
-
-#Preview("Weekly progress hero") {
-    ScrollView {
-        JourneyDashboardContent(
-            state: JourneyPreviewData.strongMomentum,
-            healthIntelligenceUIEnabled: false
-        )
-    }
-    .formaMainTabScrollInsets()
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview(palette: .blossomPink)
 }
 #endif

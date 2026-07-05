@@ -15,6 +15,8 @@ final class JourneyModel: ObservableObject {
     @Published private(set) var journeyHealthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
     @Published private(set) var isCrossDeviceRefreshing = false
     @Published private(set) var weeklyProgressFreshnessInput: WeeklyProgressFreshnessInput?
+    /// Presentation-ready dashboard merged once per refresh (not recomputed in SwiftUI body).
+    @Published private(set) var presentationReadyDashboard: JourneyDashboardState?
 
     private let dailyLogReader: any DailyLogReading
     private let weightLogReader: any WeightLogReading
@@ -197,6 +199,7 @@ final class JourneyModel: ObservableObject {
         weeklyProgressFreshnessInput = nil
         lastAppliedDataRefreshAt = nil
         journeyHealthIntelligenceSectionState = nil
+        presentationReadyDashboard = nil
         viewState = .loading
     }
 
@@ -239,7 +242,13 @@ final class JourneyModel: ObservableObject {
                     return
                 }
 
-                viewState = state.hasProfile ? .loaded(state) : .empty
+                if state.hasProfile {
+                    viewState = .loaded(state)
+                    refreshPresentationReadyDashboard()
+                } else {
+                    viewState = .empty
+                    presentationReadyDashboard = nil
+                }
             } catch is CancellationError {
                 return
             } catch ServiceError.missingUserProfile {
@@ -377,18 +386,30 @@ final class JourneyModel: ObservableObject {
     private func makeDashboardState() async throws -> JourneyDashboardState {
         let calendar = Calendar.current
         let endDate = Date()
-        let weekStart = calendar.date(byAdding: .day, value: -6, to: endDate) ?? endDate
-        let prevWeekStart = calendar.date(byAdding: .day, value: -13, to: endDate) ?? endDate
-        let prevWeekEnd = calendar.date(byAdding: .day, value: -7, to: endDate) ?? endDate
+        let maturityLookbackStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
+        let maturityLogs = try dailyLogReader.getLogs(from: maturityLookbackStart, to: endDate)
+        let allWeights = try weightLogReader.getWeightEntries(from: maturityLookbackStart, to: endDate)
+
+        let canonicalWeek = WeeklyProgressSummaryBuilder.resolveWeekRange(
+            referenceDate: endDate,
+            dailyLogs: maturityLogs,
+            calendar: calendar
+        )
+        let previousWeek = WeeklyProgressSummaryBuilder.previousWeekRange(
+            for: canonicalWeek,
+            calendar: calendar
+        )
+
+        let weekStart = canonicalWeek.startDate
+        let weekEnd = canonicalWeek.endDate
+        let prevWeekStart = previousWeek.startDate
+        let prevWeekEnd = previousWeek.endDate
         let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: endDate)) ?? endDate
-        let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
 
         let weekLogs = try dailyLogReader.getLogs(from: weekStart, to: endDate)
         let previousWeekLogs = try dailyLogReader.getLogs(from: prevWeekStart, to: prevWeekEnd)
         let monthLogs = try dailyLogReader.getLogs(from: monthStart, to: endDate)
-        let maturityLogs = try dailyLogReader.getLogs(from: allTimeStart, to: endDate)
 
-        let allWeights = try weightLogReader.getWeightEntries(from: allTimeStart, to: endDate)
         let weekWeights = try weightLogReader.getWeightEntries(from: weekStart, to: endDate)
         let previousWeekWeights = try weightLogReader.getWeightEntries(from: prevWeekStart, to: prevWeekEnd)
 
@@ -398,7 +419,7 @@ final class JourneyModel: ObservableObject {
         let weekHealthWorkouts = try await fetchHealthWorkouts(from: weekStart, to: endDate)
         let previousWeekHealthWorkouts = try await fetchHealthWorkouts(from: prevWeekStart, to: prevWeekEnd)
         let monthHealthWorkouts = try await fetchHealthWorkouts(from: monthStart, to: endDate)
-        let allHealthWorkouts = try await fetchHealthWorkouts(from: allTimeStart, to: endDate)
+        let allHealthWorkouts = try await fetchHealthWorkouts(from: maturityLookbackStart, to: endDate)
 
         let weeklyTraining = JourneyTrainingSummaryBuilder.weeklyTrainingStatus(
             integrationState: integrationState,
@@ -483,6 +504,7 @@ final class JourneyModel: ObservableObject {
             weightSummary: weightSummary,
             goalProjection: goalProjection,
             healthWorkoutDayStarts: healthWorkoutDays,
+            healthWorkoutRecords: integrationState.isConnected ? allHealthWorkouts : [],
             monthHealthWorkoutCount: monthHealthWorkouts.count,
             asOf: endDate,
             calendar: calendar
@@ -526,9 +548,25 @@ final class JourneyModel: ObservableObject {
         return logDays.union(weightDays).count
     }
 
+    private func refreshPresentationReadyDashboard() {
+        guard case .loaded(let state) = viewState else {
+            presentationReadyDashboard = nil
+            return
+        }
+
+        presentationReadyDashboard = state.mergingPresentationContext(
+            healthIntelligence: healthIntelligenceUIEnabled()
+                ? journeyHealthIntelligenceSectionState
+                : nil,
+            freshnessInput: weeklyProgressFreshnessInput,
+            isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected
+        )
+    }
+
     private func refreshFreshnessInput() async {
         guard let uid = ownerUIDProvider() else {
             weeklyProgressFreshnessInput = nil
+            refreshPresentationReadyDashboard()
             return
         }
 
@@ -578,16 +616,19 @@ final class JourneyModel: ObservableObject {
             recentlyRestoredAt: recentlyRestoredAt,
             now: now
         )
+        refreshPresentationReadyDashboard()
     }
 
 #if DEBUG
     /// Applies a static dashboard for SwiftUI previews without loading services.
     func applyPreviewState(_ state: JourneyDashboardState) {
         viewState = .loaded(state)
+        refreshPresentationReadyDashboard()
     }
 
     func applyPreviewHealthIntelligenceState(_ state: JourneyHealthIntelligenceSectionState?) {
         journeyHealthIntelligenceSectionState = state
+        refreshPresentationReadyDashboard()
     }
 
     static func preview(

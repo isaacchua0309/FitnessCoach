@@ -34,7 +34,7 @@ final class JourneyPresentationBuilderTests: XCTestCase {
             dashboard.insight.learningDetail,
             FormaProductCopy.Journey.PersonalizedInsights.learningDetail
         )
-        XCTAssertFalse(dashboard.chapter.isVisible)
+        XCTAssertTrue(dashboard.chapter.isVisible)
         XCTAssertFalse(dashboard.monthlyRecap.isVisible)
         XCTAssertTrue(dashboard.milestone.isVisible)
         XCTAssertFalse(dashboard.weeklyHabit.showsHabitRows)
@@ -42,11 +42,21 @@ final class JourneyPresentationBuilderTests: XCTestCase {
             dashboard.weeklyHabit.emptyMessage,
             FormaProductCopy.Journey.WeeklyReview.emptyState
         )
-        XCTAssertTrue(dashboard.showsStartingEmptyState)
-        XCTAssertFalse(dashboard.showsStoryTimelineSection)
+        XCTAssertFalse(dashboard.showsStartingEmptyState)
+        XCTAssertTrue(dashboard.showsStoryTimelineSection)
+        XCTAssertTrue(dashboard.showsDashboardHeroSection)
+        XCTAssertTrue(dashboard.showsNextActionSection)
+        XCTAssertTrue(dashboard.showsProgressSection)
+        XCTAssertTrue(dashboard.showsChapterSection)
         XCTAssertFalse(dashboard.showsGoalProjectionSection)
         XCTAssertFalse(dashboard.showsMonthlyRecapSection)
-        XCTAssertFalse(dashboard.showsChapterSection)
+        XCTAssertEqual(dashboard.chapter.progressItems.count, 6)
+        XCTAssertEqual(
+            dashboard.chapter.nextUnlockLabel,
+            FormaProductCopy.Journey.Chapters.nextUnlock(
+                FormaProductCopy.Journey.Chapters.title(for: 2)
+            )
+        )
     }
 
     func testHabitLogsWithoutWeightLossStillBuildsWeeklyHabits() {
@@ -189,6 +199,8 @@ final class JourneyPresentationBuilderTests: XCTestCase {
                 JourneyStreakBuilder.Input(
                     streakSummary: StreakSummary(
                         loggingStreak: 3,
+                        mealLoggingStreak: 3,
+                        checkInStreak: 3,
                         proteinStreak: 2,
                         hydrationStreak: 1,
                         workoutStreak: 0

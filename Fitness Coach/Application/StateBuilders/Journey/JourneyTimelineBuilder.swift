@@ -15,6 +15,7 @@ enum JourneyTimelineBuilder {
         var maturityLogs: [DailyLog]
         var allWeights: [WeightEntry]
         var healthWorkoutDayStarts: Set<Date>
+        var healthWorkoutRecords: [HealthWorkoutRecord] = []
         var isAppleHealthConnected: Bool
         var unlockedMilestoneCount: Int
         var asOf: Date
@@ -281,14 +282,14 @@ enum JourneyTimelineBuilder {
         anchor: JourneyTimelineEvent?
     ) -> [JourneyTimelineEvent] {
         var ordered = nonAnchor.sorted { lhs, rhs in
-            if lhs.date != rhs.date { return lhs.date > rhs.date }
+            if lhs.date != rhs.date { return lhs.date < rhs.date }
             if typePriority(lhs.type) != typePriority(rhs.type) {
-                return typePriority(lhs.type) > typePriority(rhs.type)
+                return typePriority(lhs.type) < typePriority(rhs.type)
             }
             return lhs.id < rhs.id
         }
         if let anchor {
-            ordered.append(anchor)
+            ordered.insert(anchor, at: 0)
         }
         return ordered
     }
@@ -402,7 +403,11 @@ enum JourneyTimelineBuilder {
         let logged = input.maturityLogs
             .filter { $0.workoutCaloriesBurned > 0 }
             .map { calendar.startOfDay(for: $0.date) }
-        let health = input.healthWorkoutDayStarts.map { calendar.startOfDay(for: $0) }
+        let healthFromRecords = input.healthWorkoutRecords
+            .map { calendar.startOfDay(for: $0.startDate) }
+        let healthFromDayStarts = input.healthWorkoutDayStarts
+            .map { calendar.startOfDay(for: $0) }
+        let health = healthFromRecords.isEmpty ? healthFromDayStarts : healthFromRecords
         return (logged + health).sorted().first
     }
 
@@ -504,6 +509,7 @@ enum JourneyTimelineBuilder {
             }
             let xp = JourneyChapterBuilder.computeTotalXP(
                 input: JourneyChapterBuilder.Input(
+                    profile: input.profile,
                     maturityLogs: logsThroughDay,
                     allWeights: input.allWeights.filter {
                         input.calendar.startOfDay(for: $0.date) <= day
@@ -511,6 +517,8 @@ enum JourneyTimelineBuilder {
                     healthWorkoutDayStarts: input.healthWorkoutDayStarts.filter { $0 <= day },
                     isAppleHealthConnected: input.isAppleHealthConnected,
                     unlockedMilestoneCount: 0,
+                    checkInStreakDays: 0,
+                    weeklyReviewUnlocked: false,
                     calendar: input.calendar
                 )
             )

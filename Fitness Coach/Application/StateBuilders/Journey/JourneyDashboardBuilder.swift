@@ -27,6 +27,7 @@ enum JourneyDashboardBuilder {
         var weightSummary: ProgressWeightSummary
         var goalProjection: ProgressProjection?
         var healthWorkoutDayStarts: Set<Date>
+        var healthWorkoutRecords: [HealthWorkoutRecord] = []
         var monthHealthWorkoutCount: Int
         var asOf: Date
         var calendar: Calendar
@@ -143,6 +144,7 @@ enum JourneyDashboardBuilder {
                 maturityLogs: context.maturityLogs,
                 allWeights: context.allWeights,
                 healthWorkoutDayStarts: context.healthWorkoutDayStarts,
+                healthWorkoutRecords: context.healthWorkoutRecords,
                 isAppleHealthConnected: context.weeklyTraining.isConnected,
                 unlockedMilestoneCount: unlockedMilestoneCount,
                 asOf: context.asOf,

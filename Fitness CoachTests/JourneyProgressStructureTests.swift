@@ -10,25 +10,29 @@ final class JourneyProgressStructureTests: XCTestCase {
 
     func testProductSectionOrderMatchesCanonicalLayout() {
         XCTAssertEqual(JourneyProductLayout.sectionOrder, [
-            .header,
-            .transformation,
-            .goalProjection,
+            .hero,
+            .nextAction,
             .weeklyProgress,
-            .healthIntelligence,
-            .milestones,
-            .weeklyReview,
+            .progress,
+            .highlights,
             .storyTimeline,
-            .insights,
-            .monthlyRecap,
-            .chapters,
-            .startingEmptyState
+            .chapters
         ])
-        XCTAssertEqual(JourneyProductLayout.sectionOrder.last, .startingEmptyState)
+        XCTAssertEqual(JourneyProductLayout.sectionOrder.last, .chapters)
     }
 
     func testRemovedSectionsAreNotPartOfCanonicalOrder() {
         let identifiers = Set(JourneyProductLayout.sectionOrder.map(\.rawValue))
 
+        XCTAssertFalse(identifiers.contains("header"))
+        XCTAssertFalse(identifiers.contains("transformation"))
+        XCTAssertFalse(identifiers.contains("goalProjection"))
+        XCTAssertFalse(identifiers.contains("healthIntelligence"))
+        XCTAssertFalse(identifiers.contains("milestones"))
+        XCTAssertFalse(identifiers.contains("weeklyReview"))
+        XCTAssertFalse(identifiers.contains("insights"))
+        XCTAssertFalse(identifiers.contains("monthlyRecap"))
+        XCTAssertFalse(identifiers.contains("startingEmptyState"))
         XCTAssertFalse(identifiers.contains("habitInsights"))
         XCTAssertFalse(identifiers.contains("whyProgress"))
         XCTAssertFalse(identifiers.contains("beforeToday"))
@@ -43,27 +47,26 @@ final class JourneyProgressStructureTests: XCTestCase {
     func testBrandNewUserShowsLeanAboveTheFoldLayout() {
         let dashboard = JourneyPreviewData.brandNewUser
 
-        XCTAssertTrue(dashboard.showsStartingEmptyState)
-        XCTAssertTrue(dashboard.showsMilestonesSection)
-        XCTAssertFalse(dashboard.showsStoryTimelineSection)
-        XCTAssertFalse(dashboard.showsGoalProjectionSection)
-        XCTAssertFalse(dashboard.showsWeeklyReviewSection)
-        XCTAssertFalse(dashboard.showsInsightSection)
-        XCTAssertFalse(dashboard.showsMonthlyRecapSection)
-        XCTAssertFalse(dashboard.showsChapterSection)
+        XCTAssertFalse(dashboard.showsStartingEmptyState)
+        XCTAssertTrue(dashboard.milestone.isVisible)
+        XCTAssertFalse(dashboard.showsMilestonesSection)
+        XCTAssertTrue(dashboard.showsNextActionSection)
+        XCTAssertTrue(dashboard.showsDashboardHeroSection)
+        XCTAssertTrue(dashboard.showsWeeklyProgressSection)
+        XCTAssertTrue(dashboard.showsProgressSection)
+        XCTAssertTrue(dashboard.showsChapterSection)
         XCTAssertEqual(
-            dashboard.milestone.title,
-            FormaProductCopy.Journey.Milestones.NextAchievement.firstMealTitle
+            dashboard.screenPresentation.unlockDashboard.nextActionCard?.title,
+            FormaProductCopy.Journey.NextBestAction.logFirstMeal
         )
     }
 
-    func testStrongMomentumHidesStartingEmptyState() {
+    func testStrongMomentumHidesNextActionAndShowsChapter() {
         let dashboard = JourneyPreviewData.strongMomentum
 
-        XCTAssertFalse(dashboard.showsStartingEmptyState)
-        XCTAssertTrue(dashboard.showsMilestonesSection)
-        XCTAssertTrue(dashboard.showsStoryTimelineSection)
-        XCTAssertTrue(dashboard.showsMonthlyRecapSection)
+        XCTAssertFalse(dashboard.showsNextActionSection)
         XCTAssertTrue(dashboard.showsChapterSection)
+        XCTAssertTrue(dashboard.showsDashboardHeroSection)
+        XCTAssertTrue(dashboard.showsWeeklyProgressSection)
     }
 }
