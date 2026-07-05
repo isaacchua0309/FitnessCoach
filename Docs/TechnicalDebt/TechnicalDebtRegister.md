@@ -76,13 +76,21 @@ When closing an item, remove the source `TD-*` comment and update this register 
 | TD-AI-001 | Deprecated `AIContext` transport struct | **Deleted** `Infrastructure/AI/AIContext.swift`. Production Coach path already used `CoachContextPacketV2`. Extracted `TodayAISummary` for nutrition AI summaries. Six test stubs migrated to `CoachContextPacketV2`. |
 | TD-COPY-001 | `FormaProductCopy` monolith | **Split** into 9 domain extension files under `Domain/Copy/`. Strings unchanged. Guarded by `FormaProductCopyEquivalenceTests`. |
 
+## Closed — Health Intelligence consolidation v2 (2026-07-05)
+
+| ID | Item | Resolution |
+|----|------|------------|
+| TD-HI-002 (core) | `*SectionLoader` / HI presentation duplication | **Mostly closed** — `HealthIntelligenceSectionLoaderCore`, `TodayHealthIntelligenceSectionLoader`, tab loader delegation, presentation core/policy delegation, `HealthIntelligencePresentationParityTests`, dead Today composition stubs removed |
+| TD-TEST-001 (fix) | Fast-Core SPM / host wiring | **Fix applied** — BW-101 closed; `TEST_HOST` + `BUNDLE_LOADER`; `Scripts/run_fast_core_tests.sh`; Mac verify pending |
+
 Partial progress (not closed):
 
 | ID | Item | Status |
 |----|------|--------|
-| TD-HI-002 | `*SectionLoader` / HI presentation duplication | **Mostly closed** — `HealthIntelligenceSectionLoaderCore` + `HealthIntelligencePresentationCore`; tab builders migrated; golden parity gate added; dead `showsLegacyHealthIntelligenceStack` / `showsLegacyNextBestAction` stubs removed from `TodayReadOnlyCompositionPolicy` |
-| TD-HI-003 | `NormalizedWorkout+HealthWorkoutRecord` shim | **Open** — audited 2026-07-05; not safe to delete; 1 production caller (`HealthActivityQueryService`) + 30+ `HealthWorkoutRecord` consumers remain |
-| TD-TEST-001 | Fast-Core SPM / host wiring | **Mostly closed** — `TEST_HOST` + `BUNDLE_LOADER`; Firebase/GoogleSignIn SPM removed from test target; `Scripts/run_fast_core_tests.sh`; Fast-Core serial |
+| TD-HI-002 (tail) | `*CompositionPolicy.swift` + legacy dashboard sections | **Open** — kept while `healthIntelligenceUIEnabled` can be off |
+| TD-HI-003 | `NormalizedWorkout+HealthWorkoutRecord` shim | **Open** — audited 2026-07-05; not safe to delete |
+| TD-TEST-001 | Fast-Core Mac verification | **Mostly closed** — awaiting `./Scripts/run_fast_core_tests.sh` → `TEST SUCCEEDED` on Mac |
+| PH-004 | Test fixture alias migration | **In progress** — `FoodLogFixtures` / `DailyLogFixtures` canonical; ~31 files still on `ProfileTestFixtures` |
 
 ---
 
@@ -131,6 +139,8 @@ See `Docs/PersistenceCleanupNotes.md` and entity file headers.
 | Date | Change |
 |------|--------|
 | 2026-07-05 | **TD-COACH-001 tail** — removed production legacy init; `CoachPhotoFlowCoordinator` wiring confirmed; `CoachModelTestFactory` for tests |
+| 2026-07-05 | **HI consolidation v2 docs** — TD-HI-002 mostly closed; final status in `CLEANUP_STATUS.md`, `HI_CONSOLIDATION_V2.md` |
+| 2026-07-05 | **PH-004 fixture migration (batch 1)** — `FoodLogFixtures` / `DailyLogFixtures` canonical; `ProfileTestFixtures` ~101 → ~31 files |
 | 2026-07-05 | **Fast-Core / BW-101** — TD-TEST-001 mostly closed; test target uses `TEST_HOST` (no duplicate Firebase SPM link); `Scripts/run_fast_core_tests.sh`; Fast-Core serial |
 | 2026-07-05 | **NormalizedWorkout shim audit** — TD-HI-003 opened; shim deletion blocked pending `HealthWorkoutRecord` → `NormalizedWorkout` query-boundary migration |
 | 2026-07-05 | **Health Intelligence consolidation v2** — TD-HI-002 mostly closed; `HealthIntelligenceSectionLoaderCore`, `TodayHealthIntelligenceSectionLoader`, AppContainer dependency file split |

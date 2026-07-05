@@ -174,6 +174,47 @@ xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fa
 
 ---
 
+## Health Intelligence (consolidation v2 gate)
+
+Loader core, presentation parity, and composition policies. Requires Mac/Xcode — run package resolution first (see Fast-Core section).
+
+```bash
+export DESTINATION='platform=iOS Simulator,name=iPhone 17'
+xcodebuild -resolvePackageDependencies -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach"
+xcodebuild build-for-testing -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach" -destination "$DESTINATION"
+xcodebuild test-without-building -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach" \
+  -destination "$DESTINATION" -testPlan Fast-Core -parallel-testing-enabled NO \
+  -only-testing:"Fitness CoachTests/HealthIntelligenceSectionLoaderCoreTests" \
+  -only-testing:"Fitness CoachTests/TodayHealthIntelligenceSectionLoaderTests" \
+  -only-testing:"Fitness CoachTests/JourneyHealthIntelligenceSectionLoaderTests" \
+  -only-testing:"Fitness CoachTests/PlanHealthIntelligenceSectionLoaderTests" \
+  -only-testing:"Fitness CoachTests/HealthIntelligencePresentationParityTests" \
+  -only-testing:"Fitness CoachTests/HealthIntelligenceCompositionTests" \
+  -only-testing:"Fitness CoachTests/TodayHealthIntelligenceCompositionTests" \
+  -only-testing:"Fitness CoachTests/JourneyHealthIntelligenceCompositionTests" \
+  -only-testing:"Fitness CoachTests/PlanDashboardHealthIntelligenceTests"
+```
+
+Sprint reference: [HI_CONSOLIDATION_V2.md](../Sprints/HI_CONSOLIDATION_V2.md) · Cleanup status: [CLEANUP_STATUS.md](../HealthIntelligence/CLEANUP_STATUS.md)
+
+---
+
+## Coach decomposition tail (TD-COACH-001)
+
+Behavior-neutral characterization after legacy init removal:
+
+```bash
+xcodebuild test-without-building -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach" \
+  -destination "$DESTINATION" -testPlan Fast-Core -parallel-testing-enabled NO \
+  -only-testing:"Fitness CoachTests/CoachModelDecompositionCharacterizationTests" \
+  -only-testing:"Fitness CoachTests/CoachMealPhotoAnalysisTests" \
+  -only-testing:"Fitness CoachTests/CoachImagePickFlowTests"
+```
+
+**Test factory:** prefer `CoachRoutingIntegrationTestSupport.makeCoach` for routing tests; `CoachModelTestFactory.makeModel` for photo/pick-flow tests.
+
+---
+
 ## Backend functions (Node / Jest)
 
 From `functions/`:
@@ -199,7 +240,7 @@ cd functions && npm test
 |--------|---------|
 | `TestFixtureFactory` | Central factory for clocks, SwiftData harnesses, nutrition scenarios, HI harness |
 | `TestDateFixtures` | Canonical fixed dates and UTC calendars |
-| `ProfileFixtures` | Profile drafts, models, and cloud documents (canonical; `ProfileTestFixtures` alias retained for remaining onboarding/profile suites) |
+| `ProfileFixtures` | Profile drafts, models, and cloud documents (canonical; `ProfileTestFixtures` alias — ~31 files remain) |
 | `DailyLogFixtures` | Pure `DailyLog` scenarios for nutrition/review tests (canonical) |
 | `FoodLogFixtures` | Food drafts, entries, water logs (canonical) |
 | `WeightFixtures` | Deterministic `WeightEntry` builders for Journey tests |

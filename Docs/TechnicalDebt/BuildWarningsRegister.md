@@ -39,6 +39,8 @@ xcodebuild test -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach" -dest
 
 Expected: `TEST BUILD SUCCEEDED` then `TEST SUCCEEDED`.
 
+**Sprint context (PR #178):** HI consolidation v2 + PH-004 fixture batch 1 + TD-COACH-001 tail landed on branch; Mac verification is the acceptance gate for TD-TEST-001.
+
 ---
 
 ## Prior capture (2026-07-05, pre-fix)

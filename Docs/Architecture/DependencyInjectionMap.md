@@ -17,7 +17,7 @@ The app uses **manual constructor injection** via a single composition root:
 | `FormaAbTest.testOverride` | Unit test flag injection |
 | No global service locator | Except `UserDefaults.standard` in a few places (`MainTabView`, migration gate) |
 
-**Construction layout:** Domain-grouped private bundles and `build*Dependencies()` factories live under `Fitness Coach/App/Dependencies/` (one file per domain). `AppContainer+Construction.swift` holds DEBUG wiring utilities only. Feature `make*Model()` factories are grouped by tab in `AppContainer+FeatureFactories.swift`. Public `AppContainer` properties and init parameters are unchanged.
+**Construction layout:** Domain-grouped private bundles and `build*Dependencies()` factories live under `Fitness Coach/App/Dependencies/` (10 files: Auth, Analytics, Persistence, Health, HealthIntelligence, Coach, AI, Sync, Settings, Today). `AppContainer+Construction.swift` holds DEBUG wiring utilities only (**68 LOC**). Feature `make*Model()` factories are grouped by tab in `AppContainer+FeatureFactories.swift`. Public `AppContainer` properties and init parameters are unchanged.
 
 ---
 

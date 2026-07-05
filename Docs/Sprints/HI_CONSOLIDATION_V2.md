@@ -1,7 +1,7 @@
 # Health Intelligence Consolidation v2 — Execution Map
 
 **Sprint:** Health Intelligence Consolidation v2  
-**Status:** In progress (Phase 1 landed in PR #178)  
+**Status:** Substantially complete — merged in PR #178 (`cursor/health-intelligence-consolidation-v2-f6aa`)  
 **Last updated:** 2026-07-05  
 **Owner domain:** Health Intelligence / Application StateBuilders  
 **Related:** [../HealthIntelligence/CLEANUP_STATUS.md](../HealthIntelligence/CLEANUP_STATUS.md), [../TechnicalDebt/TechnicalDebtRegister.md](../TechnicalDebt/TechnicalDebtRegister.md) (TD-HI-002), [../Architecture/DependencyInjectionMap.md](../Architecture/DependencyInjectionMap.md), [../Testing/TestCommandCheatsheet.md](../Testing/TestCommandCheatsheet.md)
@@ -33,7 +33,7 @@ Finish **behavior-neutral** consolidation of Health Intelligence presentation an
 | Section loaders were triplicated | Today inline in `TodayModel`; Journey/Plan dedicated loaders | TD-HI-002 |
 | `AppContainer+Construction.swift` was dense | 1,004 LOC pre-sprint | `DependencyInjectionMap.md` |
 | Deprecated HI paths documented | 9 rows in `CLEANUP_STATUS.md` § Deprecated | Do not delete without parity tests |
-| Fast-Core blocked on some hosts | BW-101: test target cannot resolve `FirebaseCore` / GoogleSignIn | `BuildWarningsRegister.md` |
+| Fast-Core blocked on some hosts | BW-101 **closed** — `TEST_HOST` + `BUNDLE_LOADER`; Mac verify via `./Scripts/run_fast_core_tests.sh` | `BuildWarningsRegister.md` |
 | HI test surface | 39 `*HealthIntelligence*Tests*` files + 3 test-support helpers | `Fitness CoachTests/` |
 
 ### Hotspots (priority order)
@@ -47,16 +47,32 @@ Finish **behavior-neutral** consolidation of Health Intelligence presentation an
 | 5 | Per-test `*MockRepository` proliferation | Loader tests duplicate mocks; increases maintenance cost |
 | 6 | `AppContainer+Construction.swift` residual wiring | Journey/Plan model factories, persistence, coach, AI still in one file |
 
-### Phase 1 outcome (PR #178)
+### Phase 1 outcome (PR #178) — landed
 
 | Deliverable | Status |
 |-------------|--------|
-| `HealthIntelligenceSectionLoaderCore` | Landed (160 LOC) |
+| `HealthIntelligenceSectionLoaderCore` | Landed (361 LOC) |
 | `TodayHealthIntelligenceSectionLoader` | Landed (175 LOC) |
 | Journey/Plan loaders delegate to core | Landed |
 | Tab builders delegate `resolveUIState` / integration input | Landed |
-| `AppContainer+Analytics/Health/SyncDependencies` | Landed (−392 LOC from Construction) |
+| `HealthIntelligencePresentationParityTests` (fixtures A–E) | Landed |
+| `App/Dependencies/*` domain bundles (10 files) | Landed |
+| `AppContainer+Construction.swift` | **68 LOC** (DEBUG utilities only) |
+| Dead Today composition stubs (`showsLegacyHealthIntelligenceStack`, `showsLegacyNextBestAction`) | Removed |
+| Training Insights repository routing | Landed (`TrainingInsightsModel` → `HealthActivityQueryService`) |
+| Fast-Core BW-101 fix | Landed (`TEST_HOST`, `Scripts/run_fast_core_tests.sh`, serial plan) |
+| PH-004 fixture cleanup (batch 1) | Landed (`FoodLogFixtures` / `DailyLogFixtures` canonical; ~70 `ProfileFixtures` migrations) |
+| TD-COACH-001 tail | Landed (legacy init removed; `CoachModelTestFactory`; photo-flow coordinator confirmed) |
 | Characterization tests for loader core + Today loader | Landed |
+
+### P1 stretch (not in PR #178)
+
+| Deliverable | Status |
+|-------------|--------|
+| Tab builders ≤1,500 LOC combined | **Not met** (2,725 LOC — see §6) |
+| Loader mock consolidation | Deferred |
+| Deprecated CLEANUP_STATUS rows ≤3 | Deferred (9 rows remain; flag-off paths kept) |
+| Journey/Plan/Today builder slimming into core | Deferred to follow-up PRs |
 
 ---
 
@@ -114,31 +130,32 @@ Counts from `wc -l` on branch `cursor/health-intelligence-consolidation-v2-f6aa`
 
 | File | Pre-sprint (`main`) | Current | Δ | Sprint target |
 |------|---------------------|---------|---|---------------|
-| `TodayHealthIntelligencePresentationBuilder.swift` | 728 | **702** | −26 | Contribute to combined ≤1,500 |
-| `PlanHealthIntelligencePresentationBuilder.swift` | 937 | **931** | −6 | Contribute to combined ≤1,500 |
-| `JourneyHealthIntelligencePresentationBuilder.swift` | 1,134 | **1,123** | −11 | Contribute to combined ≤1,500 |
-| **Three tab builders combined** | **2,799** | **2,756** | −43 | **≤1,500** (stretch; requires ~1,256 LOC extraction) |
-| `HealthIntelligencePresentationCore.swift` | 610 | **610** | 0 | May grow; owns extracted card builders |
-| `HealthIntelligencePresentationPolicy.swift` | 331 | **331** | 0 | Stable; surface-specific copy gating only |
-| `AppContainer+Construction.swift` | 1,004 | **612** | −392 | **≤700** (achieved) |
+| `TodayHealthIntelligencePresentationBuilder.swift` | 728 | **695** | −33 | P1 stretch: further extraction to core |
+| `PlanHealthIntelligencePresentationBuilder.swift` | 937 | **920** | −17 | P1 stretch |
+| `JourneyHealthIntelligencePresentationBuilder.swift` | 1,134 | **1,110** | −24 | P1 stretch |
+| **Three tab builders combined** | **2,799** | **2,725** | −74 | **≤1,500** (P1 stretch; not met) |
+| `HealthIntelligencePresentationCore.swift` | 610 | **323** | −287 | Refactored/split; card factory extracted |
+| `HealthIntelligencePresentationPolicy.swift` | 331 | **310** | −21 | Stable; surface-specific copy gating |
+| `AppContainer+Construction.swift` | 1,004 | **68** | −936 | **≤700** ✅ Met |
 
 ### Related files (not in baseline table but tracked)
 
 | File | Current LOC | Role |
 |------|-------------|------|
-| `HealthIntelligenceSectionLoaderCore.swift` | 160 | Shared loader/gating (new in v2) |
-| `TodayHealthIntelligenceSectionLoader.swift` | 175 | Today load path (new in v2) |
-| `AppContainer+AnalyticsDependencies.swift` | 62 | Extracted analytics bundle |
-| `AppContainer+HealthDependencies.swift` | 159 | Extracted health/training bundle |
-| `AppContainer+SyncDependencies.swift` | 199 | Extracted sync/restore/deletion bundle |
+| `HealthIntelligenceSectionLoaderCore.swift` | 361 | Shared loader/gating |
+| `TodayHealthIntelligenceSectionLoader.swift` | 175 | Today load path |
+| `HealthIntelligenceCardPresentationFactory.swift` | 558 | Card fragment builders |
+| `HealthIntelligencePresentationModels.swift` | 167 | Shared models |
+| `HealthIntelligencePresentationCopy.swift` | 190 | Copy helpers |
+| `App/Dependencies/*.swift` (10 files) | — | Domain construction bundles (see `DependencyInjectionMap.md`) |
 
 ### Net duplication metric
 
 | Metric | Pre-sprint | Current | Target |
 |--------|------------|---------|--------|
-| Tab builder LOC | 2,799 | 2,756 | ≤1,500 |
-| Shared HI presentation module (`Core` + `Policy` + `SectionLoaderCore`) | 941 | 1,101 | Net **decrease** in total HI presentation LOC |
-| Total HI presentation stack (builders + shared) | 3,740 | 3,857 | Lower than pre-sprint after P1 extractions |
+| Tab builder LOC | 2,799 | 2,725 | ≤1,500 |
+| Shared HI presentation module (`Core` + `Policy` + `SectionLoaderCore` + models/factory) | 941 | ~1,909 | Net decrease in **total** HI LOC after P1 extractions |
+| Total HI presentation stack (builders + shared) | 3,740 | ~4,634 | Lower after P1 extractions (builders still dominate) |
 
 ---
 
@@ -282,6 +299,7 @@ Before merging any builder refactor PR, diff characterization test fixtures for 
 |------------|--------|
 | `HealthIntelligenceSectionLoaderCoreTests` | Shared fetch, connection, weekly review, connect-only gating |
 | `TodayHealthIntelligenceSectionLoaderTests` | Today loader + fallback analytics context |
+| `HealthIntelligencePresentationParityTests` | Golden fixtures A–E across Today/Plan/Journey surfaces |
 | `TodayHealthIntelligencePresentationBuilderTests` | Today section/cards/mission/NBA mapping |
 | `PlanHealthIntelligencePresentationBuilderTests` | Plan confidence, data quality, assumptions |
 | `PlanHealthIntelligenceSectionLoaderTests` | Plan loader integration |
@@ -330,13 +348,19 @@ Before merging any builder refactor PR, diff characterization test fixtures for 
 ### Verification command
 
 ```bash
-export DESTINATION='platform=iOS Simulator,name=iPhone 17'
+./Scripts/run_fast_core_tests.sh   # full Fast-Core (Mac/Xcode)
 
-xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core \
+# or HI-focused subset:
+export DESTINATION='platform=iOS Simulator,name=iPhone 17'
+xcodebuild -resolvePackageDependencies -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach"
+xcodebuild build-for-testing -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach" -destination "$DESTINATION"
+xcodebuild test-without-building -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach" \
+  -destination "$DESTINATION" -testPlan Fast-Core -parallel-testing-enabled NO \
   -only-testing:"Fitness CoachTests/HealthIntelligenceSectionLoaderCoreTests" \
   -only-testing:"Fitness CoachTests/TodayHealthIntelligenceSectionLoaderTests" \
   -only-testing:"Fitness CoachTests/JourneyHealthIntelligenceSectionLoaderTests" \
   -only-testing:"Fitness CoachTests/PlanHealthIntelligenceSectionLoaderTests" \
+  -only-testing:"Fitness CoachTests/HealthIntelligencePresentationParityTests" \
   -only-testing:"Fitness CoachTests/TodayHealthIntelligencePresentationBuilderTests" \
   -only-testing:"Fitness CoachTests/JourneyHealthIntelligencePresentationBuilderTests" \
   -only-testing:"Fitness CoachTests/PlanHealthIntelligencePresentationBuilderTests" \
@@ -345,7 +369,9 @@ xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fa
   -only-testing:"Fitness CoachTests/JourneyHealthIntelligenceCompositionTests"
 ```
 
-**Fast-Core blocker (BW-101):** On hosts where `xcodebuild build-for-testing` fails with `Unable to resolve module dependency: 'FirebaseCore'`, the full Fast-Core plan cannot run until SPM/Firebase test-target wiring is fixed. App target `xcodebuild build` succeeds. See [../TechnicalDebt/BuildWarningsRegister.md](../TechnicalDebt/BuildWarningsRegister.md).
+**Fast-Core (BW-101):** Closed in project wiring — `TEST_HOST` + `BUNDLE_LOADER`; Firebase SPM in app target only. **Mac verification pending** on cloud agents (no `xcodebuild`). See [../TechnicalDebt/BuildWarningsRegister.md](../TechnicalDebt/BuildWarningsRegister.md).
+
+**Tests executed in cloud agent environment:** None (no Xcode). Verification contract is the command block above on a standard Mac/Xcode host.
 
 ---
 
@@ -421,33 +447,46 @@ Do not mix engine changes, flag changes, or legacy deletions in the same commit 
 
 ## 12. Final success metrics
 
-| Metric | Baseline | Current (Phase 1) | Target | Status |
-|--------|----------|-------------------|--------|--------|
-| Three tab HI builders combined | 2,799 LOC | 2,756 LOC | **≤1,500 LOC** | ❌ Not met (−43 so far; ~1,256 LOC still to extract) |
-| Net duplicated HI presentation LOC | High (3× ~930 LOC builders) | Modest reduction | **Net decrease** vs baseline | 🟡 In progress |
-| `HealthIntelligencePresentationCore` growth | 610 LOC | 610 LOC | May grow if it absorbs shared card builders | ✅ Acceptable |
-| `AppContainer+Construction.swift` | 1,004 LOC | **612 LOC** | **≤700 LOC** | ✅ Met |
-| TD-HI-002 | Open | Mostly closed | Closed or tiny follow-up doc | 🟡 Mostly closed |
-| Deprecated rows in `CLEANUP_STATUS` | 9 | 9 | **≤3 remaining** | ❌ Not started (deferred to P1) |
-| Fast-Core HI subset | Unknown on cloud agent | Blocked (BW-101) | Runs locally or blocker documented | 🟡 Documented |
-| User-visible behavior | — | Unchanged | Zero diffs in UI QA | ✅ Required |
-| HI engine output | — | Unchanged | `HealthIntelligenceEngineTests` green | ✅ Required |
+| Metric | Baseline | Current (PR #178) | Target | Status |
+|--------|----------|---------------------|--------|--------|
+| Three tab HI builders combined | 2,799 LOC | 2,725 LOC | **≤1,500 LOC** | ❌ P1 stretch deferred |
+| Net duplicated HI presentation LOC | High (3× ~930 LOC builders) | Loader core + policy delegation landed | **Net decrease** vs baseline | 🟡 P0 met; P1 extraction deferred |
+| `HealthIntelligencePresentationCore` + shared module | 941 LOC | ~1,909 LOC (incl. card factory) | May grow if it absorbs shared card builders | ✅ Acceptable |
+| `AppContainer+Construction.swift` | 1,004 LOC | **68 LOC** | **≤700 LOC** | ✅ Met |
+| TD-HI-002 | Open | **Mostly closed** | Closed or tiny follow-up doc | 🟡 Mostly closed |
+| Deprecated rows in `CLEANUP_STATUS` | 9 | 9 | **≤3 remaining** | ❌ Deferred (flag-off paths kept) |
+| Fast-Core | Blocked (BW-101) | **Fix applied**; Mac verify pending | Runs locally | 🟡 Fix landed |
+| PH-004 fixtures | ~90 alias files | ~31 `ProfileTestFixtures` remain | Canonical `TestingSupport/` names | 🟡 Batch 1 done |
+| TD-COACH-001 tail | Open | Legacy init removed; photo-flow wired | Closed | ✅ Closed |
+| User-visible behavior | — | Unchanged (refactor-only) | Zero diffs in UI QA | ✅ Required |
+| HI engine output | — | Unchanged | `HealthIntelligenceEngineTests` green | ✅ Required (Mac verify) |
 
 ### Sprint done definition
 
-The sprint is **complete** when:
+**P0 scope (§3) is complete** in PR #178. Full sprint stretch goals (§4) are partially deferred:
 
-1. P0 scope (§3) is merged to `main`.
-2. Combined tab builders ≤1,500 LOC **or** a documented decision records why further extraction risks behavior drift (with test evidence).
-3. Deprecated CLEANUP_STATUS rows ≤3, each with a tracked unblock in TD register or CLEANUP_STATUS.
-4. Fast-Core HI subset passes on a standard Mac/Xcode host, or BW-101 is closed.
-5. TD-HI-002 marked **Closed** in `TechnicalDebtRegister.md`.
+1. ✅ P0 scope merged — loader core, Today loader, AppContainer split, parity tests, docs.
+2. ❌ Combined tab builders ≤1,500 LOC — documented as P1 follow-up (2,725 LOC remains).
+3. ❌ Deprecated CLEANUP_STATUS rows ≤3 — requires `healthIntelligenceUIEnabled` permanent-on decision.
+4. 🟡 Fast-Core — BW-101 fix landed; `./Scripts/run_fast_core_tests.sh` must pass on Mac.
+5. 🟡 TD-HI-002 marked **mostly closed** — tail: composition policies until flag permanent-on.
 
-### Realistic assessment (2026-07-05)
+### Final implementation notes (2026-07-05)
 
-- **Achievable in v2:** Loader consolidation, AppContainer split, Today load extraction, TD-HI-002 near-close.
-- **Stretch:** Combined builders ≤1,500 LOC requires aggressive P1 extraction from Journey (~600+ LOC) and Plan (~400+ LOC) into core without blurring tab-specific layout ownership.
-- **Blocked without follow-up:** Deprecated-path count ≤3 depends on `healthIntelligenceUIEnabled` permanent-on decision (product/flag sprint, not this refactor alone).
+| # | Topic | Outcome |
+|---|-------|---------|
+| 1 | TD-HI-002 | **Mostly closed** — shared loader + presentation core; composition policies kept for flag-off |
+| 2 | Files consolidated | `HealthIntelligenceSectionLoaderCore`, `TodayHealthIntelligenceSectionLoader`, `App/Dependencies/*`, parity tests |
+| 3 | Shared core | Loader core, presentation core/policy/models/card factory own fetch, gating, card mapping, copy |
+| 4 | Surface-specific | Today mission/integration; Plan confidence/data-quality; Journey timeline/history/milestones |
+| 5 | Deprecated removed | Dead Today composition stubs; Training Insights direct HK reads |
+| 6 | Deprecated kept | 9 rows in `CLEANUP_STATUS.md` § Deprecated (composition policies, reader fallback, shim, etc.) |
+| 7 | AppContainer bundles | 10 domain files under `App/Dependencies/`; Construction 68 LOC |
+| 8 | Fast-Core | BW-101 closed in project; Mac verify pending |
+| 9 | PH-004 | `FoodLogFixtures` / `DailyLogFixtures` done; ~31 `ProfileTestFixtures` files remain |
+| 10 | Coach tail | TD-COACH-001 tail closed — `CoachModelTestFactory`, photo-flow coordinator confirmed |
+| 11 | Remaining debt | TD-HI-001, TD-HI-002 tail, TD-HI-003, P1 builder slimming, TD-TEST-001 Mac verify |
+| 12 | Tests run | **None in cloud** — Mac contract: HI subset + `./Scripts/run_fast_core_tests.sh` (§8) |
 
 ---
 
@@ -455,5 +494,6 @@ The sprint is **complete** when:
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | **Final implementation notes** — P0 complete in PR #178; P1 stretch deferred; BW-101 closed; doc sync with code |
 | 2026-07-05 | Added §7 Baseline Parity Matrix (Today / Plan / Journey behavior inventory) |
 | 2026-07-05 | Initial execution map; Phase 1 metrics from PR #178 |
