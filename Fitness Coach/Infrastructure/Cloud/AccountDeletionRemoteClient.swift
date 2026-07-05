@@ -123,6 +123,8 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
         AccountDeletionRemoteLogger.requestStarted()
 
         let url = baseURL.appendingPathComponent(Self.deleteDataEndpoint)
+        let endpoint = AccountDeletionDebugEventLogger.safeEndpoint(from: url)
+        var hasAuthorizationHeader = false
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -142,16 +144,29 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
             do {
                 let token = try await authTokenProvider()
                 urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                hasAuthorizationHeader = true
             } catch let error as AuthManagerError {
                 let mapped = Self.mapAuthTokenError(error)
                 AccountDeletionRemoteLogger.requestFailed(category: Self.errorCategory(mapped))
+                AccountDeletionDebugEventLogger.remoteAuthTokenFailure(
+                    mappedCategory: AccountDeletionDebugEventLogger.remoteErrorCategoryLabel(mapped)
+                )
                 throw mapped
             } catch {
                 let mapped = Self.mapAuthTokenError(error)
                 AccountDeletionRemoteLogger.requestFailed(category: Self.errorCategory(mapped))
+                AccountDeletionDebugEventLogger.remoteAuthTokenFailure(
+                    mappedCategory: AccountDeletionDebugEventLogger.remoteErrorCategoryLabel(mapped)
+                )
                 throw mapped
             }
         }
+
+        AccountDeletionDebugEventLogger.remoteRequestPrepared(
+            host: endpoint.host,
+            path: endpoint.path,
+            hasAuthorizationHeader: hasAuthorizationHeader
+        )
 
         let started = Date()
         let data: Data
@@ -164,6 +179,13 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
                 category: Self.errorCategory(mapped),
                 durationMs: Self.durationMs(since: started)
             )
+            AccountDeletionDebugEventLogger.remoteRequestFailed(
+                host: endpoint.host,
+                path: endpoint.path,
+                statusCode: nil,
+                mappedCategory: AccountDeletionDebugEventLogger.remoteErrorCategoryLabel(mapped),
+                durationMs: Self.durationMs(since: started)
+            )
             throw mapped
         }
 
@@ -174,6 +196,17 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
                 category: Self.errorCategory(mapped),
                 statusCode: statusCode,
                 durationMs: Self.durationMs(since: started)
+            )
+            AccountDeletionDebugEventLogger.remoteRequestFailed(
+                host: endpoint.host,
+                path: endpoint.path,
+                statusCode: statusCode,
+                mappedCategory: AccountDeletionDebugEventLogger.httpStatusMappedCategory(
+                    statusCode: statusCode,
+                    mapped: mapped
+                ),
+                durationMs: Self.durationMs(since: started),
+                backendErrorCategory: Self.backendErrorCategory(from: data)
             )
             throw mapped
         }
@@ -196,6 +229,14 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
                 statusCode: statusCode,
                 durationMs: Self.durationMs(since: started)
             )
+            AccountDeletionDebugEventLogger.remoteRequestFailed(
+                host: endpoint.host,
+                path: endpoint.path,
+                statusCode: statusCode,
+                mappedCategory: "serverUnavailable",
+                durationMs: Self.durationMs(since: started),
+                backendErrorCategory: payload.backendErrorCategory
+            )
             throw AccountDeletionRemoteError.serverUnavailable
         }
 
@@ -204,6 +245,14 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
             uidSuffix: String(result.uid.suffix(4)),
             result: result,
             durationMs: Self.durationMs(since: started)
+        )
+        AccountDeletionDebugEventLogger.remoteRequestFinished(
+            host: endpoint.host,
+            path: endpoint.path,
+            statusCode: statusCode,
+            mappedCategory: "success",
+            durationMs: Self.durationMs(since: started),
+            backendErrorCategory: payload.backendErrorCategory
         )
         return result
     }

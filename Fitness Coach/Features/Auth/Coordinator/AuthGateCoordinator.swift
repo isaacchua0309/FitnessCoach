@@ -261,10 +261,17 @@ final class AuthGateCoordinator: ObservableObject {
         router.onLocalDeviceOnlyWipe = { [weak self] in
             self?.handleAccountDeletionCompleted(scope: .localDeviceOnly)
         }
+        AccountDeletionDebugEventLogger.routerWired(
+            fullAccountCallbackIsNil: router.onFullAccountDeletion == nil,
+            localDeviceCallbackIsNil: router.onLocalDeviceOnlyWipe == nil
+        )
     }
 
     /// Settings account deletion completed — reset shell even if Firebase auth already ended.
     func handleAccountDeletionCompleted(scope: AccountDeletionScope) {
+        AccountDeletionDebugEventLogger.shellResetAfterDeletion(
+            source: deletionSource(for: scope)
+        )
         resetShellAfterAccountDeletion(source: deletionSource(for: scope))
     }
 

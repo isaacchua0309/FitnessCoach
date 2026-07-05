@@ -314,26 +314,34 @@ final class AuthManager: ObservableObject, AccountAuthDeleting {
 
     func deleteCurrentAuthAccount() async throws {
         guard let currentUser = auth().currentUser ?? user else {
+            AccountDeletionDebugEventLogger.authDeleteFailed(category: "noCurrentUser")
             throw AccountAuthDeletionError.unauthenticated
         }
 
         guard AuthAccountDeletionPolicy.providerEligibility(
             isGoogleUser: isGoogleUser(currentUser)
         ) == .google else {
+            AccountDeletionDebugEventLogger.authDeleteFailed(category: "providerMismatch")
             throw AuthAccountDeletionPolicy.unsupportedProviderError()
         }
 
         AuthSignInDebugLogger.accountDeletionStarted()
+        AccountDeletionDebugEventLogger.authDeleteStarted()
 
         do {
             try await currentUser.delete()
             GIDSignIn.sharedInstance.signOut()
             applySignedOut()
             AuthSignInDebugLogger.accountDeletionSucceeded()
+            AccountDeletionDebugEventLogger.authDeleteSucceeded()
         } catch {
             let mapped = AuthAccountDeletionErrorClassifier.classify(error)
             AuthSignInDebugLogger.accountDeletionFailed(
                 category: AuthAccountDeletionErrorClassifier.errorCategory(mapped)
+            )
+            AccountDeletionDebugEventLogger.authDeleteFailed(
+                category: AccountDeletionDebugEventLogger.authDeletionCategoryLabel(mapped),
+                firebaseErrorCode: AccountDeletionDebugEventLogger.firebaseAuthErrorCode(from: error)
             )
             throw mapped
         }
@@ -359,6 +367,7 @@ final class AuthManager: ObservableObject, AccountAuthDeleting {
         }
 
         AuthSignInDebugLogger.accountReauthStarted()
+        AccountDeletionDebugEventLogger.reauthStarted()
 
         do {
             let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenter)
@@ -374,6 +383,7 @@ final class AuthManager: ObservableObject, AccountAuthDeleting {
 
             try await currentUser.reauthenticate(with: credential)
             AuthSignInDebugLogger.accountReauthSucceeded()
+            AccountDeletionDebugEventLogger.reauthSucceeded()
         } catch let error as AccountAuthDeletionError {
             logAccountReauthFailure(error)
             throw error
@@ -511,9 +521,13 @@ final class AuthManager: ObservableObject, AccountAuthDeleting {
         switch error {
         case .cancelled:
             AuthSignInDebugLogger.accountReauthCancelled()
+            AccountDeletionDebugEventLogger.reauthCancelled()
         default:
             AuthSignInDebugLogger.accountReauthFailed(
                 category: AuthAccountDeletionErrorClassifier.errorCategory(error)
+            )
+            AccountDeletionDebugEventLogger.reauthFailed(
+                category: AccountDeletionDebugEventLogger.authDeletionCategoryLabel(error)
             )
         }
     }
