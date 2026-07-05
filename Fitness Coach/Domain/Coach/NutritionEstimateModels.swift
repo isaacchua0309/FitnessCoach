@@ -282,16 +282,19 @@ struct NutritionComparisonCardState: Equatable, Sendable, Identifiable, Codable 
 enum CoachStructuredMessageContent: Codable, Equatable, Sendable {
     case nutritionEstimate(NutritionEstimateCardState)
     case nutritionComparison(NutritionComparisonCardState)
+    case dailyReview(DailyReviewPayload)
 
     private enum CodingKeys: String, CodingKey {
         case type
         case estimate
         case comparison
+        case dailyReview
     }
 
     private enum ContentType: String, Codable {
         case nutritionEstimate
         case nutritionComparison
+        case dailyReview
     }
 
     init(from decoder: Decoder) throws {
@@ -302,6 +305,8 @@ enum CoachStructuredMessageContent: Codable, Equatable, Sendable {
             self = .nutritionEstimate(try container.decode(NutritionEstimateCardState.self, forKey: .estimate))
         case .nutritionComparison:
             self = .nutritionComparison(try container.decode(NutritionComparisonCardState.self, forKey: .comparison))
+        case .dailyReview:
+            self = .dailyReview(try container.decode(DailyReviewPayload.self, forKey: .dailyReview))
         }
     }
 
@@ -314,6 +319,9 @@ enum CoachStructuredMessageContent: Codable, Equatable, Sendable {
         case .nutritionComparison(let state):
             try container.encode(ContentType.nutritionComparison, forKey: .type)
             try container.encode(state, forKey: .comparison)
+        case .dailyReview(let payload):
+            try container.encode(ContentType.dailyReview, forKey: .type)
+            try container.encode(payload, forKey: .dailyReview)
         }
     }
 }

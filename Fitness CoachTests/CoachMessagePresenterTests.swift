@@ -119,6 +119,67 @@ final class CoachMessagePresenterTests: XCTestCase {
         XCTAssertEqual(state.foodName, "Big Mac")
     }
 
+    func testDailyReviewStructuredMessageRendersCardPresentation() {
+        let payload = DailyReviewPayload(
+            title: "Daily Review",
+            timezoneLabel: "Jul 5, 2026 · GMT",
+            generatedAt: Date(),
+            snapshot: DailyReviewSnapshot(
+                calories: ProgressMetric(
+                    label: "Calories",
+                    current: 1_500,
+                    target: 2_000,
+                    unit: "kcal",
+                    remainingText: "500 kcal remaining",
+                    progress: 0.75
+                ),
+                protein: ProgressMetric(
+                    label: "Protein",
+                    current: 90,
+                    target: 140,
+                    unit: "g",
+                    remainingText: "50g to go",
+                    progress: 0.64
+                ),
+                water: ProgressMetric(
+                    label: "Water",
+                    current: 1_000,
+                    target: 2_500,
+                    unit: "ml",
+                    remainingText: "1,500 ml remaining",
+                    progress: 0.4
+                )
+            ),
+            statusSummary: "You logged 1,500 kcal with 500 kcal remaining.",
+            bestNextMove: "Prioritize lean protein earlier tomorrow.",
+            tomorrowFocus: nil,
+            missingSignals: [],
+            detailNote: "Nice consistency."
+        )
+        let message = ChatMessage(
+            role: .assistant,
+            text: "Daily review accessibility text",
+            structuredContent: .dailyReview(payload)
+        )
+
+        guard case .dailyReview(let rendered) = CoachMessagePresenter.presentation(for: message) else {
+            return XCTFail("Expected daily review presentation")
+        }
+        XCTAssertEqual(rendered.title, "Daily Review")
+    }
+
+    func testLegacyPlainTextAssistantMessageStillRendersTextPresentation() {
+        let message = ChatMessage(
+            role: .assistant,
+            text: "Daily Review\n\nCalories: 1,500 / 2,000 kcal."
+        )
+
+        guard case .assistant(let text) = CoachMessagePresenter.presentation(for: message) else {
+            return XCTFail("Expected plain assistant text presentation")
+        }
+        XCTAssertTrue(text.contains("Daily Review"))
+    }
+
     private func makeAttachment() throws -> ChatMessageImageAttachment {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24))
         let image = renderer.image { context in

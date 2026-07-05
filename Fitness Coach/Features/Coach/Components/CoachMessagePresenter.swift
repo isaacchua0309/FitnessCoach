@@ -14,6 +14,7 @@ enum CoachMessagePresentation: Equatable {
     case assistant(String)
     case nutritionEstimate(NutritionEstimateCardState)
     case nutritionComparison(NutritionComparisonCardState)
+    case dailyReview(DailyReviewPayload)
     case assistantPhotoAnalysis(
         text: String,
         relatedUserMessageID: UUID,
@@ -61,6 +62,8 @@ enum CoachMessagePresenter {
                     return .nutritionEstimate(state)
                 case .nutritionComparison(let state):
                     return .nutritionComparison(state)
+                case .dailyReview(let payload):
+                    return .dailyReview(payload)
                 }
             }
             if let confirmation = parseConfirmation(from: message.text) {

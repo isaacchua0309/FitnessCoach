@@ -48,29 +48,31 @@ final class CoachMutationExecutor {
         _ command: ParsedCommand,
         healthIntelligence: CoachHealthIntelligenceContext? = nil,
         contextHints: CoachResponseContextHints? = nil
-    ) async -> String {
+    ) async -> CoachActionResult {
         switch command.intent {
         case .logWater(let draft):
-            return executeLogWater(draft)
+            return .message(executeLogWater(draft))
         case .logWeight(let draft):
-            return executeLogWeight(draft)
+            return .message(executeLogWeight(draft))
         case .logFood(let draft):
-            return executeLogFood(FoodLogDraftMapper.fromLegacyDraft(draft))
+            return .message(executeLogFood(FoodLogDraftMapper.fromLegacyDraft(draft)))
         case .undo(let target):
-            return executeUndo(target)
+            return .message(executeUndo(target))
         case .status:
-            return await executeStatus(
-                healthIntelligence: healthIntelligence,
-                contextHints: contextHints
+            return .message(
+                await executeStatus(
+                    healthIntelligence: healthIntelligence,
+                    contextHints: contextHints
+                )
             )
         case .dailyReview:
             return await executeDailyReview(contextHints: contextHints)
         case .logSteps:
-            return CoachResponseBuilder.stepsPlaceholder
+            return .message(CoachResponseBuilder.stepsPlaceholder)
         case .unsupported:
-            return CoachResponseBuilder.unsupportedResponse
+            return .message(CoachResponseBuilder.unsupportedResponse)
         case .needsAI:
-            return CoachResponseBuilder.needsAIResponse
+            return .message(CoachResponseBuilder.needsAIResponse)
         }
     }
 
@@ -475,16 +477,20 @@ final class CoachMutationExecutor {
         }
     }
 
-    private func executeDailyReview(contextHints: CoachResponseContextHints? = nil) async -> String {
+    private func executeDailyReview(contextHints: CoachResponseContextHints? = nil) async -> CoachActionResult {
         do {
-            let review = try await actionCenter.generateDailyReview(for: Date())
-            return CoachResponseBuilder.dailyReview(review, contextHints: contextHints)
+            let result = try await actionCenter.generateDailyReviewWithSummary(for: Date())
+            return CoachResponseBuilder.dailyReviewActionResult(
+                review: result.review,
+                summary: result.summary,
+                contextHints: contextHints
+            )
         } catch ServiceError.missingUserProfile {
-            return "I could not generate your daily review yet. Please start a day and make sure your profile is set up."
+            return .message("I could not generate your daily review yet. Please start a day and make sure your profile is set up.")
         } catch ServiceError.dailyLogNotFound {
-            return "There is no daily log for today yet. Open Today to load your dashboard."
+            return .message("There is no daily log for today yet. Open Today to load your dashboard.")
         } catch {
-            return "I could not generate your daily review yet. Please try again."
+            return .message("I could not generate your daily review yet. Please try again.")
         }
     }
 

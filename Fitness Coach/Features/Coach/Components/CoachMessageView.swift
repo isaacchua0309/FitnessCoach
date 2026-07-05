@@ -31,6 +31,8 @@ struct CoachMessageView: View {
                 nutritionEstimateMessage(state)
             case .nutritionComparison(let state):
                 nutritionComparisonMessage(state)
+            case .dailyReview(let payload):
+                dailyReviewMessage(payload)
             case .assistantPhotoAnalysis(let text, let relatedUserMessageID, let kind):
                 assistantPhotoAnalysisMessage(
                     text: text,
@@ -92,6 +94,15 @@ struct CoachMessageView: View {
                 onNutritionAction?(action)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 16)
+        }
+    }
+
+    @ViewBuilder
+    private func dailyReviewMessage(_ payload: DailyReviewPayload) -> some View {
+        HStack {
+            DailyReviewCard(payload: payload)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 16)
         }
     }

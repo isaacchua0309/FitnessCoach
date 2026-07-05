@@ -12,6 +12,11 @@
 import Foundation
 import SwiftData
 
+struct DailyReviewGenerationResult: Equatable, Sendable {
+    let review: DailyReview
+    let summary: DailyReviewSummary
+}
+
 @MainActor
 final class ReviewService {
 
@@ -66,11 +71,20 @@ final class ReviewService {
         for date: Date,
         forceRegenerate: Bool = false
     ) async throws -> DailyReview {
+        try await generateDailyReviewWithSummary(for: date, forceRegenerate: forceRegenerate).review
+    }
+
+    func generateDailyReviewWithSummary(
+        for date: Date,
+        forceRegenerate: Bool = false
+    ) async throws -> DailyReviewGenerationResult {
         let dailyLogEntity = try dailyLogService.getOrCreateLogEntity(for: date)
 
         if !forceRegenerate, let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id),
            AccountDataSyncReadFilter.isVisible(existing) {
-            return existing.toModel()
+            let dailyLog = try dailyLogService.recalculateDailyTotals(for: dailyLogEntity.date)
+            let summary = try await buildSummary(for: dailyLog)
+            return DailyReviewGenerationResult(review: existing.toModel(), summary: summary)
         }
 
         let dailyLog = try dailyLogService.recalculateDailyTotals(for: dailyLogEntity.date)
@@ -89,7 +103,8 @@ final class ReviewService {
             aiResponse: aiResponse
         )
 
-        return try persist(review, dailyLogEntity: dailyLogEntity)
+        let persisted = try persist(review, dailyLogEntity: dailyLogEntity)
+        return DailyReviewGenerationResult(review: persisted, summary: summary)
     }
 
     // MARK: Summary
