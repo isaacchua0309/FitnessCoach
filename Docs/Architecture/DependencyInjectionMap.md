@@ -199,7 +199,7 @@ CoachView → CoachModel → CoachSendFlowCoordinator
 
 **Assembly (`CoachDependencies.assemble`):** builds `CoachMutationExecutor`, `CoachAIRouteHandler`, `CoachRouteDecider`, `CoachMealPhotoAnalyzer`, and feature coordinators. Any `CoachDependencies` field can be overridden in tests.
 
-**Test pattern:** `CoachRoutingIntegrationTestSupport.makeCoach(services:dependencies:)` or legacy `CoachModel(...)` convenience init.
+**Test pattern:** `CoachRoutingIntegrationTestSupport.makeCoach(services:dependencies:)` or `CoachModelTestFactory.makeModel(...)` for photo/pick-flow tests.
 
 **Legacy log food chain (unchanged semantics):**
 ```

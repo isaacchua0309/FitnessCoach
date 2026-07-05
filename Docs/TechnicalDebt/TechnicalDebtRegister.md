@@ -54,7 +54,7 @@ When closing an item, remove the source `TD-*` comment and update this register 
 | TD-HI-001 | Health Intelligence | Weekly review presentation duplicated across Journey + HI | `JourneyWeeklyReviewBuilder`, `WeeklyReviewPresentationBuilder` | Distinct product surfaces; consolidation is P1 refactor | Shared weekly UX contract per PRDX P1 |
 | TD-HI-002 | Health Intelligence | `*SectionLoader` / HI presentation duplication | Today / Journey / Plan HI loaders + presentation builders | **Mostly closed** — shared `HealthIntelligenceSectionLoaderCore` + `HealthIntelligencePresentationCore`; golden parity gate (`HealthIntelligencePresentationParityTests`) landed; dead Today composition stubs removed | Delete `*CompositionPolicy.swift` files and legacy dashboard sections only when `healthIntelligenceUIEnabled` is permanently on |
 | TD-HI-003 | Health Intelligence | Dual workout types at query boundary | `HealthWorkoutRecord`, `NormalizedWorkout`, `NormalizedWorkout+HealthWorkoutRecord` | Repository stores `NormalizedWorkout`; app query layer and 30+ callers still use `HealthWorkoutRecord`. Shim maps at `HealthActivityQueryService` repository-routing path only. | Migrate `HealthActivityQueryService` workout APIs + Today/Journey/Coach/Training Insights builders to `NormalizedWorkout`; delete shim when `asHealthWorkoutRecord` has zero production references |
-| TD-COACH-001 | Coach | `CoachModel` god-file split | `CoachModel.swift` (was ~1,600 LOC) | **Partially closed** — v1 coordinators + `CoachDependencies` extracted; image pick flow and legacy test init remain | Remove legacy init; extract `CoachImagePickFlowController` wiring; close when characterization suite green in CI |
+| TD-COACH-001 | Coach | `CoachModel` god-file split | `CoachModel.swift` (was ~1,600 LOC) | **Mostly closed** — v1 coordinators + `CoachDependencies`; `CoachPhotoFlowCoordinator` wired in `CoachModel`; production legacy init removed (`CoachModelTestFactory` in tests) | Future: `CoachImagePickFlowController` UI extraction; transcript dual-memory consolidation |
 | TD-BACKEND-001 | Backend | Monolithic `functions/src/index.ts` | Firebase Functions | Route modularization deferred | Extract `routes/` per PRDX P1 |
 | TD-TEST-001 | Testing | Fast-Core SPM / host wiring | `Fitness CoachTests`, `Fitness Coach.xcodeproj` | **Mostly closed** — TEST_HOST + BUNDLE_LOADER; no duplicate Firebase SPM link in test target; serial Fast-Core plan | Mac verify: `./Scripts/run_fast_core_tests.sh` → `TEST SUCCEEDED` |
 
@@ -65,6 +65,7 @@ When closing an item, remove the source `TD-*` comment and update this register 
 | ID | Item | Resolution |
 |----|------|------------|
 | TD-COACH-001 (core) | Monolithic `CoachModel` (~1,600 LOC) | **Split** into 11 coordinators + `CoachDependencies` assembly. `CoachModel` ~350 LOC orchestration layer. Behavior-neutral per characterization tests. Docs: `Docs/Coach/CoachArchitecture.md`, `CoachModelDecompositionV1.md`. |
+| TD-COACH-001 (tail) | Legacy test init + photo-flow coordinator | **Closed 2026-07-05** — removed `CoachModel+LegacyInitialization.swift`; tests use `CoachModelTestFactory` or `CoachDependencies` overrides; `CoachPhotoFlowCoordinator` runtime wired in `CoachModel.init` |
 
 ---
 
@@ -129,7 +130,7 @@ See `Docs/PersistenceCleanupNotes.md` and entity file headers.
 
 | Date | Change |
 |------|--------|
-| 2026-07-05 | **PH-004 fixture aliases (batch 1)** — `FoodLogFixtures` / `DailyLogFixtures` canonical in tests; `ProfileTestFixtures` usage reduced (~101 → ~31 files) |
+| 2026-07-05 | **TD-COACH-001 tail** — removed production legacy init; `CoachPhotoFlowCoordinator` wiring confirmed; `CoachModelTestFactory` for tests |
 | 2026-07-05 | **Fast-Core / BW-101** — TD-TEST-001 mostly closed; test target uses `TEST_HOST` (no duplicate Firebase SPM link); `Scripts/run_fast_core_tests.sh`; Fast-Core serial |
 | 2026-07-05 | **NormalizedWorkout shim audit** — TD-HI-003 opened; shim deletion blocked pending `HealthWorkoutRecord` → `NormalizedWorkout` query-boundary migration |
 | 2026-07-05 | **Health Intelligence consolidation v2** — TD-HI-002 mostly closed; `HealthIntelligenceSectionLoaderCore`, `TodayHealthIntelligenceSectionLoader`, AppContainer dependency file split |
