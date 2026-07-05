@@ -34,7 +34,7 @@ The app uses **manual constructor injection** via a single composition root:
 | `buildHealthIntelligenceDependencies` | HI engine, snapshot, weekly review | `AppContainer+Construction.swift` |
 | `buildCoachDependencies` | Coach timeline stores, backfill | `AppContainer+Construction.swift` |
 | `buildAI` | LLM client, AIService | `AppContainer+Construction.swift` |
-| `buildSyncDependencies` | Restore, cross-device, deletion, export | `AppContainer+Construction.swift` |
+| `buildSyncDependencies` | Restore, cross-device, deletion, export | `Fitness Coach/App/Dependencies/SyncDependencies.swift` |
 | `buildSettingsDependencies` | Theme store | `AppContainer+Construction.swift` |
 | `buildTodayDependencies` | ReviewService, FitnessActionCenter | `AppContainer+Construction.swift` |
 | `buildJourneyDependencies` | JourneyModel wiring (feature factory) | `AppContainer+Construction.swift` |
