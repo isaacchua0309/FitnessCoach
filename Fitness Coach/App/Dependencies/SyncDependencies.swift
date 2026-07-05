@@ -1,5 +1,5 @@
 //
-//  AppContainer+SyncDependencies.swift
+//  SyncDependencies.swift
 //  Fitness Coach
 //
 //  Account restore, cross-device sync, and deletion construction for AppContainer.
@@ -8,8 +8,6 @@
 
 import Foundation
 import SwiftData
-
-// MARK: - Sync dependencies (account restore / cross-device / deletion)
 
 extension AppContainer {
 

@@ -1,5 +1,5 @@
 //
-//  AppContainer+AnalyticsDependencies.swift
+//  AnalyticsDependencies.swift
 //  Fitness Coach
 //
 //  Analytics logger construction for AppContainer.
@@ -7,8 +7,6 @@
 //
 
 import Foundation
-
-// MARK: - Analytics dependencies
 
 extension AppContainer {
 

@@ -14,7 +14,7 @@ This document tracks **removed**, **deprecated**, and **remaining** cleanup item
 | `TodayHealthIntelligenceSectionLoader` | **Added** | Today HI load path extracted from `TodayModel` |
 | Tab `*SectionLoader` duplication | **Reduced** | Journey/Plan/Today loaders delegate to core |
 | Tab `*PresentationBuilder` duplication | **Reduced** | Today/Plan/Journey builders delegate to `HealthIntelligencePresentationCore` + `HealthIntelligenceSectionLoaderCore` |
-| `AppContainer+Construction.swift` | **Reduced** | Health, sync, and analytics bundles moved to `AppContainer+HealthDependencies.swift`, `+SyncDependencies.swift`, `+AnalyticsDependencies.swift` |
+| `AppContainer+Construction.swift` | **Reduced** | Domain bundles under `App/Dependencies/`; Construction holds DEBUG utilities only (~68 LOC) |
 | Golden parity gate | **Added** | `HealthIntelligencePresentationParityTests` — fixtures A–E across Today/Plan/Journey |
 | Legacy composition policy files | **Kept (flag-off)** | `TodayReadOnlyCompositionPolicy`, `PlanDashboardCompositionPolicy`, `JourneyDashboardCompositionPolicy` still gate legacy vs HI sections while `healthIntelligenceUIEnabled` can be off |
 | Fast-Core test plan | **Blocked (BW-101)** | `build-for-testing` fails: test target cannot resolve `FirebaseCore` / GoogleSignIn modules on CI host without full Xcode + SPM resolution |

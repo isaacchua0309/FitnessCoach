@@ -152,7 +152,7 @@ final class TrainingInsightsAggregatorTests: XCTestCase {
             startDate: workout.startDate,
             endDate: workout.endDate,
             durationMinutes: workout.durationMinutes,
-            activeEnergyKcal: workout.activeCalories,
+            activeEnergyKcal: Double(workout.activeCalories ?? 0),
             sourceName: "Apple Watch"
         )
         let repository = TrainingInsightsRoutingMockRepository(workouts: [normalized])

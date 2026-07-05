@@ -1,5 +1,5 @@
 //
-//  AppContainer+HealthDependencies.swift
+//  HealthDependencies.swift
 //  Fitness Coach
 //
 //  HealthKit, sync, and training insights construction for AppContainer.
@@ -7,8 +7,6 @@
 //
 
 import Foundation
-
-// MARK: - Health & training (shared infrastructure)
 
 extension AppContainer {
 
