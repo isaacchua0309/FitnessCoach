@@ -558,6 +558,69 @@ final class TodayHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
     }
 
+    func testBuildSectionUsesSectionLoaderCoreClassificationForStaleLabel() {
+        let now = Date()
+        let input = HealthIntelligencePresentationCharacterizationFixtures.sectionLoadingInput(
+            for: .staleData,
+            surface: .today,
+            now: now
+        )
+        let classification = HealthIntelligenceSectionLoaderCore.classifySectionLoading(from: input)
+
+        let section = TodayHealthIntelligencePresentationBuilder.buildSection(
+            snapshot: input.snapshot,
+            nutritionProgress: sampleNutritionProgress,
+            isUIEnabled: true,
+            availability: input.availability,
+            isAppleHealthConnected: input.isAppleHealthConnected,
+            trainingIntegrationState: input.trainingIntegrationState,
+            connectionRecord: input.connectionRecord,
+            cachedDayCount: input.cachedDayCount,
+            lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt
+        )
+
+        XCTAssertEqual(section?.staleDataLabel, classification.staleDataLabel)
+        XCTAssertEqual(section?.uiState?.kind, .staleData)
+    }
+
+    func testPlaceholderRecoveryCardDelegatesToPresentationCore() {
+        let uiState = HealthIntelligenceUIState(
+            kind: .noHealthPermission,
+            title: "Connect Apple Health",
+            message: "Permission needed",
+            primaryActionTitle: "Connect",
+            secondaryActionTitle: nil,
+            primaryAction: .connectAppleHealth,
+            secondaryAction: .none,
+            severity: .warning,
+            canShowInsight: false,
+            confidenceLabel: nil,
+            missingSignals: [],
+            fallbackReason: .permissionsRequired
+        )
+
+        let section = TodayHealthIntelligencePresentationBuilder.buildSection(
+            snapshot: nil,
+            nutritionProgress: sampleNutritionProgress,
+            isUIEnabled: true,
+            availability: HealthDataAvailability(
+                isHealthDataAvailable: true,
+                permissionStatus: .uniform(.denied, isHealthDataAvailable: true),
+                cachedDayCount: 0
+            ),
+            isAppleHealthConnected: false,
+            cachedDayCount: 0
+        )
+
+        let coreContent = HealthIntelligencePresentationCore.placeholderRecoveryContent(
+            for: uiState,
+            surface: .today
+        )
+
+        XCTAssertEqual(section?.recoveryCard.title, coreContent?.title)
+        XCTAssertEqual(section?.recoveryCard.subtitle, coreContent?.subtitle)
+    }
+
     // MARK: - Helpers
 
     private var sampleNutritionProgress: TodayHealthIntelligenceNutritionProgress {
