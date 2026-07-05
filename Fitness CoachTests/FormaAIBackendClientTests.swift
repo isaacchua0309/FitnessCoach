@@ -397,7 +397,7 @@ private extension FormaAIBackendClientTests {
         case .estimateFood:
             return validFoodEstimateResponseData
         case .mealAdvice, .dailyReview:
-            return validCoachResponseData
+            return validDailyReviewResponseData
         case .nutritionEstimate:
             return validNutritionEstimateResponseData
         case .nutritionComparison:
@@ -436,6 +436,12 @@ private extension FormaAIBackendClientTests {
     static let validCoachResponseData = Data(
         """
         {"response":{"message":"Looks good.","confidence":"high","followUpSuggestions":[]}}
+        """.utf8
+    )
+
+    static let validDailyReviewResponseData = Data(
+        """
+        {"review":{"statusSummary":"You are still within today's calorie target.","bestNextMove":"Add protein at your next meal.","tomorrowFocus":"Start hydration earlier tomorrow.","missingSignals":["Steps"],"detailNote":"Solid pacing today."}}
         """.utf8
     )
 

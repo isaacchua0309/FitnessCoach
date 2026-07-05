@@ -103,9 +103,11 @@ final class MockLLMClient: LLMClient {
     func generateDailyReview(request: AIDailyReviewRequest) async throws -> AIDailyReviewResponse {
         logMockHit(operation: "generateDailyReview")
         return AIDailyReviewResponse(
-            response: AICoachResponse(
-                message: "Test daily review.",
-                confidence: .medium
+            review: DailyReviewAIResponse(
+                statusSummary: "You are still within today's calorie target.",
+                bestNextMove: "Add protein at your next meal.",
+                tomorrowFocus: "Start hydration earlier tomorrow.",
+                detailNote: "Solid pacing today."
             )
         )
     }
