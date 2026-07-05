@@ -807,7 +807,7 @@ extension FormaProductCopy {
         }
 
         enum WeeklyReview {
-            static let sectionTitle = "This week"
+            static let sectionTitle = "This Week"
             static let foodTitle = "Food Logging"
             static let proteinTitle = "Protein"
             static let waterTitle = "Water"
@@ -879,6 +879,36 @@ extension FormaProductCopy {
                 previousAchieved: Int
             ) -> String {
                 "Training \(achieved) vs \(previousAchieved) last week"
+            }
+        }
+
+        enum ThisWeek {
+            static let gettingStarted = "Getting started"
+            static let weeklyReviewReady = "Your weekly review is ready"
+            static let buildingConsistency = "You're building consistency"
+
+            static func averageSteps(_ count: Int) -> String {
+                "\(count.formatted()) avg steps"
+            }
+
+            static func workouts(_ count: Int) -> String {
+                count == 1 ? "1 workout" : "\(count) workouts"
+            }
+
+            static func weighIns(_ count: Int) -> String {
+                count == 1 ? "1 weigh-in" : "\(count) weigh-ins"
+            }
+
+            static func mealsLogged(_ count: Int) -> String {
+                count == 1 ? "1 meal" : "\(count) meals"
+            }
+
+            static func proteinDays(_ count: Int) -> String {
+                count == 1 ? "1 protein day" : "\(count) protein days"
+            }
+
+            static func waterDays(_ count: Int) -> String {
+                count == 1 ? "1 water day" : "\(count) water days"
             }
         }
     }

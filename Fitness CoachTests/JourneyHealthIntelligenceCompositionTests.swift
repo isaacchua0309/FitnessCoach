@@ -111,6 +111,14 @@ final class JourneyHealthIntelligenceCompositionTests: XCTestCase {
         XCTAssertTrue(sections.contains(.insights))
     }
 
+    func testHealthIntelligenceWeeklyReviewHiddenWhenThisWeekVisible() {
+        XCTAssertFalse(
+            JourneyDashboardCompositionPolicy.showsHealthIntelligenceWeeklyReviewCard(
+                showsUnifiedThisWeekCard: true
+            )
+        )
+    }
+
     func testWeeklyProgressHeroCollapsesLegacyHabitRowsWhenVisible() {
         XCTAssertTrue(
             JourneyDashboardCompositionPolicy.collapsesLegacyWeeklyHabitRows(

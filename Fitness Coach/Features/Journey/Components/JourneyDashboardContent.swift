@@ -122,15 +122,12 @@ struct JourneyDashboardContent: View {
                 .onAppear { analyticsCoordinator?.logProjectionViewed() }
 
         case .weeklyProgress:
-            WeeklyProgressHeroSection(
+            ThisWeekSection(
                 state: unifiedWeeklyReview,
                 summary: state.weeklyProgressSummary,
-                foodLoggedDays: state.weeklyProgressSummary.foodLoggedDays,
-                totalDays: state.weeklyProgressSummary.totalDays,
                 weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator,
                 freshnessInput: weeklyProgressFreshnessInput,
                 onPrimaryCTA: onWeeklyProgressCTA,
-                onSecondaryCTA: onWeeklyProgressCTA,
                 onOpenWeeklyReviewDetail: weeklyReviewDetailAction
             )
 
@@ -138,6 +135,7 @@ struct JourneyDashboardContent: View {
             if let healthIntelligenceSectionState {
                 JourneyHealthIntelligenceSection(
                     state: healthIntelligenceSectionState,
+                    showsUnifiedThisWeekCard: showsWeeklyProgressHero,
                     healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                     onConnectHealth: onConnectHealth,
                     onWeeklyReviewSelected: { _ in onOpenWeeklyProgressDetail?() }

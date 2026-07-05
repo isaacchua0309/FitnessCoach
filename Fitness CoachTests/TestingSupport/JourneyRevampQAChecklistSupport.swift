@@ -222,7 +222,8 @@ enum JourneyRevampQAChecklistSupport {
         let detail = UnifiedWeeklyReviewPresentationBuilder.buildDetail(dashboard: dashboard)
 
         XCTAssertFalse(unified.confidenceAccessibilityLabel.isEmpty, file: file, line: line)
-        XCTAssertFalse(unified.headline.isEmpty, file: file, line: line)
+        XCTAssertFalse(unified.cardStateTitle.isEmpty, file: file, line: line)
+        XCTAssertFalse(unified.cardSummary.isEmpty, file: file, line: line)
         XCTAssertFalse(detail.accessibilityLabel.isEmpty, file: file, line: line)
         XCTAssertTrue(
             detail.accessibilityLabel.contains(unified.confidenceAccessibilityLabel),
