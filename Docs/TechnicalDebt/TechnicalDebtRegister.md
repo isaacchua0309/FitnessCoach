@@ -52,7 +52,7 @@ When closing an item, remove the source `TD-*` comment and update this register 
 | ID | Domain | Item | Location | Reason deferred | Unblock |
 |----|--------|------|----------|-----------------|---------|
 | TD-HI-001 | Health Intelligence | Weekly review presentation duplicated across Journey + HI | `JourneyWeeklyReviewBuilder`, `WeeklyReviewPresentationBuilder` | Distinct product surfaces; consolidation is P1 refactor | Shared weekly UX contract per PRDX P1 |
-| TD-HI-002 | Health Intelligence | `*SectionLoader` triplicated across tabs | Today / Journey / Plan HI loaders | **Mostly closed** — shared `HealthIntelligenceSectionLoaderCore` + tab loaders; presentation builders delegate to `HealthIntelligencePresentationCore` | Remaining: slim Journey/Plan presentation builders; retire legacy composition policies when flag permanently on |
+| TD-HI-002 | Health Intelligence | `*SectionLoader` / HI presentation duplication | Today / Journey / Plan HI loaders + presentation builders | **Mostly closed** — shared `HealthIntelligenceSectionLoaderCore` + `HealthIntelligencePresentationCore`; golden parity gate (`HealthIntelligencePresentationParityTests`) landed; dead Today composition stubs removed | Delete `*CompositionPolicy.swift` files and legacy dashboard sections only when `healthIntelligenceUIEnabled` is permanently on |
 | TD-COACH-001 | Coach | `CoachModel` god-file split | `CoachModel.swift` (was ~1,600 LOC) | **Partially closed** — v1 coordinators + `CoachDependencies` extracted; image pick flow and legacy test init remain | Remove legacy init; extract `CoachImagePickFlowController` wiring; close when characterization suite green in CI |
 | TD-BACKEND-001 | Backend | Monolithic `functions/src/index.ts` | Firebase Functions | Route modularization deferred | Extract `routes/` per PRDX P1 |
 
@@ -77,7 +77,7 @@ Partial progress (not closed):
 
 | ID | Item | Status |
 |----|------|--------|
-| TD-HI-002 | `*SectionLoader` / HI presentation duplication | **Mostly closed** — `HealthIntelligenceSectionLoaderCore` owns shared fetch/gating; `TodayHealthIntelligenceSectionLoader` added; Journey/Plan loaders delegate; `AppContainer+Health/Sync/AnalyticsDependencies` extracted |
+| TD-HI-002 | `*SectionLoader` / HI presentation duplication | **Mostly closed** — `HealthIntelligenceSectionLoaderCore` + `HealthIntelligencePresentationCore`; tab builders migrated; golden parity gate added; dead `showsLegacyHealthIntelligenceStack` / `showsLegacyNextBestAction` stubs removed from `TodayReadOnlyCompositionPolicy` |
 
 ---
 

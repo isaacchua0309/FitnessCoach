@@ -1,6 +1,6 @@
 # Health Intelligence — Cleanup Status
 
-Last updated: July 2026 (Health Intelligence consolidation v2).
+Last updated: July 2026 (Health Intelligence consolidation v2 — composition policy stub retirement).
 
 This document tracks **removed**, **deprecated**, and **remaining** cleanup items for Apple Health / Health Intelligence. Use it before deleting additional legacy paths.
 
@@ -13,8 +13,10 @@ This document tracks **removed**, **deprecated**, and **remaining** cleanup item
 | `HealthIntelligenceSectionLoaderCore` | **Added** | Shared snapshot/availability fetch, journey connection classification, weekly-review load, UI-state gating |
 | `TodayHealthIntelligenceSectionLoader` | **Added** | Today HI load path extracted from `TodayModel` |
 | Tab `*SectionLoader` duplication | **Reduced** | Journey/Plan/Today loaders delegate to core |
+| Tab `*PresentationBuilder` duplication | **Reduced** | Today/Plan/Journey builders delegate to `HealthIntelligencePresentationCore` + `HealthIntelligenceSectionLoaderCore` |
 | `AppContainer+Construction.swift` | **Reduced** | Health, sync, and analytics bundles moved to `AppContainer+HealthDependencies.swift`, `+SyncDependencies.swift`, `+AnalyticsDependencies.swift` |
-| Legacy composition policies | **Deprecated** | Still required while `healthIntelligenceUIEnabled` can be off; do not delete until parity tests + flag retirement |
+| Golden parity gate | **Added** | `HealthIntelligencePresentationParityTests` — fixtures A–E across Today/Plan/Journey |
+| Legacy composition policy files | **Kept (flag-off)** | `TodayReadOnlyCompositionPolicy`, `PlanDashboardCompositionPolicy`, `JourneyDashboardCompositionPolicy` still gate legacy vs HI sections while `healthIntelligenceUIEnabled` can be off |
 | Fast-Core test plan | **Blocked (BW-101)** | `build-for-testing` fails: test target cannot resolve `FirebaseCore` / GoogleSignIn modules on CI host without full Xcode + SPM resolution |
 
 ---
@@ -26,6 +28,8 @@ This document tracks **removed**, **deprecated**, and **remaining** cleanup item
 | `PlanConfidenceEngine` | Group 1 cleanup | `HealthIntelligenceBaseline.planConfidence` via `HealthIntelligenceEngine` |
 | `HealthSyncService.syncDay` / `HealthSyncResult` | Group 1 cleanup | `syncToday()` / `syncLastNDays(_:)` |
 | Journey snapshot-based presentation overloads | Group 2 cleanup | Record-based `recoveryTimeline(from recoveryDays:)`, `workoutHistory(from workoutRecords:)`, etc. |
+| `TodayReadOnlyCompositionPolicy.showsLegacyHealthIntelligenceStack` | Consolidation v2 | Retired split-section layout; always returned `false`; zero production references |
+| `TodayReadOnlyCompositionPolicy.showsLegacyNextBestAction` | Consolidation v2 | Next-best-action folded into mission hero / HI section; always returned `false`; parity + composition tests cover replacement |
 
 ---
 
@@ -39,7 +43,7 @@ This document tracks **removed**, **deprecated**, and **remaining** cleanup item
 | Journey `workoutReader` fallback | `JourneyModel.fetchHealthWorkouts` | All `JourneyModel` instances receive `healthActivityQuery` |
 | Training Insights direct HK reads | `TrainingInsightsModel` | Route through `HealthActivityQueryService` / repository |
 | Workout calorie `max(manual, HealthKit)` merge | `TodayModel`, `DailyReviewSummaryBuilder` | HI workout display owns Today activity calories |
-| Legacy dashboard sections + composition policies | `*CompositionPolicy.swift` | `healthIntelligenceUIEnabled` permanently on; legacy UI removed |
+| Legacy dashboard sections + composition policy files | `*CompositionPolicy.swift` | `healthIntelligenceUIEnabled` permanently on; legacy UI removed. **Active methods kept:** `showsLegacyPlanConfidenceSection`, `showsLegacyInsightsSection`, `showsLegacyWeeklyReviewSection`, and all `showsHealthIntelligenceSection` / activity / recovery gating |
 | FITPILOT_* legacy env keys | `HealthIntelligenceFeatureFlags` | Documented migration to FORMA_* only |
 | `NormalizedWorkout+HealthWorkoutRecord` shim | `Health/Compatibility/` | All app queries consume `NormalizedWorkout` |
 
@@ -54,7 +58,7 @@ This document tracks **removed**, **deprecated**, and **remaining** cleanup item
 | `HealthTrainingService` | Onboarding/settings auth gate (not data plane) |
 | `NoOpHealthIntelligenceSnapshotService` | Previews and flag-off model defaults |
 | `NoOpHealthIntelligenceEngine` | Journey preview defaults |
-| Legacy Today/Journey/Plan composition policies | Hide duplicate sections when HI UI enabled |
+| Legacy Today/Journey/Plan composition policy files | Hide duplicate sections when HI UI enabled; required while `healthIntelligenceUIEnabled` can be off |
 
 ---
 
@@ -100,4 +104,8 @@ Key test files after cleanup:
 - `HealthIntelligenceSectionLoaderCoreTests.swift`
 - `TodayHealthIntelligenceSectionLoaderTests.swift`
 - `HealthIntelligenceCompositionTests.swift`
+- `HealthIntelligencePresentationParityTests.swift`
+- `TodayHealthIntelligenceCompositionTests.swift`
+- `PlanDashboardHealthIntelligenceTests.swift`
+- `JourneyHealthIntelligenceCompositionTests.swift`
 - `HealthIntelligencePhase11IntegrationTests.swift`

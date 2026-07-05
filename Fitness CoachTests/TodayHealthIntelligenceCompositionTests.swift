@@ -15,12 +15,6 @@ final class TodayHealthIntelligenceCompositionTests: XCTestCase {
                 sectionState: TodayHealthIntelligencePreviewData.readyDay
             )
         )
-        XCTAssertFalse(
-            TodayReadOnlyCompositionPolicy.showsLegacyNextBestAction(
-                isUIEnabled: false,
-                sectionState: TodayHealthIntelligencePreviewData.readyDay
-            )
-        )
         XCTAssertTrue(
             TodayReadOnlyCompositionPolicy.showsActivitySection(
                 isUIEnabled: false,
@@ -30,17 +24,11 @@ final class TodayHealthIntelligenceCompositionTests: XCTestCase {
         )
     }
 
-    func testFlagOnWithSectionShowsRecoveryAndHidesLegacyNextAction() {
+    func testFlagOnWithSectionShowsRecovery() {
         let section = TodayHealthIntelligencePreviewData.readyDay
 
         XCTAssertTrue(
             TodayReadOnlyCompositionPolicy.showsRecoverySection(
-                isUIEnabled: true,
-                sectionState: section
-            )
-        )
-        XCTAssertFalse(
-            TodayReadOnlyCompositionPolicy.showsLegacyNextBestAction(
                 isUIEnabled: true,
                 sectionState: section
             )
@@ -50,12 +38,6 @@ final class TodayHealthIntelligenceCompositionTests: XCTestCase {
     func testFlagOnWithoutSectionHidesRecovery() {
         XCTAssertFalse(
             TodayReadOnlyCompositionPolicy.showsRecoverySection(
-                isUIEnabled: true,
-                sectionState: nil
-            )
-        )
-        XCTAssertFalse(
-            TodayReadOnlyCompositionPolicy.showsLegacyNextBestAction(
                 isUIEnabled: true,
                 sectionState: nil
             )
