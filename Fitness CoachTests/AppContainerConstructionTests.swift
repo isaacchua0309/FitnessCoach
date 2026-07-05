@@ -164,4 +164,37 @@ final class AppContainerConstructionTests: XCTestCase {
         XCTAssertNotNil(container.accountDataExportService)
         XCTAssertTrue(container.accountRealtimeChangeListener is NoOpAccountRealtimeChangeListener)
     }
+
+    func testBuildCoachDependenciesDelegatesToCoachPlatformDependencies() throws {
+        let auth = AuthDependencies.build(inMemory: true)
+        let health = HealthDependencies.build(session: auth, inMemory: true)
+        let persistence = try AppContainer.buildPersistenceDependencies(
+            session: auth,
+            inMemory: true,
+            accountDataRemoteStore: nil
+        )
+
+        let bundle = AppContainer.buildCoachDependencies(
+            session: auth,
+            persistence: persistence,
+            health: health
+        )
+
+        XCTAssertNotNil(bundle.coachTimelineStore)
+        XCTAssertNotNil(bundle.coachChatTranscriptStore)
+        XCTAssertNotNil(bundle.coachTimelineBackfillService)
+        XCTAssertNotNil(bundle.coachTimelineRecorder)
+        XCTAssertNotNil(bundle.foodCorrectionMemoryStore)
+    }
+
+    func testInMemoryContainerWiresCoachPlatformDependencies() throws {
+        let container = try AppContainer(inMemory: true)
+
+        XCTAssertNotNil(container.coachTimelineStore)
+        XCTAssertNotNil(container.coachChatTranscriptStore)
+        XCTAssertNotNil(container.coachTimelineBackfillService)
+        XCTAssertNotNil(container.coachTimelineRecorder)
+        XCTAssertNotNil(container.foodCorrectionMemoryStore)
+        XCTAssertNotNil(container.makeCoachModel())
+    }
 }

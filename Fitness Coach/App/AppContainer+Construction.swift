@@ -44,14 +44,6 @@ extension AppContainer {
         let weeklyReviewService: any WeeklyReviewServing
     }
 
-    struct CoachDependenciesBundle {
-        let coachTimelineStore: SwiftDataCoachTimelineStore
-        let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
-        let coachTimelineBackfillService: CoachTimelineBackfillService
-        let coachTimelineRecorder: DefaultCoachTimelineRecorder
-        let foodCorrectionMemoryStore: FileFoodCorrectionMemoryStore
-    }
-
     struct AIBundle {
         let llmClient: LLMClient
         let aiService: AIService
@@ -318,42 +310,17 @@ extension AppContainer {
 
 extension AppContainer {
 
+    typealias CoachDependenciesBundle = CoachPlatformDependencies
+
     static func buildCoachDependencies(
         session: AuthDependenciesBundle,
         persistence: PersistenceDependenciesBundle,
         health: HealthBundle
-    ) -> CoachDependenciesBundle {
-        let authManager = session.authManager
-        let coachTimelineStore = SwiftDataCoachTimelineStore(
-            store: persistence.store,
-            userIdProvider: { [weak authManager] in authManager?.currentUID }
-        )
-        let coachChatTranscriptStore = SwiftDataCoachChatTranscriptStore(
-            store: persistence.store,
-            userIdProvider: { [weak authManager] in authManager?.currentUID }
-        )
-        let coachTimelineBackfillService = CoachTimelineBackfillService(
-            timelineStore: coachTimelineStore,
-            foodLogService: persistence.foodLogService,
-            waterLogService: persistence.waterLogService,
-            weightLogService: persistence.weightLogService,
-            healthActivityQuery: health.healthActivityQueryService
-        )
-        let coachTimelineRecorder = DefaultCoachTimelineRecorder(store: coachTimelineStore)
-        let foodCorrectionMemoryStore = FileFoodCorrectionMemoryStore(
-            userIdProvider: { [weak authManager] in authManager?.currentUID }
-        )
-
-        Task { @MainActor [coachTimelineBackfillService] in
-            await coachTimelineBackfillService.runBackfill()
-        }
-
-        return CoachDependenciesBundle(
-            coachTimelineStore: coachTimelineStore,
-            coachChatTranscriptStore: coachChatTranscriptStore,
-            coachTimelineBackfillService: coachTimelineBackfillService,
-            coachTimelineRecorder: coachTimelineRecorder,
-            foodCorrectionMemoryStore: foodCorrectionMemoryStore
+    ) -> CoachPlatformDependencies {
+        CoachPlatformDependencies.build(
+            session: session,
+            persistence: persistence,
+            health: health
         )
     }
 }
