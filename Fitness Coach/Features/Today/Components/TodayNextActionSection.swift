@@ -52,6 +52,7 @@ struct TodayNextActionSection: View {
         .onAppear {
             onViewed?()
         }
+        .formaThemeReactive()
     }
 
     @ViewBuilder

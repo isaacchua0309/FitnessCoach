@@ -143,6 +143,7 @@ struct TodayReadOnlyView: View {
 
             reinforcementBlock
         }
+        .formaThemeReactive()
     }
 
     private var missionBlock: some View {

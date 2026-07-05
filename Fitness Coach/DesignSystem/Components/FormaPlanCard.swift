@@ -17,6 +17,7 @@ struct FormaPlanCard<Content: View>: View {
             .padding(.vertical, compact ? FormaTokens.Spacing.xs : FormaTokens.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FormaCardChrome.background(.surface))
+            .formaThemeReactive()
     }
 }
 

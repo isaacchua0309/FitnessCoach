@@ -56,6 +56,8 @@ struct FormaQuickActionChip: View {
     var style: FormaQuickActionChipStyle = .secondary
     var accessibilityHint: String?
 
+    @Environment(\.themePalette) private var palette
+
     var body: some View {
         Group {
             switch style {
@@ -65,17 +67,20 @@ struct FormaQuickActionChip: View {
             case .primary:
                 Button(title, action: action)
                     .buttonStyle(.borderedProminent)
-                    .tint(FormaTokens.Theme.primary)
+                    .tint(palette.primaryButtonBackground)
             }
         }
         .font(FormaTokens.Typography.caption.weight(.semibold))
         .accessibilityHint(accessibilityHint ?? "")
+        .formaThemeReactive()
     }
 }
 
 private struct FormaThemedChipButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -93,23 +98,23 @@ private struct FormaThemedChipButtonStyle: ButtonStyle {
     }
 
     private func foreground(isPressed: Bool) -> Color {
-        guard isEnabled else { return FormaTokens.Color.textTertiary }
+        guard isEnabled else { return colors.textTertiary }
         return isPressed
-            ? FormaTokens.Theme.primary.opacity(0.85)
-            : FormaTokens.Theme.primary
+            ? palette.primary.opacity(0.85)
+            : palette.primary
     }
 
     private func background(isPressed: Bool) -> Color {
-        guard isEnabled else { return FormaTokens.Color.surfaceSubtle }
+        guard isEnabled else { return colors.surfaceSubtle }
         return isPressed
-            ? FormaTokens.Theme.softBackground.opacity(0.9)
-            : FormaTokens.Theme.softBackground
+            ? palette.softBackground.opacity(0.9)
+            : palette.softBackground
     }
 
     private var borderColor: Color {
         isEnabled
-            ? FormaTokens.Theme.borderTint.opacity(0.35)
-            : FormaTokens.Color.border.opacity(0.45)
+            ? palette.borderTint.opacity(0.35)
+            : colors.border.opacity(0.45)
     }
 
     private func scale(isPressed: Bool) -> CGFloat {

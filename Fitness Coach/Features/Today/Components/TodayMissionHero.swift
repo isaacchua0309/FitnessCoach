@@ -42,6 +42,7 @@ struct TodayMissionHero: View {
         .onAppear {
             onViewed?()
         }
+        .formaThemeReactive()
     }
 
     private var metricsBlock: some View {

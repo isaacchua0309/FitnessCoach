@@ -72,6 +72,7 @@ struct TodayActionCard<Content: View>: View {
             .padding(.vertical, FormaTokens.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FormaCardChrome.background(.accentLeading))
+            .formaThemeReactive()
     }
 }
 
@@ -86,6 +87,7 @@ struct TodayMetricsCard<Content: View>: View {
             .padding(.vertical, FormaTokens.Spacing.xs)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FormaCardChrome.background(.surfaceSubtle))
+            .formaThemeReactive()
     }
 }
 
@@ -95,22 +97,24 @@ struct TodayMetricProgressBar: View {
     var subdued: Bool = true
     var isOverTarget: Bool = false
 
+    @Environment(\.formaColors) private var colors
+
     private var clampedProgress: Double {
         min(max(progress, 0), 1)
     }
 
     private var fillColor: Color {
         if isOverTarget {
-            return FormaTokens.Color.destructive.opacity(subdued ? 0.8 : 1)
+            return colors.destructive.opacity(subdued ? 0.8 : 1)
         }
-        return FormaTokens.Color.progress.opacity(subdued ? 0.6 : 1)
+        return colors.progress.opacity(subdued ? 0.6 : 1)
     }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
-                    .fill(FormaTokens.Color.progressTrack)
+                    .fill(colors.progressTrack)
 
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
                     .fill(fillColor)

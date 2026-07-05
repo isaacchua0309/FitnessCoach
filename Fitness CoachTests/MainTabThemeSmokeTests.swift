@@ -176,5 +176,13 @@ final class MainTabThemeSmokeTests: XCTestCase {
             rootModifierSource.contains(".formaThemeReactive()"),
             "Root theme injection must establish a SwiftUI dependency for static token call sites."
         )
+        XCTAssertTrue(
+            rootModifierSource.contains("@EnvironmentObject private var themeStore: ThemeStore"),
+            "Root theme modifier must observe the shared ThemeStore environment object."
+        )
+        XCTAssertTrue(
+            rootModifierSource.contains("func formaRootTheme()"),
+            "App root must use parameterless formaRootTheme() with environmentObject(themeStore)."
+        )
     }
 }

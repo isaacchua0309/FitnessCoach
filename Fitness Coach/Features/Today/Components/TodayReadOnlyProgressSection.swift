@@ -23,6 +23,7 @@ struct TodayReadOnlyProgressSection: View {
             )
         }
         .accessibilityElement(children: .contain)
+        .formaThemeReactive()
     }
 }
 

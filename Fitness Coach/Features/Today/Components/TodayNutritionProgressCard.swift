@@ -33,6 +33,7 @@ struct TodayNutritionProgressCard: View {
         .padding(.vertical, FormaTokens.Spacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(FormaCardChrome.background(.accentLeading))
+        .formaThemeReactive()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(display.accessibilitySummary)
     }

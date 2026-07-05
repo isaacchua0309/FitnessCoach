@@ -157,6 +157,7 @@ struct MainTabView: View {
             .tag(AppTab.plan)
         }
         .tint(resolvedTheme.themePalette.primary)
+        .formaThemeReactive()
         .environmentObject(container.refreshCenter)
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)

@@ -106,7 +106,7 @@ struct ThemeSettingsView: View {
     private func selectPalette(_ palette: AppThemePalette) {
         guard themeStore.palette != palette else { return }
         ThemeSettingsHaptics.selectionChanged()
-        themeStore.setPalette(palette)
+        themeStore.setTheme(palette)
     }
 }
 

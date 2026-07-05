@@ -68,6 +68,7 @@ struct TodayWaterQuickLogSection: View {
             }
         }
         .accessibilityElement(children: .contain)
+        .formaThemeReactive()
         .onChange(of: water.consumedMl) { _, _ in
             pendingAddedMl = 0
         }
@@ -116,7 +117,11 @@ struct TodayWaterQuickLogSection: View {
                 Button {
                     logWater(amountMl: amountMl)
                 } label: {
-                    quickAddButtonLabel(amountMl: amountMl)
+                    TodayWaterQuickAddButtonLabel(
+                        amountMl: amountMl,
+                        isSelected: highlightedAmountMl == amountMl,
+                        isDisabled: isTapLocked
+                    )
                 }
                 .buttonStyle(
                     TodayWaterQuickAddButtonStyle(
@@ -130,41 +135,6 @@ struct TodayWaterQuickLogSection: View {
         }
         .padding(.top, FormaTokens.Spacing.xs)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: isTapLocked)
-    }
-
-    private func quickAddButtonLabel(amountMl: Int) -> some View {
-        let isSelected = highlightedAmountMl == amountMl
-        let isDisabled = isTapLocked
-
-        return Text(FormaProductCopy.Today.Water.quickAddLabel(amountMl))
-            .font(FormaTokens.Typography.caption.weight(.semibold))
-            .foregroundStyle(
-                TodayWaterQuickAddColors.foreground(
-                    isDisabled: isDisabled,
-                    isSelected: isSelected
-                )
-            )
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, FormaTokens.Spacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                    .fill(
-                        TodayWaterQuickAddColors.background(
-                            isDisabled: isDisabled,
-                            isSelected: isSelected
-                        )
-                    )
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                    .stroke(
-                        TodayWaterQuickAddColors.border(
-                            isDisabled: isDisabled,
-                            isSelected: isSelected
-                        ),
-                        lineWidth: TodayWaterQuickAddColors.borderWidth(isSelected: isSelected)
-                    )
-            }
     }
 
     private func logWater(amountMl: Int) {
@@ -199,6 +169,49 @@ struct TodayWaterQuickLogSection: View {
                 }
             }
         }
+    }
+}
+
+private struct TodayWaterQuickAddButtonLabel: View {
+    let amountMl: Int
+    let isSelected: Bool
+    let isDisabled: Bool
+
+    @Environment(\.themePalette) private var palette
+    @Environment(\.formaColors) private var colors
+
+    var body: some View {
+        Text(FormaProductCopy.Today.Water.quickAddLabel(amountMl))
+            .font(FormaTokens.Typography.caption.weight(.semibold))
+            .foregroundStyle(foregroundColor)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, FormaTokens.Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                    .fill(backgroundColor)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                    .stroke(borderColor, lineWidth: isSelected ? 1 : 0.5)
+            }
+    }
+
+    private var foregroundColor: Color {
+        if isDisabled { return colors.textTertiary }
+        if isSelected { return palette.textOnAccent }
+        return palette.primary
+    }
+
+    private var backgroundColor: Color {
+        if isDisabled { return colors.surfaceSubtle }
+        if isSelected { return palette.primary }
+        return palette.softBackground
+    }
+
+    private var borderColor: Color {
+        if isDisabled { return colors.border.opacity(0.45) }
+        if isSelected { return palette.primary.opacity(0.5) }
+        return palette.borderTint.opacity(0.28)
     }
 }
 

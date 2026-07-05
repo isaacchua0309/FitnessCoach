@@ -159,6 +159,7 @@ struct TodayView: View {
                         }
                     }
                 }
+                .formaThemeReactive()
         }
     }
 

@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct FormaRootThemeModifier: ViewModifier {
-    @ObservedObject var store: ThemeStore
+    @EnvironmentObject private var themeStore: ThemeStore
     @Environment(\.colorScheme) private var systemColorScheme
 
     func body(content: Content) -> some View {
-        let state = FormaThemeRootState.make(store: store, systemColorScheme: systemColorScheme)
+        let state = FormaThemeRootState.make(store: themeStore, systemColorScheme: systemColorScheme)
         FormaThemeAccess.update(resolved: state.resolved)
 
         return content
@@ -27,9 +27,14 @@ struct FormaRootThemeModifier: ViewModifier {
 
 extension View {
 
-    /// Apply once at the app root. Do not nest inside feature screens.
+    /// Apply once at the app root. Requires `ThemeStore` / `ThemeManager` on the environment.
+    func formaRootTheme() -> some View {
+        modifier(FormaRootThemeModifier())
+    }
+
+    /// Legacy entry point — prefer `.formaRootTheme()` with `environmentObject(themeStore)`.
     func formaRootTheme(store: ThemeStore) -> some View {
-        modifier(FormaRootThemeModifier(store: store))
+        environmentObject(store).formaRootTheme()
     }
 }
 
