@@ -17,6 +17,7 @@ final class AccountDataExportServiceTests: XCTestCase {
     private let referenceDate = ProfileTestFixtures.referenceDate
 
     private var sessionUID: String?
+    private var defaultsSuiteName: String!
     private var defaults: UserDefaults!
     private var store: SwiftDataStore!
     private var profileService: UserProfileService!
@@ -30,26 +31,31 @@ final class AccountDataExportServiceTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         sessionUID = userA
-        defaults = UserDefaults(suiteName: "AccountDataExportServiceTests.\(UUID().uuidString)")!
+        defaultsSuiteName = "AccountDataExportServiceTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: defaultsSuiteName)!
 
         let container = try FormaModelContainer.makeContainer(inMemory: true)
         store = SwiftDataStore(container: container)
+        outboxStore = SwiftDataAccountSyncOutboxStore(store: store)
         let dateProvider = FixedDailyLogTestDateProvider(now: referenceDate)
         profileService = UserProfileService(store: store, dateProvider: dateProvider)
         let uidProvider = { [weak self] in self?.sessionUID }
+        let mutationTracker = AccountLocalMutationTracker(
+            outbox: outboxStore,
+            ownerUIDProvider: { uidProvider() ?? "" }
+        )
         let dailyLogService = DailyLogService(
             store: store,
             userProfileService: profileService,
             dateProvider: dateProvider,
-            currentUIDProvider: uidProvider
+            mutationTracker: mutationTracker
         )
         foodLogService = FoodLogService(
             store: store,
             dailyLogService: dailyLogService,
-            currentUIDProvider: uidProvider
+            mutationTracker: mutationTracker
         )
 
-        outboxStore = SwiftDataAccountSyncOutboxStore(store: store)
         syncCursorStore = AccountSyncCursorStore(userDefaults: defaults)
         restoreStateStore = AccountRestoreStateStore(userDefaults: defaults)
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: defaults)
@@ -74,7 +80,8 @@ final class AccountDataExportServiceTests: XCTestCase {
         syncCursorStore = nil
         restoreStateStore = nil
         profileCloudSyncStore = nil
-        defaults.removePersistentDomain(forName: defaults.suiteName!)
+        defaults.removePersistentDomain(forName: defaultsSuiteName)
+        defaultsSuiteName = nil
         defaults = nil
         sessionUID = nil
         try await super.tearDown()
@@ -179,7 +186,7 @@ final class AccountDataExportServiceTests: XCTestCase {
         _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: userA)
         _ = try foodLogService.addFoodEntry(
             DailyLogServiceTestSupport.foodDraft(name: "User A Meal", calories: 420),
-            for: referenceDate
+            date: referenceDate
         )
         if let imageUrl {
             let foods = try store.fetch(FetchDescriptor<FoodEntryEntity>())

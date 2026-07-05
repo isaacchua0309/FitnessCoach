@@ -53,8 +53,16 @@ When closing an item, remove the source `TD-*` comment and update this register 
 |----|--------|------|----------|-----------------|---------|
 | TD-HI-001 | Health Intelligence | Weekly review presentation duplicated across Journey + HI | `JourneyWeeklyReviewBuilder`, `WeeklyReviewPresentationBuilder` | Distinct product surfaces; consolidation is P1 refactor | Shared weekly UX contract per PRDX P1 |
 | TD-HI-002 | Health Intelligence | `*SectionLoader` triplicated across tabs | Today / Journey / Plan HI loaders | Extraction planned in PRDX P1 | `Application/StateBuilders/HealthIntelligence/` module |
-| TD-COACH-001 | Coach | `CoachModel` size (~1600 LOC) | `CoachModel.swift` | Behavior-neutral split deferred | Extract pipeline coordinator without behavior change |
+| TD-COACH-001 | Coach | `CoachModel` god-file split | `CoachModel.swift` (was ~1,600 LOC) | **Partially closed** — v1 coordinators + `CoachDependencies` extracted; image pick flow and legacy test init remain | Remove legacy init; extract `CoachImagePickFlowController` wiring; close when characterization suite green in CI |
 | TD-BACKEND-001 | Backend | Monolithic `functions/src/index.ts` | Firebase Functions | Route modularization deferred | Extract `routes/` per PRDX P1 |
+
+---
+
+## Closed — Coach decomposition v1 (2026-07-05)
+
+| ID | Item | Resolution |
+|----|------|------------|
+| TD-COACH-001 (core) | Monolithic `CoachModel` (~1,600 LOC) | **Split** into 11 coordinators + `CoachDependencies` assembly. `CoachModel` ~350 LOC orchestration layer. Behavior-neutral per characterization tests. Docs: `Docs/Coach/CoachArchitecture.md`, `CoachModelDecompositionV1.md`. |
 
 ---
 
@@ -117,6 +125,7 @@ See `Docs/PersistenceCleanupNotes.md` and entity file headers.
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | **Coach decomposition v1** — TD-COACH-001 partially closed; architecture docs added |
 | 2026-07-05 | **Code Bloat Reduction v2 finalized** — closed TD-AI-001, TD-COPY-001; doc archive; fixture consolidation; account-test polling; build/hygiene registers |
 | 2026-07-05 | Added links to BuildWarningsRegister + ProjectHygieneRegister |
 | 2026-07-05 | Closed TD-AI-001 — deleted `AIContext.swift`; migrated 6 test stubs to `CoachContextPacketV2`; extracted `TodayAISummary` |

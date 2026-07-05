@@ -6,6 +6,7 @@
 //
 
 import Combine
+import SwiftData
 import XCTest
 @testable import Fitness_Coach
 
@@ -118,7 +119,7 @@ final class CrossDeviceEndToEndSyncTests: XCTestCase {
         let simulation = try CrossDeviceEndToEndSimulation.make(referenceDate: referenceDate)
         try await simulation.bootstrapProfiles()
 
-        _ = try simulation.deviceA.actionCenter.logWeight(81.4, date: simulation.referenceDate)
+        _ = try simulation.deviceA.weightLogService.logWeight(81.4, date: simulation.referenceDate)
         try await simulation.deviceA.uploadPending()
         _ = try await simulation.deviceB.pullFromCloud()
 

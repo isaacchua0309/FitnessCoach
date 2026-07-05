@@ -74,6 +74,7 @@ final class TrackingAccountIncrementalPuller: AccountIncrementalPulling {
 
     var events: [String] = []
     var pullCallCount = 0
+    var delayNanoseconds: UInt64 = 0
     var nextSummary: CrossDeviceSyncSummary?
 
     func pullChanges(
@@ -83,6 +84,9 @@ final class TrackingAccountIncrementalPuller: AccountIncrementalPulling {
     ) async -> CrossDeviceSyncSummary {
         pullCallCount += 1
         events.append("pull")
+        if delayNanoseconds > 0 {
+            try? await Task.sleep(nanoseconds: delayNanoseconds)
+        }
         if let nextSummary {
             return nextSummary
         }

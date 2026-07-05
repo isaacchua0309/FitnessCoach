@@ -2,7 +2,8 @@
 //  CoachModelCharacterizationTestSupport.swift
 //  Fitness CoachTests
 //
-//  Shared fakes and helpers for CoachModel decomposition characterization tests.
+//  Shared harness, fakes, and AIService stubs for CoachModel characterization tests.
+//  Freezes end-to-end CoachModel behavior before decomposition (TD-COACH-001).
 //
 
 import UIKit
@@ -12,440 +13,352 @@ import XCTest
 @MainActor
 enum CoachModelCharacterizationTestSupport {
 
-    // MARK: - Transcript
+  @MainActor
+  struct Harness {
+    let routing: CoachRoutingIntegrationTestSupport.Harness
+    let timelineStore: FakeCoachTimelineStore
+    let transcriptStore: CapturingCoachTranscriptStore
+    let correctionMemoryStore: InMemoryFoodCorrectionMemoryStore
+    let analyticsLogger: CapturingCoachAnalyticsLogger
 
-    final class CapturingCoachChatTranscriptStore: CoachChatTranscriptStore {
-        private var messages: [ChatMessage] = []
-        private(set) var saveCount = 0
+    var actionCenter: FitnessActionCenter { routing.actionCenter }
+    var dailyLogService: DailyLogService { routing.dailyLogService }
+    var today: Date { routing.today }
 
-        func loadMessages() -> [ChatMessage] {
-            messages
-        }
-
-        func saveMessages(_ messages: [ChatMessage]) {
-            saveCount += 1
-            self.messages = messages
-        }
-
-        var persistedMessages: [ChatMessage] {
-            messages
-        }
-    }
-
-    // MARK: - AIService stubs
-
-    /// AI must not be called — local guard handles greetings, water, weight, catalog food.
-    final class UnreachableAIService: AIServiceProtocol, @unchecked Sendable {
-        private(set) var classifyCallCount = 0
-        private(set) var estimateFoodCallCount = 0
-
-        func classifyCoachIntent(
-            _ text: String,
-            context: CoachContextPacketV2,
-            config: CoachModelConfig
-        ) async throws -> CoachIntentResult {
-            classifyCallCount += 1
-            throw AIServiceError.backendUnavailable
-        }
-
-        func estimateFood(
-            prompt: String,
-            context: CoachContextPacketV2,
-            imageJPEGData: Data?
-        ) async throws -> AIFoodEstimateResponse {
-            estimateFoodCallCount += 1
-            throw AIServiceError.backendUnavailable
-        }
-
-        func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateMealAdvice(
-            prompt: String,
-            context: CoachContextPacketV2,
-            intentResult: CoachIntentResult?,
-            tier: CoachModelTier
-        ) async throws -> AICoachResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateNutritionEstimate(
-            prompt: String,
-            context: CoachContextPacketV2,
-            intentResult: CoachIntentResult?,
-            tier: CoachModelTier
-        ) async throws -> NutritionEstimateResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateNutritionComparison(
-            prompt: String,
-            context: CoachContextPacketV2,
-            intentResult: CoachIntentResult?,
-            tier: CoachModelTier
-        ) async throws -> NutritionComparisonResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateDailyReviewText(
-            input: DailyReviewAIInput,
-            context: CoachContextPacketV2
-        ) async throws -> AICoachResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-    }
-
-  final class FoodEstimateAIService: AIServiceProtocol, @unchecked Sendable {
-        var estimateResponse: AIFoodEstimateResponse
-        private(set) var classifyCallCount = 0
-        private(set) var estimateFoodCallCount = 0
-
-        init(estimateResponse: AIFoodEstimateResponse = FoodEstimateAIService.defaultResponse) {
-            self.estimateResponse = estimateResponse
-        }
-
-        static var defaultResponse: AIFoodEstimateResponse {
-            AIFoodEstimateResponse(
-                foodLogDrafts: [
-                    FoodLogDraft(
-                        displayName: "Chicken rice bowl",
-                        components: [
-                            FoodComponent(
-                                name: "Chicken rice bowl",
-                                calories: 620,
-                                protein: 42,
-                                carbs: 55,
-                                fat: 18,
-                                confidence: .medium,
-                                sourceText: "log chicken rice bowl"
-                            )
-                        ],
-                        confidence: .medium,
-                        source: .aiTextEstimate
-                    )
-                ],
-                confidence: .medium,
-                requiresConfirmation: true,
-                assistantMessage: "Confirm before logging."
-            )
-        }
-
-        func classifyCoachIntent(
-            _ text: String,
-            context: CoachContextPacketV2,
-            config: CoachModelConfig
-        ) async throws -> CoachIntentResult {
-            classifyCallCount += 1
-            return CoachIntentResult(
-                intent: .logFood,
-                confidence: 0.92,
-                domain: .nutrition,
-                requiresAppMutation: true,
-                requiresUserContext: true,
-                canAnswerWithCheapModel: true,
-                requiresEscalation: false,
-                action: nil
-            )
-        }
-
-        func estimateFood(
-            prompt: String,
-            context: CoachContextPacketV2,
-            imageJPEGData: Data?
-        ) async throws -> AIFoodEstimateResponse {
-            estimateFoodCallCount += 1
-            return estimateResponse
-        }
-
-        func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateMealAdvice(
-            prompt: String,
-            context: CoachContextPacketV2,
-            intentResult: CoachIntentResult?,
-            tier: CoachModelTier
-        ) async throws -> AICoachResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateNutritionEstimate(
-            prompt: String,
-            context: CoachContextPacketV2,
-            intentResult: CoachIntentResult?,
-            tier: CoachModelTier
-        ) async throws -> NutritionEstimateResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateNutritionComparison(
-            prompt: String,
-            context: CoachContextPacketV2,
-            intentResult: CoachIntentResult?,
-            tier: CoachModelTier
-        ) async throws -> NutritionComparisonResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateDailyReviewText(
-            input: DailyReviewAIInput,
-            context: CoachContextPacketV2
-        ) async throws -> AICoachResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-    }
-
-    final class FailingEstimateAIService: AIServiceProtocol, @unchecked Sendable {
-        private(set) var classifyCallCount = 0
-        private(set) var estimateFoodCallCount = 0
-
-        func classifyCoachIntent(
-            _ text: String,
-            context: CoachContextPacketV2,
-            config: CoachModelConfig
-        ) async throws -> CoachIntentResult {
-            classifyCallCount += 1
-            return CoachIntentResult(
-                intent: .logFood,
-                confidence: 0.92,
-                domain: .nutrition,
-                requiresAppMutation: true,
-                requiresUserContext: true,
-                canAnswerWithCheapModel: true,
-                requiresEscalation: false,
-                action: nil
-            )
-        }
-
-        func estimateFood(
-            prompt: String,
-            context: CoachContextPacketV2,
-            imageJPEGData: Data?
-        ) async throws -> AIFoodEstimateResponse {
-            estimateFoodCallCount += 1
-            throw AIServiceError.backendUnavailable
-        }
-
-        func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateMealAdvice(
-            prompt: String,
-            context: CoachContextPacketV2,
-            intentResult: CoachIntentResult?,
-            tier: CoachModelTier
-        ) async throws -> AICoachResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateNutritionEstimate(
-            prompt: String,
-            context: CoachContextPacketV2,
-            intentResult: CoachIntentResult?,
-            tier: CoachModelTier
-        ) async throws -> NutritionEstimateResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateNutritionComparison(
-            prompt: String,
-            context: CoachContextPacketV2,
-            intentResult: CoachIntentResult?,
-            tier: CoachModelTier
-        ) async throws -> NutritionComparisonResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateDailyReviewText(
-            input: DailyReviewAIInput,
-            context: CoachContextPacketV2
-        ) async throws -> AICoachResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-    }
-
-    final class CharacterizationPhotoAIService: AIServiceProtocol, @unchecked Sendable {
-        var analyzeMealImageCallCount = 0
-        var injectedAnalyzeError: Error?
-        var clarifyingQuestion: String?
-        private var callIndex = 0
-
-        func classifyCoachIntent(
-            _ text: String,
-            context: CoachContextPacketV2,
-            config: CoachModelConfig
-        ) async throws -> CoachIntentResult {
-            CoachMealPhotoPipeline.photoAnalysisIntentResult
-        }
-
-        func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
-            analyzeMealImageCallCount += 1
-            callIndex += 1
-            if let injectedAnalyzeError, callIndex == 1 {
-                throw injectedAnalyzeError
-            }
-
-            let confidence: AIConfidence = clarifyingQuestion != nil && callIndex == 1 ? .low : .medium
-            return CoachImageWorkflowTestSupport.validMealImageAnalysisResponse(
-                summary: "Photo meal",
-                itemName: "Photo meal",
-                confidence: confidence
-            ).withClarifyingQuestion(
-                clarifyingQuestion != nil && callIndex == 1 ? clarifyingQuestion : nil
-            )
-        }
-
-        func estimateFood(
-            prompt: String,
-            context: CoachContextPacketV2,
-            imageJPEGData: Data?
-        ) async throws -> AIFoodEstimateResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateMealAdvice(
-            prompt: String,
-            context: CoachContextPacketV2,
-            intentResult: CoachIntentResult?,
-            tier: CoachModelTier
-        ) async throws -> AICoachResponse {
-            AICoachResponse(message: "Stub", confidence: .medium)
-        }
-
-        func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-
-        func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-            AICoachResponse(message: "Stub", confidence: .medium)
-        }
-
-        func generateDailyReviewText(
-            input: DailyReviewAIInput,
-            context: CoachContextPacketV2
-        ) async throws -> AICoachResponse {
-            AICoachResponse(message: "Stub", confidence: .medium)
-        }
-
-        func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-            throw AIServiceError.backendUnavailable
-        }
-    }
-
-    // MARK: - Helpers
-
-    static func waitForTimelineEvent(
-        in store: FakeCoachTimelineStore,
-        matching predicate: @escaping (CoachTimelineEvent) -> Bool,
-        timeout: TimeInterval = 1.0
-    ) async throws -> CoachTimelineEvent {
-        let satisfied = await AsyncTestSupport.waitUntil(
-            maxYields: Int(timeout * 100),
-            { store.events.contains(where: predicate) }
+    func makeCoach(
+      aiService: AIServiceProtocol,
+      transcriptStore overrideTranscript: CoachChatTranscriptStore? = nil
+    ) -> CoachModel {
+      CoachModel(
+        services: routing.makeCoachServices(),
+        dependencies: routing.makeCoachDependencies(
+          aiService: aiService,
+          timelineStore: timelineStore,
+          transcriptStore: overrideTranscript ?? transcriptStore,
+          foodCorrectionMemoryStore: correctionMemoryStore,
+          coachAnalyticsLogger: analyticsLogger
         )
-        if !satisfied {
-            throw NSError(domain: "CoachModelCharacterizationTestSupport", code: 1)
-        }
-        return try XCTUnwrap(store.events.first(where: predicate))
+      )
     }
+  }
 
-    @MainActor
-    static func stageAndSendPhoto(
-        on model: CoachModel,
-        aiService: CharacterizationPhotoAIService,
-        jpeg: Data? = nil
-    ) async throws -> UUID {
-        let imageData = jpeg ?? CoachImageWorkflowTestSupport.makeTestJPEG()
-        let staged = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
-            on: model,
-            jpeg: imageData,
-            source: .library
+  static func makeHarness() throws -> Harness {
+    let routing = try CoachRoutingIntegrationTestSupport.makeHarness()
+    try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: routing)
+    return Harness(
+      routing: routing,
+      timelineStore: FakeCoachTimelineStore(),
+      transcriptStore: CapturingCoachTranscriptStore(),
+      correctionMemoryStore: InMemoryFoodCorrectionMemoryStore(),
+      analyticsLogger: FakeAnalyticsLogger.coach()
+    )
+  }
+
+  static func foodEstimateIntent() -> CoachIntentResult {
+    CoachIntentResult(
+      intent: .logFood,
+      confidence: 0.92,
+      domain: .nutrition,
+      requiresAppMutation: true,
+      requiresUserContext: true,
+      canAnswerWithCheapModel: true,
+      requiresEscalation: false,
+      action: nil
+    )
+  }
+
+  static func deleteLogIntent() -> CoachIntentResult {
+    CoachIntentResult(
+      intent: .deleteLog,
+      confidence: 0.92,
+      domain: .nutrition,
+      requiresAppMutation: true,
+      requiresUserContext: true,
+      canAnswerWithCheapModel: true,
+      requiresEscalation: false,
+      action: nil
+    )
+  }
+
+  static func characterizationFoodEstimateResponse(
+    name: String = "Chicken rice bowl",
+    calories: Int = 620
+  ) -> AIFoodEstimateResponse {
+    AIFoodEstimateResponse(
+      foodLogDrafts: [
+        FoodLogDraft(
+          displayName: name,
+          components: [
+            FoodComponent(
+              name: name,
+              calories: calories,
+              protein: 42,
+              carbs: 55,
+              fat: 18,
+              confidence: .medium,
+              sourceText: name
+            )
+          ],
+          confidence: .medium,
+          source: .aiTextEstimate
         )
-        XCTAssertTrue(staged)
-        await model.sendCurrentMessage()
-        return try XCTUnwrap(model.messages.first { $0.role == .user }?.id)
+      ],
+      confidence: .medium,
+      requiresConfirmation: true,
+      assistantMessage: "Confirm before logging."
+    )
+  }
+
+  static func testJPEG(color: UIColor = .orange) -> Data {
+    CoachImageWorkflowTestSupport.makeTestJPEG(color: color)
+  }
+
+  static func waitForTimelineEvent(
+    in store: FakeCoachTimelineStore,
+    matching predicate: @escaping (CoachTimelineEvent) -> Bool,
+    timeout: TimeInterval = 1.0
+  ) async throws -> CoachTimelineEvent {
+    let satisfied = await AsyncTestSupport.waitUntilWallClock(timeout: timeout, interval: 0.02) {
+      store.events.contains(where: predicate)
     }
+    if !satisfied {
+      throw NSError(domain: "CoachModelCharacterizationTestSupport", code: 1)
+    }
+    return try XCTUnwrap(store.events.first(where: predicate))
+  }
 }
 
-private extension AIMealImageAnalysisResponse {
-    func withClarifyingQuestion(_ question: String?) -> AIMealImageAnalysisResponse {
-        AIMealImageAnalysisResponse(
-            summary: summary,
-            items: items,
-            total: total,
-            needsUserReview: needsUserReview,
-            clarifyingQuestion: question
-        )
+// MARK: - Capturing transcript store
+
+@MainActor
+final class CapturingCoachTranscriptStore: CoachChatTranscriptStore {
+  private(set) var messages: [ChatMessage] = []
+  private(set) var saveCallCount = 0
+
+  func loadMessages() -> [ChatMessage] {
+    messages
+  }
+
+  func saveMessages(_ messages: [ChatMessage]) {
+    saveCallCount += 1
+    self.messages = messages
+  }
+}
+
+// MARK: - Configurable AIService stub
+
+@MainActor
+final class CharacterizationAIService: AIServiceProtocol, @unchecked Sendable {
+  var classifyResult: CoachIntentResult?
+  var classifyError: Error?
+  var estimateFoodResponse: AIFoodEstimateResponse?
+  var estimateFoodError: Error?
+  var mealAdviceError: Error?
+  var mealAdviceResponse: AICoachResponse?
+  var parseEditOrDeleteHandler: ((String, CoachContextPacketV2) async throws -> AIParsedCommand)?
+  var analyzeMealImageHandler: ((AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse)?
+  var analyzeMealImageError: Error?
+
+  private(set) var classifyCoachIntentCallCount = 0
+  private(set) var estimateFoodCallCount = 0
+  private(set) var analyzeMealImageCallCount = 0
+  private(set) var parseEditOrDeleteCallCount = 0
+  private(set) var lastImageJPEGData: Data?
+  private(set) var lastClarification: String?
+
+  func classifyCoachIntent(
+    _ text: String,
+    context: CoachContextPacketV2,
+    config: CoachModelConfig
+  ) async throws -> CoachIntentResult {
+    classifyCoachIntentCallCount += 1
+    if let classifyError { throw classifyError }
+    if let classifyResult { return classifyResult }
+    throw AIServiceError.backendUnavailable
+  }
+
+  func estimateFood(
+    prompt: String,
+    context: CoachContextPacketV2,
+    imageJPEGData: Data?
+  ) async throws -> AIFoodEstimateResponse {
+    estimateFoodCallCount += 1
+    if let estimateFoodError { throw estimateFoodError }
+    if let estimateFoodResponse { return estimateFoodResponse }
+    throw AIServiceError.backendUnavailable
+  }
+
+  func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+    analyzeMealImageCallCount += 1
+    if let data = Data(base64Encoded: request.image.base64) {
+      lastImageJPEGData = data
     }
+    lastClarification = request.clarification
+    if let analyzeMealImageError { throw analyzeMealImageError }
+    if let analyzeMealImageHandler {
+      return try await analyzeMealImageHandler(request)
+    }
+    return CoachImageWorkflowTestSupport.validMealImageAnalysisResponse()
+  }
+
+  func generateMealAdvice(
+    prompt: String,
+    context: CoachContextPacketV2,
+    intentResult: CoachIntentResult?,
+    tier: CoachModelTier
+  ) async throws -> AICoachResponse {
+    if let mealAdviceError { throw mealAdviceError }
+    return mealAdviceResponse ?? AICoachResponse(message: "Stub advice.", confidence: .medium)
+  }
+
+  func generateNutritionEstimate(
+    prompt: String,
+    context: CoachContextPacketV2,
+    intentResult: CoachIntentResult?,
+    tier: CoachModelTier
+  ) async throws -> NutritionEstimateResponse {
+    throw AIServiceError.backendUnavailable
+  }
+
+  func generateNutritionComparison(
+    prompt: String,
+    context: CoachContextPacketV2,
+    intentResult: CoachIntentResult?,
+    tier: CoachModelTier
+  ) async throws -> NutritionComparisonResponse {
+    throw AIServiceError.backendUnavailable
+  }
+
+  func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
+    throw AIServiceError.backendUnavailable
+  }
+
+  func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+    parseEditOrDeleteCallCount += 1
+    if let parseEditOrDeleteHandler {
+      return try await parseEditOrDeleteHandler(prompt, context)
+    }
+    throw AIServiceError.backendUnavailable
+  }
+
+  func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+    throw AIServiceError.backendUnavailable
+  }
+
+  func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
+    AICoachResponse(message: "Stub review.", confidence: .medium)
+  }
+
+  func generateDailyReviewText(
+    input: DailyReviewAIInput,
+    context: CoachContextPacketV2
+  ) async throws -> AICoachResponse {
+    AICoachResponse(message: "Stub review.", confidence: .medium)
+  }
+
+  func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+    throw AIServiceError.backendUnavailable
+  }
+}
+
+// MARK: - Clarifying photo AI service
+
+@MainActor
+final class CharacterizationClarifyingPhotoAIService: AIServiceProtocol, @unchecked Sendable {
+  private(set) var analyzeMealImageCallCount = 0
+  private(set) var lastClarification: String?
+
+  func classifyCoachIntent(
+    _ text: String,
+    context: CoachContextPacketV2,
+    config: CoachModelConfig
+  ) async throws -> CoachIntentResult {
+    CoachMealPhotoPipeline.photoAnalysisIntentResult
+  }
+
+  func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+    analyzeMealImageCallCount += 1
+    lastClarification = request.clarification
+    let confidence: AIConfidence = request.clarification == nil ? .low : .medium
+    return AIMealImageAnalysisResponse(
+      summary: request.clarification == nil ? "Grain bowl" : "Barley bowl",
+      items: [
+        AIMealImageAnalysisItem(
+          name: request.clarification == nil ? "Grain bowl" : "Barley bowl",
+          quantity: "1 bowl",
+          calories: 420,
+          protein: 18,
+          carbs: 55,
+          fat: 12,
+          confidence: confidence,
+          assumptions: []
+        )
+      ],
+      total: AIMealImageAnalysisTotals(calories: 420, protein: 18, carbs: 55, fat: 12),
+      needsUserReview: true,
+      clarifyingQuestion: request.clarification == nil ? "Was this rice or barley?" : nil
+    )
+  }
+
+  func estimateFood(
+    prompt: String,
+    context: CoachContextPacketV2,
+    imageJPEGData: Data?
+  ) async throws -> AIFoodEstimateResponse {
+    throw AIServiceError.backendUnavailable
+  }
+
+  func generateMealAdvice(
+    prompt: String,
+    context: CoachContextPacketV2,
+    intentResult: CoachIntentResult?,
+    tier: CoachModelTier
+  ) async throws -> AICoachResponse {
+    AICoachResponse(message: "Stub", confidence: .medium)
+  }
+
+  func generateNutritionEstimate(
+    prompt: String,
+    context: CoachContextPacketV2,
+    intentResult: CoachIntentResult?,
+    tier: CoachModelTier
+  ) async throws -> NutritionEstimateResponse {
+    throw AIServiceError.backendUnavailable
+  }
+
+  func generateNutritionComparison(
+    prompt: String,
+    context: CoachContextPacketV2,
+    intentResult: CoachIntentResult?,
+    tier: CoachModelTier
+  ) async throws -> NutritionComparisonResponse {
+    throw AIServiceError.backendUnavailable
+  }
+
+  func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
+    throw AIServiceError.backendUnavailable
+  }
+
+  func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+    throw AIServiceError.backendUnavailable
+  }
+
+  func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+    throw AIServiceError.backendUnavailable
+  }
+
+  func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
+    AICoachResponse(message: "Stub", confidence: .medium)
+  }
+
+  func generateDailyReviewText(
+    input: DailyReviewAIInput,
+    context: CoachContextPacketV2
+  ) async throws -> AICoachResponse {
+    AICoachResponse(message: "Stub", confidence: .medium)
+  }
+
+  func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+    throw AIServiceError.backendUnavailable
+  }
 }

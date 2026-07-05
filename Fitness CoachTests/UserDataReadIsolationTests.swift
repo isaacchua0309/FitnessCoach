@@ -189,6 +189,11 @@ final class UserDataReadIsolationTests: XCTestCase {
 
     // MARK: - Harness
 
+    private final class DailyLogTestSessionUID {
+        var uid: String
+        init(uid: String) { self.uid = uid }
+    }
+
     private struct Harness {
         let store: SwiftDataStore
         let profileService: UserProfileService
@@ -203,16 +208,21 @@ final class UserDataReadIsolationTests: XCTestCase {
     }
 
     private func makeHarness(sessionUID: String) throws -> Harness {
-        let base = try DailyLogServiceTestSupport.makeHarness(sessionUID: sessionUID)
+        let base = try DailyLogServiceTestSupport.makeHarness(ownerUID: sessionUID)
+        let weightLogService = WeightLogService(
+            store: base.store,
+            dailyLogService: base.dailyLogService,
+            mutationTracker: base.accountLocalMutationTracker
+        )
         return Harness(
             store: base.store,
             profileService: base.profileService,
             dailyLogService: base.dailyLogService,
             foodLogService: base.foodLogService,
             waterLogService: base.waterLogService,
-            weightLogService: base.weightLogService,
+            weightLogService: weightLogService,
             dateProvider: base.dateProvider,
-            sessionUID: base.sessionUID
+            sessionUID: DailyLogTestSessionUID(uid: sessionUID)
         )
     }
 

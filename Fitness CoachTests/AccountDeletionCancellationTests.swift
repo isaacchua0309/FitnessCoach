@@ -205,32 +205,6 @@ final class AccountDeletionCancellationTests: XCTestCase {
 }
 
 @MainActor
-private final class TrackingAccountIncrementalPuller: AccountIncrementalPulling {
-
-    var pullCallCount = 0
-    var delayNanoseconds: UInt64 = 0
-    var nextSummary: CrossDeviceSyncSummary?
-
-    func pullChanges(
-        for uid: String,
-        mode: CrossDeviceSyncMode,
-        reason: CrossDeviceSyncReason
-    ) async -> CrossDeviceSyncSummary {
-        pullCallCount += 1
-        if delayNanoseconds > 0 {
-            try? await Task.sleep(nanoseconds: delayNanoseconds)
-        }
-        if let nextSummary {
-            return nextSummary
-        }
-        return CrossDeviceSyncTestSupport.makePullSummary(
-            uid: uid,
-            referenceDate: TestDateFixtures.referenceEpoch
-        )
-    }
-}
-
-@MainActor
 private final class RecordingAccountRestoreCoordinator: AccountRestoreCoordinating {
 
     private(set) var cancelledUIDs: [String] = []

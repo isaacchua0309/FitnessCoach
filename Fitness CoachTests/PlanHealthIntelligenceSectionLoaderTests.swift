@@ -77,9 +77,11 @@ final class PlanHealthIntelligenceSectionLoaderTests: XCTestCase {
         PlanDashboardContext(
             profile: PlanMissionControlFixtures.loseProfile,
             weekLogs: weekLogs,
+            maturityLogs: weekLogs,
             allWeights: allWeights,
             integrationState: .connected,
             dataSource: .appleHealth,
+            healthWorkoutDayStarts: [],
             asOf: referenceDay,
             calendar: calendar
         )

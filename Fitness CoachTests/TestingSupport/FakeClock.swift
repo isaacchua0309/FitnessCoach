@@ -32,6 +32,8 @@ final class FakeClock: DateProviding, @unchecked Sendable {
         return nowValue
     }
 
+    var calendar: Calendar { calendarValue }
+
     func startOfDay(for date: Date) -> Date {
         calendarValue.startOfDay(for: date)
     }
@@ -55,8 +57,6 @@ final class FakeClock: DateProviding, @unchecked Sendable {
         nowValue = normalizeToStartOfDay ? calendarValue.startOfDay(for: date) : date
         lock.unlock()
     }
-
-    func calendar() -> Calendar { calendarValue }
 }
 
 /// HI pipeline clock witness without colliding with `DateProviding.now`.
@@ -69,7 +69,7 @@ struct FakeHealthIntelligenceClock: HealthIntelligenceClockProviding {
 
     func now() -> Date { clock.now }
 
-    func calendar() -> Calendar { clock.calendar() }
+    func calendar() -> Calendar { clock.calendar }
 }
 
 /// Backward-compatible name used across SwiftData service tests.

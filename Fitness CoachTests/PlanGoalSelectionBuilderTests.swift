@@ -40,7 +40,7 @@ final class PlanGoalSelectionBuilderTests: XCTestCase {
         )
     }
 
-    func testCopyUsesFriendlyLabelsNotRawEnumIDs() {
+    func testCopyUsesFriendlyLabelsNotRawEnumIDs() throws {
         let options = PlanGoalSelectionBuilder.options(recommendedGoal: .loseFat)
 
         for option in options {

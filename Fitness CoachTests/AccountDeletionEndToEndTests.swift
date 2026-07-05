@@ -280,16 +280,21 @@ private final class AccountDeletionEndToEndHarness {
         let uidProvider = { context.uid }
 
         let profileService = UserProfileService(store: store, dateProvider: dateProvider)
+        let outbox = SwiftDataAccountSyncOutboxStore(store: store)
+        let mutationTracker = AccountLocalMutationTracker(
+            outbox: outbox,
+            ownerUIDProvider: { uidProvider() ?? "" }
+        )
         let dailyLogService = DailyLogService(
             store: store,
             userProfileService: profileService,
             dateProvider: dateProvider,
-            currentUIDProvider: uidProvider
+            mutationTracker: mutationTracker
         )
         let foodLogService = FoodLogService(
             store: store,
             dailyLogService: dailyLogService,
-            currentUIDProvider: uidProvider
+            mutationTracker: mutationTracker
         )
 
         let restoreStateStore = AccountRestoreStateStore(userDefaults: defaults)
@@ -458,7 +463,7 @@ private final class AccountDeletionEndToEndHarness {
             sessionUID = uid
             _ = try foodLogService.addFoodEntry(
                 DailyLogServiceTestSupport.foodDraft(name: "\(uid)-meal", calories: 420),
-                for: referenceDate
+                date: referenceDate
             )
             sessionUID = previousSession
         }

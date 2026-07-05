@@ -97,7 +97,7 @@ final class AccountAuthDeletionTests: XCTestCase {
     }
 
     @MainActor
-    func testInMemoryFakeCanSimulateReauthenticationRequiredThenRecovery() async {
+    func testInMemoryFakeCanSimulateReauthenticationRequiredThenRecovery() async throws {
         let authDeleting = InMemoryAccountAuthDeleting()
 
         authDeleting.configuredDeleteError = .reauthenticationRequired

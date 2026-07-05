@@ -19,6 +19,7 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
     private var syncCoordinator: TrackingAccountSyncCoordinator!
     private var incrementalPuller: TrackingAccountIncrementalPuller!
     private var cursorStore: AccountSyncCursorStore!
+    private var defaultsSuiteName: String!
     private var defaults: UserDefaults!
     private var networkChecker: CrossDeviceSyncNetworkCheckerMock!
     private var refreshCenter: AppRefreshCenter!
@@ -30,7 +31,8 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
         try await super.setUp()
         syncCoordinator = TrackingAccountSyncCoordinator()
         incrementalPuller = TrackingAccountIncrementalPuller()
-        defaults = UserDefaults(suiteName: "CrossDeviceSyncCoordinatorTests.\(UUID().uuidString)")!
+        defaultsSuiteName = "CrossDeviceSyncCoordinatorTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: defaultsSuiteName)!
         cursorStore = AccountSyncCursorStore(userDefaults: defaults)
         networkChecker = CrossDeviceSyncNetworkCheckerMock()
         refreshCenter = AppRefreshCenter(now: referenceDate)
@@ -46,7 +48,8 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
         refreshCenter = nil
         networkChecker = nil
         cursorStore = nil
-        defaults.removePersistentDomain(forName: defaults.suiteName!)
+        defaults.removePersistentDomain(forName: defaultsSuiteName)
+        defaultsSuiteName = nil
         defaults = nil
         incrementalPuller = nil
         syncCoordinator = nil

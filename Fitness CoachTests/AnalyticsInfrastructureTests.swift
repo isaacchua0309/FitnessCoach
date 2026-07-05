@@ -180,8 +180,8 @@ final class AnalyticsInfrastructureTests: XCTestCase {
     }
 }
 
-private extension TodayAnalyticsEvent: CaseIterable {
-    static var allCases: [TodayAnalyticsEvent] {
+extension TodayAnalyticsEvent: CaseIterable {
+    public static var allCases: [TodayAnalyticsEvent] {
         [
             .viewed, .missionViewed, .primaryCTATapped, .nextBestActionViewed,
             .nextBestActionTapped, .quickActionTapped, .mealAddTapped, .mealEditTapped,
@@ -192,24 +192,24 @@ private extension TodayAnalyticsEvent: CaseIterable {
     }
 }
 
-private extension JourneyAnalyticsEvent: CaseIterable {
-    static var allCases: [JourneyAnalyticsEvent] { [
+extension JourneyAnalyticsEvent: CaseIterable {
+    public static var allCases: [JourneyAnalyticsEvent] { [
         .viewed, .heroViewed, .projectionViewed, .milestoneViewed, .milestoneCTATapped,
         .weeklyConsistencyViewed, .storyViewed, .insightsViewed, .monthlyRecapViewed,
         .chapterViewed, .goToTodayTapped, .weightCTATapped, .coachCTATapped
     ] }
 }
 
-private extension PlanAnalyticsEvent: CaseIterable {
-    static var allCases: [PlanAnalyticsEvent] { [
+extension PlanAnalyticsEvent: CaseIterable {
+    public static var allCases: [PlanAnalyticsEvent] { [
         .viewed, .strategyViewed, .statusViewed, .confidenceViewed, .adjustCTATapped,
         .calculationTapped, .activityUpdateTapped, .adjustStarted, .editSaved,
         .targetsRegenerated, .healthConnectTapped, .todayTapped
     ] }
 }
 
-private extension OnboardingAnalyticsEvent: CaseIterable {
-    static var allCases: [OnboardingAnalyticsEvent] { [
+extension OnboardingAnalyticsEvent: CaseIterable {
+    public static var allCases: [OnboardingAnalyticsEvent] { [
         .started, .stepViewed, .stepCompleted, .planGenerated, .planRevealed,
         .profileSavedLocal, .signInStarted, .signInCompleted, .signInCancelled,
         .completed, .appleHealthPromptViewed, .appleHealthOnboardingViewed,
@@ -218,16 +218,16 @@ private extension OnboardingAnalyticsEvent: CaseIterable {
     ] }
 }
 
-private extension SettingsAnalyticsEvent: CaseIterable {
-    static var allCases: [SettingsAnalyticsEvent] { [
+extension SettingsAnalyticsEvent: CaseIterable {
+    public static var allCases: [SettingsAnalyticsEvent] { [
         .settingsViewed, .settingsRowTapped, .accountViewed, .appleHealthSettingsViewed,
         .themeSettingsViewed, .unitsSettingsViewed, .bodyStatsViewed, .privacyPolicyTapped,
         .termsTapped, .supportTapped, .logoutTapped, .logoutConfirmed
     ] }
 }
 
-private extension HealthIntelligenceAnalyticsEvent: CaseIterable {
-    static var allCases: [HealthIntelligenceAnalyticsEvent] { [
+extension HealthIntelligenceAnalyticsEvent: CaseIterable {
+    public static var allCases: [HealthIntelligenceAnalyticsEvent] { [
         .snapshotLoaded, .snapshotFailed, .todayRecoveryCardViewed, .todayNextBestActionTapped,
         .coachHealthContextUsed, .journeyRecoveryTimelineViewed, .journeyWorkoutHistoryViewed,
         .weeklyReviewCardViewed, .weeklyReviewDetailOpened, .planHealthConfidenceViewed,
@@ -238,8 +238,8 @@ private extension HealthIntelligenceAnalyticsEvent: CaseIterable {
     ] }
 }
 
-private extension PublicEntryAnalyticsEvent: CaseIterable {
-    static var allCases: [PublicEntryAnalyticsEvent] { [
+extension PublicEntryAnalyticsEvent: CaseIterable {
+    public static var allCases: [PublicEntryAnalyticsEvent] { [
         .welcomeViewed, .welcomeCreatePlanTapped, .welcomeSignInTapped,
         .existingSignInViewed, .existingSignInStarted, .existingSignInSucceeded,
         .existingSignInFailed, .existingSignInNoProfileFound, .noExistingProfileViewed,
@@ -248,14 +248,14 @@ private extension PublicEntryAnalyticsEvent: CaseIterable {
     ] }
 }
 
-private extension ThemeAnalyticsEvent: CaseIterable {
-    static var allCases: [ThemeAnalyticsEvent] { [
+extension ThemeAnalyticsEvent: CaseIterable {
+    public static var allCases: [ThemeAnalyticsEvent] { [
         .settingsViewed, .appearanceModeChanged, .paletteChanged
     ] }
 }
 
-private extension CoachAnalyticsEvent: CaseIterable {
-    static var allCases: [CoachAnalyticsEvent] { [
+extension CoachAnalyticsEvent: CaseIterable {
+    public static var allCases: [CoachAnalyticsEvent] { [
         .nutritionEstimateCardShown, .nutritionComparisonCardShown,
         .nutritionEstimateJSONParseFailed, .nutritionEstimateActionTapped,
         .nutritionEstimateLogStarted, .nutritionEstimateLogConfirmed,

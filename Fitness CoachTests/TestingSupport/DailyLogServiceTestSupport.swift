@@ -18,6 +18,7 @@ enum DailyLogServiceTestSupport {
         let dailyLogService: DailyLogService
         let foodLogService: FoodLogService
         let waterLogService: WaterLogService
+        let weightLogService: WeightLogService
         let dateProvider: FixedDailyLogTestDateProvider
         let accountSyncOutboxStore: SwiftDataAccountSyncOutboxStore?
         let accountLocalMutationTracker: AccountLocalMutationTracker?
@@ -25,7 +26,7 @@ enum DailyLogServiceTestSupport {
         var today: Date { dateProvider.now }
 
         func day(offset: Int) -> Date {
-            dateProvider.calendar().date(byAdding: .day, value: offset, to: today)!
+            dateProvider.calendar.date(byAdding: .day, value: offset, to: today)!
         }
 
         @discardableResult
@@ -85,6 +86,11 @@ enum DailyLogServiceTestSupport {
             dailyLogService: dailyLogService,
             mutationTracker: mutationTracker
         )
+        let weightLogService = WeightLogService(
+            store: store,
+            dailyLogService: dailyLogService,
+            mutationTracker: mutationTracker
+        )
 
         return Harness(
             store: store,
@@ -92,6 +98,7 @@ enum DailyLogServiceTestSupport {
             dailyLogService: dailyLogService,
             foodLogService: foodLogService,
             waterLogService: waterLogService,
+            weightLogService: weightLogService,
             dateProvider: dateProvider,
             accountSyncOutboxStore: outbox,
             accountLocalMutationTracker: mutationTracker

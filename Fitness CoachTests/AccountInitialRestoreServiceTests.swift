@@ -721,6 +721,3 @@ private final class RestoreServiceHarness {
     }
 }
 
-private final class RestoreTestNetworkChecker: AccountSyncNetworkChecking {
-    var isNetworkAvailable = true
-}

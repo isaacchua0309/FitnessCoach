@@ -14,8 +14,8 @@ final class FoodCorrectionMemoryTests: XCTestCase {
         let before = FoodLogDraft(
             displayName: "Chicken rice",
             components: [
-                FoodComponent(name: "Rice", calories: 260, protein: 5, carbs: 55, fat: 1, quantity: 1, unit: "bowl"),
-                FoodComponent(name: "Chicken", calories: 280, protein: 35, carbs: 0, fat: 12, quantity: 1, unit: "serving")
+                FoodComponent(name: "Rice", quantity: 1, unit: "bowl", calories: 260, protein: 5, carbs: 55, fat: 1),
+                FoodComponent(name: "Chicken", quantity: 1, unit: "serving", calories: 280, protein: 35, carbs: 0, fat: 12)
             ],
             confidence: .medium,
             source: .aiTextEstimate
@@ -82,9 +82,9 @@ final class FoodCorrectionMemoryTests: XCTestCase {
         XCTAssertTrue(entries.contains { $0.correctionType == .portionAdjustment || $0.correctionType == .calorieOverride })
     }
 
-    func testCorrectionMemoryAppearsInContextPacket() async {
+    func testCorrectionMemoryAppearsInContextPacket() async throws {
         let store = InMemoryFoodCorrectionMemoryStore()
-        await store.record(
+        try await store.record(
             FoodCorrectionMemoryEntry(
                 originalFoodName: "Chicken rice",
                 correctionType: .portionAdjustment,
@@ -113,7 +113,7 @@ final class FoodCorrectionMemoryTests: XCTestCase {
         let store = InMemoryFoodCorrectionMemoryStore()
 
         for index in 0..<60 {
-            await store.record(
+            try await store.record(
                 FoodCorrectionMemoryEntry(
                     originalFoodName: "Food \(index)",
                     correctionType: .other,
@@ -202,7 +202,7 @@ final class FoodCorrectionMemoryTests: XCTestCase {
         var activeUser = "user-a"
         let store = FileFoodCorrectionMemoryStore(userIdProvider: { activeUser })
 
-        await store.record(
+        try await store.record(
             FoodCorrectionMemoryEntry(
                 originalFoodName: "Chicken rice",
                 correctionType: .portionAdjustment,

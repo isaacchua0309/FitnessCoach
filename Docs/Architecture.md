@@ -4,7 +4,7 @@ This document describes how the Forma iOS app is composed today and the layering
 
 **Related:** [JourneyArchitecture.md](./JourneyArchitecture.md) — Journey tab product contract; [FormaCalculationSpec.md](./FormaCalculationSpec.md) — canonical plan-target formulas; [Production/ProductionReadinessChecklist.md](./Production/ProductionReadinessChecklist.md) — release gate checklists.
 
-**Production architecture (PRDX v1):** [Architecture/AppArchitectureOverview.md](./Architecture/AppArchitectureOverview.md) — domain map, ownership, and refactor safety. See also [Architecture/SourceOfTruthMap.md](./Architecture/SourceOfTruthMap.md), [Architecture/DependencyInjectionMap.md](./Architecture/DependencyInjectionMap.md), [Architecture/FeatureFlagRegistry.md](./Architecture/FeatureFlagRegistry.md), [Architecture/LoggingAndPrivacyContract.md](./Architecture/LoggingAndPrivacyContract.md), [Architecture/AnalyticsReadinessChecklist.md](./Architecture/AnalyticsReadinessChecklist.md), [Architecture/TestStrategy.md](./Architecture/TestStrategy.md), [TechnicalDebt/TechnicalDebtRegister.md](./TechnicalDebt/TechnicalDebtRegister.md). Historical sprint artifacts: [Archive/](Archive/).
+**Production architecture (PRDX v1):** [Architecture/AppArchitectureOverview.md](./Architecture/AppArchitectureOverview.md) — domain map, ownership, and refactor safety. **Coach (post-decomposition v1):** [Coach/CoachArchitecture.md](./Coach/CoachArchitecture.md), [Coach/CoachModelDecompositionV1.md](./Coach/CoachModelDecompositionV1.md). See also [Architecture/SourceOfTruthMap.md](./Architecture/SourceOfTruthMap.md), [Architecture/DependencyInjectionMap.md](./Architecture/DependencyInjectionMap.md), [Architecture/FeatureFlagRegistry.md](./Architecture/FeatureFlagRegistry.md), [Architecture/LoggingAndPrivacyContract.md](./Architecture/LoggingAndPrivacyContract.md), [Architecture/AnalyticsReadinessChecklist.md](./Architecture/AnalyticsReadinessChecklist.md), [Architecture/TestStrategy.md](./Architecture/TestStrategy.md), [TechnicalDebt/TechnicalDebtRegister.md](./TechnicalDebt/TechnicalDebtRegister.md). Historical sprint artifacts: [Archive/](Archive/).
 
 ---
 
@@ -105,17 +105,31 @@ After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 
 - Primary write path for food, water, weight, workouts (via `FitnessActionCenter`).
 - AI chat, local command parsing, intent routing (`Application/UseCases/Coach/Pipeline/`), food confirmation sheets.
-- `CoachModel` (~450 lines) owns `@Published` UI state and wires handlers; decomposition:
+- **`CoachModel`** (~350 LOC) — `@MainActor ObservableObject`; holds `@Published` UI state and wires coordinators. See [Coach/CoachArchitecture.md](./Coach/CoachArchitecture.md).
+
+**Decomposition v1 (2026-07-05):**
 
 ```
 CoachModel (Features/Coach/Model/)
-  ├── CoachMutationExecutor           — Application/UseCases/Coach/
-  ├── CoachPendingConfirmationPresenter
-  ├── CoachAIRouteHandler
-  └── CoachMealPhotoAnalyzer
+  ├── CoachDependencies          — DI assembly (CoachServices + overridable pipeline)
+  ├── CoachInputCoordinator      — composer draft, attachments, send snapshot
+  ├── CoachSendFlowCoordinator   — text send, routing, processing phase
+  ├── CoachPhotoFlowCoordinator  — meal photo, analysis sessions, retry
+  ├── CoachPendingConfirmationCoordinator — pending bar, food edit, typed confirm
+  ├── CoachMessagePersistenceCoordinator — transcript + timeline messages
+  ├── CoachContextPacketCoordinator — context packet + AI activity
+  ├── CoachTodayContextCoordinator — empty-state today context
+  ├── CoachLaunchChromeCoordinator — launch intents, composer chrome
+  ├── CoachNutritionEstimateActionCoordinator — nutrition card actions
+  └── CoachModelStateReducer     — pure surface-state transitions
+
+Application/UseCases/Coach/ (unchanged ownership)
+  ├── CoachMutationExecutor, CoachAIRouteHandler, CoachRouteDecider
+  └── CoachMealPhotoAnalyzer, CoachPendingConfirmationPresenter
 ```
 
-- Dashboard assembly: `Application/StateBuilders/Coach/` (`CoachResponseBuilder`, context builders).
+- Dashboard assembly: `Application/StateBuilders/Coach/` (`CoachResponseBuilder`, `CoachContextPacketV2Builder`).
+- Factory: `AppContainer.makeCoachServices()` + `makeCoachDependencies()` + `makeCoachModel()`.
 
 #### Journey (read-only fitness story)
 
@@ -495,6 +509,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Coach decomposition v1: coordinators + `CoachDependencies`; docs in `Docs/Coach/CoachArchitecture.md` |
 | 2026-06-30 | Tier 4: `FormaSchemaV3` legacy workout retirement; Plan state cleanup; BackendAPI.md |
 | 2026-06-30 | Tier 3: Complete read-protocol adoption across Today, Journey, Coach, Plan |
 | 2026-06-30 | Tier 2: `FormaSchemaV2` migration; `WorkoutLogService` removed; HealthKit-only training reads |

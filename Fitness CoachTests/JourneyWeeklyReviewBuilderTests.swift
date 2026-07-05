@@ -357,7 +357,7 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
         }
         let initialEndingWeight = initial.weeklyProgressSummary.endingWeightKg
 
-        _ = try harness.actionCenter.logWeight(82.5, date: harness.today)
+        _ = try harness.weightLogService.logWeight(82.5, date: harness.today)
 
         try await CrossDeviceRefreshTestSupport.publishAndWait(
             bus: refreshEventBus,

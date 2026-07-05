@@ -340,12 +340,12 @@ final class NutritionSanityValidatorHardeningTests: XCTestCase {
             ],
             confidence: .medium,
             source: .aiTextEstimate,
-            requiresClarificationBeforeLogging: true,
-            suggestedClarifications: ["Which dishes did you pick?"]
+            suggestedClarifications: ["Which dishes did you pick?"],
+            requiresClarificationBeforeLogging: true
         )
 
         let presentation = ConfirmationPolicy.presentationConfidence(for: meal)
-        XCTAssertEqual(presentation, .low)
+        XCTAssertEqual(presentation, AIConfidence.low)
     }
 
     func testSanityFlagsClarificationForLowConfidenceEstimate() {

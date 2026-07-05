@@ -8,6 +8,7 @@
 import XCTest
 @testable import Fitness_Coach
 
+@MainActor
 final class TestInfrastructureTests: XCTestCase {
 
     func testFakeClockNormalizesDateProvidingNowToStartOfDay() {
@@ -16,7 +17,6 @@ final class TestInfrastructureTests: XCTestCase {
         let clock = FakeClock(now: raw, calendar: calendar)
 
         XCTAssertEqual(clock.now, calendar.startOfDay(for: raw))
-        XCTAssertEqual(clock.now(), clock.now)
         XCTAssertEqual(clock.startOfDay(for: raw), calendar.startOfDay(for: raw))
     }
 

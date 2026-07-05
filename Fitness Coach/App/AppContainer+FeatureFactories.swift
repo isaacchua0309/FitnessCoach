@@ -77,26 +77,8 @@ extension AppContainer {
 
 extension AppContainer {
 
-    func makeCoachModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> CoachModel {
-        let contextPacketBuilder = CoachContextPacketV2Builder(
-            dailyLogService: dailyLogService,
-            foodLogService: foodLogService,
-            waterLogService: waterLogService,
-            weightLogService: weightLogService,
-            userProfileService: userProfileService,
-            healthActivityQuery: healthActivityQueryService,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            healthIntelligenceContextBuilder: healthIntelligenceContextBuilder,
-            trainingLoadEngine: trainingLoadEngine,
-            timelineStore: coachTimelineStore,
-            timelineBackfillService: coachTimelineBackfillService,
-            timelineRecorder: coachTimelineRecorder,
-            foodCorrectionMemoryStore: foodCorrectionMemoryStore
-        )
-
-        return CoachModel(
+    func makeCoachServices() -> CoachServices {
+        CoachServices(
             actionCenter: actionCenter,
             dailyLogReader: dailyLogService,
             healthActivityQuery: healthActivityQueryService,
@@ -116,16 +98,50 @@ extension AppContainer {
                 HealthSummaryRemoteSyncGate.isCapabilityEnabled()
             },
             weightLogReader: weightLogService,
-            aiService: aiService,
-            contextPacketBuilder: contextPacketBuilder,
             userProfileReader: userProfileService,
-            aiCommandParsingEnabled: aiCommandParsingEnabled,
-            trainingInsightsStore: trainingInsightsStore,
-            transcriptStore: coachChatTranscriptStore,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            timelineRecorder: coachTimelineRecorder,
+            trainingInsightsStore: trainingInsightsStore
+        )
+    }
+
+    func makeCoachDependencies(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> CoachDependencies {
+        let contextPacketBuilder = CoachContextPacketV2Builder(
+            dailyLogService: dailyLogService,
+            foodLogService: foodLogService,
+            waterLogService: waterLogService,
+            weightLogService: weightLogService,
+            userProfileService: userProfileService,
+            healthActivityQuery: healthActivityQueryService,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            healthIntelligenceContextBuilder: healthIntelligenceContextBuilder,
+            trainingLoadEngine: trainingLoadEngine,
             timelineStore: coachTimelineStore,
+            timelineBackfillService: coachTimelineBackfillService,
+            timelineRecorder: coachTimelineRecorder,
             foodCorrectionMemoryStore: foodCorrectionMemoryStore
+        )
+
+        return CoachDependencies(
+            aiService: aiService,
+            aiCommandParsingEnabled: aiCommandParsingEnabled,
+            contextPacketBuilder: contextPacketBuilder,
+            timelineRecorder: coachTimelineRecorder,
+            transcriptStore: coachChatTranscriptStore,
+            timelineStore: coachTimelineStore,
+            foodCorrectionMemoryStore: foodCorrectionMemoryStore,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+        )
+    }
+
+    func makeCoachModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> CoachModel {
+        CoachModel(
+            services: makeCoachServices(),
+            dependencies: makeCoachDependencies(
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            )
         )
     }
 }

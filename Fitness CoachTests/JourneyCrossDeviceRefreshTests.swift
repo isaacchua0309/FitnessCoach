@@ -67,7 +67,7 @@ final class JourneyCrossDeviceRefreshTests: XCTestCase {
         }
         XCTAssertNotEqual(initial.baseline.currentWeightKg, 82.5)
 
-        _ = try harness.actionCenter.logWeight(82.5, date: harness.today)
+        _ = try harness.weightLogService.logWeight(82.5, date: harness.today)
 
         try await publishRefresh(domains: [.weight])
 
@@ -104,7 +104,7 @@ final class JourneyCrossDeviceRefreshTests: XCTestCase {
             return XCTFail("Expected loaded Journey state")
         }
 
-        _ = try harness.actionCenter.logWeight(82.5, date: harness.today)
+        _ = try harness.weightLogService.logWeight(82.5, date: harness.today)
 
         try await publishRefresh(domains: [.weight], uid: otherUID)
 

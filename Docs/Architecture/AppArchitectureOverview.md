@@ -1,7 +1,7 @@
 # App Architecture Overview
 
 **Product:** Forma (Xcode target: Fitness Coach)  
-**Last updated:** 2026-07-04  
+**Last updated:** 2026-07-05  
 **Audience:** Engineers scoping refactors, onboarding, and production readiness work  
 **Related:** [../Architecture.md](../Architecture.md) (layering conventions), [../JourneyArchitecture.md](../JourneyArchitecture.md), [SourceOfTruthMap.md](./SourceOfTruthMap.md), [DependencyInjectionMap.md](./DependencyInjectionMap.md)
 
@@ -110,11 +110,14 @@ Fitness_CoachApp (@main)
 | Aspect | Detail |
 |--------|--------|
 | **Ownership** | `Features/Coach/`, `Application/UseCases/Coach/` |
-| **Model** | `CoachModel` (~1,600 LOC) — chat UI, pipeline, mutations, images |
-| **Pipeline** | `CoachRouteDecider`, `CoachIntentRouter`, `CoachMutationExecutor`, `CoachAIRouteHandler` |
+| **Model** | `CoachModel` (~350 LOC) — `@MainActor ObservableObject`; thin orchestration over coordinators |
+| **Coordinators** | `CoachInputCoordinator`, `CoachSendFlowCoordinator`, `CoachPhotoFlowCoordinator`, `CoachPendingConfirmationCoordinator`, `CoachMessagePersistenceCoordinator`, `CoachContextPacketCoordinator`, `CoachTodayContextCoordinator`, `CoachLaunchChromeCoordinator`, `CoachNutritionEstimateActionCoordinator`, `CoachModelStateReducer` |
+| **DI** | `CoachServices` + `CoachDependencies` → `CoachAssembledPipeline` (`Features/Coach/Model/CoachDependencies.swift`) |
+| **Pipeline** | `CoachRouteDecider`, `CoachAIRouteHandler`, `CoachMutationExecutor`, `CoachMealPhotoAnalyzer` (assembled, not owned by model) |
 | **AI** | `AIService` → `LLMClient` → Firebase `aiGateway` (Bearer ID token) |
 | **Context** | `CoachContextPacketV2Builder` — ephemeral per request |
 | **Persistence** | Chat transcript + timeline in SwiftData; pending images in-memory |
+| **Docs** | [../Coach/CoachArchitecture.md](../Coach/CoachArchitecture.md), [../Coach/CoachModelDecompositionV1.md](../Coach/CoachModelDecompositionV1.md) |
 
 ### 4.5 Journey
 
@@ -246,7 +249,7 @@ flowchart TB
 
     subgraph Features
         Today[TodayModel]
-        Coach[CoachModel]
+        Coach[CoachModel + Coordinators]
         Journey[JourneyModel]
         Plan[PlanModel]
     end
@@ -306,6 +309,7 @@ Full list: [TestStrategy.md](./TestStrategy.md) §6. Non-negotiable for PRDX v1:
 | [FeatureFlagRegistry.md](./FeatureFlagRegistry.md) | All flags, runtime vs production intent |
 | [LoggingAndPrivacyContract.md](./LoggingAndPrivacyContract.md) | Loggers, redaction, Release policy |
 | [TestStrategy.md](./TestStrategy.md) | Test plans, commands, refactor gates |
+| [../Coach/CoachArchitecture.md](../Coach/CoachArchitecture.md) | Coach flows, coordinators, decomposition |
 
 ---
 
@@ -313,4 +317,5 @@ Full list: [TestStrategy.md](./TestStrategy.md) §6. Non-negotiable for PRDX v1:
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Coach section updated for decomposition v1 (`CoachModel` + coordinators, `CoachDependencies`) |
 | 2026-07-04 | Initial production architecture overview for PRDX v1 |

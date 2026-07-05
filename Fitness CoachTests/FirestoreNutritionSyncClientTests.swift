@@ -22,8 +22,10 @@ final class FirestoreNutritionSyncClientTests: XCTestCase {
         )
 
         try await client.saveSyncMetadata(metadata, uid: "signed-in-user")
-        XCTAssertNil(try await client.fetchSyncMetadata(uid: "signed-in-user"))
-        XCTAssertTrue(try await client.listFoodEntries(uid: "signed-in-user", dayId: "2026-07-03").isEmpty)
+        let fetchedMetadata = try await client.fetchSyncMetadata(uid: "signed-in-user")
+        XCTAssertNil(fetchedMetadata)
+        let foodEntries = try await client.listFoodEntries(uid: "signed-in-user", dayId: "2026-07-03")
+        XCTAssertTrue(foodEntries.isEmpty)
     }
 
     func testMockClientRecordsSavedDocuments() async throws {

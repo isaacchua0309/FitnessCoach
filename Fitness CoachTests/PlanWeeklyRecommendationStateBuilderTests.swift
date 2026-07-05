@@ -93,7 +93,7 @@ final class PlanWeeklyRecommendationStateBuilderTests: XCTestCase {
         )
 
         let goalDirection = JourneyGoalDirection.resolve(
-            currentWeightKg: profile.currentWeightKg,
+            startWeightKg: profile.currentWeightKg,
             goalWeightKg: profile.goalWeightKg
         )
         let policyRecommendation = PlanRecommendationPolicy.recommend(
@@ -106,7 +106,7 @@ final class PlanWeeklyRecommendationStateBuilderTests: XCTestCase {
             )
         )
         XCTAssertEqual(planState.showsReviewPlanCTA, policyRecommendation.shouldShowPlanCTA)
-        XCTAssertEqual(planState.showsRecommendation, policyRecommendation.kind != .notEnoughData)
+        XCTAssertEqual(planState.showsRecommendation, policyRecommendation.kind != WeeklyPlanRecommendationKind.notEnoughData)
     }
 
     func testEligibleLearnedMaintenanceShowsValue() {

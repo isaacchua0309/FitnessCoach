@@ -23,14 +23,31 @@ enum CoachRoutingIntegrationTestSupport {
         var userProfileService: UserProfileService { fitness.profileService }
         var today: Date { fitness.today }
 
-        func makeCoach(
+        func makeCoachServices(includeTrainingInsights: Bool = false) -> CoachServices {
+            CoachServices(
+                actionCenter: actionCenter,
+                dailyLogReader: dailyLogService,
+                healthActivityQuery: healthActivityQuery,
+                healthIntelligenceSnapshotProvider: nil,
+                healthDataRepository: nil,
+                healthIntelligenceLoadEnabled: { false },
+                healthSyncPhaseProvider: { nil },
+                lastSuccessfulLocalSyncAtProvider: { nil },
+                remoteSyncConsentDecisionProvider: { .notDetermined },
+                isRemoteSyncCapabilityEnabled: { false },
+                weightLogReader: fitness.weightLogService,
+                userProfileReader: userProfileService,
+                trainingInsightsStore: includeTrainingInsights ? trainingInsightsStore : nil
+            )
+        }
+
+        func makeCoachDependencies(
             aiService: AIServiceProtocol,
-            includeTrainingInsights: Bool = false,
             timelineStore: FakeCoachTimelineStore? = nil,
             transcriptStore: CoachChatTranscriptStore = CoachInMemoryChatTranscriptStore(),
             foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)? = nil,
             coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil
-        ) -> CoachModel {
+        ) -> CoachDependencies {
             let recorder: (any CoachTimelineRecording)? = timelineStore.map {
                 DefaultCoachTimelineRecorder(store: $0)
             }
@@ -45,20 +62,35 @@ enum CoachRoutingIntegrationTestSupport {
                 timelineRecorder: recorder,
                 foodCorrectionMemoryStore: foodCorrectionMemoryStore
             )
-            return CoachModel(
-                actionCenter: actionCenter,
-                dailyLogReader: dailyLogService,
-                healthActivityQuery: healthActivityQuery,
+            return CoachDependencies(
                 aiService: aiService,
-                contextPacketBuilder: packetBuilder,
-                userProfileReader: userProfileService,
                 aiCommandParsingEnabled: true,
-                trainingInsightsStore: includeTrainingInsights ? trainingInsightsStore : nil,
-                transcriptStore: transcriptStore,
-                coachAnalyticsLogger: coachAnalyticsLogger,
+                contextPacketBuilder: packetBuilder,
                 timelineRecorder: recorder,
+                transcriptStore: transcriptStore,
                 timelineStore: timelineStore,
-                foodCorrectionMemoryStore: foodCorrectionMemoryStore
+                foodCorrectionMemoryStore: foodCorrectionMemoryStore,
+                coachAnalyticsLogger: coachAnalyticsLogger
+            )
+        }
+
+        func makeCoach(
+            aiService: AIServiceProtocol,
+            includeTrainingInsights: Bool = false,
+            timelineStore: FakeCoachTimelineStore? = nil,
+            transcriptStore: CoachChatTranscriptStore = CoachInMemoryChatTranscriptStore(),
+            foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)? = nil,
+            coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil
+        ) -> CoachModel {
+            CoachModel(
+                services: makeCoachServices(includeTrainingInsights: includeTrainingInsights),
+                dependencies: makeCoachDependencies(
+                    aiService: aiService,
+                    timelineStore: timelineStore,
+                    transcriptStore: transcriptStore,
+                    foodCorrectionMemoryStore: foodCorrectionMemoryStore,
+                    coachAnalyticsLogger: coachAnalyticsLogger
+                )
             )
         }
     }

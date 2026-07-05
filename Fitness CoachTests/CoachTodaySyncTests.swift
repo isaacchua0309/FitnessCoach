@@ -217,12 +217,34 @@ private final class CoachTodaySyncFoodEstimateService: AIServiceProtocol, @unche
         response
     }
 
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
     func generateMealAdvice(
         prompt: String,
         context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateNutritionEstimate(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionEstimateResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateNutritionComparison(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionComparisonResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -234,7 +256,22 @@ private final class CoachTodaySyncFoodEstimateService: AIServiceProtocol, @unche
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: CoachContextPacketV2) async throws -> AIDailyReviewResponse {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReviewText(
+        input: DailyReviewAIInput,
+        context: CoachContextPacketV2
+    ) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 }

@@ -89,6 +89,7 @@ final class PlanEditSnapshotTests: XCTestCase {
 
 // MARK: - Screens
 
+@MainActor
 private enum PlanEditSnapshotScreen: String {
     case goal
     case targetPace

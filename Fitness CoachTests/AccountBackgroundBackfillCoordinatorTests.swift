@@ -75,7 +75,8 @@ private final class BackgroundBackfillCoordinatorHarness {
             ),
             migrationService: AccountMigrationService(
                 store: store,
-                userProfileService: profileService
+                userProfileService: profileService,
+                uidProvider: ClosureAccountUIDProvider { currentUIDBox.uid }
             ),
             localInspector: localInspector,
             remoteInspector: remoteInspector,

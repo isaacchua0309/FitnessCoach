@@ -150,7 +150,7 @@ Grouped in `AppContainer+FeatureFactories.swift`:
 |---------|---------|---------|
 | Health Intelligence | `makeHealthIntelligenceEngine()`, `refreshHealthIntelligenceSnapshotIfNeeded()`, `makeHealthIntelligenceAnalyticsCoordinator()` | HI engine / refresh / analytics |
 | Today | `makeTodayModel()`, `makeTodayActionCoordinator()` | `TodayModel`, `TodayActionCoordinator` |
-| Coach | `makeCoachModel()` | `CoachModel` |
+| Coach | `makeCoachServices()`, `makeCoachDependencies()`, `makeCoachModel()` | `CoachModel` |
 | Journey | `makeJourneyModel()`, `makeJourneyAnalyticsCoordinator()` | `JourneyModel`, analytics |
 | Plan | `makePlanModel()`, `makePlanAnalyticsCoordinator()`, `makeWeeklyProgressAnalyticsCoordinator()` | `PlanModel`, analytics |
 | Settings | `makeSettingsPrivacyDataEnvironment()`, `makeSettingsAnalyticsCoordinator()` | Settings env / analytics |
@@ -159,7 +159,7 @@ Grouped in `AppContainer+FeatureFactories.swift`:
 ### Key injections (unchanged)
 
 - **Today:** log readers, HI snapshot, restore session, cross-device sync, analytics
-- **Coach:** `actionCenter`, `aiService`, transcript store, timeline recorder, HI context
+- **Coach:** `CoachServices` + `CoachDependencies` assembly; `actionCenter`, `aiService`, transcript store, timeline recorder, context builder — see §3.1
 - **Journey:** log readers, HI section loader inputs, weekly review service, training store
 - **Plan:** profile, target service, HI, training, weekly progress analytics
 - **Onboarding:** draft store, plan generation, auth, health training integration
@@ -174,7 +174,7 @@ Grouped in `AppContainer+FeatureFactories.swift`:
 | **Store (infra)** | Low-level SwiftData / Firestore adapter | `SwiftDataStore`, `FirestoreAccountDataRemoteStore` | `AppContainer` / Infrastructure |
 | **Service** | Domain operation spanning repos or AI | `TargetService`, `AIService`, `ReviewService`, `ProfileBootstrapService` | `AppContainer` |
 | **Use case** | Canonical mutation API | `FitnessActionCenter` | `AppContainer` |
-| **Coordinator** | Multi-step lifecycle, ordering, progress, flags | `AccountSyncCoordinator`, `AccountRestoreCoordinator`, `AccountDeletionCoordinator`, `CrossDeviceSyncCoordinator`, `AuthGateCoordinator` | `AppContainer` / Auth feature |
+| **Coordinator** | Multi-step lifecycle, ordering, progress, flags | `AccountSyncCoordinator`, `AccountRestoreCoordinator`, `AccountDeletionCoordinator`, `CrossDeviceSyncCoordinator`, `AuthGateCoordinator`, `CoachSendFlowCoordinator`, `CoachPhotoFlowCoordinator`, `CoachPendingConfirmationCoordinator`, `CoachMessagePersistenceCoordinator` | `AppContainer` / Auth feature / `CoachModel` wiring |
 | **State builder** | Pure(ish) dashboard assembly | `TodayPresentationBuilder`, `JourneyDashboardBuilder` | Stateless; called from models |
 | **Presenter / handler** | UI-adjacent formatting | `CoachPendingConfirmationPresenter` | Application/UseCases/Coach |
 
@@ -182,8 +182,28 @@ Grouped in `AppContainer+FeatureFactories.swift`:
 
 **Log food (Coach):**
 ```
-CoachModel → CoachMutationExecutor → FitnessActionCenter → FoodLogService
+CoachView → CoachModel → CoachSendFlowCoordinator
+  → CoachRouteDecider / CoachAIRouteHandler
+  → CoachPendingConfirmationCoordinator (if pending)
+  → CoachMutationExecutor → FitnessActionCenter → FoodLogService
   → SwiftDataStore + AccountLocalMutationTracker → (debounced) AccountSyncCoordinator
+```
+
+### 3.1 Coach feature DI (`AppContainer+FeatureFactories.swift`)
+
+| Factory | Returns | Constructs |
+|---------|---------|------------|
+| `makeCoachServices()` | `CoachServices` | `actionCenter`, log readers, health/HI providers, profile reader, training store |
+| `makeCoachDependencies(healthIntelligenceAnalyticsCoordinator:)` | `CoachDependencies` | `CoachContextPacketV2Builder`, `aiService`, transcript/timeline stores, correction memory, analytics |
+| `makeCoachModel(...)` | `CoachModel` | `CoachModel(services:dependencies:)` → `CoachDependencies.assemble` |
+
+**Assembly (`CoachDependencies.assemble`):** builds `CoachMutationExecutor`, `CoachAIRouteHandler`, `CoachRouteDecider`, `CoachMealPhotoAnalyzer`, and feature coordinators. Any `CoachDependencies` field can be overridden in tests.
+
+**Test pattern:** `CoachRoutingIntegrationTestSupport.makeCoach(services:dependencies:)` or legacy `CoachModel(...)` convenience init.
+
+**Legacy log food chain (unchanged semantics):**
+```
+CoachModel → CoachMutationExecutor → FitnessActionCenter → FoodLogService
 ```
 
 **Sign-in restore:**
@@ -257,5 +277,6 @@ No shared DI container — module-level imports.
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Coach DI: `makeCoachServices`, `makeCoachDependencies`, `CoachDependencies.assemble`; coordinator call chain |
 | 2026-07-05 | Renamed construction factories to `build*Dependencies()`; grouped feature factories by tab |
 | 2026-07-04 | Initial DI map for PRDX v1 |

@@ -257,7 +257,7 @@ final class AccountDeletionCoordinatorTests: XCTestCase {
         )
     }
 
-    private static func completedLocalSummary(
+    fileprivate static func completedLocalSummary(
         uid: String,
         scope: AccountDeletionScope = .fullAccount
     ) -> AccountDeletionSummary {

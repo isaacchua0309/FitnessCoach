@@ -192,7 +192,8 @@ final class AccountDeletionRemoteClientTests: XCTestCase {
 
         let success = try await inMemory.deleteRemoteAccountData(confirmation: "DELETE")
         XCTAssertEqual(success.uid, "user-a")
-        XCTAssertEqual(await inMemory.lastConfirmation, "DELETE")
+        let lastConfirmation = await inMemory.lastConfirmation
+        XCTAssertEqual(lastConfirmation, "DELETE")
 
         await inMemory.reset()
         await inMemory.configure(error: .permissionDenied)

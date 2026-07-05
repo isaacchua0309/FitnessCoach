@@ -62,7 +62,7 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertNotNil(quickAction)
         XCTAssertEqual(quickAction?.properties.action, "logMeal")
         XCTAssertEqual(quickAction?.properties.route, "open_coach")
-        XCTAssertTrue(analytics.events.contains { $0.event == .logMealStarted })
+        XCTAssertTrue(analytics.events.contains { $0.event == .mealAddTapped })
     }
 
     func testAddWaterFromInlineSectionLogsNatively() throws {
@@ -332,9 +332,12 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertTrue(openedInsights)
     }
 
-    func testHandleHealthNextBestActionRoutesLogMealToSheet() {
+    func testHandleHealthNextBestActionRoutesLogMealToCoach() {
+        var launchedIntent: CoachLaunchIntent?
+        coordinator.onOpenCoach = { launchedIntent = $0 }
+
         coordinator.handleHealthNextBestAction(.logMeal)
 
-        XCTAssertNotNil(coordinator.logMealPresentation)
+        XCTAssertEqual(launchedIntent, .logMeal(mealType: nil))
     }
 }

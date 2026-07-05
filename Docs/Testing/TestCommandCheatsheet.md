@@ -233,3 +233,19 @@ Backend coach prompt snapshots:
 ```bash
 cd functions && npm run test:coach
 ```
+
+CoachModel characterization and decomposition (post-v1):
+
+```bash
+xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -parallel-testing-enabled NO \
+  -only-testing:"Fitness CoachTests/CoachModelDecompositionCharacterizationTests" \
+  -only-testing:"Fitness CoachTests/CoachModelStateReducerTests" \
+  -only-testing:"Fitness CoachTests/CoachModelCharacterizationTests"
+```
+
+Legacy characterization-only (pre-decomposition freeze):
+
+```bash
+xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -parallel-testing-enabled NO \
+  -only-testing:"Fitness CoachTests/CoachModelCharacterizationTests"
+```
