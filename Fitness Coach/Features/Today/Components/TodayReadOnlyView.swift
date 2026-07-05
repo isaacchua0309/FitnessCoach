@@ -90,8 +90,6 @@ struct TodayReadOnlyView: View {
 
             missionBlock
 
-            quickActionsBlock
-
             TodayWaterQuickLogSection(
                 water: state.macroHydration.waterSummary,
                 presetAmountsMl: TodayActionCoordinator.defaultWaterPresetAmountsMl,
@@ -153,7 +151,6 @@ struct TodayReadOnlyView: View {
                     actionCoordinator.logPrimaryCTATapped()
                     actionCoordinator.performQuickAction(.logMeal)
                 },
-                suppressLogMealCTA: true,
                 onViewed: {
                     actionCoordinator.logMissionViewed()
                 }
@@ -179,26 +176,6 @@ struct TodayReadOnlyView: View {
                 )
             }
         }
-    }
-
-    private var quickActionsBlock: some View {
-        TodayQuickActionsSection(
-            showsScanMeal: state.quickActions.showsScanMeal,
-            onLogMeal: {
-                actionCoordinator.logPrimaryCTATapped()
-                actionCoordinator.performQuickAction(.logMeal)
-            },
-            onAddWater: {
-                _ = actionCoordinator.addWater(amountMl: 500)
-            },
-            onAskCoach: {
-                actionCoordinator.onOpenCoach?(.normal)
-            },
-            onViewPlan: onOpenPlan,
-            onScanMeal: {
-                actionCoordinator.performQuickAction(.scanFood)
-            }
-        )
     }
 
     @ViewBuilder

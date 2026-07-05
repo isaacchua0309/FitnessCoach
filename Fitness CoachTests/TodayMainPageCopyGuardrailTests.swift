@@ -15,7 +15,8 @@ final class TodayMainPageCopyGuardrailTests: XCTestCase {
         "This week: 0 of 7 days logged",
         "Daily Summary",
         "Tap for how your score is calculated",
-        "Coach Tip"
+        "Coach Tip",
+        "Quick actions"
     ]
 
     func testPreviewScenariosExcludeRetiredMainPageCopy() {
@@ -44,6 +45,7 @@ final class TodayMainPageCopyGuardrailTests: XCTestCase {
         XCTAssertFalse(sectionIDs.contains("weeklyCounter"))
         XCTAssertFalse(sectionIDs.contains("targets"))
         XCTAssertFalse(sectionIDs.contains("focus"))
+        XCTAssertFalse(sectionIDs.contains("quickActions"))
     }
 
     // MARK: - Helpers
@@ -63,7 +65,6 @@ final class TodayMainPageCopyGuardrailTests: XCTestCase {
             state.nextBestAction.title,
             state.nextBestAction.subtitle ?? "",
             state.nextBestAction.accessibilityLabel,
-            state.quickActions.sectionTitle,
             state.meals.sectionTitle,
             state.macroHydration.sectionTitle,
             state.activity.sectionTitle,
@@ -76,11 +77,8 @@ final class TodayMainPageCopyGuardrailTests: XCTestCase {
             state.endOfDay.journeyActionTitle
         ]
 
-        samples.append(FormaProductCopy.Today.QuickActions.title(for: .logMeal))
+        samples.append(FormaProductCopy.Today.Mission.logMealCTA)
         samples.append(FormaProductCopy.Today.QuickActions.logMealMicrocopy)
-        if state.quickActions.showsScanMeal {
-            samples.append(FormaProductCopy.Today.QuickActions.title(for: .scanFood))
-        }
 
         let nutrition = TodayNutritionProgressFormatting.displayModel(
             macros: state.macroHydration.macroSummary,

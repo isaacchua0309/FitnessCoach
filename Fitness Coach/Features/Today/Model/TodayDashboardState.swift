@@ -32,7 +32,6 @@ struct TodayDashboardState: Equatable {
 
     var mission: TodayMissionState
     var nextBestAction: TodayNextBestActionState
-    var quickActions: TodayQuickActionsState
     var meals: TodayMealsState
     var macroHydration: TodayMacroHydrationState
     var activity: TodayActivityState
@@ -176,13 +175,6 @@ struct TodayNextBestActionState: Equatable {
             accessibilityLabel: display.accessibilityLabel
         )
     }
-}
-
-// MARK: - Quick actions
-
-struct TodayQuickActionsState: Equatable {
-    var sectionTitle: String
-    var showsScanMeal: Bool
 }
 
 // MARK: - Meals

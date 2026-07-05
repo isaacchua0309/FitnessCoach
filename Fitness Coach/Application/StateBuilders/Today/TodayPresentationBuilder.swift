@@ -37,7 +37,6 @@ enum TodayPresentationBuilder {
             goalConnection: goalConnection(from: inputs),
             mission: mission,
             nextBestAction: nextBestAction,
-            quickActions: quickActions(),
             meals: meals,
             macroHydration: macroHydration,
             activity: activity,
@@ -198,18 +197,6 @@ enum TodayPresentationBuilder {
                 activityContext: inputs.activityContext,
                 trainingFrequencyPerWeek: inputs.trainingFrequencyPerWeek
             )
-        )
-    }
-
-    // MARK: - Quick actions
-
-    static func quickActions(
-        isScanFoodAvailable: Bool = TodayPhotoScanAvailability.isPipelineReady
-    ) -> TodayQuickActionsState {
-        let configuration = TodayQuickActionPolicy.configuration(isScanFoodAvailable: isScanFoodAvailable)
-        return TodayQuickActionsState(
-            sectionTitle: FormaProductCopy.Today.QuickActions.sectionTitle,
-            showsScanMeal: configuration.showsScanMeal
         )
     }
 

@@ -175,17 +175,6 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertFalse(state.endOfDay.isVisible)
     }
 
-    func testQuickActionsBuiltFromPolicy() {
-        let state = build(foodEntries: [], hasPriorFoodLogs: false)
-
-        XCTAssertEqual(state.quickActions.sectionTitle, FormaProductCopy.Today.QuickActions.sectionTitle)
-        XCTAssertEqual(
-            state.quickActions.showsScanMeal,
-            TodayPhotoScanAvailability.isPipelineReady
-        )
-        XCTAssertGreaterThan(state.macroHydration.waterSummary.targetMl, 0)
-    }
-
     func testTodayDoesNotShowDailyReviewTeaserWhenNoReviewAndNoLogs() {
         let state = build(
             foodEntries: [],

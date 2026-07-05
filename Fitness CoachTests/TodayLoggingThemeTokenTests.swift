@@ -12,7 +12,6 @@ import XCTest
 final class TodayLoggingThemeTokenTests: XCTestCase {
 
     private let todayLoggingSourcePrefixes = [
-        "Fitness Coach/Features/Today/Components/TodayQuickActionsSection.swift",
         "Fitness Coach/Features/Today/Components/TodayWaterQuickLogSection.swift",
         "Fitness Coach/Features/Today/Components/TodayNextActionSection.swift",
         "Fitness Coach/Features/Today/TodayInteractionStyles.swift",
