@@ -42,20 +42,19 @@ enum AuthGateCharacterizationTestSupport {
     /// Recomputes the same pipeline `AuthGateCoordinator.effectiveRoute` uses.
     func resolveExpectedEffectiveRoute() -> AppShellRoute {
       let coordinator = coordinator
-      let base = container.resolveAppShellRoute(
+      let inputs = AuthGateRouteInputs(
         authState: container.authManager.authState,
         rootState: coordinator.rootModel.state,
         isOnboardingModelReady: coordinator.onboardingModel != nil,
         awaitingCloudSync: coordinator.awaitingCloudSync,
         pendingOnboardingCompletion: coordinator.pendingSignInForOnboardingCompletion,
-        publicEntryDestination: coordinator.publicEntryDestination
-      )
-      return AuthGateRoutingPolicy.effectiveRoute(
-        baseRoute: base,
-        isSignedIn: AppRouteResolver.isSignedIn(container.authManager.authState),
-        hasActiveOnboardingSession: coordinator.onboardingModel != nil,
+        publicEntryDestination: coordinator.publicEntryDestination,
         suppressAutomaticPublicEntryResume:
           container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
+      )
+      return AuthGateRoutingCoordinator.effectiveRoute(
+        inputs: inputs,
+        container: container
       )
     }
 

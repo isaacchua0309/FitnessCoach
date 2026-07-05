@@ -69,22 +69,23 @@ final class AuthGateCoordinator: ObservableObject {
 
     // MARK: - Routing
 
-    var effectiveRoute: AppShellRoute {
-        let suppressAutomaticPublicEntryResume =
-            container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
-        let base = container.resolveAppShellRoute(
+    private var routeInputs: AuthGateRouteInputs {
+        AuthGateRouteInputs(
             authState: authManager.authState,
             rootState: rootModel.state,
             isOnboardingModelReady: onboardingModel != nil,
             awaitingCloudSync: awaitingCloudSync,
             pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
-            publicEntryDestination: publicEntryDestination
+            publicEntryDestination: publicEntryDestination,
+            suppressAutomaticPublicEntryResume:
+                container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
         )
-        return AuthGateRoutingPolicy.effectiveRoute(
-            baseRoute: base,
-            isSignedIn: AppRouteResolver.isSignedIn(authManager.authState),
-            hasActiveOnboardingSession: onboardingModel != nil,
-            suppressAutomaticPublicEntryResume: suppressAutomaticPublicEntryResume
+    }
+
+    var effectiveRoute: AppShellRoute {
+        AuthGateRoutingCoordinator.effectiveRoute(
+            inputs: routeInputs,
+            container: container
         )
     }
 
@@ -1192,25 +1193,17 @@ final class AuthGateCoordinator: ObservableObject {
     // MARK: - Public entry analytics
 
     func logAppShellRouteDecision(selectedRoute: AppShellRoute) {
-        let suppressAutomaticPublicEntryResume =
-            container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
-        let base = container.resolveAppShellRoute(
-            authState: authManager.authState,
-            rootState: rootModel.state,
-            isOnboardingModelReady: onboardingModel != nil,
-            awaitingCloudSync: awaitingCloudSync,
-            pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
-            publicEntryDestination: publicEntryDestination
-        )
+        let inputs = routeInputs
+        let base = AuthGateRoutingCoordinator.baseRoute(inputs: inputs, container: container)
         AppShellRoutingLogger.logDecision(
             authState: authManager.authState,
             rootState: rootModel.state,
             hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
             localProfileAwaitingSignIn: container.profileBootstrapService.localProfileAwaitingSignIn(),
             hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
-            suppressAutomaticPublicEntryResume: suppressAutomaticPublicEntryResume,
-            publicEntryDestination: publicEntryDestination,
-            isOnboardingModelReady: onboardingModel != nil,
+            suppressAutomaticPublicEntryResume: inputs.suppressAutomaticPublicEntryResume,
+            publicEntryDestination: inputs.publicEntryDestination,
+            isOnboardingModelReady: inputs.isOnboardingModelReady,
             baseRoute: base,
             selectedRoute: selectedRoute,
             trigger: "auth_gate_effective_route"
