@@ -19,7 +19,7 @@ enum DailyReviewCardPreviewFixtures {
                 current: 1_620,
                 target: 2_000,
                 unit: "kcal",
-                remainingText: "380 kcal remaining",
+                remainingText: "Under target",
                 progress: 0.81
             ),
             protein: ProgressMetric(
@@ -27,7 +27,7 @@ enum DailyReviewCardPreviewFixtures {
                 current: 118,
                 target: 140,
                 unit: "g",
-                remainingText: "22g to go",
+                remainingText: "Gap to close",
                 progress: 0.84
             ),
             water: ProgressMetric(
@@ -35,15 +35,15 @@ enum DailyReviewCardPreviewFixtures {
                 current: 1_800,
                 target: 2_500,
                 unit: "ml",
-                remainingText: "700 ml remaining",
+                remainingText: "Gap to close",
                 progress: 0.72
             )
         ),
-        statusSummary: "You logged 1,620 kcal with 380 kcal remaining.",
-        bestNextMove: "Prioritize lean protein earlier tomorrow.",
-        tomorrowFocus: "Workout: 1 session logged, estimated 320 kcal burned.",
-        missingSignals: ["Steps aren't available from Apple Health right now."],
-        detailNote: "Solid logging day. Protein was close to target and hydration trailed in the afternoon."
+        statusSummary: "You are still within today's calorie target.",
+        bestNextMove: "Add 22g protein at your next meal.",
+        tomorrowFocus: "Drink 700ml more water today.",
+        missingSignals: ["Steps", "HRV"],
+        detailNote: "Solid protein pacing today."
     )
 }
 #endif

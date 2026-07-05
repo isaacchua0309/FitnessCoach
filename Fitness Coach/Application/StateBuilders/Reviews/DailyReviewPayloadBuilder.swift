@@ -9,8 +9,60 @@ import Foundation
 
 enum DailyReviewPayloadBuilder {
 
+    private static let maxDetailNoteLength = 100
+    private static let maxFieldLength = 160
+
+    // MARK: - Public API
+
     static func build(
         review: DailyReview,
+        summary: DailyReviewSummary,
+        contextHints: CoachResponseContextHints? = nil,
+        generatedAt: Date = Date(),
+        calendar: Calendar = .current
+    ) -> DailyReviewPayload {
+        let snapshot = snapshot(from: summary)
+        return DailyReviewPayload(
+            title: "Daily Review",
+            timezoneLabel: timezoneLabel(for: summary.date, generatedAt: generatedAt, calendar: calendar),
+            generatedAt: generatedAt,
+            snapshot: snapshot,
+            statusSummary: statusSummary(from: summary),
+            bestNextMove: bestNextMove(from: summary, review: review),
+            tomorrowFocus: tomorrowFocus(from: summary, review: review),
+            missingSignals: missingSignalLabels(from: contextHints?.missingData),
+            detailNote: detailNote(from: review)
+        )
+    }
+
+    /// Returns a validated structured payload, or a compact local fallback when validation fails.
+    static func buildSafely(
+        review: DailyReview,
+        summary: DailyReviewSummary,
+        contextHints: CoachResponseContextHints? = nil,
+        generatedAt: Date = Date(),
+        calendar: Calendar = .current
+    ) -> DailyReviewPayload {
+        let payload = build(
+            review: review,
+            summary: summary,
+            contextHints: contextHints,
+            generatedAt: generatedAt,
+            calendar: calendar
+        )
+        if validates(payload) {
+            return payload
+        }
+        return compactFallback(
+            summary: summary,
+            contextHints: contextHints,
+            generatedAt: generatedAt,
+            calendar: calendar
+        )
+    }
+
+    /// Compact card built only from local deterministic summary data (no AI prose).
+    static func compactFallback(
         summary: DailyReviewSummary,
         contextHints: CoachResponseContextHints? = nil,
         generatedAt: Date = Date(),
@@ -22,11 +74,39 @@ enum DailyReviewPayloadBuilder {
             generatedAt: generatedAt,
             snapshot: snapshot(from: summary),
             statusSummary: statusSummary(from: summary),
-            bestNextMove: review.tomorrowRecommendation,
-            tomorrowFocus: tomorrowFocus(from: summary, review: review),
-            missingSignals: missingSignalMessages(from: contextHints?.missingData),
-            detailNote: detailNote(from: review)
+            bestNextMove: gapActions(from: summary).primary ?? defaultNextMove(for: summary),
+            tomorrowFocus: gapActions(from: summary).secondary,
+            missingSignals: missingSignalLabels(from: contextHints?.missingData),
+            detailNote: nil
         )
+    }
+
+    // MARK: - Validation
+
+    private static func validates(_ payload: DailyReviewPayload) -> Bool {
+        guard !payload.statusSummary.isEmpty,
+              !payload.bestNextMove.isEmpty else {
+            return false
+        }
+
+        let fields = [
+            payload.statusSummary,
+            payload.bestNextMove,
+            payload.tomorrowFocus,
+            payload.detailNote
+        ].compactMap { $0 }
+
+        return fields.allSatisfy { $0.count <= maxFieldLength && !looksLikeParagraph($0) }
+    }
+
+    private static func looksLikeParagraph(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > maxFieldLength else { return false }
+        let sentenceCount = trimmed
+            .split(whereSeparator: { ".!?".contains($0) })
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .count
+        return sentenceCount > 2
     }
 
     // MARK: - Snapshot
@@ -79,120 +159,212 @@ enum DailyReviewPayloadBuilder {
         )
     }
 
-    // MARK: - Remaining text
+    // MARK: - Metric captions (qualitative — numbers live in the metric row only)
 
     private static func caloriesRemainingText(from summary: DailyReviewSummary) -> String {
         if summary.caloriesConsumed == 0 {
-            return "No calories logged yet"
+            return "Not logged yet"
         }
         if summary.isOverCalorieTarget {
-            return "\(abs(summary.caloriesRemaining)) kcal over target"
+            return "Over target"
         }
         if summary.caloriesRemaining > 0 {
-            return "\(summary.caloriesRemaining) kcal remaining"
+            return "Under target"
         }
-        return "At calorie target"
+        return "At target"
     }
 
     private static func proteinRemainingText(from summary: DailyReviewSummary) -> String {
         if summary.proteinConsumed <= 0 {
-            return "No protein logged yet"
+            return "Not logged yet"
         }
         if summary.hasMetProteinTarget {
-            return "Protein target met"
+            return "Target reached"
         }
-        let shortfall = max(summary.proteinRemaining, 0)
-        return "\(FoodEntryFormFormatter.formatMacro(shortfall))g to go"
+        return "Gap to close"
     }
 
     private static func waterRemainingText(from summary: DailyReviewSummary) -> String {
         if summary.waterConsumedMl == 0 {
-            return "No water logged yet"
+            return "Not logged yet"
         }
         if summary.hasMetWaterTarget {
-            return "Hydration target met"
+            return "Target reached"
         }
-        return "\(summary.waterRemainingMl) ml remaining"
+        return "Gap to close"
     }
 
-    // MARK: - Summary copy
+    // MARK: - Status
+
+    private static func hasAllNutritionZero(_ summary: DailyReviewSummary) -> Bool {
+        summary.caloriesConsumed == 0
+            && summary.proteinConsumed <= 0
+            && summary.waterConsumedMl == 0
+    }
+
+    private static func hasLoggedFood(_ summary: DailyReviewSummary) -> Bool {
+        summary.foodEntryCount > 0
+            || summary.caloriesConsumed > 0
+            || summary.proteinConsumed > 0
+    }
 
     private static func statusSummary(from summary: DailyReviewSummary) -> String {
-        if summary.foodEntryCount == 0, summary.caloriesConsumed == 0 {
-            return "No food logged yet today."
+        if hasAllNutritionZero(summary) {
+            return "No food or water has been logged yet today."
         }
         if summary.isOverCalorieTarget {
-            return "You logged \(summary.caloriesConsumed) kcal, ending \(abs(summary.caloriesRemaining)) kcal above target."
+            return "You are over today's calorie target."
         }
-        if summary.caloriesConsumed == 0 {
-            return "No calories logged yet today."
+        if hasLoggedFood(summary) || summary.caloriesConsumed > 0 || summary.waterConsumedMl > 0 {
+            return "You are still within today's calorie target."
         }
-        if summary.caloriesRemaining > 0 {
-            return "You logged \(summary.caloriesConsumed) kcal with \(summary.caloriesRemaining) kcal remaining."
+        return "No food or water has been logged yet today."
+    }
+
+    // MARK: - Next actions
+
+    private struct GapActions {
+        let primary: String?
+        let secondary: String?
+    }
+
+    private static func gapActions(from summary: DailyReviewSummary) -> GapActions {
+        var actions: [String] = []
+
+        if summary.proteinConsumed > 0,
+           !summary.hasMetProteinTarget,
+           summary.proteinRemaining > 0 {
+            let grams = FoodEntryFormFormatter.formatMacro(summary.proteinRemaining)
+            actions.append("Add \(grams)g protein at your next meal.")
+        } else if hasLoggedFood(summary), summary.proteinConsumed <= 0 {
+            actions.append("Log protein at your next meal.")
         }
-        return "You logged \(summary.caloriesConsumed) kcal and reached your calorie target."
+
+        if summary.waterConsumedMl > 0,
+           !summary.hasMetWaterTarget,
+           summary.waterRemainingMl > 0 {
+            actions.append("Drink \(summary.waterRemainingMl)ml more water today.")
+        } else if !hasAllNutritionZero(summary), summary.waterConsumedMl == 0 {
+            actions.append("Log your next water entry.")
+        }
+
+        return GapActions(
+            primary: actions.first,
+            secondary: actions.count > 1 ? actions[1] : nil
+        )
+    }
+
+    private static func bestNextMove(from summary: DailyReviewSummary, review: DailyReview) -> String {
+        let gaps = gapActions(from: summary)
+        if let primary = gaps.primary {
+            return primary
+        }
+        return sanitizedRecommendation(review.tomorrowRecommendation, for: summary)
     }
 
     private static func tomorrowFocus(from summary: DailyReviewSummary, review: DailyReview) -> String? {
-        guard let workoutSummary = review.workoutSummary?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !workoutSummary.isEmpty,
-              summary.hasWorkout else {
-            return nil
+        if let secondary = gapActions(from: summary).secondary {
+            return secondary
         }
-        return workoutSummary
+        if summary.hasWorkout {
+            return "Keep tomorrow's workout on the calendar."
+        }
+        let recommendation = sanitizedRecommendation(review.tomorrowRecommendation, for: summary)
+        let best = bestNextMove(from: summary, review: review)
+        guard recommendation != best else { return nil }
+        return recommendation
     }
+
+    private static func defaultNextMove(for summary: DailyReviewSummary) -> String {
+        if hasAllNutritionZero(summary) {
+            return "Log your first meal or water entry."
+        }
+        if !summary.hasMetProteinTarget {
+            return "Prioritize protein at your next meal."
+        }
+        if !summary.hasMetWaterTarget {
+            return "Catch up on water before the day ends."
+        }
+        return "Keep logging to close the day."
+    }
+
+    private static func sanitizedRecommendation(
+        _ recommendation: String,
+        for summary: DailyReviewSummary
+    ) -> String {
+        let trimmed = recommendation.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return defaultNextMove(for: summary)
+        }
+        if containsWinLanguage(trimmed), !hasCompletedPositiveOutcome(summary) {
+            return defaultNextMove(for: summary)
+        }
+        return compactText(trimmed, maxLength: maxFieldLength)
+    }
+
+    private static func hasCompletedPositiveOutcome(_ summary: DailyReviewSummary) -> Bool {
+        guard hasLoggedFood(summary) || summary.waterConsumedMl > 0 else { return false }
+        let metCalories = summary.caloriesConsumed > 0 && !summary.isOverCalorieTarget
+        let metProtein = summary.proteinConsumed > 0 && summary.hasMetProteinTarget
+        let metWater = summary.waterConsumedMl > 0 && summary.hasMetWaterTarget
+        return metCalories || metProtein || metWater
+    }
+
+    private static func containsWinLanguage(_ text: String) -> Bool {
+        let normalized = text.lowercased()
+        return normalized.contains("win")
+            || normalized.contains("great job")
+            || normalized.contains("crushed it")
+            || normalized.contains("amazing")
+    }
+
+    // MARK: - Coach note
 
     private static func detailNote(from review: DailyReview) -> String? {
         let trimmed = review.summaryText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        return trimmed
+        if trimmed == DailyReviewFormatter.fallbackSummaryText() {
+            return nil
+        }
+        let compact = compactCoachNote(trimmed)
+        guard !compact.isEmpty, !looksLikeParagraph(compact) else { return nil }
+        return compact
     }
 
-    // MARK: - Missing signals
+    private static func compactCoachNote(_ text: String) -> String {
+        let singleSentence = text
+            .components(separatedBy: CharacterSet(charactersIn: ".!?"))
+            .first?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? text
+        return compactText(singleSentence, maxLength: maxDetailNoteLength)
+    }
 
-    static func missingSignalMessages(from missing: CoachMissingDataContext?) -> [String] {
-        guard let missing, missing.hasAnyMissingSignals else { return [] }
+    private static func compactText(_ text: String, maxLength: Int) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > maxLength else { return trimmed }
+        let index = trimmed.index(trimmed.startIndex, offsetBy: maxLength)
+        return String(trimmed[..<index]).trimmingCharacters(in: .whitespacesAndNewlines) + "…"
+    }
 
-        var messages: [String] = []
-        var seen = Set<String>()
+    // MARK: - Missing Apple Health signals
 
-        func add(_ message: String) {
-            guard seen.insert(message).inserted else { return }
-            messages.append(message)
-        }
+    static func missingSignalLabels(from missing: CoachMissingDataContext?) -> [String] {
+        guard let missing else { return [] }
 
+        var labels: [String] = []
         if missing.stepsMissing || missing.stepsUnavailable {
-            add("Steps aren't available from Apple Health right now.")
+            labels.append("Steps")
         }
         if missing.workoutPermissionDeniedOrUnavailable || missing.workoutsUnavailable {
-            add("Workout data isn't available from Apple Health right now.")
+            labels.append("Workout")
         }
         if missing.sleepMissing || missing.sleepUnavailable {
-            add("Sleep data isn't available right now.")
+            labels.append("Sleep")
         }
         if missing.hrvMissing || missing.hrvUnavailable {
-            add("Heart-rate variability isn't available right now.")
+            labels.append("HRV")
         }
-        if missing.healthKitDenied || missing.healthKitUnavailable {
-            add("Some Apple Health signals are unavailable.")
-        }
-        if missing.weightMissing {
-            add("No weight logged today.")
-        }
-        if missing.noRecentMeals {
-            add("No meals logged yet today.")
-        }
-        if missing.healthIntelligenceTimedOut {
-            add("Recovery insights timed out.")
-        }
-        if missing.healthIntelligenceFailed {
-            add("Recovery insights are unavailable right now.")
-        }
-        if missing.contextGenerationFailed {
-            add("Some coaching context could not be loaded.")
-        }
-
-        return messages
+        return labels
     }
 
     // MARK: - Timezone
@@ -227,34 +399,29 @@ enum DailyReviewPayloadAccessibilityFormatter {
             sections.append(timezoneLabel)
         }
 
-        sections.append("")
         sections.append(payload.statusSummary)
         sections.append(metricLine(payload.snapshot.calories))
         sections.append(metricLine(payload.snapshot.protein))
         sections.append(metricLine(payload.snapshot.water))
-
-        if let detailNote = payload.detailNote, !detailNote.isEmpty {
-            sections += ["", "Coach note:", detailNote]
-        }
-
-        sections += ["", "Best next move:", payload.bestNextMove]
+        sections.append("Next: \(payload.bestNextMove)")
 
         if let tomorrowFocus = payload.tomorrowFocus, !tomorrowFocus.isEmpty {
-            sections += ["", "Tomorrow focus:", tomorrowFocus]
+            sections.append("Also: \(tomorrowFocus)")
+        }
+
+        if let detailNote = payload.detailNote, !detailNote.isEmpty {
+            sections.append("Coach note: \(detailNote)")
         }
 
         if !payload.missingSignals.isEmpty {
-            sections += ["", "Missing signals:"]
-            sections.append(contentsOf: payload.missingSignals.map { "• \($0)" })
+            sections.append("Missing signals: \(payload.missingSignals.joined(separator: ", "))")
         }
 
         return sections.joined(separator: "\n")
     }
 
     private static func metricLine(_ metric: ProgressMetric) -> String {
-        let current = formattedValue(metric.current, unit: metric.unit)
-        let target = formattedValue(metric.target, unit: metric.unit)
-        return "\(metric.label): \(current) / \(target). \(metric.remainingText)."
+        "\(metric.label): \(formattedValue(metric.current, unit: metric.unit)) of \(formattedValue(metric.target, unit: metric.unit)). \(metric.remainingText)."
     }
 
     private static func formattedValue(_ value: Double, unit: String) -> String {

@@ -175,6 +175,11 @@ final class FitnessActionCenter {
         return result
     }
 
+    func buildDailyReviewSummary(for date: Date = Date()) async throws -> DailyReviewSummary {
+        _ = try requireCurrentUID(for: "build daily review summary")
+        return try await reviewService.buildDailyReviewSummary(for: date)
+    }
+
     // MARK: - Plan (canonical: Plan screen only — strategy, not daily logs)
 
     @discardableResult

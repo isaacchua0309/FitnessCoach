@@ -109,6 +109,12 @@ final class ReviewService {
 
     // MARK: Summary
 
+    func buildDailyReviewSummary(for date: Date) async throws -> DailyReviewSummary {
+        let dailyLogEntity = try dailyLogService.getOrCreateLogEntity(for: date)
+        let dailyLog = try dailyLogService.recalculateDailyTotals(for: dailyLogEntity.date)
+        return try await buildSummary(for: dailyLog)
+    }
+
     private func buildSummary(for dailyLog: DailyLog) async throws -> DailyReviewSummary {
         let foodEntries = try foodLogService.getFoodEntries(for: dailyLog.date)
         let waterEntries = try waterLogService.getWaterEntries(for: dailyLog.date)

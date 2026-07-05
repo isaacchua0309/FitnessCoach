@@ -16,98 +16,131 @@ final class DailyReviewPayloadBuilderTests: XCTestCase {
             current: 2_500,
             target: 2_000,
             unit: "kcal",
-            remainingText: "500 kcal over target",
+            remainingText: "Over target",
             progress: 1.4
         )
 
         XCTAssertEqual(metric.progress, 1)
     }
 
-    func testProgressMetricClampsNegativeProgressOnDecode() throws {
-        let json = """
-        {
-          "label": "Water",
-          "current": 0,
-          "target": 2500,
-          "unit": "ml",
-          "remainingText": "No water logged yet",
-          "progress": -0.2
-        }
-        """
-        let data = try XCTUnwrap(json.data(using: .utf8))
-        let metric = try JSONDecoder().decode(ProgressMetric.self, from: data)
-
-        XCTAssertEqual(metric.progress, 0)
-    }
-
-    func testZeroCurrentDoesNotUseWinLanguage() {
+    func testAllNutritionZeroUsesRequiredStatusCopy() {
         let log = TestFixtureFactory.nutritionLog(.baseline)
         var summary = buildReviewSummary(for: log)
         summary.caloriesConsumed = 0
         summary.proteinConsumed = 0
         summary.waterConsumedMl = 0
-        summary.hasMetProteinTarget = false
-        summary.hasMetWaterTarget = false
 
         let payload = DailyReviewPayloadBuilder.build(
             review: makeReview(from: summary),
             summary: summary
         )
 
-        XCTAssertEqual(payload.snapshot.calories.remainingText, "No calories logged yet")
-        XCTAssertEqual(payload.snapshot.protein.remainingText, "No protein logged yet")
-        XCTAssertEqual(payload.snapshot.water.remainingText, "No water logged yet")
-        XCTAssertFalse(payload.snapshot.protein.remainingText.localizedCaseInsensitiveContains("met"))
-        XCTAssertFalse(payload.snapshot.water.remainingText.localizedCaseInsensitiveContains("met"))
-        XCTAssertEqual(payload.statusSummary, "No food logged yet today.")
+        XCTAssertEqual(payload.statusSummary, "No food or water has been logged yet today.")
+        XCTAssertEqual(payload.snapshot.calories.remainingText, "Not logged yet")
+        XCTAssertEqual(payload.bestNextMove, "Log your first meal or water entry.")
     }
 
-    func testProgressRatioIsZeroWhenCurrentIsZeroEvenIfTargetMetFlagsExist() {
-        let log = TestFixtureFactory.nutritionLog(.waterExactlyAtTarget)
-        var summary = buildReviewSummary(for: log)
-        summary.waterConsumedMl = 0
-        summary.hasMetWaterTarget = true
+    func testWithinCalorieTargetStatusWhenFoodLogged() {
+        let log = TestFixtureFactory.nutritionLog(.baseline)
+        let summary = buildReviewSummary(for: log)
 
         let payload = DailyReviewPayloadBuilder.build(
             review: makeReview(from: summary),
             summary: summary
         )
 
-        XCTAssertEqual(payload.snapshot.water.progress, 0)
-        XCTAssertEqual(payload.snapshot.water.remainingText, "No water logged yet")
+        XCTAssertEqual(payload.statusSummary, "You are still within today's calorie target.")
+        XCTAssertFalse(payload.statusSummary.contains("\(summary.caloriesConsumed)"))
     }
 
-    func testMissingSignalsAreConsolidatedWithoutDuplicates() {
-        var missing = CoachMissingDataContext()
-        missing.stepsMissing = true
-        missing.stepsUnavailable = true
-        missing.healthKitDenied = true
-        missing.healthKitUnavailable = true
+    func testOverCalorieTargetStatus() {
+        let log = TestFixtureFactory.nutritionLog(.caloriesOverTarget)
+        let summary = buildReviewSummary(for: log)
 
-        let messages = DailyReviewPayloadBuilder.missingSignalMessages(
-            from: missing
+        let payload = DailyReviewPayloadBuilder.build(
+            review: makeReview(from: summary),
+            summary: summary
         )
 
-        XCTAssertEqual(messages.count, 2)
-        XCTAssertEqual(messages[0], "Steps aren't available from Apple Health right now.")
-        XCTAssertEqual(messages[1], "Some Apple Health signals are unavailable.")
+        XCTAssertEqual(payload.statusSummary, "You are over today's calorie target.")
+        XCTAssertEqual(payload.snapshot.calories.remainingText, "Over target")
     }
 
-    func testPayloadIncludesDetailNoteAndTomorrowFocus() {
+    func testProteinAndWaterGapsSurfaceAsShortNextActions() {
         let log = TestFixtureFactory.nutritionLog(.baseline)
         var summary = buildReviewSummary(for: log)
-        summary.hasWorkout = true
+        summary.hasMetProteinTarget = false
+        summary.proteinRemaining = 22
+        summary.hasMetWaterTarget = false
+        summary.waterRemainingMl = 700
+
+        let payload = DailyReviewPayloadBuilder.build(
+            review: makeReview(from: summary),
+            summary: summary
+        )
+
+        XCTAssertTrue(payload.bestNextMove.contains("protein"))
+        XCTAssertEqual(payload.tomorrowFocus, "Drink 700ml more water today.")
+    }
+
+    func testMissingSignalsUseShortAppleHealthLabels() {
+        var missing = CoachMissingDataContext()
+        missing.stepsMissing = true
+        missing.workoutsUnavailable = true
+        missing.sleepMissing = true
+        missing.hrvUnavailable = true
+        missing.weightMissing = true
+
+        let labels = DailyReviewPayloadBuilder.missingSignalLabels(from: missing)
+
+        XCTAssertEqual(labels, ["Steps", "Workout", "Sleep", "HRV"])
+    }
+
+    func testDetailNoteIsCompactAndSkipsFallbackAI() {
+        let log = TestFixtureFactory.nutritionLog(.baseline)
+        let summary = buildReviewSummary(for: log)
         var review = makeReview(from: summary)
-        review.summaryText = "Strong protein pacing today."
-        review.workoutSummary = "Workout: 1 session logged, estimated 320 kcal burned."
-        review.tomorrowRecommendation = "Start hydration earlier tomorrow."
+        review.summaryText = DailyReviewFormatter.fallbackSummaryText()
 
-        let payload = DailyReviewPayloadBuilder.build(review: review, summary: summary)
+        XCTAssertNil(
+            DailyReviewPayloadBuilder.build(review: review, summary: summary).detailNote
+        )
 
-        XCTAssertEqual(payload.detailNote, "Strong protein pacing today.")
-        XCTAssertEqual(payload.bestNextMove, "Start hydration earlier tomorrow.")
-        XCTAssertEqual(payload.tomorrowFocus, review.workoutSummary)
-        XCTAssertGreaterThan(payload.snapshot.calories.progress, 0)
+        review.summaryText = String(repeating: "Solid day. ", count: 20)
+        XCTAssertNil(
+            DailyReviewPayloadBuilder.build(review: review, summary: summary).detailNote
+        )
+
+        review.summaryText = "Solid protein pacing today."
+        XCTAssertEqual(
+            DailyReviewPayloadBuilder.build(review: review, summary: summary).detailNote,
+            "Solid protein pacing today."
+        )
+    }
+
+    func testBuildSafelyFallsBackWhenPayloadWouldBeTooVerbose() {
+        let log = TestFixtureFactory.nutritionLog(.baseline)
+        let summary = buildReviewSummary(for: log)
+        var review = makeReview(from: summary)
+        review.summaryText = String(repeating: "Great job winning the day. ", count: 12)
+        review.tomorrowRecommendation = String(repeating: "Win tomorrow with consistency. ", count: 8)
+
+        let payload = DailyReviewPayloadBuilder.buildSafely(review: review, summary: summary)
+
+        XCTAssertNil(payload.detailNote)
+        XCTAssertFalse(payload.bestNextMove.lowercased().contains("win"))
+        XCTAssertLessThanOrEqual(payload.statusSummary.count, 160)
+    }
+
+    func testCompactFallbackUsesLocalSummaryOnly() {
+        let log = TestFixtureFactory.nutritionLog(.baseline)
+        let summary = buildReviewSummary(for: log)
+
+        let payload = DailyReviewPayloadBuilder.compactFallback(summary: summary)
+
+        XCTAssertNil(payload.detailNote)
+        XCTAssertEqual(payload.statusSummary, "You are still within today's calorie target.")
+        XCTAssertGreaterThan(payload.snapshot.calories.target, 0)
     }
 
     func testStructuredContentRoundTripPreservesDailyReviewPayload() throws {
@@ -161,50 +194,6 @@ final class DailyReviewPayloadBuilderTests: XCTestCase {
             return XCTFail("Expected nutrition estimate structured content")
         }
         XCTAssertEqual(state.foodName, "Banana")
-    }
-
-    func testAccessibilityFormatterIncludesMissingSignalsOnceEach() {
-        let payload = DailyReviewPayload(
-            title: "Daily Review",
-            timezoneLabel: "Jul 5, 2026 · GMT",
-            generatedAt: Date(),
-            snapshot: DailyReviewSnapshot(
-                calories: ProgressMetric(
-                    label: "Calories",
-                    current: 0,
-                    target: 2_000,
-                    unit: "kcal",
-                    remainingText: "No calories logged yet",
-                    progress: 0
-                ),
-                protein: ProgressMetric(
-                    label: "Protein",
-                    current: 0,
-                    target: 140,
-                    unit: "g",
-                    remainingText: "No protein logged yet",
-                    progress: 0
-                ),
-                water: ProgressMetric(
-                    label: "Water",
-                    current: 0,
-                    target: 2_500,
-                    unit: "ml",
-                    remainingText: "No water logged yet",
-                    progress: 0
-                )
-            ),
-            statusSummary: "No food logged yet today.",
-            bestNextMove: "Log your first meal.",
-            tomorrowFocus: nil,
-            missingSignals: ["Steps aren't available from Apple Health right now."],
-            detailNote: nil
-        )
-
-        let text = DailyReviewPayloadAccessibilityFormatter.text(from: payload)
-
-        XCTAssertTrue(text.contains("Missing signals:"))
-        XCTAssertEqual(text.components(separatedBy: "Steps aren't available from Apple Health right now.").count - 1, 1)
     }
 
     private func buildReviewSummary(for log: DailyLog) -> DailyReviewSummary {

@@ -490,8 +490,23 @@ final class CoachMutationExecutor {
         } catch ServiceError.dailyLogNotFound {
             return .message("There is no daily log for today yet. Open Today to load your dashboard.")
         } catch {
+            if let fallback = await localStructuredDailyReviewFallback(contextHints: contextHints) {
+                return fallback
+            }
             return .message("I could not generate your daily review yet. Please try again.")
         }
+    }
+
+    private func localStructuredDailyReviewFallback(
+        contextHints: CoachResponseContextHints?
+    ) async -> CoachActionResult? {
+        guard let summary = try? await actionCenter.buildDailyReviewSummary(for: Date()) else {
+            return nil
+        }
+        return CoachResponseBuilder.dailyReviewFallbackActionResult(
+            summary: summary,
+            contextHints: contextHints
+        )
     }
 
     // MARK: Timeline helpers

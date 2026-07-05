@@ -138,11 +138,18 @@ struct DailyReviewCard: View {
                 .font(CoachDesignTokens.Typography.confirmationMetric)
                 .foregroundStyle(CoachDesignTokens.Color.confirmationLabel)
 
-            ForEach(Array(payload.missingSignals.enumerated()), id: \.offset) { _, signal in
-                Text(signal)
-                    .font(CoachDesignTokens.Typography.hint)
-                    .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: CoachDesignTokens.Spacing.xs) {
+                ForEach(payload.missingSignals, id: \.self) { signal in
+                    Text(signal)
+                        .font(CoachDesignTokens.Typography.confirmationMetric)
+                        .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+                        .padding(.horizontal, CoachDesignTokens.Spacing.xs)
+                        .padding(.vertical, CoachDesignTokens.Spacing.xxs)
+                        .background(
+                            CoachDesignTokens.Color.border.opacity(0.25),
+                            in: Capsule(style: .continuous)
+                        )
+                }
             }
         }
     }
