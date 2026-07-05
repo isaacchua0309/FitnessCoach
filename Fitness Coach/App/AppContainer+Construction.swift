@@ -186,6 +186,7 @@ extension AppContainer {
         healthIntelligenceAnalyticsLogger: (any HealthIntelligenceAnalyticsLogging)?
     ) -> AnalyticsDependenciesBundle {
         let loggers = AnalyticsLoggerFactory.makeAppLoggers(
+            configuration: .current,
             onboarding: onboardingAnalyticsLogger,
             today: todayAnalyticsLogger,
             plan: planAnalyticsLogger,

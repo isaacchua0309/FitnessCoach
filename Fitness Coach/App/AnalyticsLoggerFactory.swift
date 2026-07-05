@@ -26,6 +26,7 @@ enum AnalyticsLoggerFactory {
     // MARK: - App container
 
     static func makeAppLoggers(
+        configuration: FormaAnalyticsConfiguration = .current,
         onboarding: (any OnboardingAnalyticsLogging)? = nil,
         today: (any TodayAnalyticsLogging)? = nil,
         plan: (any PlanAnalyticsLogging)? = nil,
@@ -37,53 +38,136 @@ enum AnalyticsLoggerFactory {
         healthIntelligence: (any HealthIntelligenceAnalyticsLogging)? = nil
     ) -> AppAnalyticsLoggers {
         AppAnalyticsLoggers(
-            onboarding: resolve(onboarding, osLog: OSLogOnboardingAnalyticsLogger(), noOp: NoOpOnboardingAnalyticsLogger()),
-            today: resolve(today, osLog: OSLogTodayAnalyticsLogger(), noOp: NoOpTodayAnalyticsLogger()),
-            plan: resolve(plan, osLog: OSLogPlanAnalyticsLogger(), noOp: NoOpPlanAnalyticsLogger()),
-            journey: resolve(journey, osLog: OSLogJourneyAnalyticsLogger(), noOp: NoOpJourneyAnalyticsLogger()),
+            onboarding: resolve(
+                onboarding,
+                configuration: configuration,
+                debugSink: { OSLogOnboardingAnalyticsLogger() },
+                noOpSink: { NoOpOnboardingAnalyticsLogger() },
+                productionSink: { nil },
+                composite: { CompositeOnboardingAnalyticsLogger(loggers: $0) }
+            ),
+            today: resolve(
+                today,
+                configuration: configuration,
+                debugSink: { OSLogTodayAnalyticsLogger() },
+                noOpSink: { NoOpTodayAnalyticsLogger() },
+                productionSink: { nil },
+                composite: { CompositeTodayAnalyticsLogger(loggers: $0) }
+            ),
+            plan: resolve(
+                plan,
+                configuration: configuration,
+                debugSink: { OSLogPlanAnalyticsLogger() },
+                noOpSink: { NoOpPlanAnalyticsLogger() },
+                productionSink: { nil },
+                composite: { CompositePlanAnalyticsLogger(loggers: $0) }
+            ),
+            journey: resolve(
+                journey,
+                configuration: configuration,
+                debugSink: { OSLogJourneyAnalyticsLogger() },
+                noOpSink: { NoOpJourneyAnalyticsLogger() },
+                productionSink: { nil },
+                composite: { CompositeJourneyAnalyticsLogger(loggers: $0) }
+            ),
             weeklyProgress: resolve(
                 weeklyProgress,
-                osLog: OSLogWeeklyProgressAnalyticsLogger(),
-                noOp: NoOpWeeklyProgressAnalyticsLogger()
+                configuration: configuration,
+                debugSink: { OSLogWeeklyProgressAnalyticsLogger() },
+                noOpSink: { NoOpWeeklyProgressAnalyticsLogger() },
+                productionSink: { nil },
+                composite: { CompositeWeeklyProgressAnalyticsLogger(loggers: $0) }
             ),
             publicEntry: resolve(
                 publicEntry,
-                osLog: OSLogPublicEntryAnalyticsLogger(),
-                noOp: NoOpPublicEntryAnalyticsLogger()
+                configuration: configuration,
+                debugSink: { OSLogPublicEntryAnalyticsLogger() },
+                noOpSink: { NoOpPublicEntryAnalyticsLogger() },
+                productionSink: { nil },
+                composite: { CompositePublicEntryAnalyticsLogger(loggers: $0) }
             ),
-            theme: resolve(theme, osLog: OSLogThemeAnalyticsLogger(), noOp: NoOpThemeAnalyticsLogger()),
-            settings: resolve(settings, osLog: OSLogSettingsAnalyticsLogger(), noOp: NoOpSettingsAnalyticsLogger()),
+            theme: resolve(
+                theme,
+                configuration: configuration,
+                debugSink: { OSLogThemeAnalyticsLogger() },
+                noOpSink: { NoOpThemeAnalyticsLogger() },
+                productionSink: { nil },
+                composite: { CompositeThemeAnalyticsLogger(loggers: $0) }
+            ),
+            settings: resolve(
+                settings,
+                configuration: configuration,
+                debugSink: { OSLogSettingsAnalyticsLogger() },
+                noOpSink: { NoOpSettingsAnalyticsLogger() },
+                productionSink: { nil },
+                composite: { CompositeSettingsAnalyticsLogger(loggers: $0) }
+            ),
             healthIntelligence: resolve(
                 healthIntelligence,
-                osLog: OSLogHealthIntelligenceAnalyticsLogger(),
-                noOp: NoOpHealthIntelligenceAnalyticsLogger()
+                configuration: configuration,
+                debugSink: { OSLogHealthIntelligenceAnalyticsLogger() },
+                noOpSink: { NoOpHealthIntelligenceAnalyticsLogger() },
+                productionSink: { nil },
+                composite: { CompositeHealthIntelligenceAnalyticsLogger(loggers: $0) }
             )
         )
     }
 
     // MARK: - Coach (not AppContainer-wired)
 
-    static func coach(_ override: (any CoachAnalyticsLogging)? = nil) -> any CoachAnalyticsLogging {
-        if let override { return override }
-        #if DEBUG
-        return OSLogCoachAnalyticsLogger()
-        #else
-        return NoOpCoachAnalyticsLogger()
-        #endif
+    static func coach(
+        _ override: (any CoachAnalyticsLogging)? = nil,
+        configuration: FormaAnalyticsConfiguration = .current
+    ) -> any CoachAnalyticsLogging {
+        resolve(
+            override,
+            configuration: configuration,
+            debugSink: { coachDebugSink() },
+            noOpSink: { NoOpCoachAnalyticsLogger() },
+            productionSink: { nil },
+            composite: { CompositeCoachAnalyticsLogger(loggers: $0) }
+        )
     }
 
     // MARK: - Sink selection
 
     static func resolve<L>(
         _ override: L?,
-        osLog: @autoclosure () -> L,
-        noOp: @autoclosure () -> L
+        configuration: FormaAnalyticsConfiguration = .current,
+        debugSink: () -> L,
+        noOpSink: () -> L,
+        productionSink: () -> L? = { nil },
+        composite: ([L]) -> L
     ) -> L {
         if let override { return override }
+
+        var sinks: [L] = []
         #if DEBUG
-        return osLog()
-        #else
-        return noOp()
+        sinks.append(debugSink())
         #endif
+        if configuration.isProductionSinkEnabled, let production = productionSink() {
+            sinks.append(production)
+        }
+
+        switch sinks.count {
+        case 0:
+            return noOpSink()
+        case 1:
+            return sinks[0]
+        default:
+            return composite(sinks)
+        }
     }
+
+    // MARK: - Private
+
+    #if DEBUG
+    private static func coachDebugSink() -> any CoachAnalyticsLogging {
+        OSLogCoachAnalyticsLogger()
+    }
+    #else
+    private static func coachDebugSink() -> any CoachAnalyticsLogging {
+        NoOpCoachAnalyticsLogger()
+    }
+    #endif
 }
