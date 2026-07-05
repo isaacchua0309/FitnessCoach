@@ -2,7 +2,7 @@
 //  PlanHeaderSection.swift
 //  Fitness Coach
 //
-//  Forma — Plan screen header. Preview/test wrapper around PageHeader.
+//  Forma — Plan screen header preview wrapper around PageHeader.
 //
 
 import SwiftUI

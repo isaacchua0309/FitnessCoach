@@ -156,6 +156,18 @@ struct PlanView: View {
         await model.refresh()
     }
 
+    /// Header Adjust pill — same wizard as the legacy top-right Adjust Plan control.
+    private func openAdjustPlanFromHeader(healthConnected: Bool) {
+        model.logPlanAdjustCTATapped(healthConnected: healthConnected)
+        model.showEditPlan(entryPoint: .planTab)
+    }
+
+    /// Bottom dashboard Adjust Plan CTA — preserves the dedicated bottom entry analytics.
+    private func openAdjustPlanFromBottomCTA(healthConnected: Bool) {
+        model.logPlanAdjustCTATapped(healthConnected: healthConnected)
+        model.showEditPlan(entryPoint: .adjustPlanCTA)
+    }
+
     @ViewBuilder
     private var content: some View {
         switch model.viewState {
@@ -216,8 +228,7 @@ struct PlanView: View {
                     title: FormaProductCopy.PlanMissionControl.adjustPlanPill,
                     accessibilityHint: FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint
                 ) {
-                    model.logPlanAdjustCTATapped(healthConnected: healthConnected)
-                    model.showEditPlan(entryPoint: .adjustPlanCTA)
+                    openAdjustPlanFromHeader(healthConnected: healthConnected)
                 }
             }
         ) {
@@ -238,8 +249,7 @@ struct PlanView: View {
                     model.showEditPlanActivity()
                 },
                 onAdjustPlan: {
-                    model.logPlanAdjustCTATapped(healthConnected: healthConnected)
-                    model.showEditPlan(entryPoint: .adjustPlanCTA)
+                    openAdjustPlanFromBottomCTA(healthConnected: healthConnected)
                 },
                 onOpenSettings: {
                     model.showSettings()

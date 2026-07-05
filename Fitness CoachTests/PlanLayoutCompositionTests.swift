@@ -77,4 +77,9 @@ final class PlanLayoutCompositionTests: XCTestCase {
         XCTAssertEqual(PlanLayout.sectionSpacing, FormaMainTabLayout.sectionSpacing)
         XCTAssertEqual(PlanLayout.headerToCardSpacing, FormaMainTabLayout.sectionContentSpacing)
     }
+
+    func testPlanHeaderAdjustUsesDashboardEntryPoint() {
+        XCTAssertEqual(PlanAdjustPlanEntryPoint.dashboard, .planTab)
+        XCTAssertEqual(PlanAdjustPlanEntryPoint.adjustPlanCTA.rawValue, "plan_adjust_cta")
+    }
 }
