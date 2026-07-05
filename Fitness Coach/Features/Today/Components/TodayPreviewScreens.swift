@@ -11,8 +11,16 @@ import SwiftUI
 enum TodayPreviewScreens {
 
     @ViewBuilder
-    static func dashboard(_ state: TodayDashboardState) -> some View {
-        TodayReadOnlyPreviewSupport.screen(state)
+    static func dashboard(
+        _ state: TodayDashboardState,
+        healthIntelligenceSection: TodayHealthIntelligenceSectionState? = nil,
+        isHealthIntelligenceUIEnabled: Bool = false
+    ) -> some View {
+        TodayReadOnlyPreviewSupport.screen(
+            state,
+            healthIntelligenceSection: healthIntelligenceSection,
+            isHealthIntelligenceUIEnabled: isHealthIntelligenceUIEnabled
+        )
     }
 }
 
@@ -48,6 +56,22 @@ enum TodayPreviewScreens {
     TodayPreviewScreens.dashboard(TodayPreviewData.healthDisconnected)
 }
 
+#Preview("Apple Health connected with recovery") {
+    TodayPreviewScreens.dashboard(
+        TodayPreviewData.partialDay,
+        healthIntelligenceSection: TodayHealthIntelligencePreviewData.readyDay,
+        isHealthIntelligenceUIEnabled: true
+    )
+}
+
+#Preview("Protein target complete") {
+    TodayPreviewScreens.dashboard(TodayPreviewData.completeDay)
+}
+
+#Preview("Fully logged water") {
+    TodayPreviewScreens.dashboard(TodayPreviewData.waterBehind)
+}
+
 #Preview("Brand new day — iPhone SE") {
     TodayPreviewScreens.dashboard(TodayPreviewData.brandNewDay)
 }
@@ -64,5 +88,10 @@ enum TodayPreviewScreens {
 #Preview("End of day — large text") {
     TodayPreviewScreens.dashboard(TodayPreviewData.endOfDay)
         .dynamicTypeSize(.accessibility3)
+}
+
+#Preview("Theme — Blossom Pink") {
+    TodayPreviewScreens.dashboard(TodayPreviewData.partialDay)
+        .formaThemePreview(palette: .blossomPink)
 }
 #endif

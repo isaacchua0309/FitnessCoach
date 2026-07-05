@@ -2,7 +2,7 @@
 //  TodayQuickActionsSection.swift
 //  Fitness Coach
 //
-//  Forma — Primary fast-log surface on Today (meal + optional scan).
+//  Forma — Compact quick-action row on Today (meal, water, coach, plan).
 //
 
 import SwiftUI
@@ -10,94 +10,109 @@ import SwiftUI
 struct TodayQuickActionsSection: View {
     let showsScanMeal: Bool
     let onLogMeal: () -> Void
+    let onAddWater: () -> Void
+    let onAskCoach: () -> Void
+    let onViewPlan: () -> Void
     let onScanMeal: () -> Void
 
-    private let primaryActionMinHeight: CGFloat = 92
-    private let iconSize: CGFloat = 28
+    private let columns = [
+        GridItem(.flexible(), spacing: FormaTokens.Spacing.xs),
+        GridItem(.flexible(), spacing: FormaTokens.Spacing.xs)
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.QuickActions.sectionTitle)
 
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                primaryActionCard(
+            LazyVGrid(columns: columns, spacing: FormaTokens.Spacing.xs) {
+                quickActionButton(
                     title: FormaProductCopy.Today.QuickActions.title(for: .logMeal),
                     symbolName: FormaProductCopy.Today.QuickActions.symbolName(for: .logMeal),
-                    action: onLogMeal
+                    isPrimary: true,
+                    action: onLogMeal,
+                    accessibilityHint: FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .logMeal)
                 )
-                .accessibilityLabel(FormaProductCopy.Today.QuickActions.title(for: .logMeal))
-                .accessibilityHint(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .logMeal))
 
-                Text(FormaProductCopy.Today.QuickActions.logMealMicrocopy)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityHidden(true)
+                quickActionButton(
+                    title: FormaProductCopy.Today.QuickActions.addWater,
+                    symbolName: "drop.fill",
+                    isPrimary: false,
+                    action: onAddWater,
+                    accessibilityHint: FormaProductCopy.Today.QuickActions.addWaterAccessibilityHint
+                )
 
-                if showsScanMeal {
-                    scanMealSecondaryAction
-                        .padding(.top, FormaTokens.Spacing.xs)
+                quickActionButton(
+                    title: FormaProductCopy.Today.QuickActions.askCoach,
+                    symbolName: "bubble.left.and.bubble.right.fill",
+                    isPrimary: false,
+                    action: onAskCoach,
+                    accessibilityHint: FormaProductCopy.Today.QuickActions.askCoachAccessibilityHint
+                )
+
+                quickActionButton(
+                    title: FormaProductCopy.Today.QuickActions.viewPlan,
+                    symbolName: "list.bullet.clipboard.fill",
+                    isPrimary: false,
+                    action: onViewPlan,
+                    accessibilityHint: FormaProductCopy.Today.QuickActions.viewPlanAccessibilityHint
+                )
+            }
+
+            if showsScanMeal {
+                Button(action: onScanMeal) {
+                    HStack(spacing: FormaTokens.Spacing.xs) {
+                        Image(systemName: FormaProductCopy.Today.QuickActions.symbolName(for: .scanFood))
+                            .font(.caption.weight(.semibold))
+                        Text(FormaProductCopy.Today.QuickActions.title(for: .scanFood))
+                            .font(FormaTokens.Typography.caption.weight(.semibold))
+                    }
+                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(FormaProductCopy.Today.QuickActions.title(for: .scanFood))
+                .accessibilityHint(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .scanFood))
             }
         }
         .accessibilityElement(children: .contain)
     }
 
-    private var scanMealSecondaryAction: some View {
-        Button(action: onScanMeal) {
-            HStack(spacing: FormaTokens.Spacing.sm) {
-                Image(systemName: FormaProductCopy.Today.QuickActions.symbolName(for: .scanFood))
-                    .font(.system(size: 18, weight: .semibold))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(FormaTokens.Theme.primary)
-                    .frame(width: 28)
-
-                Text(FormaProductCopy.Today.QuickActions.title(for: .scanFood))
-                    .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
-            }
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.sm)
-            .frame(maxWidth: .infinity, minHeight: FormaTokens.Layout.minTouchTarget)
-            .background(FormaCardChrome.background(.bordered))
-        }
-        .buttonStyle(TodayBorderedRowPressStyle())
-        .accessibilityLabel(FormaProductCopy.Today.QuickActions.title(for: .scanFood))
-        .accessibilityHint(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .scanFood))
-    }
-
-    private func primaryActionCard(
+    private func quickActionButton(
         title: String,
         symbolName: String,
-        action: @escaping () -> Void
+        isPrimary: Bool,
+        action: @escaping () -> Void,
+        accessibilityHint: String
     ) -> some View {
         Button(action: action) {
-            VStack(spacing: FormaTokens.Spacing.sm) {
+            VStack(spacing: FormaTokens.Spacing.xs) {
                 Image(systemName: symbolName)
-                    .font(.system(size: iconSize, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .foregroundStyle(isPrimary ? FormaTokens.Theme.textOnAccent : FormaTokens.Theme.primary)
 
                 Text(title)
-                    .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(isPrimary ? FormaTokens.Theme.textOnAccent : FormaTokens.Color.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
             }
             .frame(maxWidth: .infinity)
-            .frame(minHeight: primaryActionMinHeight)
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.md)
-            .background(FormaCardChrome.background(.accentLeading))
+            .frame(minHeight: 72)
+            .padding(.horizontal, FormaTokens.Spacing.sm)
+            .padding(.vertical, FormaTokens.Spacing.sm)
+            .background(
+                isPrimary
+                    ? FormaTokens.Theme.primaryButtonBackground
+                    : FormaCardChrome.background(.bordered)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous))
         }
         .buttonStyle(TodaySurfaceCardPressStyle())
+        .accessibilityLabel(title)
+        .accessibilityHint(accessibilityHint)
     }
 }
 
@@ -105,9 +120,27 @@ struct TodayQuickActionsSection: View {
     TodayQuickActionsSection(
         showsScanMeal: true,
         onLogMeal: {},
+        onAddWater: {},
+        onAskCoach: {},
+        onViewPlan: {},
         onScanMeal: {}
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Large text") {
+    TodayQuickActionsSection(
+        showsScanMeal: false,
+        onLogMeal: {},
+        onAddWater: {},
+        onAskCoach: {},
+        onViewPlan: {},
+        onScanMeal: {}
+    )
+    .padding(.horizontal, TodayLayout.horizontalPadding)
+    .dynamicTypeSize(.accessibility2)
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }

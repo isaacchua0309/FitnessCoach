@@ -299,7 +299,7 @@ final class TodayLoggingFlowCompositionTests: XCTestCase {
         )
         XCTAssertEqual(
             FormaProductCopy.Today.QuickActions.title(for: .logMeal),
-            "Log Meal"
+            "Log meal with Coach"
         )
         XCTAssertGreaterThan(state.macroHydration.waterSummary.targetMl, 0)
         XCTAssertEqual(
@@ -316,7 +316,7 @@ final class TodayLoggingFlowCompositionTests: XCTestCase {
     func testTodayDashboardDoesNotExposeManualEntryQuickAction() {
         XCTAssertEqual(
             FormaProductCopy.Today.QuickActions.title(for: .logMeal),
-            "Log Meal"
+            "Log meal with Coach"
         )
         XCTAssertFalse(
             FormaProductCopy.Today.QuickActions.logMealMicrocopy

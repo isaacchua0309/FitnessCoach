@@ -30,7 +30,7 @@ final class TodayQuickActionsTests: XCTestCase {
     func testQuickActionTitlesUseProductCopy() {
         XCTAssertEqual(
             FormaProductCopy.Today.QuickActions.title(for: .logMeal),
-            "Log Meal"
+            "Log meal with Coach"
         )
         XCTAssertEqual(
             FormaProductCopy.Today.QuickActions.title(for: .scanFood),
@@ -38,7 +38,7 @@ final class TodayQuickActionsTests: XCTestCase {
         )
         XCTAssertEqual(
             FormaProductCopy.Today.QuickActions.sectionTitle,
-            "Fast log"
+            "Quick actions"
         )
     }
 
