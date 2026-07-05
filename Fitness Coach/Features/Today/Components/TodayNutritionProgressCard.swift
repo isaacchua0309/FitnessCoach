@@ -11,12 +11,14 @@ struct TodayNutritionProgressCard: View {
     let macros: MacroSummary
     let water: WaterSummary
     let calorieSummary: CalorieSummary
+    var includesDedicatedWaterCard: Bool = true
 
     private var display: TodayNutritionProgressCardDisplayModel {
         TodayNutritionProgressFormatting.displayModel(
             macros: macros,
             water: water,
-            calorieSummary: calorieSummary
+            calorieSummary: calorieSummary,
+            includesDedicatedWaterCard: includesDedicatedWaterCard
         )
     }
 
