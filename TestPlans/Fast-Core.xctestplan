@@ -239,6 +239,8 @@
         "FoodMealDisplayNameFormatterTests",
         "FormaAIBackendClientTests",
         "FormaAbTestProductionCriticalFlagsTests",
+        "FormaAbTestProductionSnapshotTests",
+        "FormaAbTestResolvedSnapshotTests",
         "FormaCalculationEngineComprehensiveTests",
         "FormaCalculationEngineTests",
         "FormaCalculationGuardrailTests",

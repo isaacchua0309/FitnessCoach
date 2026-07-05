@@ -51,6 +51,30 @@ As of **2026-07-05**, most deliverables below are **implemented on stacked `curs
 
 ---
 
+## Definition of done
+
+PRDX Platform Infrastructure v1 is **complete on the integration branch** when every row below passes. **Shipped** additionally requires merge to `main` and green PRDX CI on `pull_request`.
+
+| Criterion | Status (branch stack) | Evidence |
+|-----------|----------------------|----------|
+| Fast-Core green locally **or** only external blocker documented | **External blocker documented** | Linux cloud agents lack Xcode/macOS simulators. Local/CI path: `./Scripts/run-fast-core-serial.sh` (iPhone 17 with fallback). BW-101/PH-001 resolved on branch; verify on macOS before merge. |
+| PR CI runs `functions` + iOS Fast-Core | **Pass** | `.github/workflows/prdx-ci.yml` — `functions` (lint + jest) and `ios-fast-core` (`xcodebuild test -testPlan Fast-Core -parallel-testing-enabled NO`) |
+| Feature flag **runtime** behavior unchanged | **Pass** | `FormaAbTest.resolvedSnapshot(for:)` returns `.allEnabled` for `.debug`, `.release`, `.test`; `FormaAbTestResolvedSnapshotTests` |
+| Release still resolves to `allEnabled` | **Pass** | `FormaAbTest.swift` + `testReleaseRuntimeSnapshotIsAllEnabledCompatible` / `testSnapshotWithoutOverrideRemainsAllEnabled` |
+| `productionIntent` snapshot exists and is tested | **Pass** | `FormaRuntimeEnvironment.productionIntent` → `FormaAbTestSnapshot.production`; `FormaAbTestProductionSnapshotTests`, `FormaAbTestResolvedSnapshotTests`; in `Fast-Core.xctestplan` |
+| `PRDX_V1_FLAG_MATRIX.md` exists | **Pass** | `Docs/Architecture/PRDX_V1_FLAG_MATRIX.md` |
+| Release logging: shared redaction + guard tests | **Pass** | `FormaLogRedactor.swift` (+ `LogRedactor` delegates); `ReleaseLoggingGuardTests` + `ReleaseLoggingAllowlist.json`; `FormaLogRedactorTests` in Fast-Core |
+| Analytics sink routing explicit | **Pass** | `FormaAnalyticsConfiguration`, `AnalyticsLoggerFactory` `configuration:` + `productionSink` closures; `CompositeAnalyticsLoggers.swift`; `AnalyticsInfrastructureTests` |
+| Release analytics defaults to NoOp | **Pass** | `FormaAnalyticsConfiguration.releaseDefault.isProductionSinkEnabled == false`; factory `productionSink: { nil }`; container wiring tests assert NoOp types |
+| `AppContainer+Construction.swift` ≤ 700 LOC via bundles | **Pass** | **145 LOC**; 10 files under `Fitness Coach/App/Dependencies/` |
+| `Settings.dataExportEnabled` removed only if unused | **Pass** | Zero Swift call sites (`rg dataExportEnabled` → guard test only); export via `AccountDataExportPolicy.isEnabled`; `FormaAbTestProductionSnapshotTests.testRemovedDataExportEnabledNotInSnapshotInventory` |
+| Docs + technical debt register updated | **Pass** | This doc; `PRDX_V1_FLAG_MATRIX.md`; `TechnicalDebtRegister.md` PRDX section; `TestCommandCheatsheet.md` / registers |
+| No user-visible behavior changed | **Pass** | No Release flag flip; NoOp analytics; DI extraction preserves `AppContainer` public API and init order; explicit non-goals honored |
+
+**Remaining gate to “shipped”:** merge integration branch (`cursor/finalize-appcontainer-construction-38a8`, PR #196) or full PR stack #180–#196 to `main`; confirm `ios-fast-core` job green on macOS runner.
+
+---
+
 ## P0 deliverables
 
 | Deliverable | Intent | Primary artifacts |
