@@ -196,21 +196,7 @@ enum HealthIntelligenceBaseline {
                 ctaTitle: "",
                 destination: .none,
                 priority: 1,
-                reason: .connectHealth,
-                createdAt: referenceDate,
-                expiresAt: nil
-            )
-        }
-
-        guard availability.hasTrainingReadAccess else {
-            return NextBestAction(
-                id: "connect-health",
-                title: "Connect Apple Health",
-                message: "Enable activity reads to improve plan confidence.",
-                ctaTitle: "",
-                destination: .none,
-                priority: 1,
-                reason: .connectHealth,
+                reason: .healthDataLimited,
                 createdAt: referenceDate,
                 expiresAt: nil
             )

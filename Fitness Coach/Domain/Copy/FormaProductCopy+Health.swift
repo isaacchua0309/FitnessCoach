@@ -347,6 +347,49 @@ extension FormaProductCopy {
             static let actionTitle = "Connect Apple Health"
         }
 
+        enum Integration {
+            struct ActionCopy: Equatable, Sendable {
+                let title: String
+                let message: String
+                let ctaTitle: String?
+            }
+
+            static let connectedNoData = ActionCopy(
+                title: "Apple Health connected",
+                message: "Waiting for today’s activity, sleep, or workout data.",
+                ctaTitle: "Refresh Health Data"
+            )
+
+            static let connectedPartial = ActionCopy(
+                title: "Health data limited",
+                message: "Some health signals are unavailable, but Apple Health is connected.",
+                ctaTitle: "Review permissions"
+            )
+
+            static func connectAction(for status: HealthIntegrationStatus) -> ActionCopy {
+                switch status {
+                case .permissionDenied:
+                    return ActionCopy(
+                        title: NoHealthPermission.title,
+                        message: "Turn on Apple Health access in Settings to sync activity and recovery.",
+                        ctaTitle: PartialHealthPermission.actionTitle
+                    )
+                case .notRequested, .unknown:
+                    return ActionCopy(
+                        title: NoHealthPermission.title,
+                        message: NoHealthPermission.message,
+                        ctaTitle: NoHealthPermission.actionTitle
+                    )
+                case .unavailableOnDevice, .connectedNoData, .connectedPartial, .connectedReady:
+                    return ActionCopy(
+                        title: NoHealthPermission.title,
+                        message: NoHealthPermission.message,
+                        ctaTitle: NoHealthPermission.actionTitle
+                    )
+                }
+            }
+        }
+
         enum PartialHealthPermission {
             static let title = "Some health signals are off"
             static let message =
