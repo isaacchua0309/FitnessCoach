@@ -9,18 +9,27 @@ import SwiftUI
 
 struct ThemeSettingsView: View {
 
-    @EnvironmentObject private var themeStore: ThemeStore
+    @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.colorScheme) private var systemColorScheme
 
     private var resolvedPreviewColorScheme: ColorScheme {
         ThemeResolver.resolveColorScheme(
-            appearance: themeStore.appearance,
+            appearance: themeManager.appearance,
             systemColorScheme: systemColorScheme
         )
     }
 
+    private var selectedThemeBinding: Binding<AppThemePalette> {
+        Binding(
+            get: { themeManager.selectedTheme },
+            set: { themeManager.setTheme($0) }
+        )
+    }
+
     var body: some View {
-        List {
+        let _ = themeManager.themeRevision
+
+        return List {
             appearanceSection
             livePreviewSection
             colorThemeSection
@@ -29,8 +38,9 @@ struct ThemeSettingsView: View {
         .navigationTitle(FormaProductCopy.Settings.Theme.screenTitle)
         .navigationBarTitleDisplayMode(.inline)
         .formaScrollBottomInset()
+        .formaThemeReactive()
         .onAppear {
-            themeStore.recordSettingsViewed()
+            themeManager.recordSettingsViewed()
         }
     }
 
@@ -48,8 +58,8 @@ struct ThemeSettingsView: View {
             ForEach(AppAppearanceMode.settingsSelectableCases) { mode in
                 ThemeAppearanceOptionRow(
                     mode: mode,
-                    isSelected: themeStore.appearance == mode,
-                    onSelect: { themeStore.setAppearance(mode) }
+                    isSelected: themeManager.appearance == mode,
+                    onSelect: { themeManager.setAppearance(mode) }
                 )
                 .formaSettingsRowChrome()
             }
@@ -62,8 +72,8 @@ struct ThemeSettingsView: View {
         Section {
             ThemeSettingsLivePreview()
                 .formaThemeReactive()
-                .animation(.easeInOut(duration: 0.22), value: themeStore.palette)
-                .animation(.easeInOut(duration: 0.22), value: themeStore.appearance)
+                .animation(.easeInOut(duration: 0.22), value: themeManager.selectedTheme)
+                .animation(.easeInOut(duration: 0.22), value: themeManager.appearance)
                 .formaFormSection()
         } header: {
             FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.livePreviewSectionTitle)
@@ -91,8 +101,7 @@ struct ThemeSettingsView: View {
                             for: palette,
                             colorScheme: resolvedPreviewColorScheme
                         ),
-                        isSelected: themeStore.palette == palette,
-                        onSelect: { selectPalette(palette) }
+                        onSelect: { selectTheme(palette) }
                     )
                 }
             }
@@ -101,12 +110,13 @@ struct ThemeSettingsView: View {
         } header: {
             FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.colorThemeSectionTitle)
         }
+        .animation(.easeInOut(duration: 0.18), value: selectedThemeBinding.wrappedValue)
     }
 
-    private func selectPalette(_ palette: AppThemePalette) {
-        guard themeStore.palette != palette else { return }
+    private func selectTheme(_ palette: AppThemePalette) {
+        guard themeManager.selectedTheme != palette else { return }
         ThemeSettingsHaptics.selectionChanged()
-        themeStore.setTheme(palette)
+        themeManager.setTheme(palette)
     }
 }
 
@@ -175,7 +185,6 @@ private struct ThemeAppearanceOptionRow: View {
 private struct ThemePremiumPickerCard: View {
     let palette: AppThemePalette
     let preview: ThemePalette
-    let isSelected: Bool
     let onSelect: () -> Void
 
     @EnvironmentObject private var themeManager: ThemeManager
@@ -185,6 +194,10 @@ private struct ThemePremiumPickerCard: View {
 
     private let cardCornerRadius = FormaCardChrome.cornerRadius
     private let previewCornerRadius: CGFloat = 10
+
+    private var isSelected: Bool {
+        themeManager.selectedTheme == palette
+    }
 
     private var resolvedMinCardHeight: CGFloat {
         max(minCardHeight, ThemeSettingsPickerAccessibility.minimumCardTouchTarget)
@@ -354,7 +367,7 @@ private struct ThemeSettingsPreviewHost: View {
         let defaults = UserDefaults(suiteName: "ThemeSettingsPreview.\(UUID().uuidString)")!
         let store = ThemeStore(userDefaults: defaults)
         store.setAppearance(appearance)
-        store.setPalette(palette)
+        store.setTheme(palette)
         _store = StateObject(wrappedValue: store)
     }
 

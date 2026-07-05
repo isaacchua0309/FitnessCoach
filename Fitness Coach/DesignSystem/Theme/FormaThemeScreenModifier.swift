@@ -12,6 +12,7 @@ struct FormaRootThemeModifier: ViewModifier {
     @Environment(\.colorScheme) private var systemColorScheme
 
     func body(content: Content) -> some View {
+        let _ = themeStore.themeRevision
         let state = FormaThemeRootState.make(store: themeStore, systemColorScheme: systemColorScheme)
         let theme = ThemeTokensProvider.tokens(from: state.resolved)
         FormaThemeAccess.update(resolved: state.resolved)

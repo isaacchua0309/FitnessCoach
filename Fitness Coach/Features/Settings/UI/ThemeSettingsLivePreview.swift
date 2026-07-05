@@ -9,6 +9,7 @@ import SwiftUI
 
 /// Non-interactive sample of production-themed controls. Reads active `FormaTokens` only.
 struct ThemeSettingsLivePreview: View {
+    @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.formaResolvedTheme) private var resolvedTheme
 
     private let sampleProgress = 0.68
@@ -16,6 +17,7 @@ struct ThemeSettingsLivePreview: View {
     private let ringLineWidth: CGFloat = 4
 
     var body: some View {
+        let _ = themeManager.themeRevision
         let _ = resolvedTheme.preferences.palette
         return VStack(spacing: FormaTokens.Spacing.sm) {
             HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {

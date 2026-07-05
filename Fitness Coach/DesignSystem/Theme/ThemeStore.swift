@@ -20,12 +20,7 @@ typealias ThemeManager = ThemeStore
 @MainActor
 final class ThemeStore: ObservableObject {
 
-    @Published private(set) var preferences: AppThemePreferences {
-        didSet {
-            themeRevision &+= 1
-            persist()
-        }
-    }
+    @Published private(set) var preferences: AppThemePreferences
 
     /// Bumps whenever palette or appearance changes so root injection can invalidate stale UI.
     @Published private(set) var themeRevision: UInt = 0
@@ -79,7 +74,7 @@ final class ThemeStore: ObservableObject {
         let previous = preferences.appearance
         var updated = preferences
         updated.appearance = mode
-        preferences = updated
+        commitPreferences(updated)
         analyticsLogger.log(
             .appearanceModeChanged,
             properties: .appearanceChange(previous: previous, new: mode)
@@ -92,11 +87,11 @@ final class ThemeStore: ObservableObject {
 
     /// Updates the selected color theme, persists to UserDefaults, and notifies all observers.
     func setTheme(_ theme: AppThemePalette) {
-        guard preferences.palette != theme else { return }
+        guard selectedTheme != theme else { return }
         let previous = preferences.palette
         var updated = preferences
         updated.palette = theme
-        preferences = updated
+        commitPreferences(updated)
         analyticsLogger.log(
             .paletteChanged,
             properties: .paletteChange(previous: previous, new: theme)
@@ -138,6 +133,12 @@ final class ThemeStore: ObservableObject {
     }
 
     // MARK: - Persistence
+
+    private func commitPreferences(_ updated: AppThemePreferences) {
+        preferences = updated
+        themeRevision &+= 1
+        persist()
+    }
 
     private func persist() {
         preferences.write(to: userDefaults)
