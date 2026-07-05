@@ -125,6 +125,10 @@ final class PlanEditThemeWiringGuardTests: XCTestCase {
             source.contains(".confirmationDialog("),
             "Adjust Plan discard confirmation must use the themed overlay, not confirmationDialog"
         )
+        XCTAssertTrue(
+            source.contains("discardConfirmationState"),
+            "Cancel routing should use the shared discard confirmation state"
+        )
     }
 
     private func repoRootURL() throws -> URL {

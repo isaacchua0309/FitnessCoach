@@ -18,3 +18,27 @@ enum PlanEditDiscardConfirmationPolicy {
         hasUnsavedChanges ? .presentConfirmation : .dismissImmediately
     }
 }
+
+struct PlanEditDiscardConfirmationState: Equatable {
+
+    private(set) var isShowingConfirmation = false
+
+    @discardableResult
+    mutating func handleCancelRequest(hasUnsavedChanges: Bool) -> PlanEditDiscardConfirmationPolicy.CancelRequestAction {
+        let action = PlanEditDiscardConfirmationPolicy.cancelRequestAction(
+            hasUnsavedChanges: hasUnsavedChanges
+        )
+        if action == .presentConfirmation {
+            isShowingConfirmation = true
+        }
+        return action
+    }
+
+    mutating func keepEditing() {
+        isShowingConfirmation = false
+    }
+
+    mutating func dismissConfirmation() {
+        isShowingConfirmation = false
+    }
+}

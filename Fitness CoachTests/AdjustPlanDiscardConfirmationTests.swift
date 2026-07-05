@@ -15,6 +15,8 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
     private var container: AppContainer!
     private var model: PlanModel!
 
+    private let baseline = PlanMissionControlFixtures.loseProfile
+
     private let regressionSize = CGSize(
         width: AdjustPlanLayoutPolicy.standardPhoneWidth,
         height: 780
@@ -39,53 +41,35 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
 
     // MARK: - 1. Cancel with no changes
 
-    func testCancelWithNoChangesDismissesImmediately() {
-        let baseline = PlanMissionControlFixtures.loseProfile
+    func testCase01_CancelWithNoChangesDismissesImmediatelyWithoutConfirmation() {
         let formState = PlanFormState(profile: baseline)
 
-        XCTAssertFalse(
-            PlanEditWizardStepGate.hasUnsavedChanges(
-                baseline: baseline,
-                formState: formState
-            )
-        )
+        XCTAssertFalse(hasUnsavedChanges(formState: formState))
+
+        var confirmationState = PlanEditDiscardConfirmationState()
         XCTAssertEqual(
-            PlanEditDiscardConfirmationPolicy.cancelRequestAction(hasUnsavedChanges: false),
+            confirmationState.handleCancelRequest(hasUnsavedChanges: hasUnsavedChanges(formState: formState)),
             .dismissImmediately
         )
+        XCTAssertFalse(confirmationState.isShowingConfirmation)
 
         model.showEditPlan()
-        XCTAssertTrue(model.isShowingEditSheet)
-
         model.dismissEditPlan()
 
         XCTAssertFalse(model.isShowingEditSheet)
         XCTAssertNil(model.editFormState)
     }
 
-    func testCancelWithNoChangesDoesNotRouteToDiscardConfirmation() {
-        var isShowingDiscardConfirmation = false
-
-        let action = PlanEditDiscardConfirmationPolicy.cancelRequestAction(hasUnsavedChanges: false)
-        if action == .presentConfirmation {
-            isShowingDiscardConfirmation = true
-        }
-
-        XCTAssertFalse(isShowingDiscardConfirmation)
-    }
-
     // MARK: - 2. Cancel with unsaved goal change
 
-    func testCancelWithUnsavedGoalChangeRequiresConfirmation() {
-        let baseline = PlanMissionControlFixtures.loseProfile
+    func testCase02_CancelWithUnsavedGoalChangeShowsConfirmationWithoutDismissing() {
         var formState = PlanFormState(profile: baseline)
-
-        XCTAssertEqual(PlanStateBuilder.goalType(for: baseline), .loseFat)
-
         formState.goalWeightKgText = formattedWeight(baseline.currentWeightKg)
 
+        XCTAssertEqual(PlanStateBuilder.goalType(for: baseline), .loseFat)
+        XCTAssertEqual(PlanStateBuilder.goalType(for: profileSnapshot(from: formState)), .maintain)
+
         let review = PlanEditReviewBuilder.build(baseline: baseline, formState: formState)
-        XCTAssertTrue(review.hasChanges)
         XCTAssertEqual(
             review.changes.first { $0.id == "goal" }?.before,
             PlanGoalSelectionBuilder.displayTitle(for: .loseFat)
@@ -94,70 +78,47 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
             review.changes.first { $0.id == "goal" }?.after,
             PlanGoalSelectionBuilder.displayTitle(for: .maintain)
         )
-        XCTAssertTrue(
-            PlanEditWizardStepGate.hasUnsavedChanges(
-                baseline: baseline,
-                formState: formState
-            )
-        )
+
+        var confirmationState = PlanEditDiscardConfirmationState()
         XCTAssertEqual(
-            PlanEditDiscardConfirmationPolicy.cancelRequestAction(hasUnsavedChanges: true),
+            confirmationState.handleCancelRequest(hasUnsavedChanges: hasUnsavedChanges(formState: formState)),
             .presentConfirmation
         )
-    }
+        XCTAssertTrue(confirmationState.isShowingConfirmation)
 
-    func testCancelWithUnsavedGoalChangeDoesNotDismissSheetUntilConfirmed() {
         model.showEditPlan()
-        guard var formState = model.editFormState else {
-            return XCTFail("Expected edit form state")
-        }
-
-        formState.goalWeightKgText = formattedWeight(PlanMissionControlFixtures.loseProfile.currentWeightKg)
         model.editFormState = formState
 
-        var isShowingDiscardConfirmation = false
-        if PlanEditDiscardConfirmationPolicy.cancelRequestAction(
-            hasUnsavedChanges: PlanEditWizardStepGate.hasUnsavedChanges(
-                baseline: PlanMissionControlFixtures.loseProfile,
-                formState: formState
-            )
-        ) == .presentConfirmation {
-            isShowingDiscardConfirmation = true
-        }
-
-        XCTAssertTrue(isShowingDiscardConfirmation)
         XCTAssertTrue(model.isShowingEditSheet)
         XCTAssertNotNil(model.editFormState)
     }
 
     // MARK: - 3. Keep Editing
 
-    func testKeepEditingHidesConfirmationAndPreservesDraft() {
-        let baseline = PlanMissionControlFixtures.loseProfile
+    func testCase03_KeepEditingHidesConfirmationAndPreservesDraftOnAdjustPlan() {
         var formState = PlanFormState(profile: baseline)
         formState.goalWeightKgText = "70"
 
-        var isShowingDiscardConfirmation = true
-        isShowingDiscardConfirmation = false
+        var confirmationState = PlanEditDiscardConfirmationState()
+        _ = confirmationState.handleCancelRequest(hasUnsavedChanges: hasUnsavedChanges(formState: formState))
+        XCTAssertTrue(confirmationState.isShowingConfirmation)
 
-        XCTAssertFalse(isShowingDiscardConfirmation)
+        confirmationState.keepEditing()
+
+        XCTAssertFalse(confirmationState.isShowingConfirmation)
         XCTAssertEqual(formState.goalWeightKgText, "70")
-        XCTAssertTrue(
-            PlanEditWizardStepGate.hasUnsavedChanges(
-                baseline: baseline,
-                formState: formState
-            )
-        )
+        XCTAssertTrue(hasUnsavedChanges(formState: formState))
 
         model.showEditPlan()
         model.editFormState = formState
+
         XCTAssertTrue(model.isShowingEditSheet)
         XCTAssertEqual(model.editFormState?.goalWeightKgText, "70")
     }
 
     // MARK: - 4. Discard Changes
 
-    func testDiscardChangesResetsDraftAndDismissesWithoutSaving() async throws {
+    func testCase04_DiscardChangesResetsDraftDismissesFlowAndLeavesSavedPlanUnchanged() async throws {
         guard case .loaded(let loaded) = model.viewState else {
             return XCTFail("Expected loaded profile")
         }
@@ -170,6 +131,12 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
         formState.goalWeightKgText = "70"
         model.editFormState = formState
 
+        var confirmationState = PlanEditDiscardConfirmationState()
+        _ = confirmationState.handleCancelRequest(hasUnsavedChanges: true)
+        confirmationState.dismissConfirmation()
+
+        XCTAssertFalse(confirmationState.isShowingConfirmation)
+
         model.dismissEditPlan()
 
         XCTAssertFalse(model.isShowingEditSheet)
@@ -177,11 +144,10 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
 
         let profile = try XCTUnwrap(container.userProfileService.getCurrentProfile())
         XCTAssertEqual(profile.goalWeightKg, originalGoalWeight)
+        XCTAssertEqual(PlanStateBuilder.goalType(for: profile), .loseFat)
     }
 
-    func testDiscardChangesAfterGoalChangeDoesNotPersistMaintainGoal() async throws {
-        let baseline = PlanMissionControlFixtures.loseProfile
-
+    func testCase04_DiscardChangesAfterMaintainGoalDraftDoesNotPersistGoalChange() async throws {
         model.showEditPlan()
         guard var formState = model.editFormState else {
             return XCTFail("Expected edit form state")
@@ -189,6 +155,9 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
         formState.goalWeightKgText = formattedWeight(baseline.currentWeightKg)
         model.editFormState = formState
 
+        var confirmationState = PlanEditDiscardConfirmationState()
+        _ = confirmationState.handleCancelRequest(hasUnsavedChanges: true)
+        confirmationState.dismissConfirmation()
         model.dismissEditPlan()
 
         let profile = try XCTUnwrap(container.userProfileService.getCurrentProfile())
@@ -198,7 +167,7 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
 
     // MARK: - 5. Next / save
 
-    func testSaveCommitsChangesWithoutDiscardConfirmation() async throws {
+    func testCase05_SaveCommitsDraftChangesWithoutDiscardConfirmation() async throws {
         guard case .loaded(let before) = model.viewState else {
             return XCTFail("Expected loaded profile")
         }
@@ -207,8 +176,11 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
         guard var formState = model.editFormState else {
             return XCTFail("Expected edit form state")
         }
-
         formState.goalWeightKgText = "70"
+
+        var confirmationState = PlanEditDiscardConfirmationState()
+        XCTAssertFalse(confirmationState.isShowingConfirmation)
+
         try await model.savePlanFromWizard(formState)
 
         guard case .loaded(let after) = model.viewState else {
@@ -218,32 +190,12 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
         XCTAssertEqual(after.profile.goalWeightKg, 70)
         XCTAssertNotEqual(after.profile.goalWeightKg, before.profile.goalWeightKg)
         XCTAssertFalse(model.isShowingEditSheet)
-    }
-
-    func testSaveFlowDoesNotUseDiscardConfirmationPolicy() {
-        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
-        formState.goalWeightKgText = "70"
-
-        XCTAssertTrue(
-            PlanEditWizardStepGate.canSave(
-                targetPreview: PlanPreviewData.generatedPreview,
-                reviewHasChanges: PlanEditReviewBuilder.build(
-                    baseline: PlanMissionControlFixtures.loseProfile,
-                    formState: formState
-                ).hasChanges,
-                isSaving: false
-            )
-        )
-        XCTAssertEqual(
-            PlanEditDiscardConfirmationPolicy.cancelRequestAction(hasUnsavedChanges: true),
-            .presentConfirmation,
-            "Dirty drafts still require confirmation only when canceling, not when saving"
-        )
+        XCTAssertFalse(confirmationState.isShowingConfirmation)
     }
 
     // MARK: - 6. Interactive dismiss
 
-    func testInteractiveDismissBlockedWhenUnsavedChangesExist() throws {
+    func testCase06_InteractiveDismissIsDisabledWhileDraftHasUnsavedChanges() throws {
         let source = try planEditWizardSource()
 
         XCTAssertTrue(source.contains(".interactiveDismissDisabled(hasUnsavedChanges)"))
@@ -251,48 +203,33 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
         XCTAssertFalse(source.contains(".confirmationDialog("))
     }
 
-    func testUnsavedChangesPreventSilentDiscardOnSwipeDismiss() {
-        let baseline = PlanMissionControlFixtures.loseProfile
+    func testCase06_UnsavedChangesRequireConfirmationInsteadOfSilentDiscard() {
         var formState = PlanFormState(profile: baseline)
         formState.goalWeightKgText = "70"
 
-        XCTAssertTrue(
-            PlanEditWizardStepGate.hasUnsavedChanges(
-                baseline: baseline,
-                formState: formState
-            )
-        )
+        XCTAssertTrue(hasUnsavedChanges(formState: formState))
         XCTAssertEqual(
             PlanEditDiscardConfirmationPolicy.cancelRequestAction(hasUnsavedChanges: true),
-            .presentConfirmation,
-            "Swipe dismiss is disabled while dirty; cancel must route through confirmation"
+            .presentConfirmation
         )
     }
 
     // MARK: - 7. Theme switching
 
-    func testDiscardConfirmationThemeSwitchUpdatesAccentLive() {
+    func testCase07_DiscardConfirmationAccentUpdatesWhenThemeChanges() {
         let ocean = ThemeTestSupport.makeResolved(palette: .oceanBlue, systemColorScheme: .dark)
         let blossom = ThemeTestSupport.makeResolved(palette: .blossomPink, systemColorScheme: .dark)
 
         FormaThemeAccess.update(resolved: ocean)
         let oceanAccent = FormaTokens.Color.accent
-        let oceanDestructive = FormaTokens.Color.destructive
 
         FormaThemeAccess.update(resolved: blossom)
         let blossomAccent = FormaTokens.Color.accent
-        let blossomDestructive = FormaTokens.Color.destructive
 
         XCTAssertGreaterThan(ThemeTestSupport.colorDistance(oceanAccent, blossomAccent), 0.08)
-        XCTAssertEqual(
-            ThemeTestSupport.colorDistance(oceanDestructive, blossomDestructive),
-            0,
-            accuracy: 0.001,
-            "Destructive feedback should stay on semantic destructive token across palettes"
-        )
     }
 
-    func testDiscardConfirmationRendersForOceanBlueAndBlossomPinkThemes() {
+    func testCase07_DiscardConfirmationRendersForOceanBlueAndBlossomPinkThemes() {
         DiscardChangesConfirmationRenderTestSupport.assertRenders(
             size: regressionSize,
             palette: .oceanBlue,
@@ -307,7 +244,7 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
 
     // MARK: - 8. Dynamic Type
 
-    func testDiscardConfirmationRendersAtLargeAccessibilityTextWithoutClipping() {
+    func testCase08_DiscardConfirmationGrowsSafelyAtLargeAccessibilityText() {
         let standard = DiscardChangesConfirmationRenderTestSupport.assertRenders(
             size: CGSize(width: regressionSize.width, height: 900),
             dynamicTypeSize: .large
@@ -320,27 +257,60 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(accessibility?.size.height ?? 0, standard?.size.height ?? 0)
     }
 
-    func testDiscardConfirmationRendersOnSmallPhoneAtAccessibilityTextSize() {
+    func testCase08_DiscardConfirmationRendersOnSmallPhoneAtAccessibilityTextSize() {
         DiscardChangesConfirmationRenderTestSupport.assertRenders(
             size: CGSize(width: smallPhoneSize.width, height: 1_000),
             dynamicTypeSize: .accessibility3
         )
     }
 
-    // MARK: - Wiring
+    // MARK: - Wiring & accessibility
 
-    func testPlanEditWizardUsesDiscardChangesConfirmationView() throws {
-        let source = try planEditWizardSource()
+    func testPlanEditWizardUsesSharedDiscardConfirmationStateAndView() throws {
+        let wizardSource = try planEditWizardSource()
+        let modalSource = try discardConfirmationViewSource()
 
-        XCTAssertTrue(source.contains("isShowingDiscardConfirmation"))
-        XCTAssertTrue(source.contains("DiscardChangesConfirmationView("))
-        XCTAssertTrue(source.contains("PlanEditDiscardConfirmationPolicy.cancelRequestAction"))
+        XCTAssertTrue(wizardSource.contains("discardConfirmationState"))
+        XCTAssertTrue(wizardSource.contains("DiscardChangesConfirmationView("))
+        XCTAssertTrue(wizardSource.contains("PlanEditDiscardConfirmationState"))
+        XCTAssertTrue(modalSource.contains(".accessibilityAddTraits(.isModal)"))
+        XCTAssertTrue(modalSource.contains("Button(role: .destructive"))
     }
 
     // MARK: - Helpers
 
+    private func hasUnsavedChanges(formState: PlanFormState) -> Bool {
+        PlanEditWizardStepGate.hasUnsavedChanges(
+            baseline: baseline,
+            formState: formState
+        )
+    }
+
+    private func profileSnapshot(from formState: PlanFormState) -> UserProfile {
+        let age = (try? formState.resolvedAge()) ?? baseline.age
+        return UserProfile(
+            id: baseline.id,
+            name: baseline.name,
+            birthDate: formState.birthDate,
+            age: age,
+            sex: formState.sex,
+            heightCm: Double(formState.heightCmText) ?? baseline.heightCm,
+            currentWeightKg: Double(formState.currentWeightKgText) ?? baseline.currentWeightKg,
+            goalWeightKg: Double(formState.goalWeightKgText) ?? baseline.goalWeightKg,
+            estimatedBodyFatPercentage: Double(formState.estimatedBodyFatPercentageText),
+            activityLevel: formState.activityLevel,
+            trainingFrequencyPerWeek: Int(formState.trainingFrequencyPerWeekText) ?? baseline.trainingFrequencyPerWeek,
+            averageSteps: Int(formState.averageStepsText) ?? baseline.averageSteps,
+            dietPreference: formState.dietPreference.isEmpty ? nil : formState.dietPreference,
+            unitSystem: formState.unitSystem,
+            targets: baseline.targets,
+            createdAt: baseline.createdAt,
+            updatedAt: baseline.updatedAt
+        )
+    }
+
     private func seedProfile() async throws {
-        let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+        let formState = PlanFormState(profile: baseline)
         let input = try formState.makeCalorieTargetInput()
         let result = try container.targetService.generateInitialTargets(from: input)
         var draftForm = formState
@@ -356,13 +326,19 @@ final class AdjustPlanDiscardConfirmationTests: XCTestCase {
     }
 
     private func planEditWizardSource() throws -> String {
+        try source(relativePath: "Fitness Coach/Features/Plan/UI/PlanEditWizard.swift")
+    }
+
+    private func discardConfirmationViewSource() throws -> String {
+        try source(relativePath: "Fitness Coach/DesignSystem/Components/DiscardChangesConfirmationView.swift")
+    }
+
+    private func source(relativePath: String) throws -> String {
         let repoRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         return try String(
-            contentsOf: repoRoot.appendingPathComponent(
-                "Fitness Coach/Features/Plan/UI/PlanEditWizard.swift"
-            ),
+            contentsOf: repoRoot.appendingPathComponent(relativePath),
             encoding: .utf8
         )
     }

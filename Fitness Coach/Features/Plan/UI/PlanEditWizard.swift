@@ -29,7 +29,7 @@ struct PlanEditWizard: View {
     @State private var showExpertAdjustments = false
     @State private var targetPreview: CalorieTargetResult?
     @State private var didInitialize = false
-    @State private var isShowingDiscardConfirmation = false
+    @State private var discardConfirmationState = PlanEditDiscardConfirmationState()
     @State private var isStepTransitionInFlight = false
     @State private var stepTransitionGeneration = 0
 
@@ -77,17 +77,17 @@ struct PlanEditWizard: View {
                 }
             }
             .overlay {
-                if saveSuccessState == nil, isShowingDiscardConfirmation {
+                if saveSuccessState == nil, discardConfirmationState.isShowingConfirmation {
                     DiscardChangesConfirmationView(
                         title: FormaProductCopy.PlanEditWizardCopy.discardChangesTitle,
                         message: FormaProductCopy.PlanEditWizardCopy.discardChangesMessage,
                         keepEditingTitle: FormaProductCopy.PlanEditWizardCopy.keepEditing,
                         discardTitle: FormaProductCopy.PlanEditWizardCopy.discardChanges,
                         onKeepEditing: {
-                            isShowingDiscardConfirmation = false
+                            discardConfirmationState.keepEditing()
                         },
                         onDiscard: {
-                            isShowingDiscardConfirmation = false
+                            discardConfirmationState.dismissConfirmation()
                             discardDraftChanges()
                         }
                     )
@@ -96,7 +96,7 @@ struct PlanEditWizard: View {
             }
             .animation(
                 PlanEditMotion.animation(PlanEditMotion.modalPresentation, reduceMotion: reduceMotion),
-                value: isShowingDiscardConfirmation
+                value: discardConfirmationState.isShowingConfirmation
             )
             .formaThemeReactive()
         }
@@ -600,13 +600,13 @@ struct PlanEditWizard: View {
     }
 
     private func requestCancel() {
-        switch PlanEditDiscardConfirmationPolicy.cancelRequestAction(
+        switch discardConfirmationState.handleCancelRequest(
             hasUnsavedChanges: hasUnsavedChanges
         ) {
         case .dismissImmediately:
             dismissAdjustPlan()
         case .presentConfirmation:
-            isShowingDiscardConfirmation = true
+            break
         }
     }
 
