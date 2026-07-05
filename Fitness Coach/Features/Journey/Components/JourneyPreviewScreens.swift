@@ -25,7 +25,7 @@ enum JourneyPreviewScreens {
         onConnectHealth: {}
       )
     }
-    .formaMainTabScrollInsets()
+    .formaJourneyScrollInsets()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview(palette: palette)
     .navigationTitle(FormaProductCopy.Journey.Header.title)

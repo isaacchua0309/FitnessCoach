@@ -12,32 +12,29 @@ struct JourneyNextActionCard: View {
     var onCTA: ((WeeklyProgressCTA) -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
-            JourneySectionLabel(title: state.sectionTitle)
+        JourneyCard(elevation: .featured) {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                Text(state.title)
+                    .font(JourneyTypography.cardHeadline)
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
 
-            JourneyCard(elevation: .featured) {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                    Text(state.title)
-                        .font(JourneyTypography.cardHeadline)
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
+                Text(state.progressLabel)
+                    .font(JourneyTypography.metricValue)
+                    .foregroundStyle(FormaTokens.Theme.primary)
 
-                    Text(state.progressLabel)
-                        .font(JourneyTypography.metricValue)
-                        .foregroundStyle(FormaTokens.Theme.primary)
+                Text(state.detail)
+                    .font(JourneyTypography.cardSupporting)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                    Text(state.detail)
-                        .font(JourneyTypography.cardSupporting)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    if let cta = state.cta, let onCTA {
-                        WeeklyProgressCTAButton(cta: cta, prominence: .primary) {
-                            onCTA(cta)
-                        }
-                        .padding(.top, JourneyLayout.compactSpacing)
+                if let cta = state.cta, let onCTA {
+                    WeeklyProgressCTAButton(cta: cta, prominence: .primary) {
+                        onCTA(cta)
                     }
+                    .padding(.top, JourneyLayout.compactSpacing)
                 }
             }
         }

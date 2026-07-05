@@ -223,9 +223,20 @@ enum JourneyRevampQAChecklistSupport {
         )
 
         XCTAssertGreaterThan(contentWidth, 280, file: file, line: line)
-        XCTAssertGreaterThan(FormaMainTabLayout.scrollBottomInset, FormaMainTabLayout.scrollContentBottomPadding)
-        XCTAssertGreaterThanOrEqual(JourneyLayout.scrollBottomContentPadding, FormaTokens.Spacing.md)
-        XCTAssertGreaterThan(JourneyLayout.sectionSpacing, FormaTokens.Spacing.sm)
+
+        let journeyInset = JourneyLayout.scrollBottomInset(
+            bottomSafeArea: FormaTokens.Layout.homeIndicatorSafeAreaEstimate,
+            dynamicTypeSize: .large
+        )
+        XCTAssertGreaterThan(
+            journeyInset,
+            FormaTokens.Layout.floatingTabBarHeight + FormaTokens.Layout.homeIndicatorSafeAreaEstimate,
+            file: file,
+            line: line
+        )
+        XCTAssertGreaterThanOrEqual(JourneyLayout.tabBarBreathingRoom, FormaTokens.Spacing.lg, file: file, line: line)
+        XCTAssertGreaterThanOrEqual(JourneyLayout.scrollBottomContentPadding, FormaTokens.Spacing.sm, file: file, line: line)
+        XCTAssertGreaterThan(JourneyLayout.sectionSpacing, FormaTokens.Spacing.sm, file: file, line: line)
     }
 
     private static func allCopyStrings(from dashboard: JourneyDashboardState) -> String {

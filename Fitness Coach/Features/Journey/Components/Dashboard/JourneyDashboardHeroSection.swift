@@ -30,6 +30,7 @@ struct JourneyDashboardHeroSection: View {
                 Text(state.encouragingSentence)
                     .font(JourneyTypography.cardSupporting)
                     .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityHidden(true)
 

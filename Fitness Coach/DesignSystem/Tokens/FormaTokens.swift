@@ -165,9 +165,18 @@ enum FormaTokens {
         static let floatingTabBarHeight: CGFloat = 56
         /// Gap between the last scroll content and the floating tab bar.
         static let floatingTabBarBreathingRoom: CGFloat = Spacing.sm
+        /// Typical home-indicator safe area for layout math when runtime inset is unavailable.
+        static let homeIndicatorSafeAreaEstimate: CGFloat = 34
         /// `safeAreaInset` clearance for tab-root scroll views (bar + breathing room).
         static var mainTabScrollBottomInset: CGFloat {
             floatingTabBarHeight + floatingTabBarBreathingRoom
+        }
+        /// Tab-bar clearance for dense Journey card stacks (bar + safe area + breathing room).
+        static func journeyScrollBottomInset(
+            bottomSafeArea: CGFloat,
+            breathingRoom: CGFloat = Spacing.xl
+        ) -> CGFloat {
+            floatingTabBarHeight + bottomSafeArea + breathingRoom
         }
         /// Padding below the last content block inside tab-root scroll views.
         static let mainTabScrollContentPadding: CGFloat = Spacing.xs

@@ -15,7 +15,7 @@ struct JourneyProgressSection: View {
         VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
             JourneySectionLabel(title: state.sectionTitle)
 
-            JourneyCard(elevation: .standard) {
+            JourneyCard(elevation: .quiet) {
                 VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
                     ForEach(Array(state.rows.enumerated()), id: \.element.id) { index, row in
                         if index > 0 {
@@ -72,6 +72,12 @@ struct JourneyProgressRowView: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
+            statusSymbol
+                .font(JourneyTypography.cardSupporting.weight(.semibold))
+                .foregroundStyle(symbolColor)
+                .frame(width: 14, alignment: .center)
+                .accessibilityHidden(true)
+
             Text(row.title)
                 .font(JourneyTypography.cardSupporting)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
@@ -85,6 +91,28 @@ struct JourneyProgressRowView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(row.accessibilityLabel)
+    }
+
+    private var statusSymbol: Text {
+        switch row.status {
+        case .ready:
+            return Text("✓")
+        case .building:
+            return Text("◐")
+        case .notStarted, .limited:
+            return Text("○")
+        }
+    }
+
+    private var symbolColor: Color {
+        switch row.status {
+        case .ready:
+            return FormaTokens.Theme.primary
+        case .building:
+            return FormaTokens.Color.textSecondary
+        case .notStarted, .limited:
+            return FormaTokens.Color.textTertiary
+        }
     }
 
     private var valueColor: Color {

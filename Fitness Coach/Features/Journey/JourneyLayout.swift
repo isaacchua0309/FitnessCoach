@@ -36,6 +36,78 @@ enum JourneyLayout {
     static let progressBarHeight: CGFloat = 6
     static let heroProgressBarHeight: CGFloat = 8
 
-    /// Padding below the last Journey section (pairs with `formaMainTabScrollInsets`).
-    static let scrollBottomContentPadding = FormaTokens.Spacing.lg
+    // MARK: Tab bar clearance
+
+    /// Gap between the last Journey card and the floating tab bar (24–32pt target).
+    static let tabBarBreathingRoom = FormaTokens.Spacing.xl
+
+    /// Reserved scroll height above the floating tab bar for Journey (`safeAreaInset`).
+    static func scrollBottomInset(
+        bottomSafeArea: CGFloat,
+        dynamicTypeSize: DynamicTypeSize
+    ) -> CGFloat {
+        let base = FormaTokens.Layout.journeyScrollBottomInset(
+            bottomSafeArea: bottomSafeArea,
+            breathingRoom: tabBarBreathingRoom
+        )
+        if dynamicTypeSize >= .accessibility3 {
+            return base + FormaTokens.Spacing.md
+        }
+        if dynamicTypeSize >= .accessibility1 {
+            return base + FormaTokens.Spacing.xs
+        }
+        return base
+    }
+
+    /// Small padding below the last Journey section before the inset zone begins.
+    static let scrollBottomContentPadding = FormaTokens.Spacing.sm
+}
+
+// MARK: - Journey scroll inset
+
+private struct JourneyBottomSafeAreaKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct FormaJourneyScrollInsetModifier: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var bottomSafeArea: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                GeometryReader { proxy in
+                    Color.clear
+                        .preference(
+                            key: JourneyBottomSafeAreaKey.self,
+                            value: proxy.safeAreaInsets.bottom
+                        )
+                }
+            }
+            .onPreferenceChange(JourneyBottomSafeAreaKey.self) { bottomSafeArea = $0 }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear
+                    .frame(
+                        height: JourneyLayout.scrollBottomInset(
+                            bottomSafeArea: bottomSafeArea,
+                            dynamicTypeSize: dynamicTypeSize
+                        )
+                    )
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+    }
+}
+
+extension View {
+    /// Reserves Journey-specific scroll clearance above the floating tab bar.
+    /// Uses tab bar height + bottom safe area + breathing room; do not stack with
+    /// `formaMainTabScrollInsets()`.
+    func formaJourneyScrollInsets() -> some View {
+        modifier(FormaJourneyScrollInsetModifier())
+    }
 }

@@ -16,7 +16,7 @@ struct JourneyHighlightsSection: View {
             JourneySectionLabel(title: FormaProductCopy.Journey.Dashboard.Highlights.sectionTitle)
 
             JourneyHealthIntelligenceLoadingCard(isLoading: isLoading || state.phase == .loading) {
-                JourneyCard(elevation: .standard) {
+                JourneyCard(elevation: .quiet) {
                     switch state.phase {
                     case .loading:
                         loadingContent

@@ -34,7 +34,13 @@ struct JourneyEmptyStateView: View {
         .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, JourneyLayout.horizontalPadding)
-        .padding(.bottom, FormaMainTabLayout.scrollBottomInset)
+        .padding(
+            .bottom,
+            JourneyLayout.scrollBottomInset(
+                bottomSafeArea: FormaTokens.Layout.homeIndicatorSafeAreaEstimate,
+                dynamicTypeSize: .large
+            )
+        )
         .background(FormaTokens.Color.canvas)
         .accessibilityIdentifier("journey-empty-state")
     }

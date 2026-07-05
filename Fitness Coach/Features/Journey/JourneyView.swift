@@ -180,7 +180,7 @@ struct JourneyView: View {
                 weeklyProgressFreshnessInput: model.weeklyProgressFreshnessInput
             )
         }
-        .formaMainTabScrollInsets()
+        .formaJourneyScrollInsets()
         .overlay(alignment: .top) {
             if model.isCrossDeviceRefreshing {
                 ProgressView()

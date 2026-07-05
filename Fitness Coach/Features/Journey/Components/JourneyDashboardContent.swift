@@ -146,7 +146,7 @@ struct JourneyDashboardContent: View {
             onConnectHealth: {}
         )
     }
-    .formaMainTabScrollInsets()
+    .formaJourneyScrollInsets()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }
@@ -158,7 +158,7 @@ struct JourneyDashboardContent: View {
             healthIntelligenceUIEnabled: false
         )
     }
-    .formaMainTabScrollInsets()
+    .formaJourneyScrollInsets()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }

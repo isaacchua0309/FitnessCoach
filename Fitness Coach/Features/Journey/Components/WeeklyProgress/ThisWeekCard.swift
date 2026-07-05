@@ -41,7 +41,7 @@ struct ThisWeekCard: View {
     var onOpenWeeklyReviewDetail: (() -> Void)?
 
     var body: some View {
-        JourneyCard(elevation: .featured) {
+        JourneyCard(elevation: .standard) {
             VStack(alignment: .leading, spacing: WeeklyProgressCardSupport.contentSpacing) {
                 if !state.dateRangeText.isEmpty {
                     Text(state.dateRangeText)
@@ -60,6 +60,7 @@ struct ThisWeekCard: View {
                 Text(state.cardSummary)
                     .font(WeeklyReviewTypography.body)
                     .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if !state.compactStats.isEmpty {
