@@ -39,6 +39,8 @@ struct UnifiedWeeklyReviewState: Equatable, Identifiable {
     let insufficientDataHeadline: String?
     let insufficientDataRequirement: String?
     let insufficientDataProgressLabel: String?
+    let unlockChecklist: JourneyUnlockChecklistState?
+    let suppressDuplicateUnlockCTA: Bool
     let freshness: WeeklyProgressFreshnessState?
 }
 
@@ -212,6 +214,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
                 calendar: input.calendar
             )
         let emptyState = input.screenPresentation?.copy.emptyState
+        let unlockDashboard = input.screenPresentation?.unlockDashboard
         let cardPresentation = thisWeekCardPresentation(
             input: input,
             isInsufficientData: isInsufficientData,
@@ -244,6 +247,8 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             insufficientDataHeadline: emptyState?.headline,
             insufficientDataRequirement: emptyState?.requirement,
             insufficientDataProgressLabel: emptyState?.progressLabel,
+            unlockChecklist: unlockDashboard?.checklist,
+            suppressDuplicateUnlockCTA: unlockDashboard?.showsProminentNextActionCard ?? false,
             freshness: freshness
         )
     }
@@ -572,7 +577,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
 
         let title = showsLearnedEstimate
             ? "Learned maintenance"
-            : "Maintenance estimate building"
+            : "Maintenance"
 
         let explanation: String
         if showsLearnedEstimate, let maintenance = estimate.estimatedMaintenanceKcal {
@@ -686,7 +691,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         if let changeLabel {
             accessibilityParts.append(changeLabel)
         } else {
-            accessibilityParts.append(copy.weightUnavailable)
+            accessibilityParts.append(FormaProductCopy.Journey.Unlock.weightTrendBuildingDetail)
         }
         if hasSpike {
             accessibilityParts.append(FormaProductCopy.WeightSpikeEducation.accessibilityLabel)
@@ -1132,7 +1137,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         )
     }
 
-    private static func cta(
+    static func cta(
         from action: JourneyNextBestActionState
     ) -> WeeklyProgressCTA {
         let accessibility = action.accessibilityLabel
@@ -1155,8 +1160,8 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             )
         case .completeFirstWorkout:
             return WeeklyProgressCTA(
-                id: "cta-connect-health",
-                kind: .connectAppleHealth,
+                id: "cta-first-workout",
+                kind: .keepLogging,
                 title: action.title,
                 subtitle: action.detail,
                 accessibilityLabel: accessibility
@@ -1185,7 +1190,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
     ) -> String {
         switch confidence {
         case .unavailable:
-            return FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+            return FormaProductCopy.Journey.WeeklyConfidence.building
         case .low:
             return FormaProductCopy.Journey.WeeklyConfidence.building
         case .medium:

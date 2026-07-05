@@ -105,6 +105,8 @@ final class JourneyThisWeekSectionTests: XCTestCase {
             unified.primaryCTA?.title,
             FormaProductCopy.Journey.NextBestAction.logFirstMeal
         )
+        XCTAssertTrue(unified.suppressDuplicateUnlockCTA)
+        XCTAssertNotNil(unified.unlockChecklist)
     }
 
     // MARK: - Helpers

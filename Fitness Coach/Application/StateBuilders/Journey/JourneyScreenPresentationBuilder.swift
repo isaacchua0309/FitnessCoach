@@ -80,6 +80,14 @@ enum JourneyScreenPresentationBuilder {
             stats: stats,
             nextBestAction: nextBestAction
         )
+        let unlockDashboard = JourneyUnlockChecklistBuilder.buildDashboardState(
+            JourneyUnlockChecklistBuilder.Input(
+                stats: stats,
+                unlocks: unlocks,
+                nextBestAction: nextBestAction,
+                summary: summary
+            )
+        )
         let phase = phaseState(context: context, chapter: input.chapter)
         let sync = syncState(freshnessInput: input.freshnessInput)
 
@@ -98,6 +106,7 @@ enum JourneyScreenPresentationBuilder {
                 confidence: confidencePresentation(for: summary)
             ),
             unlocks: unlocks,
+            unlockDashboard: unlockDashboard,
             nextBestAction: nextBestAction,
             copy: copy,
             sync: sync,
@@ -138,6 +147,14 @@ enum JourneyScreenPresentationBuilder {
             summary: summary,
             stats: patched.weekly.stats,
             nextBestAction: patched.nextBestAction
+        )
+        patched.unlockDashboard = JourneyUnlockChecklistBuilder.buildDashboardState(
+            JourneyUnlockChecklistBuilder.Input(
+                stats: patched.weekly.stats,
+                unlocks: patched.unlocks,
+                nextBestAction: patched.nextBestAction,
+                summary: summary
+            )
         )
         return patched
     }

@@ -16,6 +16,7 @@ struct JourneyScreenPresentationState: Equatable, Sendable {
     var streaks: JourneyStreakBreakdownState
     var weekly: JourneyWeeklyPresentationState
     var unlocks: JourneyUnlockPresentationState
+    var unlockDashboard: JourneyUnlockDashboardState
     var nextBestAction: JourneyNextBestActionState
     var copy: JourneyCopyPresentationState
     var sync: JourneySyncPresentationState

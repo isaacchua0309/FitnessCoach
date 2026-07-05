@@ -439,9 +439,11 @@ enum HealthIntelligencePresentationCore {
             || uiState?.kind == .unknown
             || uiState?.kind == .noWorkoutHistory
 
-        let title = usesNotEnoughData ? copy.notEnoughDataTitle : copy.emptyTitle
+        let title = usesNotEnoughData
+            ? FormaProductCopy.Journey.EmptyState.buildingFirstTrend
+            : copy.emptyTitle
         let summary = usesNotEnoughData
-            ? "\(copy.notEnoughDataSummary) \(copy.notEnoughDataRequirements)"
+            ? copy.notEnoughDataSummary
             : copy.emptySummary
         let accessibilityLabel = usesNotEnoughData
             ? "\(title). \(summary)"
@@ -451,7 +453,7 @@ enum HealthIntelligencePresentationCore {
             phase: .empty,
             title: title,
             summary: summary,
-            confidenceLabel: copy.confidenceLow,
+            confidenceLabel: FormaProductCopy.Journey.WeeklyConfidence.building,
             dateRangeLabel: "",
             accessibilityLabel: accessibilityLabel
         )

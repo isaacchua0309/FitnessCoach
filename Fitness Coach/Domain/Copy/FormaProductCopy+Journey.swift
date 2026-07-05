@@ -735,6 +735,82 @@ extension FormaProductCopy {
             static let healthDataSyncing = "Some health data is still syncing."
         }
 
+        enum Unlock {
+            static let checklistTitle = "Unlock your first full review"
+            static let nextAchievementSection = "Next achievement"
+
+            static let firstWeighInLogged = "First weigh-in logged"
+            static let firstWorkoutCompleted = "First workout completed"
+            static let firstMealLogged = "First meal logged"
+
+            static let firstMealUnlockDetail =
+                "Unlock nutrition insights and your first weekly review."
+
+            static let maintenanceLockedTitle =
+                "Log meals to unlock your first maintenance estimate"
+
+            static let weightTrendBuildingTitle = "Building your weight trend"
+            static let weightTrendBuildingDetail =
+                "A few more weigh-ins will smooth out weekly noise."
+
+            static func mealLoggingDays(required: Int) -> String {
+                "\(required) meal-logging days"
+            }
+
+            static func moreWeighIns(remaining: Int) -> String {
+                remaining == 1 ? "1 more weigh-in" : "\(remaining) more weigh-ins"
+            }
+
+            static func weighInsComplete(required: Int) -> String {
+                "\(required) weigh-ins"
+            }
+
+            static func mealCountProgress(current: Int, total: Int) -> String {
+                "\(current) / \(total) meals"
+            }
+
+            static func mealDayProgress(current: Int, total: Int) -> String {
+                "\(current) / \(total) meal days"
+            }
+
+            static func weighInProgress(current: Int, total: Int) -> String {
+                "\(current) / \(total) weigh-ins"
+            }
+
+            static func workoutProgress(current: Int, total: Int) -> String {
+                "\(current) / \(total) workouts"
+            }
+
+            static func checklistAccessibility(
+                completed: Int,
+                total: Int,
+                items: [JourneyUnlockChecklistItem]
+            ) -> String {
+                let progress = progressAccessibility(completed: completed, total: total)
+                guard !items.isEmpty else { return "\(checklistTitle). \(progress)" }
+                let rows = items.map(\.accessibilityLabel).joined(separator: ". ")
+                return "\(checklistTitle). \(progress). \(rows)"
+            }
+
+            static func progressAccessibility(completed: Int, total: Int) -> String {
+                "\(completed) of \(total) complete"
+            }
+
+            static func rowAccessibility(
+                title: String,
+                status: JourneyUnlockChecklistItemStatus
+            ) -> String {
+                switch status {
+                case .completed:
+                    return "\(title). Completed."
+                case .pending:
+                    return "\(title). Not yet completed."
+                case .inProgress(let current, let total):
+                    return "\(title). \(current) of \(total) complete."
+                }
+            }
+        }
+
         enum NextBestAction {
             static let logFirstMeal = "Log your first meal"
             static let logFirstMealDetail = "Log your first meal to unlock nutrition insights."
@@ -816,7 +892,8 @@ extension FormaProductCopy {
             static let weightTitle = "Weight Logging"
             static let trainingNone = "None yet"
 
-            static let weightUnavailable = "Log weight to see weekly change"
+            static let weightUnavailable = FormaProductCopy.Journey.Unlock.weightTrendBuildingTitle
+            static let weightTrendBuildingDetail = FormaProductCopy.Journey.Unlock.weightTrendBuildingDetail
             static let trainingConnectAppleHealth = TrainingIntegrationCopy.includeWorkoutsInProgress
             static let noFoodLogsSummary = "Log a meal to start building your weekly pattern."
             static let emptyState = "Your weekly pattern starts today."
@@ -920,11 +997,10 @@ extension FormaProductCopy {
         static let loadingSubtitle = "Summarizing your week."
         static let loadingAccessibilityLabel = "Loading weekly health review"
         static let emptyTitle = "Weekly review building"
-        static let notEnoughDataTitle = "Not enough data yet"
+        static let notEnoughDataTitle = FormaProductCopy.Journey.EmptyState.buildingFirstTrend
         static let notEnoughDataSummary =
-            "Log meals, workouts, and recovery signals for at least 7 days to unlock your weekly review."
-        static let notEnoughDataRequirements =
-            "Requires: 7 days of activity or recovery signals, plus consistent meal logging."
+            "Keep logging meals, workouts, and weigh-ins to unlock your first weekly review."
+        static let notEnoughDataRequirements = ""
         static let emptySummary =
             "Keep logging meals, workouts, and recovery signals to unlock your weekly health review."
         static let emptyAccessibilityLabel = "Weekly health review unavailable. Keep logging to unlock it."
@@ -933,10 +1009,10 @@ extension FormaProductCopy {
 
         static let confidenceHigh = "High confidence"
         static let confidenceModerate = "Moderate confidence"
-        static let confidenceLow = "Limited confidence"
+        static let confidenceLow = FormaProductCopy.Journey.WeeklyConfidence.building
 
         static let statUnavailable = "Not enough data"
-        static let weightUnavailable = "Log weight to see weekly change"
+        static let weightUnavailable = FormaProductCopy.Journey.Unlock.weightTrendBuildingTitle
         static let nutritionLimitedDetail = "Limited nutrition data this week"
         static let activityLimitedDetail = "Limited activity data this week"
         static let recoveryLimitedDetail = "Limited recovery data this week"

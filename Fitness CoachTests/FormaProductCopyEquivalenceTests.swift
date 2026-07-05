@@ -58,7 +58,7 @@ final class FormaProductCopyEquivalenceTests: XCTestCase {
         )
         XCTAssertEqual(
             FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle,
-            "Not enough data yet"
+            FormaProductCopy.Journey.EmptyState.buildingFirstTrend
         )
         XCTAssertEqual(FormaProductCopy.WeightSpikeEducation.shortTitle, "Noisy scale week")
         XCTAssertEqual(FormaProductCopy.Journey.Milestones.sectionTitle, "Milestones")

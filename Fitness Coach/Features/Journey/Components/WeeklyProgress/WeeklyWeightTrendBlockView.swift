@@ -24,9 +24,9 @@ struct WeeklyWeightTrendBlockView: View {
                 .accessibilityAddTraits(.isHeader)
 
             if state.isLimited {
-                Text(FormaProductCopy.WeeklyReviewPresentation.weightUnavailable)
-                    .font(WeeklyProgressCardSupport.supportingFont)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                JourneyInsightLockedStateView(
+                    state: JourneyUnlockChecklistBuilder.weightTrendLockedState()
+                )
             } else {
                 weightSummary
             }

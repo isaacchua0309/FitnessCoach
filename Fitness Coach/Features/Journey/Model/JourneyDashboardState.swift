@@ -62,7 +62,8 @@ extension JourneyDashboardState {
     }
 
     var showsMilestonesSection: Bool {
-        milestone.isVisible
+        guard milestone.isVisible else { return false }
+        return !screenPresentation.unlockDashboard.suppressesMilestonesSection
     }
 
     var showsStoryTimelineSection: Bool {

@@ -66,6 +66,10 @@ struct ThisWeekCard: View {
                     compactStatsRow
                 }
 
+                if state.isInsufficientData, let checklist = state.unlockChecklist {
+                    JourneyUnlockCard(checklist: checklist, style: .compact)
+                }
+
                 HStack {
                     if !state.confidenceLabel.isEmpty {
                         WeeklyReviewConfidenceBadge(
@@ -77,7 +81,9 @@ struct ThisWeekCard: View {
                     Spacer(minLength: 0)
                 }
 
-                if let primaryCTA = state.primaryCTA, let onPrimaryCTA {
+                if let primaryCTA = state.primaryCTA,
+                   !state.suppressDuplicateUnlockCTA,
+                   let onPrimaryCTA {
                     WeeklyProgressCTAButton(cta: primaryCTA, prominence: .primary) {
                         onPrimaryCTA(primaryCTA)
                     }

@@ -321,34 +321,24 @@ struct WeeklyReviewDetailView: View {
 
     @ViewBuilder
     private func insufficientDataCard(_ detail: WeeklyProgressDetailState) -> some View {
-        JourneyCard(elevation: .quiet) {
-            VStack(alignment: .leading, spacing: WeeklyReviewCardSupport.contentSpacing) {
-                Text(
-                    detail.unified.insufficientDataHeadline
-                        ?? FormaProductCopy.Journey.EmptyState.buildingFirstTrend
-                )
-                    .font(JourneyTypography.cardHeadline)
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+        if let checklist = detail.unified.unlockChecklist {
+            JourneyUnlockCard(checklist: checklist)
+        } else {
+            JourneyCard(elevation: .quiet) {
+                VStack(alignment: .leading, spacing: WeeklyReviewCardSupport.contentSpacing) {
+                    Text(
+                        detail.unified.insufficientDataHeadline
+                            ?? FormaProductCopy.Journey.EmptyState.buildingFirstTrend
+                    )
+                        .font(JourneyTypography.cardHeadline)
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
 
-                if let requirement = detail.unified.insufficientDataRequirement {
-                    narrativeBlock(requirement)
-                } else {
-                    narrativeBlock(detail.unified.headline)
-                }
-
-                if let progress = detail.unified.insufficientDataProgressLabel {
-                    narrativeBlock(progress)
-                }
-
-                if let primaryCTA = detail.unified.primaryCTA {
-                    if let subtitle = primaryCTA.subtitle {
-                        narrativeBlock("\(primaryCTA.title). \(subtitle)")
-                    } else {
-                        narrativeBlock(primaryCTA.title)
+                    if let requirement = detail.unified.insufficientDataRequirement {
+                        narrativeBlock(requirement)
                     }
-                } else if !detail.unified.caveats.isEmpty {
-                    ForEach(detail.unified.caveats, id: \.self) { caveat in
-                        narrativeBlock(caveat)
+
+                    if let progress = detail.unified.insufficientDataProgressLabel {
+                        narrativeBlock(progress)
                     }
                 }
             }

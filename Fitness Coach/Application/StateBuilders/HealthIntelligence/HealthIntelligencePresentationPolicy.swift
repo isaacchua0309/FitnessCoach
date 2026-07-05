@@ -58,9 +58,9 @@ enum HealthIntelligencePresentationPolicy {
             .map { journeyInsightLabel(for: $0) }
             .sorted()
         guard !labels.isEmpty else {
-            return uiState.kind == .partialPermission ? uiState.message : nil
+            return nil
         }
-        return "Missing signals: \(labels.joined(separator: ", "))."
+        return FormaProductCopy.Journey.Sync.healthDataSyncing
     }
 
     static func syncFailureSectionMessage(for uiState: HealthIntelligenceUIState) -> String? {

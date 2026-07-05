@@ -32,6 +32,12 @@ enum JourneyRevampQAChecklistSupport {
         "Your consistency is starting to create a useful pattern",
         "Level 1 / 25 XP",
         "Keep logging to unlock habit insights",
+        "Not enough data yet",
+        "Maintenance estimate building",
+        "Log weight to see weekly change",
+        "Missing signals:",
+        "Limited confidence",
+        "Requires: 7 days",
     ]
 
     static let shamePhrases: [String] = [

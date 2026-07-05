@@ -34,6 +34,14 @@ struct JourneyDashboardContent: View {
                 .accessibilityIdentifier("journey-sync-notice")
             }
 
+            if state.screenPresentation.unlockDashboard.showsProminentNextActionCard,
+               let nextActionCard = state.screenPresentation.unlockDashboard.nextActionCard {
+                JourneyNextActionCard(
+                    state: nextActionCard,
+                    onCTA: onWeeklyProgressCTA
+                )
+            }
+
             ForEach(visibleSections, id: \.self) { section in
                 sectionView(for: section)
             }
