@@ -985,8 +985,9 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
 
     private func logFailure(event: CoachTimelineEvent, error: Error) {
         let summary = CoachTimelineEventSummaryBuilder.summary(for: event)
+        let redactedError = FormaLogRedactor.redactSecrets(in: error.localizedDescription)
         logger.error(
-            "Coach timeline record failed type=\(event.type.rawValue, privacy: .public) summary=\(summary, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+            "Coach timeline record failed type=\(event.type.rawValue, privacy: .public) summary=\(summary, privacy: .public) error=\(redactedError, privacy: .public)"
         )
         #if DEBUG
         FormaPipelineTracer.event(

@@ -103,7 +103,7 @@ final class FormaLogRedactorTests: XCTestCase {
         let redacted = FormaLogRedactor.redactSecrets(in: raw)
 
         XCTAssertFalse(redacted.contains("xK3mN9pQrS2tUvWxYzAbCdEfGh"))
-        XCTAssertTrue(redacted.contains("users/\(FormaLogRedactor.secretPlaceholder)"))
+        XCTAssertTrue(redacted.contains("permission denied for \(FormaLogRedactor.secretPlaceholder)/documents"))
     }
 
     // MARK: - LogRedactor delegation

@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-07-04  
 **Related:** [FeatureFlagRegistry.md](./FeatureFlagRegistry.md), [AppArchitectureOverview.md](./AppArchitectureOverview.md)  
-**Implementation:** `Fitness Coach/Infrastructure/Diagnostics/FormaLogRedactor.swift`, `LogRedactor.swift`, `PrivacySafeLogValue.swift`
+**Implementation:** `Fitness Coach/Infrastructure/Diagnostics/FormaLogRedactor.swift`, `LogRedactor.swift`, `PrivacySafeLogValue.swift`  
+**Release allowlist:** [ReleaseLoggingAllowlist.md](./ReleaseLoggingAllowlist.md)
 
 ---
 
