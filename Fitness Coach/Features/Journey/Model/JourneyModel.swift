@@ -495,6 +495,7 @@ final class JourneyModel: ObservableObject {
             weightSummary: weightSummary,
             goalProjection: goalProjection,
             healthWorkoutDayStarts: healthWorkoutDays,
+            healthWorkoutRecords: integrationState.isConnected ? allHealthWorkouts : [],
             monthHealthWorkoutCount: monthHealthWorkouts.count,
             asOf: endDate,
             calendar: calendar

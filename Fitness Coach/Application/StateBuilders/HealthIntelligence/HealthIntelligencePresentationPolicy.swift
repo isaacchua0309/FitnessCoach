@@ -54,7 +54,8 @@ enum HealthIntelligencePresentationPolicy {
         guard uiState.canShowInsight else { return nil }
 
         let labels = uiState.missingInsightKinds
-            .map(insightLabel(for:))
+            .filter { $0 != .remoteSync }
+            .map { journeyInsightLabel(for: $0) }
             .sorted()
         guard !labels.isEmpty else {
             return uiState.kind == .partialPermission ? uiState.message : nil
@@ -315,7 +316,16 @@ enum HealthIntelligencePresentationPolicy {
         case .activeEnergy: return "active energy"
         case .exerciseMinutes: return "exercise minutes"
         case .recoveryBaseline: return "recovery baseline"
-        case .remoteSync: return "remote sync"
+        case .remoteSync: return "health data sync"
+        }
+    }
+
+    static func journeyInsightLabel(for kind: HealthInsightKind) -> String {
+        switch kind {
+        case .remoteSync:
+            return "health data sync"
+        default:
+            return insightLabel(for: kind)
         }
     }
 }

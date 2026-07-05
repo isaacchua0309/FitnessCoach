@@ -31,6 +31,9 @@ struct UnifiedWeeklyReviewState: Equatable, Identifiable {
     let isReady: Bool
     let isInsufficientData: Bool
     let insufficientDataSummary: String?
+    let insufficientDataHeadline: String?
+    let insufficientDataRequirement: String?
+    let insufficientDataProgressLabel: String?
     let freshness: WeeklyProgressFreshnessState?
 }
 
@@ -188,13 +191,17 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             habitRows: habitRows,
             isInsufficientData: isInsufficientData
         )
-        let freshness = WeeklyProgressFreshnessBuilder.build(input.freshnessInput)
+        let freshness = WeeklyProgressFreshnessBuilder.build(
+            input.freshnessInput,
+            surface: input.screenPresentation == nil ? .generic : .journey
+        )
         let weekRangeText = input.screenPresentation?.weekly.dateRangeText
-            ?? dateRangeText(
+            ?? JourneyFormatter.timelineDateRangeLabel(
                 start: summary.startDate,
                 end: summary.endDate,
                 calendar: input.calendar
             )
+        let emptyState = input.screenPresentation?.copy.emptyState
 
         return UnifiedWeeklyReviewState(
             id: summary.id,
@@ -214,7 +221,10 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             secondaryCTA: ctas.secondary,
             isReady: isReady,
             isInsufficientData: isInsufficientData,
-            insufficientDataSummary: input.screenPresentation?.copy.insufficientDataSummary,
+            insufficientDataSummary: emptyState?.requirement ?? input.screenPresentation?.copy.insufficientDataSummary,
+            insufficientDataHeadline: emptyState?.headline,
+            insufficientDataRequirement: emptyState?.requirement,
+            insufficientDataProgressLabel: emptyState?.progressLabel,
             freshness: freshness
         )
     }
@@ -302,7 +312,10 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         return WeeklyProgressDetailState(
             summary: summary,
             unified: unified,
-            verdictTitle: verdictTitle(for: summary.verdict),
+            verdictTitle: verdictTitle(
+                for: summary.verdict,
+                screenPresentation: input.screenPresentation
+            ),
             primaryInsight: summary.primaryInsight,
             consistency: consistencySection(
                 from: summary,
@@ -336,10 +349,14 @@ enum UnifiedWeeklyReviewPresentationBuilder {
 
     private static let uncertaintyTitle = "Why this may be uncertain"
 
-    private static func verdictTitle(for verdict: WeeklyProgressVerdict) -> String {
+    private static func verdictTitle(
+        for verdict: WeeklyProgressVerdict,
+        screenPresentation: JourneyScreenPresentationState? = nil
+    ) -> String {
         switch verdict {
         case .notEnoughData:
-            return FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+            return screenPresentation?.copy.emptyState?.headline
+                ?? FormaProductCopy.Journey.EmptyState.buildingFirstTrend
         case .onTrack:
             return "On track this week"
         case .likelyTooAggressive:
@@ -998,9 +1015,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         end: Date,
         calendar: Calendar
     ) -> String {
-        let startLabel = JourneyFormatter.timelineDayLabel(start, calendar: calendar)
-        let endLabel = JourneyFormatter.timelineDayLabel(end, calendar: calendar)
-        return "\(startLabel) – \(endLabel)"
+        JourneyFormatter.timelineDateRangeLabel(start: start, end: end, calendar: calendar)
     }
 
     private static func weightLabel(_ kg: Double?) -> String? {

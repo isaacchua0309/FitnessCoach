@@ -182,7 +182,7 @@ enum WeeklyProgressConfidencePolicy {
                 reasons: orderedUniqueReasons(reasons),
                 userFacingSummary: insufficientDataCopy(
                 for: orderedUniqueReasons(reasons),
-                foodLoggedDays: normalizedFoodDays
+                foodLoggedDays: result.foodLoggedDays
             )
             )
         }
@@ -275,7 +275,7 @@ enum WeeklyProgressConfidencePolicy {
             if foodLoggedDays == 0 {
                 return FormaProductCopy.Journey.NextBestAction.logFirstMealDetail
             }
-            return "Log a few more meals this week so we can estimate maintenance with confidence."
+            return FormaProductCopy.Journey.NextBestAction.logMealsConsistentlyDetail
         case .notEnoughWeightEntries:
             return "Add a few more weigh-ins this week before we estimate maintenance."
         case .inconsistentLogging:

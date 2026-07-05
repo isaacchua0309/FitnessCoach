@@ -44,6 +44,10 @@ final class JourneyScreenPresentationBuilderTests: XCTestCase {
             dashboard.screenPresentation.nextBestAction.kind,
             .logFirstMeal
         )
+        XCTAssertEqual(
+            dashboard.screenPresentation.nextBestAction.title,
+            FormaProductCopy.Journey.NextBestAction.logFirstMeal
+        )
         XCTAssertFalse(dashboard.screenPresentation.copy.allowsFewMoreMealsCopy)
     }
 

@@ -53,6 +53,12 @@ struct JourneyStreakBreakdownState: Equatable, Sendable {
     var isTodayCheckedIn: Bool
     var isTodayMealLogged: Bool
 
+    /// When false, UI must not show a meal streak label.
+    var showsMealStreak: Bool { mealLoggingStreakDays > 0 }
+
+    /// When false, UI must not show a check-in streak label.
+    var showsCheckInStreak: Bool { checkInStreakDays > 0 }
+
     /// Primary streak surfaced in the momentum strip (prefers meal logging when active).
     var primaryMomentumKind: JourneyStreakKind
     var primaryMomentumDays: Int
@@ -125,12 +131,26 @@ struct JourneyNextBestActionState: Equatable, Sendable {
 
 // MARK: - Copy policy
 
+struct JourneyInsightEmptyState: Equatable, Sendable {
+    /// What is building, e.g. "Building your first trend".
+    var headline: String
+    /// What is needed to unlock, e.g. "Log 3 meals and 2 more weigh-ins…".
+    var requirement: String
+    /// Primary next action title.
+    var nextActionTitle: String
+    /// Supporting detail for the next action.
+    var nextActionDetail: String?
+    /// Progress toward unlock when available, e.g. "2/5 meal days".
+    var progressLabel: String?
+}
+
 struct JourneyCopyPresentationState: Equatable, Sendable {
     /// When false, UI must not use “log a few more meals” phrasing.
     var allowsFewMoreMealsCopy: Bool
     var confidenceLabel: String
     var confidenceAccessibilityLabel: String
     var insufficientDataSummary: String?
+    var emptyState: JourneyInsightEmptyState?
 }
 
 // MARK: - Sync

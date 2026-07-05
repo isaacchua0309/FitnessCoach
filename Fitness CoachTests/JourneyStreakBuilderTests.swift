@@ -16,11 +16,11 @@ final class JourneyStreakBuilderTests: XCTestCase {
 
     private let asOf = Date(timeIntervalSince1970: 1_700_086_400)
 
-    func testHeroStreakChipUsesLoggingStreakCopy() {
+    func testHeroStreakChipUsesMealStreakCopy() {
         let state = build(loggingStreak: 7)
 
         XCTAssertTrue(state.heroStreakChip.isVisible)
-        XCTAssertEqual(state.heroStreakChip.label, "7-day logging streak")
+        XCTAssertEqual(state.heroStreakChip.label, "7-day meal streak")
     }
 
     func testKeepStreakAliveWhenYesterdayLoggedButNotToday() {
@@ -56,7 +56,7 @@ final class JourneyStreakBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.longestLoggingStreakDays, 10)
         XCTAssertTrue(state.weeklyConsistencyDetail?.contains("21") == false)
-        XCTAssertEqual(state.weeklyConsistencyHeadline, "10-day logging streak")
+        XCTAssertEqual(state.weeklyConsistencyHeadline, "10-day meal streak")
     }
 
     func testTrainingStreakWeeksNilWhenAppleHealthDisconnected() {

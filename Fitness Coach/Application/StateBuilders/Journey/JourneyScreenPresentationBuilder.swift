@@ -62,19 +62,23 @@ enum JourneyScreenPresentationBuilder {
             averageStepsInWeek: input.averageStepsInWeek
         )
 
-        let streaks = streakBreakdown(context: context)
         let unlocks = unlockState(
             summary: summary,
             stats: stats,
             goalProjection: input.goalProjection,
             insight: input.insight
         )
-        let copy = copyPolicy(summary: summary, stats: stats)
+        let streaks = streakBreakdown(context: context)
         let nextBestAction = nextBestAction(
             stats: stats,
             unlocks: unlocks,
             streaks: streaks,
             isAppleHealthConnected: context.weeklyTraining.isConnected
+        )
+        let copy = copyPolicy(
+            summary: summary,
+            stats: stats,
+            nextBestAction: nextBestAction
         )
         let phase = phaseState(context: context, chapter: input.chapter)
         let sync = syncState(freshnessInput: input.freshnessInput)
@@ -84,7 +88,7 @@ enum JourneyScreenPresentationBuilder {
             streaks: streaks,
             weekly: JourneyWeeklyPresentationState(
                 weekRange: weekRange,
-                dateRangeText: dateRangeText(
+                dateRangeText: JourneyFormatter.timelineDateRangeLabel(
                     start: weekRange.startDate,
                     end: weekRange.endDate,
                     calendar: calendar
@@ -129,6 +133,11 @@ enum JourneyScreenPresentationBuilder {
             unlocks: patched.unlocks,
             streaks: patched.streaks,
             isAppleHealthConnected: isAppleHealthConnected
+        )
+        patched.copy = copyPolicy(
+            summary: summary,
+            stats: patched.weekly.stats,
+            nextBestAction: patched.nextBestAction
         )
         return patched
     }
@@ -221,7 +230,7 @@ enum JourneyScreenPresentationBuilder {
         if mealLoggingStreak > 0 {
             primaryKind = .mealLogging
             primaryDays = mealLoggingStreak
-            primaryLabel = copy.mealLoggingStreak(days: mealLoggingStreak)
+            primaryLabel = copy.mealStreak(days: mealLoggingStreak)
         } else if checkInStreak > 0 {
             primaryKind = .checkIn
             primaryDays = checkInStreak
@@ -240,7 +249,7 @@ enum JourneyScreenPresentationBuilder {
         if longestCheckIn > checkInStreak, checkInStreak > 0 {
             momentumDetail = copy.longestCheckInStreak(days: longestCheckIn)
         } else if longestMeal > mealLoggingStreak, mealLoggingStreak > 0 {
-            momentumDetail = copy.longestMealLoggingStreak(days: longestMeal)
+            momentumDetail = copy.longestMealStreak(days: longestMeal)
         } else if !isTodayCheckedIn, checkInStreak > 0 {
             momentumDetail = momentumCopy.keepStreakAlive
         } else if let keepAlive = context.journeyStreaks.keepStreakAliveCopy {
@@ -363,10 +372,7 @@ enum JourneyScreenPresentationBuilder {
             return action(
                 .logMealsConsistently,
                 title: copy.logMealsConsistently,
-                detail: copy.logMealsConsistentlyDetail(
-                    logged: stats.mealLoggingDays,
-                    required: JourneyThresholds.requiredMealLoggingDays
-                )
+                detail: copy.logMealsConsistentlyDetail
             )
         }
 
@@ -426,17 +432,52 @@ enum JourneyScreenPresentationBuilder {
 
     private static func copyPolicy(
         summary: WeeklyProgressSummary,
-        stats: JourneyWeeklyStatsState
+        stats: JourneyWeeklyStatsState,
+        nextBestAction: JourneyNextBestActionState
     ) -> JourneyCopyPresentationState {
         let confidence = confidencePresentation(for: summary)
+        let emptyCopy = FormaProductCopy.Journey.EmptyState.self
 
+        let emptyState: JourneyInsightEmptyState?
         let insufficientSummary: String?
+
         if summary.maintenanceEstimate.sufficiency.confidence == .unavailable {
-            insufficientSummary = WeeklyProgressConfidencePolicy.insufficientDataCopy(
-                for: summary.maintenanceEstimate.sufficiency.reasons,
-                foodLoggedDays: stats.mealsLogged
+            let mealsNeeded = max(
+                JourneyThresholds.requiredMealLoggingDays - stats.mealsLogged,
+                0
             )
+            let weighInsNeeded = max(
+                JourneyThresholds.requiredWeighIns - stats.weighIns,
+                0
+            )
+            let progressParts = [
+                stats.mealsLogged > 0
+                    ? emptyCopy.mealProgressLabel(
+                        logged: stats.mealsLogged,
+                        required: JourneyThresholds.requiredMealLoggingDays
+                    )
+                    : nil,
+                stats.weighIns > 0
+                    ? emptyCopy.weighInProgressLabel(
+                        logged: stats.weighIns,
+                        required: JourneyThresholds.requiredWeighIns
+                    )
+                    : nil
+            ].compactMap { $0 }
+
+            emptyState = JourneyInsightEmptyState(
+                headline: emptyCopy.buildingFirstTrend,
+                requirement: emptyCopy.unlockRequirement(
+                    mealsNeeded: mealsNeeded,
+                    weighInsNeeded: weighInsNeeded
+                ),
+                nextActionTitle: nextBestAction.title,
+                nextActionDetail: nextBestAction.detail,
+                progressLabel: progressParts.isEmpty ? nil : progressParts.joined(separator: " · ")
+            )
+            insufficientSummary = emptyState?.requirement
         } else {
+            emptyState = nil
             insufficientSummary = nil
         }
 
@@ -444,7 +485,8 @@ enum JourneyScreenPresentationBuilder {
             allowsFewMoreMealsCopy: stats.mealsLogged > 0,
             confidenceLabel: confidence.label,
             confidenceAccessibilityLabel: confidence.accessibilityLabel,
-            insufficientDataSummary: insufficientSummary
+            insufficientDataSummary: insufficientSummary,
+            emptyState: emptyState
         )
     }
 
@@ -517,15 +559,3 @@ enum JourneyScreenPresentationBuilder {
         )
     }
 
-    // MARK: - Formatting
-
-    private static func dateRangeText(
-        start: Date,
-        end: Date,
-        calendar: Calendar
-    ) -> String {
-        let startLabel = JourneyFormatter.timelineDayLabel(start, calendar: calendar)
-        let endLabel = JourneyFormatter.timelineDayLabel(end, calendar: calendar)
-        return "\(startLabel) – \(endLabel)"
-    }
-}

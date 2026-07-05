@@ -107,7 +107,7 @@ enum JourneyStreakBuilder {
             return JourneyStreakChipState(
                 isVisible: true,
                 days: mealLoggingStreak,
-                label: copy.mealLoggingStreak(days: mealLoggingStreak)
+                label: copy.mealStreak(days: mealLoggingStreak)
             )
         }
         guard checkInStreak > 0 else { return .hidden }
@@ -139,7 +139,7 @@ enum JourneyStreakBuilder {
     ) -> (headline: String, detail: String?) {
         let headlineStreak = mealLoggingStreak > 0 ? mealLoggingStreak : checkInStreak
         let headlineLabel = mealLoggingStreak > 0
-            ? copy.mealLoggingStreak(days: mealLoggingStreak)
+            ? copy.mealStreak(days: mealLoggingStreak)
             : copy.checkInStreak(days: checkInStreak)
 
         if headlineStreak > 0 {
@@ -148,7 +148,7 @@ enum JourneyStreakBuilder {
             if longest > headlineStreak {
                 detailParts.append(
                     mealLoggingStreak > 0
-                        ? copy.longestMealLoggingStreak(days: longest)
+                        ? copy.longestMealStreak(days: longest)
                         : copy.longestCheckInStreak(days: longest)
                 )
             }
