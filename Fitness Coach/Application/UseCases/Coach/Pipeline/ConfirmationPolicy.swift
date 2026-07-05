@@ -37,12 +37,22 @@ enum ConfirmationPolicy {
     }
 
     static func decision(for meal: FoodLogDraft) -> ConfirmationDecision {
-        switch AIResponseValidator.validateFood(meal, confidence: aiConfidence(from: meal.confidence)) {
+        let presentationConfidence = presentationConfidence(for: meal)
+        switch AIResponseValidator.validateFood(meal, confidence: presentationConfidence) {
         case .valid, .requiresConfirmation:
             return .requiresConfirmation(CoachResponseBuilder.aiFoodPendingConfirmation)
         case .invalid(let message):
             return .reject(message.isEmpty ? CoachResponseBuilder.aiNotUnderstood : message)
         }
+    }
+
+    /// Caps displayed confidence when clarification is required so pending cards do not look deceptively certain.
+    static func presentationConfidence(for meal: FoodLogDraft) -> AIConfidence {
+        let base = aiConfidence(from: meal.confidence)
+        return NutritionSanityValidator.presentationConfidence(
+            raw: base,
+            requiresClarification: meal.requiresClarificationBeforeLogging
+        )
     }
 
     static func decision(for parsed: AIParsedCommand) -> ConfirmationDecision {

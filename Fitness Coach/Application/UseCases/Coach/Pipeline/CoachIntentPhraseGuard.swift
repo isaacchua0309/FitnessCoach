@@ -74,6 +74,28 @@ enum CoachIntentPhraseGuard {
         return normalize(text).contains("same as")
     }
 
+    /// User asked for an estimate or nutrition lookup and explicitly declined logging.
+    static func isEstimateWithoutLogging(_ text: String) -> Bool {
+        let normalized = normalize(text)
+        let declinedLoggingPatterns = [
+            #"\b(don't|do not|dont) log\b"#,
+            #"\bwithout logging\b"#,
+            #"\bnot log(ging)?\b"#,
+            #"\bestimate only\b"#,
+            #"\bonly estimate\b"#,
+            #"\bjust estimate\b"#
+        ]
+        if declinedLoggingPatterns.contains(where: {
+            normalized.range(of: $0, options: .regularExpression) != nil
+        }) {
+            return true
+        }
+        if normalized.hasPrefix("estimate ") {
+            return !hasExplicitLoggingIntent(text)
+        }
+        return false
+    }
+
     static func isQuestionForm(_ text: String) -> Bool {
         let normalized = normalize(text)
         if normalized.hasSuffix("?") { return true }
@@ -109,7 +131,8 @@ enum CoachIntentPhraseGuard {
         guard !hasExplicitLoggingIntent(text) else { return result }
 
         let needsCorrection =
-            (result.intent == .logFood && (isAmbiguousAdvicePhrase(text) || isReferenceOnlyWithoutLogging(text)))
+            (isEstimateWithoutLogging(text) && (result.intent == .logFood || result.requiresAppMutation || result.action != nil))
+            || (result.intent == .logFood && (isAmbiguousAdvicePhrase(text) || isReferenceOnlyWithoutLogging(text)))
             || (isAmbiguousAdvicePhrase(text) && (result.requiresAppMutation || result.action != nil))
             || (isReferenceOnlyWithoutLogging(text) && (result.intent == .logFood || result.action != nil))
 
@@ -117,11 +140,13 @@ enum CoachIntentPhraseGuard {
 
         var copy = result
         if copy.intent == .logFood || copy.action != nil {
-            copy.intent = suggestedIntent(for: text)
+            copy.intent = isEstimateWithoutLogging(text) ? .nutritionEstimateQuery : suggestedIntent(for: text)
             copy.requiresAppMutation = false
             copy.action = nil
             if copy.reason?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
-                copy.reason = "Advice or lookup phrasing without explicit logging intent."
+                copy.reason = isEstimateWithoutLogging(text)
+                    ? "Estimate-only phrasing without logging intent."
+                    : "Advice or lookup phrasing without explicit logging intent."
             }
         }
 

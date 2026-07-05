@@ -10,56 +10,35 @@ import Foundation
 enum MealImageAnalysisMapper {
 
     static func sessionResult(
-        from response: AIMealImageAnalysisResponse
+        from response: AIMealImageAnalysisResponse,
+        userCaption: String = ""
     ) -> ImageAnalysisSessionResult {
-        let mealDraft = foodLogDraft(from: response)
-        let confidence = overallConfidence(from: response)
+        let normalized = MealImageAnalysisTrustPolicy.normalize(
+            response: response,
+            userCaption: userCaption
+        )
+        let mealDraft = foodLogDraft(
+            from: normalized.response,
+            trust: normalized.metadata
+        )
         return ImageAnalysisSessionResult(
             mealDraft: mealDraft,
-            confidence: confidence,
-            summary: response.summary,
-            clarifyingQuestion: response.clarifyingQuestion
+            confidence: normalized.metadata.confidence,
+            summary: normalized.response.summary,
+            clarifyingQuestion: normalized.metadata.clarifyingQuestion,
+            trust: normalized.metadata
         )
     }
 
-    static func foodLogDraft(from response: AIMealImageAnalysisResponse) -> FoodLogDraft {
-        let components = response.items.map { item in
-            let quantityValue = parseLeadingNumber(from: item.quantity)
-            return FoodComponent(
-                name: item.name,
-                quantity: quantityValue,
-                unit: parseUnit(from: item.quantity),
-                calories: item.calories,
-                protein: item.protein,
-                carbs: item.carbs,
-                fat: item.fat,
-                confidence: confidenceLevel(from: item.confidence),
-                sourceText: item.assumptions.joined(separator: "; ")
-            )
-        }
-
-        var warnings: [String] = []
-        if response.needsUserReview {
-            warnings.append("Review this photo estimate before logging.")
-        }
-        if let clarifyingQuestion = response.clarifyingQuestion?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !clarifyingQuestion.isEmpty {
-            warnings.append(clarifyingQuestion)
-        }
-        let assumptionLines = response.items
-            .flatMap(\.assumptions)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        warnings.append(contentsOf: assumptionLines.prefix(4))
-
-        return FoodLogDraft(
-            displayName: displayName(for: response),
-            components: components,
-            confidence: confidenceLevel(from: overallConfidence(from: response)),
-            source: .aiPhotoEstimate,
-            notes: response.summary,
-            warnings: warnings
+    static func foodLogDraft(
+        from response: AIMealImageAnalysisResponse,
+        userCaption: String = ""
+    ) -> FoodLogDraft {
+        let normalized = MealImageAnalysisTrustPolicy.normalize(
+            response: response,
+            userCaption: userCaption
         )
+        return foodLogDraft(from: normalized.response, trust: normalized.metadata)
     }
 
     static func previousAnalysis(
@@ -76,15 +55,70 @@ enum MealImageAnalysisMapper {
                     carbs: component.carbs,
                     fat: component.fat,
                     confidence: aiConfidence(from: component.confidence),
-                    assumptions: [component.sourceText].compactMap { $0 }.filter { !$0.isEmpty }
+                    assumptions: [component.sourceText].compactMap { $0 }.filter { !$0.isEmpty },
+                    uncertaintyReasons: result.mealDraft.uncertaintyReasons,
+                    primaryUncertainty: result.mealDraft.primaryUncertainty,
+                    calorieRangeLower: nil,
+                    calorieRangeUpper: nil
                 )
             },
             total: AIMealImageAnalysisTotals(
                 calories: result.mealDraft.totalCalories,
                 protein: result.mealDraft.totalProtein,
                 carbs: result.mealDraft.totalCarbs,
-                fat: result.mealDraft.totalFat
+                fat: result.mealDraft.totalFat,
+                calorieRangeLower: result.trust?.calorieRangeLower ?? result.mealDraft.calorieRangeLower,
+                calorieRangeUpper: result.trust?.calorieRangeUpper ?? result.mealDraft.calorieRangeUpper
+            ),
+            primaryUncertainty: result.trust?.primaryUncertainty ?? result.mealDraft.primaryUncertainty,
+            calorieRangeLower: result.trust?.calorieRangeLower ?? result.mealDraft.calorieRangeLower,
+            calorieRangeUpper: result.trust?.calorieRangeUpper ?? result.mealDraft.calorieRangeUpper
+        )
+    }
+
+    // MARK: - Private
+
+    private static func foodLogDraft(
+        from response: AIMealImageAnalysisResponse,
+        trust: MealImageAnalysisTrustMetadata
+    ) -> FoodLogDraft {
+        let components = response.items.map { item in
+            let quantityValue = parseLeadingNumber(from: item.quantity)
+            return FoodComponent(
+                name: item.name,
+                quantity: quantityValue,
+                unit: parseUnit(from: item.quantity),
+                calories: item.calories,
+                protein: item.protein,
+                carbs: item.carbs,
+                fat: item.fat,
+                confidence: confidenceLevel(from: item.confidence),
+                sourceText: item.assumptions.joined(separator: "; ")
             )
+        }
+
+        var warnings = uniqueStrings(
+            trust.presentationWarnings +
+            [MealImageAnalysisTrustPolicy.photoReviewRequiredMessage]
+        )
+        if let clarifyingQuestion = trust.clarifyingQuestion {
+            warnings.append(clarifyingQuestion)
+        }
+
+        return FoodLogDraft(
+            displayName: displayName(for: response),
+            components: components,
+            confidence: confidenceLevel(from: trust.confidence),
+            source: .aiPhotoEstimate,
+            notes: response.summary,
+            warnings: warnings,
+            assumptions: trust.assumptions,
+            uncertaintyReasons: trust.uncertaintyReasons,
+            suggestedClarifications: trust.suggestedClarifications,
+            primaryUncertainty: trust.primaryUncertainty,
+            requiresClarificationBeforeLogging: trust.confidence == .low || trust.clarifyingQuestion != nil,
+            calorieRangeLower: trust.calorieRangeLower,
+            calorieRangeUpper: trust.calorieRangeUpper
         )
     }
 
@@ -95,13 +129,6 @@ enum MealImageAnalysisMapper {
             return response.items[0].name
         }
         return "Meal photo"
-    }
-
-    private static func overallConfidence(from response: AIMealImageAnalysisResponse) -> AIConfidence {
-        let levels = response.items.map(\.confidence)
-        if levels.contains(.low) { return .low }
-        if levels.allSatisfy({ $0 == .high }) { return .high }
-        return .medium
     }
 
     private static func confidenceLevel(from confidence: AIConfidence) -> ConfidenceLevel {
@@ -139,5 +166,19 @@ enum MealImageAnalysisMapper {
         let parts = quantity.split(separator: " ")
         guard parts.count > 1 else { return nil }
         return parts.dropFirst().joined(separator: " ")
+    }
+
+    private static func uniqueStrings(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+        for value in values {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let key = trimmed.lowercased()
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            result.append(trimmed)
+        }
+        return result.sorted()
     }
 }

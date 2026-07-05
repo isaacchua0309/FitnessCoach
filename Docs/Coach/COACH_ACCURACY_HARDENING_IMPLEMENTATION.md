@@ -3,7 +3,8 @@
 **Status:** Engineering summary (2026-07-04)  
 **Baseline:** [COACH_TIMELINE_CONTEXT_V2_IMPLEMENTATION.md](./COACH_TIMELINE_CONTEXT_V2_IMPLEMENTATION.md)  
 **Architecture reference:** [COACH_FULL_CONTEXT_PACKET.md](./COACH_FULL_CONTEXT_PACKET.md)  
-**Manual QA:** [COACH_ACCURACY_HARDENING_QA.md](./COACH_ACCURACY_HARDENING_QA.md)
+**Manual QA:** [COACH_ACCURACY_HARDENING_QA.md](./COACH_ACCURACY_HARDENING_QA.md)  
+**Trust Hardening v1 (final):** [COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md](./COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md)
 
 ---
 
@@ -22,11 +23,11 @@ The Accuracy Hardening Sprint builds on Coach Timeline Context v2 to improve **r
 - **`CoachDailyStatusBuilder`** produces timeline-aware deterministic status without a gateway call.
 - **Context compaction** (`CoachContextPacketV2SizeCompactor`) enforces the 24 KB transport limit with protected mutation/photo event types.
 
-**PARTIAL / in-flight (not confirmed merged to `main` at time of writing):**
+**PARTIAL / in-flight (superseded by Trust Hardening v1 where noted):**
 
-- Production **`CoachAccuracyObservability`** OSLog category (open PR).
-- Dedicated **`CoachEntryReferenceResolverTests`** suite (open PR).
-- Expanded meal-photo prompt hardening beyond existing `analyzeMealImagePromptRules()` (open PR).
+- Production **`CoachAccuracyObservability`** OSLog category — **CONFIRMED** in consolidation PR.
+- Dedicated **`CoachEntryReferenceResolverTests`** suite — **CONFIRMED**.
+- Meal-photo trust metadata, range presentation, recommission context — **CONFIRMED** in [COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md](./COACH_ACCURACY_TRUST_HARDENING_V1_FINAL_REPORT.md) (PR #153/#154).
 
 ---
 
@@ -341,7 +342,7 @@ All stages use **`MigrationStage.lightweight`**.
 
 **CONFIRMED tests:** `CoachMealPhotoContextV2Tests.swift`, `coachContextPromptRules.test.ts` analyze-meal-image rules.
 
-**PARTIAL:** Additional iOS mapper surfacing of assumptions/clarifications — verify against open meal-photo accuracy PR before claiming merged.
+**PARTIAL:** Additional iOS mapper surfacing of assumptions/clarifications — **CONFIRMED** in Trust Hardening v1 (`AIFoodConfirmationFormatter`, `MealPhotoAnalysisPresentationFormatter`, `FoodLogDraft` trust fields).
 
 ---
 

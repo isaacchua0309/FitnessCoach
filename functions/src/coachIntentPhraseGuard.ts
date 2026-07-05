@@ -62,6 +62,26 @@ export function isReferenceOnlyWithoutLogging(text: string): boolean {
   return normalizeText(text).includes("same as");
 }
 
+const ESTIMATE_WITHOUT_LOGGING_PATTERNS = [
+  /\b(don't|do not|dont) log\b/i,
+  /\bwithout logging\b/i,
+  /\bnot log(ging)?\b/i,
+  /\bestimate only\b/i,
+  /\bonly estimate\b/i,
+  /\bjust estimate\b/i,
+];
+
+export function isEstimateWithoutLogging(text: string): boolean {
+  const normalized = normalizeText(text);
+  if (ESTIMATE_WITHOUT_LOGGING_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    return true;
+  }
+  if (normalized.startsWith("estimate ")) {
+    return !hasExplicitLoggingIntent(text);
+  }
+  return false;
+}
+
 export function suggestedIntentForText(text: string): string {
   const normalized = normalizeText(text);
 
@@ -98,6 +118,7 @@ export function applyCoachIntentPhraseGuard(
 
   const intent = typeof raw.intent === "string" ? raw.intent : "general_conversation";
   const needsCorrection =
+    (isEstimateWithoutLogging(trimmed) && (intent === "log_food" || Boolean(raw.requiresAppMutation) || raw.action != null)) ||
     (intent === "log_food" && (isAmbiguousAdvicePhrase(trimmed) || isReferenceOnlyWithoutLogging(trimmed))) ||
     (isAmbiguousAdvicePhrase(trimmed) && (Boolean(raw.requiresAppMutation) || raw.action != null)) ||
     (isReferenceOnlyWithoutLogging(trimmed) && (intent === "log_food" || raw.action != null));
@@ -106,7 +127,9 @@ export function applyCoachIntentPhraseGuard(
     return raw;
   }
 
-  const correctedIntent = suggestedIntentForText(userText);
+  const correctedIntent = isEstimateWithoutLogging(trimmed) ?
+    "nutrition_estimate_query" :
+    suggestedIntentForText(userText);
   return {
     ...raw,
     intent: correctedIntent,
@@ -114,6 +137,8 @@ export function applyCoachIntentPhraseGuard(
     action: null,
     reason: typeof raw.reason === "string" && raw.reason.trim().length > 0 ?
       raw.reason :
-      "Advice or lookup phrasing without explicit logging intent.",
+      isEstimateWithoutLogging(trimmed) ?
+        "Estimate-only phrasing without logging intent." :
+        "Advice or lookup phrasing without explicit logging intent.",
   };
 }

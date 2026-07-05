@@ -86,7 +86,8 @@ final class CoachFoodEstimateDebugLogFormatterTests: XCTestCase {
             isAcceptable: false,
             issues: ["Mixed meal with chicken, grain, dressing, and dessert looks under-estimated."],
             mealDraft: meal,
-            confidence: .low
+            confidence: .low,
+            repairedMacros: false
         )
 
         let summary = CoachFoodEstimateDebugLogFormatter.sanitySummary(result)

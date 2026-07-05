@@ -104,7 +104,8 @@ final class CoachMealPhotoAnalyzer {
                 uploadAttachment: uploadAttachment,
                 prompt: prompt,
                 recommission: recommission,
-                context: context
+                context: context,
+                userCaption: session.userCaption
             )
             return MealPhotoAnalysisOutcome(
                 result: presentation.actionResult,

@@ -200,7 +200,8 @@ final class CoachAIRouteHandler {
         uploadAttachment: CoachMealImageUploadAttachment,
         prompt: String,
         recommission: ImageAnalysisRecommissionContext?,
-        context: CoachContextPacketV2
+        context: CoachContextPacketV2,
+        userCaption: String = ""
     ) async throws -> PhotoAnalysisPresentation {
         guard let aiService else {
             throw AIServiceError.backendUnavailable
@@ -232,12 +233,19 @@ final class CoachAIRouteHandler {
         }
 
         let response = try await aiService.analyzeMealImage(request: request)
-        let extractionValidation = MealImageAnalysisResponseValidator.validate(response: response)
+        let caption = userCaption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let extractionValidation = MealImageAnalysisResponseValidator.validate(
+            response: response,
+            userCaption: caption
+        )
         guard extractionValidation.isValid else {
             throw AIServiceError.invalidNutritionJSON(extractionValidation.errors.joined(separator: " | "))
         }
 
-        let sessionResult = MealImageAnalysisMapper.sessionResult(from: response)
+        let sessionResult = MealImageAnalysisMapper.sessionResult(
+            from: response,
+            userCaption: caption
+        )
 
         let sanity = NutritionSanityValidator.validate(
             meal: sessionResult.mealDraft,
@@ -248,11 +256,15 @@ final class CoachAIRouteHandler {
         switch ConfirmationPolicy.decision(for: sanity.mealDraft) {
         case .reject(let message):
             throw AIServiceError.invalidNutritionJSON(message)
-        case .requiresConfirmation, .executeImmediately:
+        case .requiresConfirmation:
             break
+        case .executeImmediately:
+            throw AIServiceError.invalidNutritionJSON(
+                "Photo estimates must be reviewed before logging."
+            )
         }
 
-        let actionResult = presentAIFoodEstimate(
+        var actionResult = presentAIFoodEstimate(
             mealDraft: sanity.mealDraft,
             originalText: prompt,
             assistantMessage: response.summary,
@@ -268,7 +280,7 @@ final class CoachAIRouteHandler {
             fromPhotoAnalysis: true
         )
 
-        guard actionResult.pendingConfirmation != nil else {
+        guard let pending = actionResult.pendingConfirmation else {
             throw AIServiceError.invalidNutritionJSON(
                 actionResult.message.isEmpty ?
                     "Could not extract reliable nutrition from the meal photo." :
@@ -276,13 +288,26 @@ final class CoachAIRouteHandler {
             )
         }
 
+        let trust = sessionResult.trust ?? MealImageAnalysisTrustPolicy.normalize(
+            response: response,
+            userCaption: caption
+        ).metadata
+        let photoMessage = MealPhotoAnalysisPresentationFormatter.assistantMessage(
+            mealDraft: sanity.mealDraft,
+            confidence: sanity.confidence,
+            trust: trust,
+            sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
+        )
+        actionResult = .pending(pending, message: photoMessage)
+
         return PhotoAnalysisPresentation(
             actionResult: actionResult,
             sessionResult: ImageAnalysisSessionResult(
                 mealDraft: sanity.mealDraft,
                 confidence: sanity.confidence,
                 summary: sessionResult.summary,
-                clarifyingQuestion: sessionResult.clarifyingQuestion
+                clarifyingQuestion: sessionResult.clarifyingQuestion,
+                trust: trust
             )
         )
     }
