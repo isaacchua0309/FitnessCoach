@@ -1,29 +1,32 @@
 //
-//  AdjustPlanDiscardConfirmationOverlay.swift
+//  DiscardChangesConfirmationView.swift
 //  Fitness Coach
 //
-//  Forma — Themed discard confirmation for the Adjust Plan flow.
+//  Forma — Reusable themed confirmation for discarding unsaved edits.
 //
 
 import SwiftUI
 
-private enum AdjustPlanDiscardConfirmationLayout {
+private enum DiscardChangesConfirmationLayout {
     static let cardCornerRadius = FormaTokens.Radius.card
     static let cardSpacing = FormaTokens.Spacing.lg
     static let contentSpacing = FormaTokens.Spacing.sm
     static let buttonSpacing = FormaTokens.Spacing.sm
     static let scrimOpacity: Double = 0.62
+    static let presentationScale: CGFloat = 0.96
 }
 
-struct AdjustPlanDiscardConfirmationOverlay: View {
+struct DiscardChangesConfirmationView: View {
+    let title: String
+    let message: String
+    let keepEditingTitle: String
+    let discardTitle: String
     let onKeepEditing: () -> Void
     let onDiscard: () -> Void
 
-    @Environment(\.formaPlanColors) private var theme
-    @Environment(\.formaColors) private var formaColors
+    @Environment(\.formaColors) private var colors
+    @Environment(\.themePalette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private let copy = FormaProductCopy.PlanEditWizardCopy.self
 
     var body: some View {
         ZStack {
@@ -35,38 +38,38 @@ struct AdjustPlanDiscardConfirmationOverlay: View {
             confirmationCard
                 .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
                 .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
-                .accessibilityElement(children: .contain)
-                .accessibilityAddTraits(.isModal)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isModal)
         .transition(presentationTransition)
         .formaThemeReactive()
-        .planEditSupportsDynamicType()
+        .dynamicTypeSize(...DynamicTypeSize.accessibility5)
     }
 
     private var scrim: some View {
-        theme.background
-            .opacity(AdjustPlanDiscardConfirmationLayout.scrimOpacity)
+        colors.canvas
+            .opacity(DiscardChangesConfirmationLayout.scrimOpacity)
             .ignoresSafeArea()
     }
 
     private var confirmationCard: some View {
-        VStack(alignment: .leading, spacing: AdjustPlanDiscardConfirmationLayout.cardSpacing) {
-            VStack(alignment: .leading, spacing: AdjustPlanDiscardConfirmationLayout.contentSpacing) {
-                Text(copy.discardChangesTitle)
+        VStack(alignment: .leading, spacing: DiscardChangesConfirmationLayout.cardSpacing) {
+            VStack(alignment: .leading, spacing: DiscardChangesConfirmationLayout.contentSpacing) {
+                Text(title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(theme.primaryText)
+                    .foregroundStyle(colors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(copy.discardChangesMessage)
+                Text(message)
                     .font(FormaTokens.Typography.body)
-                    .foregroundStyle(theme.secondaryText)
+                    .foregroundStyle(colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
 
-            VStack(spacing: AdjustPlanDiscardConfirmationLayout.buttonSpacing) {
+            VStack(spacing: DiscardChangesConfirmationLayout.buttonSpacing) {
                 keepEditingButton
                 discardButton
             }
@@ -79,73 +82,79 @@ struct AdjustPlanDiscardConfirmationOverlay: View {
 
     private var cardBackground: some View {
         RoundedRectangle(
-            cornerRadius: AdjustPlanDiscardConfirmationLayout.cardCornerRadius,
+            cornerRadius: DiscardChangesConfirmationLayout.cardCornerRadius,
             style: .continuous
         )
-        .fill(theme.elevatedSurface)
+        .fill(colors.surfaceElevated)
     }
 
     private var cardBorder: some View {
         RoundedRectangle(
-            cornerRadius: AdjustPlanDiscardConfirmationLayout.cardCornerRadius,
+            cornerRadius: DiscardChangesConfirmationLayout.cardCornerRadius,
             style: .continuous
         )
-        .stroke(theme.cardBorder, lineWidth: 1)
+        .stroke(colors.border, lineWidth: 1)
     }
 
     private var keepEditingButton: some View {
         Button(action: onKeepEditing) {
-            Text(copy.keepEditing)
+            Text(keepEditingTitle)
                 .font(FormaTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(formaColors.ctaText)
+                .foregroundStyle(colors.ctaText)
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: PlanEditAccessibility.minimumTouchTarget)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                 .background(
                     RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                        .fill(theme.accent)
+                        .fill(palette.primary)
                 )
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityHint("Returns to editing your plan")
+        .accessibilityLabel(keepEditingTitle)
+        .accessibilityHint("Keeps your current edits and closes this confirmation")
     }
 
     private var discardButton: some View {
-        Button(action: onDiscard) {
-            Text(copy.discardChanges)
+        Button(role: .destructive, action: onDiscard) {
+            Text(discardTitle)
                 .font(FormaTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(theme.danger)
+                .foregroundStyle(colors.destructive)
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: PlanEditAccessibility.minimumTouchTarget)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                 .background(
                     RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                        .fill(theme.surface)
+                        .fill(colors.surface)
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                        .stroke(theme.subtleCardBorder, lineWidth: 1)
+                        .stroke(colors.border, lineWidth: 1)
                 }
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityHint("Discards your unsaved plan changes and closes Adjust Plan")
+        .accessibilityLabel(discardTitle)
+        .accessibilityHint("Destructive action. Discards your unsaved changes.")
     }
 
     private var presentationTransition: AnyTransition {
         if reduceMotion {
             return .opacity
         }
-        return .opacity.combined(with: .scale(scale: 0.96))
+        return .opacity.combined(with: .scale(scale: DiscardChangesConfirmationLayout.presentationScale))
     }
 }
 
 #if DEBUG
-#Preview("Discard confirmation — Ocean Blue") {
+#Preview("Discard changes — Ocean Blue") {
     ZStack {
-        FormaPlanTokens.Color.planBackground
+        FormaTokens.Color.canvas
             .ignoresSafeArea()
 
-        AdjustPlanDiscardConfirmationOverlay(
+        DiscardChangesConfirmationView(
+            title: FormaProductCopy.PlanEditWizardCopy.discardChangesTitle,
+            message: FormaProductCopy.PlanEditWizardCopy.discardChangesMessage,
+            keepEditingTitle: FormaProductCopy.PlanEditWizardCopy.keepEditing,
+            discardTitle: FormaProductCopy.PlanEditWizardCopy.discardChanges,
             onKeepEditing: {},
             onDiscard: {}
         )
@@ -153,12 +162,16 @@ struct AdjustPlanDiscardConfirmationOverlay: View {
     .formaThemePreview(palette: .oceanBlue, appearance: .dark)
 }
 
-#Preview("Discard confirmation — Blossom Pink") {
+#Preview("Discard changes — Blossom Pink") {
     ZStack {
-        FormaPlanTokens.Color.planBackground
+        FormaTokens.Color.canvas
             .ignoresSafeArea()
 
-        AdjustPlanDiscardConfirmationOverlay(
+        DiscardChangesConfirmationView(
+            title: FormaProductCopy.PlanEditWizardCopy.discardChangesTitle,
+            message: FormaProductCopy.PlanEditWizardCopy.discardChangesMessage,
+            keepEditingTitle: FormaProductCopy.PlanEditWizardCopy.keepEditing,
+            discardTitle: FormaProductCopy.PlanEditWizardCopy.discardChanges,
             onKeepEditing: {},
             onDiscard: {}
         )

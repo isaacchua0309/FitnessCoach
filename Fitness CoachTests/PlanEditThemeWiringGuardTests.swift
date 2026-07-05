@@ -122,6 +122,10 @@ final class PlanEditThemeWiringGuardTests: XCTestCase {
         )
 
         XCTAssertTrue(source.contains(".formaThemeReactive()"))
+        XCTAssertFalse(
+            source.contains(".confirmationDialog("),
+            "Adjust Plan discard confirmation must use the themed overlay, not confirmationDialog"
+        )
     }
 
     private func repoRootURL() throws -> URL {

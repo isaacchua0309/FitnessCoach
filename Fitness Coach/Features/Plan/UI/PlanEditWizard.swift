@@ -78,7 +78,11 @@ struct PlanEditWizard: View {
             }
             .overlay {
                 if saveSuccessState == nil, isShowingDiscardConfirmation {
-                    AdjustPlanDiscardConfirmationOverlay(
+                    DiscardChangesConfirmationView(
+                        title: FormaProductCopy.PlanEditWizardCopy.discardChangesTitle,
+                        message: FormaProductCopy.PlanEditWizardCopy.discardChangesMessage,
+                        keepEditingTitle: FormaProductCopy.PlanEditWizardCopy.keepEditing,
+                        discardTitle: FormaProductCopy.PlanEditWizardCopy.discardChanges,
                         onKeepEditing: {
                             isShowingDiscardConfirmation = false
                         },
