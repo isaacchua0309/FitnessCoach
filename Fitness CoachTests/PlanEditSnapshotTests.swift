@@ -166,7 +166,7 @@ private struct PlanEditSnapshotGoalHost: View {
 
     var body: some View {
         ScrollView {
-            PlanGoalSelectionView(
+            GoalOptionSelector(
                 selection: $selection,
                 recommendedGoal: .loseFat,
                 onSelect: { selection = $0 }
@@ -192,7 +192,7 @@ private struct PlanEditSnapshotTargetPaceHost: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
-                PlanTransformationSummaryCard(
+                GoalPathPreviewCard(
                     state: PlanTransformationSummaryBuilder.build(
                         projection: projection,
                         currentWeightKg: 90,
