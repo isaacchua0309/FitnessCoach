@@ -76,4 +76,33 @@ final class AppContainerConstructionTests: XCTestCase {
         XCTAssertEqual(bundle.configuration, .current)
         XCTAssertTrue(bundle.onboardingAnalyticsLogger is NoOpOnboardingAnalyticsLogger)
     }
+
+    func testBuildAuthDependenciesDelegatesToAuthDependenciesBundle() {
+        let defaults = UserDefaults(suiteName: "AuthDependenciesTests.\(UUID().uuidString)")!
+        let routing = OnboardingRoutingConfiguration.production
+
+        let bundle = AppContainer.buildAuthDependencies(
+            inMemory: true,
+            onboardingUserDefaults: defaults,
+            onboardingRoutingConfiguration: routing
+        )
+
+        XCTAssertNotNil(bundle.authManager)
+        XCTAssertEqual(bundle.authUIDCache.currentUserID(), bundle.authManager.currentUID)
+        XCTAssertTrue(bundle.onboardingUserDefaults === defaults)
+        XCTAssertEqual(bundle.onboardingRoutingConfiguration, routing)
+        XCTAssertNotNil(bundle.onboardingDraftStore)
+        XCTAssertNotNil(bundle.publicEntrySessionStore)
+        XCTAssertNotNil(bundle.onboardingCoachingContextStore)
+        XCTAssertNotNil(bundle.refreshCenter)
+        XCTAssertNotNil(bundle.accountRestoreSessionState)
+    }
+
+    func testInMemoryContainerAcceptsInjectedOnboardingUserDefaults() throws {
+        let defaults = UserDefaults(suiteName: "AppContainerConstructionTests.\(UUID().uuidString)")!
+
+        let container = try AppContainer(inMemory: true, onboardingUserDefaults: defaults)
+
+        XCTAssertTrue(container.onboardingUserDefaults === defaults)
+    }
 }

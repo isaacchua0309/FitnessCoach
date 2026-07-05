@@ -27,7 +27,7 @@ The app uses **manual constructor injection** via a single composition root:
 
 | Factory | Domain bundle | File |
 |---------|---------------|------|
-| `buildAuthDependencies` | Auth, onboarding prefs, refresh bus | `AppContainer+Construction.swift` |
+| `buildAuthDependencies` | Auth, onboarding prefs, refresh bus | `Fitness Coach/App/Dependencies/AuthDependencies.swift` |
 | `buildAnalyticsDependencies` | Analytics loggers via `AnalyticsDependencies` | `Fitness Coach/App/Dependencies/AnalyticsDependencies.swift` |
 | `buildHealth` | HealthKit, sync, training insights (shared) | `AppContainer+Construction.swift` |
 | `buildPersistenceDependencies` | SwiftData, account sync core, log services | `AppContainer+Construction.swift` |
