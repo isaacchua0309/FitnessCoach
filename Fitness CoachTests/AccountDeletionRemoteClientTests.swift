@@ -79,7 +79,7 @@ final class AccountDeletionRemoteClientTests: XCTestCase {
         )
     }
 
-    func testMapsMissingAuthTokenToUnauthenticated() async {
+    func testMapsMissingAuthTokenToUnauthorized() async {
         AccountDeletionMockURLProtocol.responseBody = Self.validSuccessResponseData
 
         let client = AccountDeletionRemoteClient(
@@ -90,15 +90,15 @@ final class AccountDeletionRemoteClientTests: XCTestCase {
 
         do {
             _ = try await client.deleteRemoteAccountData(confirmation: "DELETE")
-            XCTFail("Expected unauthenticated error")
+            XCTFail("Expected unauthorized error")
         } catch {
-            XCTAssertEqual(error as? AccountDeletionRemoteError, .unauthenticated)
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .unauthorized)
         }
 
         XCTAssertNil(AccountDeletionMockURLProtocol.capturedRequest?.httpBody)
     }
 
-    func testMapsMissingTokenToReauthenticationRequired() async {
+    func testMapsMissingTokenToRequiresRecentLogin() async {
         AccountDeletionMockURLProtocol.responseBody = Self.validSuccessResponseData
 
         let client = AccountDeletionRemoteClient(
@@ -109,13 +109,13 @@ final class AccountDeletionRemoteClientTests: XCTestCase {
 
         do {
             _ = try await client.deleteRemoteAccountData(confirmation: "DELETE")
-            XCTFail("Expected reauthenticationRequired error")
+            XCTFail("Expected requiresRecentLogin error")
         } catch {
-            XCTAssertEqual(error as? AccountDeletionRemoteError, .reauthenticationRequired)
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .requiresRecentLogin)
         }
     }
 
-    func testMapsHTTP401ToUnauthenticated() async {
+    func testMapsHTTP401ToUnauthorized() async {
         AccountDeletionMockURLProtocol.responseStatusCode = 401
         AccountDeletionMockURLProtocol.responseBody = Data(
             #"{"error":"Invalid Firebase ID token.","backendErrorCategory":"authentication"}"#.utf8
@@ -125,9 +125,57 @@ final class AccountDeletionRemoteClientTests: XCTestCase {
 
         do {
             _ = try await client.deleteRemoteAccountData(confirmation: "DELETE")
-            XCTFail("Expected unauthenticated error")
+            XCTFail("Expected unauthorized error")
         } catch {
-            XCTAssertEqual(error as? AccountDeletionRemoteError, .unauthenticated)
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .unauthorized)
+        }
+    }
+
+    func testMapsHTTP403ToForbidden() async {
+        AccountDeletionMockURLProtocol.responseStatusCode = 403
+        AccountDeletionMockURLProtocol.responseBody = Data(
+            #"{"error":"Forbidden.","backendErrorCategory":"authorization"}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.deleteRemoteAccountData(confirmation: "DELETE")
+            XCTFail("Expected forbidden error")
+        } catch {
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .forbidden)
+        }
+    }
+
+    func testMapsHTTP404ToNotFound() async {
+        AccountDeletionMockURLProtocol.responseStatusCode = 404
+        AccountDeletionMockURLProtocol.responseBody = Data(
+            #"{"error":"Not found.","backendErrorCategory":"not_found"}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.deleteRemoteAccountData(confirmation: "DELETE")
+            XCTFail("Expected notFound error")
+        } catch {
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .notFound)
+        }
+    }
+
+    func testMapsHTTP429ToRateLimited() async {
+        AccountDeletionMockURLProtocol.responseStatusCode = 429
+        AccountDeletionMockURLProtocol.responseBody = Data(
+            #"{"error":"Too many attempts.","backendErrorCategory":"rate_limited"}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.deleteRemoteAccountData(confirmation: "DELETE")
+            XCTFail("Expected rateLimited error")
+        } catch {
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .rateLimited)
         }
     }
 
@@ -173,6 +221,64 @@ final class AccountDeletionRemoteClientTests: XCTestCase {
         }
     }
 
+    func testMapsMalformedResponseBodyToMalformedResponse() async {
+        AccountDeletionMockURLProtocol.responseBody = Data("{".utf8)
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.deleteRemoteAccountData(confirmation: "DELETE")
+            XCTFail("Expected malformedResponse error")
+        } catch {
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .malformedResponse)
+        }
+    }
+
+    func testRemoteErrorUserFacingMessagesAreSpecificAndSafe() {
+        XCTAssertEqual(
+            AccountDeletionRemoteError.notFound.userFacingMessage,
+            FormaProductCopy.Settings.PrivacyData.deletionRemoteNotFoundErrorMessage
+        )
+        XCTAssertEqual(
+            AccountDeletionRemoteError.unauthorized.userFacingMessage,
+            FormaProductCopy.Settings.PrivacyData.deletionRemoteUnauthorizedErrorMessage
+        )
+        XCTAssertEqual(
+            AccountDeletionRemoteError.forbidden.userFacingMessage,
+            FormaProductCopy.Settings.PrivacyData.deletionRemoteForbiddenErrorMessage
+        )
+        XCTAssertEqual(
+            AccountDeletionRemoteError.rateLimited.userFacingMessage,
+            FormaProductCopy.Settings.PrivacyData.deletionRemoteRateLimitedErrorMessage
+        )
+        XCTAssertEqual(
+            AccountDeletionRemoteError.serverUnavailable.userFacingMessage,
+            FormaProductCopy.Settings.PrivacyData.deletionRemoteTimeoutErrorMessage
+        )
+        XCTAssertEqual(
+            AccountDeletionRemoteError.timeout.userFacingMessage,
+            FormaProductCopy.Settings.PrivacyData.deletionRemoteTimeoutErrorMessage
+        )
+        XCTAssertEqual(
+            AccountDeletionRemoteError.offline.userFacingMessage,
+            FormaProductCopy.Settings.PrivacyData.deletionRemoteOfflineErrorMessage
+        )
+
+        for error in [
+            AccountDeletionRemoteError.notFound,
+            .unauthorized,
+            .forbidden,
+            .rateLimited,
+            .serverUnavailable,
+            .offline
+        ] {
+            let message = error.userFacingMessage.lowercased()
+            XCTAssertFalse(message.contains("firebase"))
+            XCTAssertFalse(message.contains("http"))
+            XCTAssertFalse(message.contains("token"))
+        }
+    }
+
     func testInMemoryClientCanFakeSuccessAndFailure() async throws {
         let inMemory = InMemoryAccountDeletionRemoteClient()
 
@@ -196,13 +302,13 @@ final class AccountDeletionRemoteClientTests: XCTestCase {
         XCTAssertEqual(lastConfirmation, "DELETE")
 
         await inMemory.reset()
-        await inMemory.configure(error: .permissionDenied)
+        await inMemory.configure(error: .forbidden)
 
         do {
             _ = try await inMemory.deleteRemoteAccountData(confirmation: "DELETE")
-            XCTFail("Expected permissionDenied error")
+            XCTFail("Expected forbidden error")
         } catch {
-            XCTAssertEqual(error as? AccountDeletionRemoteError, .permissionDenied)
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .forbidden)
         }
     }
 }

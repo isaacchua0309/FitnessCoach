@@ -31,12 +31,15 @@ struct RemoteAccountDeletionResult: Equatable, Sendable {
 // MARK: - Errors
 
 enum AccountDeletionRemoteError: Error, Equatable, Sendable {
-    case unauthenticated
-    case reauthenticationRequired
     case offline
-    case permissionDenied
+    case unauthorized
+    case forbidden
+    case notFound
+    case rateLimited
     case serverUnavailable
     case timeout
+    case malformedResponse
+    case requiresRecentLogin
     case unknown(String?)
 }
 
@@ -134,8 +137,12 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
             encodedBody = try encoder.encode(requestBody)
             urlRequest.httpBody = encodedBody
         } catch {
-            AccountDeletionRemoteLogger.requestFailed(category: "encoding")
-            throw AccountDeletionRemoteError.unknown("request_encoding_failed")
+            AccountDeletionRemoteLogger.requestFailed(
+                stage: .remoteDelete,
+                category: AccountDeletionRemoteError.malformedResponse.logCategory,
+                retryable: AccountDeletionRemoteError.malformedResponse.isRetryable
+            )
+            throw AccountDeletionRemoteError.malformedResponse
         }
 
         if let authTokenProvider {
@@ -144,11 +151,19 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
                 urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             } catch let error as AuthManagerError {
                 let mapped = Self.mapAuthTokenError(error)
-                AccountDeletionRemoteLogger.requestFailed(category: Self.errorCategory(mapped))
+                AccountDeletionRemoteLogger.requestFailed(
+                    stage: .remoteDelete,
+                    category: mapped.logCategory,
+                    retryable: mapped.isRetryable
+                )
                 throw mapped
             } catch {
                 let mapped = Self.mapAuthTokenError(error)
-                AccountDeletionRemoteLogger.requestFailed(category: Self.errorCategory(mapped))
+                AccountDeletionRemoteLogger.requestFailed(
+                    stage: .remoteDelete,
+                    category: mapped.logCategory,
+                    retryable: mapped.isRetryable
+                )
                 throw mapped
             }
         }
@@ -161,7 +176,9 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
         } catch {
             let mapped = Self.mapTransportError(error)
             AccountDeletionRemoteLogger.requestFailed(
-                category: Self.errorCategory(mapped),
+                stage: .remoteDelete,
+                category: mapped.logCategory,
+                retryable: mapped.isRetryable,
                 durationMs: Self.durationMs(since: started)
             )
             throw mapped
@@ -171,7 +188,9 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
         if !(200...299).contains(statusCode) {
             let mapped = Self.mapHTTPStatusError(statusCode: statusCode, data: data)
             AccountDeletionRemoteLogger.requestFailed(
-                category: Self.errorCategory(mapped),
+                stage: .remoteDelete,
+                category: mapped.logCategory,
+                retryable: mapped.isRetryable,
                 statusCode: statusCode,
                 durationMs: Self.durationMs(since: started)
             )
@@ -183,20 +202,28 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
             payload = try decoder.decode(DeleteAccountDataResponse.self, from: data)
         } catch {
             AccountDeletionRemoteLogger.requestFailed(
-                category: "decode_failure",
+                stage: .remoteDelete,
+                category: AccountDeletionRemoteError.malformedResponse.logCategory,
+                retryable: AccountDeletionRemoteError.malformedResponse.isRetryable,
                 statusCode: statusCode,
                 durationMs: Self.durationMs(since: started)
             )
-            throw AccountDeletionRemoteError.unknown("response_decode_failed")
+            throw AccountDeletionRemoteError.malformedResponse
         }
 
         guard payload.ok else {
+            let mapped = Self.mapPartialDeletionResponse(
+                statusCode: statusCode,
+                backendErrorCategory: payload.backendErrorCategory
+            )
             AccountDeletionRemoteLogger.requestFailed(
-                category: payload.backendErrorCategory ?? "incomplete_deletion",
+                stage: .remoteDelete,
+                category: mapped.logCategory,
+                retryable: mapped.isRetryable,
                 statusCode: statusCode,
                 durationMs: Self.durationMs(since: started)
             )
-            throw AccountDeletionRemoteError.serverUnavailable
+            throw mapped
         }
 
         let result = Self.makeResult(from: payload)
@@ -244,17 +271,17 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
         if let authError = error as? AuthManagerError {
             switch authError {
             case .notSignedIn:
-                return .unauthenticated
+                return .unauthorized
             case .missingToken:
-                return .reauthenticationRequired
+                return .requiresRecentLogin
             }
         }
 
         if isRequiresRecentLoginError(error) {
-            return .reauthenticationRequired
+            return .requiresRecentLogin
         }
 
-        return .unauthenticated
+        return .unauthorized
     }
 
     private static func isRequiresRecentLoginError(_ error: Error) -> Bool {
@@ -305,13 +332,21 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
         if statusCode == 401 {
             if backendErrorCategory(from: data) == "authentication",
                backendErrorMessage(from: data)?.localizedCaseInsensitiveContains("recent") == true {
-                return .reauthenticationRequired
+                return .requiresRecentLogin
             }
-            return .unauthenticated
+            return .unauthorized
         }
 
         if statusCode == 403 {
-            return .permissionDenied
+            return .forbidden
+        }
+
+        if statusCode == 404 {
+            return .notFound
+        }
+
+        if statusCode == 429 {
+            return .rateLimited
         }
 
         if statusCode == 408 || statusCode == 504 {
@@ -327,6 +362,16 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
         }
 
         return .unknown(backendErrorCategory(from: data))
+    }
+
+    private static func mapPartialDeletionResponse(
+        statusCode: Int,
+        backendErrorCategory: String?
+    ) -> AccountDeletionRemoteError {
+        if statusCode == 503 || backendErrorCategory == "timeout" {
+            return .serverUnavailable
+        }
+        return .serverUnavailable
     }
 
     private static func backendErrorCategory(from data: Data) -> String? {
@@ -349,25 +394,6 @@ final class AccountDeletionRemoteClient: AccountDeletionRemoteDeleting, @uncheck
 
     private static func durationMs(since started: Date) -> Int {
         Int(Date().timeIntervalSince(started) * 1_000)
-    }
-
-    private static func errorCategory(_ error: AccountDeletionRemoteError) -> String {
-        switch error {
-        case .unauthenticated:
-            return "unauthenticated"
-        case .reauthenticationRequired:
-            return "reauthentication_required"
-        case .offline:
-            return "offline"
-        case .permissionDenied:
-            return "permission_denied"
-        case .serverUnavailable:
-            return "server_unavailable"
-        case .timeout:
-            return "timeout"
-        case .unknown:
-            return "unknown"
-        }
     }
 }
 
@@ -412,10 +438,14 @@ private struct DeleteAccountDataResponse: Decodable {
 
 private enum AccountDeletionRemoteLogger {
 
+    enum Stage: String {
+        case remoteDelete = "remote_delete"
+    }
+
     private static let logger = Logger(subsystem: "Forma", category: "AccountDeletionRemote")
 
     static func requestStarted() {
-        logger.info("Remote account deletion request started")
+        logger.info("Remote account deletion request started stage=\(Stage.remoteDelete.rawValue, privacy: .public)")
     }
 
     static func requestFinished(
@@ -440,21 +470,30 @@ private enum AccountDeletionRemoteLogger {
     }
 
     static func requestFailed(
+        stage: Stage,
         category: String,
+        retryable: Bool,
         statusCode: Int? = nil,
         durationMs: Int? = nil
     ) {
+        let retryableLabel = retryable ? "yes" : "no"
         if let statusCode, let durationMs {
             logger.error(
                 """
-                Remote account deletion failed category=\(category, privacy: .public) \
+                Remote account deletion failed stage=\(stage.rawValue, privacy: .public) \
+                category=\(category, privacy: .public) retryable=\(retryableLabel, privacy: .public) \
                 status=\(statusCode, privacy: .public) durationMs=\(durationMs, privacy: .public)
                 """
             )
             return
         }
 
-        logger.error("Remote account deletion failed category=\(category, privacy: .public)")
+        logger.error(
+            """
+            Remote account deletion failed stage=\(stage.rawValue, privacy: .public) \
+            category=\(category, privacy: .public) retryable=\(retryableLabel, privacy: .public)
+            """
+        )
     }
 }
 

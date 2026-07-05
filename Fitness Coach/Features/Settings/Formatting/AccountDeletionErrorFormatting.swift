@@ -23,15 +23,22 @@ enum AccountDeletionErrorFormatting {
 
         switch summary.failureCategory {
         case .offline:
-            return FormaProductCopy.Settings.PrivacyData.deletionOfflineErrorMessage
+            return FormaProductCopy.Settings.PrivacyData.deletionRemoteOfflineErrorMessage
         case .permissionDenied:
-            return FormaProductCopy.Settings.PrivacyData.deletionPermissionDeniedErrorMessage
+            return FormaProductCopy.Settings.PrivacyData.deletionRemoteForbiddenErrorMessage
         case .unauthenticated:
-            return FormaProductCopy.Settings.PrivacyData.deletionFlowUnavailableMessage
+            return FormaProductCopy.Settings.PrivacyData.deletionRemoteUnauthorizedErrorMessage
         case .reauthenticationRequired:
             return FormaProductCopy.Settings.PrivacyData.deletionReauthenticationMessage
-        case .remoteDataDeleteFailed, .authDeleteFailed, .localWipeFailed,
-             .accountSwitched, .unknown, .none:
+        case .remoteServiceNotFound:
+            return FormaProductCopy.Settings.PrivacyData.deletionRemoteNotFoundErrorMessage
+        case .rateLimited:
+            return FormaProductCopy.Settings.PrivacyData.deletionRemoteRateLimitedErrorMessage
+        case .remoteDataDeleteFailed:
+            return FormaProductCopy.Settings.PrivacyData.deletionRemoteTimeoutErrorMessage
+        case .malformedResponse:
+            return FormaProductCopy.Settings.PrivacyData.deletionRemoteMalformedResponseErrorMessage
+        case .authDeleteFailed, .localWipeFailed, .accountSwitched, .unknown, .none:
             return FormaProductCopy.Settings.PrivacyData.deletionGenericErrorMessage
         }
     }

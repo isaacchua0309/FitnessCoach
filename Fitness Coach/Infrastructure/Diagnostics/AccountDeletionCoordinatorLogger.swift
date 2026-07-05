@@ -47,6 +47,27 @@ enum AccountDeletionCoordinatorLogger {
         ])
     }
 
+    static func remoteFailure(
+        scope: AccountDeletionScope,
+        stage: String,
+        category: String,
+        retryable: Bool,
+        statusCode: Int? = nil,
+        uidField: String
+    ) {
+        var fields: [String: String] = [
+            "scope": scope.rawValue,
+            "stage": stage,
+            "category": category,
+            "retryable": retryable ? "yes" : "no",
+            "uidHash": uidField,
+        ]
+        if let statusCode {
+            fields["statusCode"] = String(statusCode)
+        }
+        log("remote_failure", level: .error, fields: fields)
+    }
+
     static func phaseChanged(
         scope: AccountDeletionScope,
         status: AccountDeletionStatus,
