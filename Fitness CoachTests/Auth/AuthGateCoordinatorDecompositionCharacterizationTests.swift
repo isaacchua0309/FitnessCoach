@@ -24,6 +24,9 @@ final class AuthGateCoordinatorDecompositionCharacterizationTests: XCTestCase {
   }
 
   // MARK: - 1. Route resolution
+  //
+  // Deep routing precedence, reset, and stability coverage lives in
+  // AuthGateCoordinatorRoutingCharacterizationTests.
 
   func testEffectiveRoute_matchesAllConfiguredShellRoutes() throws {
     for scenario in AuthGateCharacterizationTestSupport.allRouteScenarios() {
