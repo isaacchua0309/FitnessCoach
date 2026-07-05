@@ -262,6 +262,61 @@ final class PlanHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
     }
 
+    func testBuildSectionUsesSectionLoaderCoreClassificationForStaleLabel() {
+        let now = Date()
+        let planInput = PlanHealthIntelligenceBuildInput(
+            planConfidence: PlanHealthConfidence(score: 0.62, label: "Moderate"),
+            baselineContext: HealthIntelligencePresentationCharacterizationFixtures.strongPlanBaseline(),
+            recovery: HealthIntelligencePresentationCharacterizationFixtures.planRecovery(),
+            userPlan: HealthIntelligencePresentationCharacterizationFixtures.connectedPlan(),
+            healthConnection: .connected,
+            healthAvailability: HealthIntelligencePresentationCharacterizationFixtures.connectedAvailability,
+            hasNutritionLogging: true,
+            hasRecentWeightLog: true,
+            cachedDayCount: 10,
+            lastSuccessfulLocalSyncAt: HealthIntelligencePresentationCharacterizationFixtures.staleLastSyncAt(from: now)
+        )
+        let section = PlanHealthIntelligencePresentationBuilder.buildSection(
+            input: planInput,
+            calendar: calendar
+        )
+
+        guard let uiState = section.uiState else {
+            XCTFail("Expected uiState")
+            return
+        }
+
+        XCTAssertEqual(section.uiState?.kind, .staleData)
+        XCTAssertEqual(
+            section.staleDataLabel,
+            HealthIntelligencePresentationCore.staleDataLabel(for: uiState, surface: .plan)
+        )
+    }
+
+    func testMissingDataActionAccessibilityUsesSharedJoinedLabel() {
+        let action = PlanHealthIntelligencePresentationBuilder.missingDataActions(
+            from: PlanHealthIntelligenceBuildInput(
+                planConfidence: .unknown,
+                baselineContext: .empty(for: referenceDay),
+                recovery: .unknown,
+                userPlan: connectedPlan(),
+                healthConnection: .disconnected,
+                hasNutritionLogging: false,
+                hasRecentWeightLog: false
+            )
+        ).first { $0.id == "connect-health" }
+
+        XCTAssertEqual(
+            action?.accessibilityLabel,
+            HealthIntelligencePresentationAccessibility.joinedLabel(
+                parts: [
+                    FormaProductCopy.PlanHealthIntelligencePresentation.actionConnectHealthTitle,
+                    FormaProductCopy.PlanHealthIntelligencePresentation.actionConnectHealthMessage
+                ]
+            )
+        )
+    }
+
     // MARK: - Fixtures
 
     private func makeStrongInput() -> PlanHealthIntelligenceBuildInput {

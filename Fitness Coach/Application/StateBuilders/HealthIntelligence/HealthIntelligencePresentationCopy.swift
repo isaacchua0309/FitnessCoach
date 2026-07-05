@@ -119,6 +119,28 @@ enum HealthIntelligencePresentationCopy {
         }
     }
 
+    // MARK: - Plan
+
+    enum Plan {
+        static func insightKindLabel(for kind: HealthInsightKind) -> String {
+            let copy = FormaProductCopy.PlanHealthIntelligencePresentation.self
+            switch kind {
+            case .workouts:
+                return copy.signalAppleHealthWorkouts
+            case .steps, .activeEnergy, .exerciseMinutes:
+                return copy.signalStepHistory
+            case .sleep:
+                return copy.signalSleep
+            case .restingHeartRate, .hrv:
+                return copy.signalHeartMetrics
+            case .weight:
+                return copy.signalWeight
+            case .recoveryBaseline, .remoteSync:
+                return copy.dataQualitySectionTitle
+            }
+        }
+    }
+
     // MARK: - Weekly review
 
     enum WeeklyReview {
