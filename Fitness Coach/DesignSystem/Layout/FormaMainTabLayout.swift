@@ -2,12 +2,36 @@
 //  FormaMainTabLayout.swift
 //  Fitness Coach
 //
-//  Forma — Shared scroll clearance for main-tab root screens (Today, Coach, Journey, Plan).
+//  Forma — Shared layout metrics for main-tab root screens (Today, Coach, Journey, Plan).
 //
 
 import SwiftUI
 
 enum FormaMainTabLayout {
+    /// Horizontal inset for tab-root page content and headers.
+    static let horizontalPadding = FormaFeatureLayout.horizontalPadding
+
+    // MARK: Page shell
+
+    /// Space below the status bar / safe-area top before the page title.
+    static let headerTopPadding = FormaTokens.Spacing.md
+    /// Space between the page header block and primary scroll content.
+    static let headerBottomPadding = FormaTokens.Spacing.sm
+    /// Tight gap between large title and subtitle.
+    static let headerTitleSubtitleSpacing: CGFloat = 4
+    /// Default vertical gap between dashboard sections inside the scaffold scroll area.
+    static let sectionSpacing = FormaTokens.Spacing.xl
+    /// Gap between a section label and the card below it.
+    static let sectionLabelBottomSpacing = FormaTokens.Spacing.xs
+
+    // MARK: Cards
+
+    static let cardCornerRadius: CGFloat = 24
+    static let cardPadding: CGFloat = 24
+    static let cardCompactPadding: CGFloat = FormaTokens.Spacing.md
+
+    // MARK: Tab bar scroll clearance
+
     /// Padding below the last scroll content block before the tab-bar inset zone.
     static let scrollContentBottomPadding = FormaTokens.Layout.mainTabScrollContentPadding
     /// Reserved scroll height above the floating tab bar (`safeAreaInset`).

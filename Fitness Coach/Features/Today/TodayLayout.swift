@@ -64,8 +64,7 @@ struct TodaySectionLabel: View {
     let title: String
 
     var body: some View {
-        FormaSectionLabel(title: title)
-            .accessibilityAddTraits(.isHeader)
+        SectionLabel(title: title)
     }
 }
 
@@ -73,15 +72,8 @@ struct TodaySectionLabel: View {
 struct TodayMutedSectionLabel: View {
     let title: String
 
-    @Environment(\.theme) private var theme
-
     var body: some View {
-        Text(title)
-            .font(FormaTokens.Typography.caption.weight(.medium))
-            .foregroundStyle(theme.tertiaryText)
-            .textCase(.uppercase)
-            .tracking(0.4)
-            .accessibilityAddTraits(.isHeader)
+        SectionLabel(title: title, style: .muted)
     }
 }
 
@@ -90,18 +82,11 @@ struct TodayMutedSectionLabel: View {
 struct TodayActionCard<Content: View>: View {
     @ViewBuilder var content: Content
 
-    @EnvironmentObject private var themeManager: ThemeManager
-
     var body: some View {
-        let _ = themeManager.themeRevision
-        return content
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.sm)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                FormaCardChrome.background(.accentLeading)
-            }
-            .todayLiveTheme()
+        MainTabCard(style: .accentLeading, compact: true) {
+            content
+        }
+        .todayLiveTheme()
     }
 }
 
@@ -110,18 +95,11 @@ struct TodayActionCard<Content: View>: View {
 struct TodayMetricsCard<Content: View>: View {
     @ViewBuilder var content: Content
 
-    @EnvironmentObject private var themeManager: ThemeManager
-
     var body: some View {
-        let _ = themeManager.themeRevision
-        return content
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.xs)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                FormaCardChrome.background(.surfaceSubtle)
-            }
-            .todayLiveTheme()
+        MainTabCard(style: .surfaceSubtle, compact: true) {
+            content
+        }
+        .todayLiveTheme()
     }
 }
 

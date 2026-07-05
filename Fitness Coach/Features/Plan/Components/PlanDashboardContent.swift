@@ -40,11 +40,6 @@ struct PlanDashboardContent: View {
                 secondarySections
             }
         }
-        .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, PlanLayout.horizontalPadding)
-        .padding(.top, FormaTokens.Spacing.xs)
-        .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
         .accessibilityIdentifier("plan-dashboard")
         .formaThemeReactive()
     }
@@ -67,7 +62,7 @@ struct PlanDashboardContent: View {
     private func sectionView(for section: PlanProductSection) -> some View {
         switch section {
         case .header:
-            PlanHeaderSection(state: state.header)
+            EmptyView()
 
         case .goalProgress:
             PlanMissionControlHeroSection(strategy: state.strategy)

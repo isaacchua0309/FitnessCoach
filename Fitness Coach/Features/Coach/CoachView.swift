@@ -30,18 +30,24 @@ struct CoachView: View {
         self.isActive = isActive
     }
 
-    private var showEmptyChrome: Bool {
-        model.messages.isEmpty
+    private var coachSubtitle: String? {
+        if let launchPresentation = model.activeLaunchPresentation, !launchPresentation.body.isEmpty {
+            return launchPresentation.body
+        }
+        if let todayContext = model.todayContext {
+            return todayContext.caloriesLine
+        }
+        return FormaProductCopy.EmptyState.CoachConversation.body
     }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                if showEmptyChrome {
-                    CoachHeader()
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-
+            MainTabPageScaffold(
+                title: FormaProductCopy.Coach.screenTitle,
+                subtitle: coachSubtitle,
+                scrollMode: .embedded,
+                reservesTabBarScrollInset: false
+            ) {
                 CoachConversationView(
                     messages: model.messages,
                     isSending: model.isSending,
@@ -72,17 +78,11 @@ struct CoachView: View {
                         }
                     }
                 )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onChange(of: model.requestsComposerFocus) { _, shouldFocus in
                     if shouldFocus {
                         focusComposerIfRequested()
                     }
                 }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background {
-                CoachCanvasBackground()
-                    .ignoresSafeArea()
             }
             .toolbar(.hidden, for: .navigationBar)
             .task {
@@ -122,7 +122,6 @@ struct CoachView: View {
             .onChange(of: refreshCenter.refreshToken) { _, _ in
                 model.refreshTodayContext()
             }
-            .animation(CoachDesignTokens.Motion.standard, value: showEmptyChrome)
             .photosPicker(
                 isPresented: $imagePickFlow.isPhotoPickerPresented,
                 selection: $photoPickerItem,
@@ -408,14 +407,6 @@ struct CoachView: View {
                 }
             )
         }
-    }
-}
-
-private struct CoachCanvasBackground: View {
-    @Environment(\.formaColors) private var colors
-
-    var body: some View {
-        colors.canvas
     }
 }
 

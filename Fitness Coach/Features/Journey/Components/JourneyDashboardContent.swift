@@ -46,11 +46,6 @@ struct JourneyDashboardContent: View {
                 sectionView(for: section)
             }
         }
-        .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, JourneyLayout.horizontalPadding)
-        .padding(.top, FormaTokens.Spacing.md)
-        .padding(.bottom, JourneyLayout.scrollBottomContentPadding)
         .accessibilityIdentifier("journey-dashboard")
     }
 
@@ -113,7 +108,7 @@ struct JourneyDashboardContent: View {
     private func sectionView(for section: JourneyProductSection) -> some View {
         switch section {
         case .header:
-            JourneyHeaderSection(state: state.header)
+            EmptyView()
 
         case .transformation:
             VStack(alignment: .leading, spacing: JourneyLayout.heroStackSpacing) {

@@ -11,6 +11,7 @@ extension FormaProductCopy {
     // MARK: - Coach
 
     enum Coach {
+        static let screenTitle = "Coach"
         static let headerSubtitle = "What do you want to log or ask?"
         static let todaySoFarSectionTitle = "Today so far"
         static let suggestedNextSectionTitle = "Suggested next"

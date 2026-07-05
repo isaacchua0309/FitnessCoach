@@ -11,18 +11,10 @@ struct FormaPlanCard<Content: View>: View {
     var compact: Bool = false
     @ViewBuilder var content: Content
 
-    @EnvironmentObject private var themeManager: ThemeManager
-
     var body: some View {
-        let _ = themeManager.themeRevision
-        return content
-            .padding(.horizontal, compact ? FormaTokens.Spacing.sm : FormaTokens.Spacing.md)
-            .padding(.vertical, compact ? FormaTokens.Spacing.xs : FormaTokens.Spacing.sm)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                FormaCardChrome.background(.surface)
-            }
-            .todayLiveTheme()
+        MainTabCard(compact: compact) {
+            content
+        }
     }
 }
 

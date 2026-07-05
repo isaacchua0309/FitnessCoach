@@ -230,24 +230,37 @@ struct TodayView: View {
     private var content: some View {
         switch model.viewState {
         case .loading:
-            ScrollView {
+            MainTabPageScaffold(
+                title: FormaProductCopy.Today.Header.title
+            ) {
                 TodayDashboardSkeletonView()
-                    .padding(.horizontal, TodayLayout.horizontalPadding)
-                    .padding(.top, FormaTokens.Spacing.md)
-                    .padding(.bottom, TodayLayout.bottomScrollPadding)
             }
-            .formaMainTabScrollInsets()
         case .empty:
-            TodayEmptyStateView {
-                onOpenPlan?()
+            MainTabPageScaffold(
+                title: FormaProductCopy.Today.Header.title,
+                scrollMode: .embedded
+            ) {
+                TodayEmptyStateView {
+                    onOpenPlan?()
+                }
             }
         case .error(let message):
-            FormaScreenErrorView(message: message, onRetry: {
-                Task { await refreshDashboard() }
-            }, style: .tabRoot)
+            MainTabPageScaffold(
+                title: FormaProductCopy.Today.Header.title,
+                scrollMode: .embedded
+            ) {
+                FormaScreenErrorView(message: message, onRetry: {
+                    Task { await refreshDashboard() }
+                }, style: .tabRoot)
+            }
         case .pendingAccountRestore(let message):
-            AccountRestorePendingStateView(message: message)
-                .formaMainTabScrollInsets()
+            MainTabPageScaffold(
+                title: FormaProductCopy.Today.Header.title,
+                scrollMode: .embedded,
+                reservesTabBarScrollInset: false
+            ) {
+                AccountRestorePendingStateView(message: message)
+            }
         case .loaded(let state):
             dashboard(state)
         }
@@ -259,43 +272,35 @@ struct TodayView: View {
 
     private func dashboard(_ state: TodayDashboardState) -> some View {
         let _ = themeManager.themeRevision
-        return ScrollView {
-            VStack(alignment: .leading, spacing: TodayLayout.sectionSpacing) {
-                TodayReadOnlyView(
-                    state: state,
-                    actionCoordinator: actionCoordinator,
-                    healthIntelligenceSection: isHealthIntelligenceUIEnabled
-                        ? model.healthIntelligenceSectionState
-                        : nil,
-                    isHealthIntelligenceUIEnabled: isHealthIntelligenceUIEnabled,
-                    healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-                    onHealthNextBestAction: { destination in
-                        actionCoordinator.handleHealthNextBestAction(destination)
-                    },
-                    onOpenJourney: {
-                        onOpenJourney?()
-                    },
-                    onOpenPlan: {
-                        onOpenPlan?()
-                    }
-                )
+        return MainTabPageScaffold(
+            title: FormaProductCopy.Today.Header.title,
+            subtitle: TodayDashboardHeaderFormatting.dateLine(for: state.date),
+            sectionSpacing: TodayLayout.sectionSpacing,
+            showsCrossDeviceRefreshBanner: model.isCrossDeviceRefreshing,
+            trailingAction: {
+                if let planStatusChip = TodayDashboardHeaderFormatting.planStatusChip(for: state.mission.status) {
+                    PageActionPill(title: planStatusChip)
+                }
             }
-            .padding(.horizontal, TodayLayout.horizontalPadding)
-            .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, TodayLayout.bottomScrollPadding)
-        }
-        .formaMainTabScrollInsets()
-        .overlay(alignment: .top) {
-            if model.isCrossDeviceRefreshing {
-                ProgressView()
-                    .controlSize(.small)
-                    .padding(.horizontal, FormaTokens.Spacing.md)
-                    .padding(.vertical, FormaTokens.Spacing.sm)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-                    .padding(.top, FormaTokens.Spacing.sm)
-                    .accessibilityLabel("Syncing latest updates")
-            }
+        ) {
+            TodayReadOnlyView(
+                state: state,
+                actionCoordinator: actionCoordinator,
+                healthIntelligenceSection: isHealthIntelligenceUIEnabled
+                    ? model.healthIntelligenceSectionState
+                    : nil,
+                isHealthIntelligenceUIEnabled: isHealthIntelligenceUIEnabled,
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+                onHealthNextBestAction: { destination in
+                    actionCoordinator.handleHealthNextBestAction(destination)
+                },
+                onOpenJourney: {
+                    onOpenJourney?()
+                },
+                onOpenPlan: {
+                    onOpenPlan?()
+                }
+            )
         }
         .onAppear {
             syncAnalyticsContext(for: state)

@@ -13,12 +13,7 @@ struct JourneySectionLabel: View {
     let title: String
 
     var body: some View {
-        Text(title)
-            .font(FormaTokens.Typography.caption.weight(.semibold))
-            .foregroundStyle(FormaTokens.Color.textTertiary)
-            .textCase(.uppercase)
-            .tracking(0.6)
-            .accessibilityAddTraits(.isHeader)
+        SectionLabel(title: title)
     }
 }
 
@@ -51,48 +46,29 @@ struct JourneyCard<Content: View>: View {
     let elevation: JourneyCardElevation
     @ViewBuilder var content: Content
 
-    @EnvironmentObject private var themeManager: ThemeManager
-
     var body: some View {
-        let _ = themeManager.themeRevision
-        return content
-            .padding(.horizontal, horizontalPadding)
-            .padding(.vertical, verticalPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground)
+        MainTabCard(style: cardStyle, compact: isCompact) {
+            content
+        }
     }
 
-    private var horizontalPadding: CGFloat {
+    private var cardStyle: FormaCardChrome.Style {
+        switch elevation {
+        case .hero:
+            return .accentLeading
+        case .featured, .standard:
+            return .surface
+        case .quiet:
+            return .surfaceSubtle
+        }
+    }
+
+    private var isCompact: Bool {
         switch elevation {
         case .hero, .featured:
-            return JourneyLayout.cardPaddingHorizontal
+            return false
         case .standard, .quiet:
-            return JourneyLayout.cardPaddingHorizontal
-        }
-    }
-
-    private var verticalPadding: CGFloat {
-        switch elevation {
-        case .hero:
-            return JourneyLayout.heroCardPaddingVertical
-        case .featured:
-            return JourneyLayout.featuredCardPaddingVertical
-        case .standard:
-            return JourneyLayout.standardCardPaddingVertical
-        case .quiet:
-            return JourneyLayout.quietCardPaddingVertical
-        }
-    }
-
-    @ViewBuilder
-    private var cardBackground: some View {
-        switch elevation {
-        case .hero:
-            FormaCardChrome.background(.accentLeading)
-        case .featured, .standard:
-            FormaCardChrome.background(.surface)
-        case .quiet:
-            FormaCardChrome.background(.surfaceSubtle)
+            return true
         }
     }
 }

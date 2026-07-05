@@ -83,11 +83,6 @@ struct TodayReadOnlyView: View {
         let _ = themeManager.themeRevision
 
         VStack(alignment: .leading, spacing: sectionSpacing) {
-            TodayDashboardHeader(
-                date: state.date,
-                planStatusChip: TodayDashboardHeaderFormatting.planStatusChip(for: state.mission.status)
-            )
-
             missionBlock
 
             TodayWaterQuickLogSection(

@@ -61,13 +61,8 @@ struct CoachEmptyState: View {
     private func launchStarterBlock(_ presentation: CoachLaunchPresentation) -> some View {
         VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xs) {
             Text(presentation.headline)
-                .font(CoachDesignTokens.Typography.largeTitle)
+                .font(CoachDesignTokens.Typography.confirmationTitle)
                 .foregroundStyle(CoachDesignTokens.Color.primaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(presentation.body)
-                .font(CoachDesignTokens.Typography.subtitle)
-                .foregroundStyle(CoachDesignTokens.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
