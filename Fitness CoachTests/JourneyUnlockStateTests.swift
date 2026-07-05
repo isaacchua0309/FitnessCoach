@@ -293,10 +293,3 @@ final class JourneyUnlockStateTests: XCTestCase {
         return strings.compactMap { $0 }.joined(separator: " ")
     }
 }
-
-private extension JourneyUnlockChecklistItem {
-    var isCompleted: Bool {
-        if case .completed = status { return true }
-        return false
-    }
-}
