@@ -235,6 +235,8 @@ enum HealthIntelligenceAnalyticsContextBuilder {
         case .viewRecovery: return "view_recovery"
         case .logWeight: return "log_weight"
         case .connectHealth: return "connect_health"
+        case .refreshHealthData: return "refresh_health_data"
+        case .manageHealthPermissions: return "manage_health_permissions"
         case .none: return "none"
         }
     }

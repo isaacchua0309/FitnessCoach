@@ -296,6 +296,7 @@ enum HealthNextBestActionReason: String, Equatable, Sendable, Codable {
     case stayOnPlan
     case connectHealth
     case waitingForData
+    case healthDataLimited
 }
 
 struct HealthIntelligenceNextBestAction: Equatable, Sendable, Codable {

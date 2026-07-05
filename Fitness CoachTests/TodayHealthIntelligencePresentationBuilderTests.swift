@@ -267,6 +267,25 @@ final class TodayHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertEqual(section.workoutCard?.title, FormaProductCopy.Today.HealthIntelligence.Workout.emptyTitle)
     }
 
+    func testConnectedMissingRecoveryDoesNotRecommendConnectAppleHealth() {
+        let snapshot = makeNoHealthDataSnapshot()
+        let section = build(
+            snapshot: snapshot,
+            trainingIntegrationState: .connected,
+            connectionRecord: completedConnectionRecord,
+            availability: readableAvailability
+        )
+
+        XCTAssertEqual(section.recoveryCard.title, "Recovery unclear")
+        XCTAssertTrue(section.nextBestAction.isVisible)
+        XCTAssertEqual(
+            section.nextBestAction.title,
+            FormaProductCopy.HealthIntelligence.Integration.connectedNoData.title
+        )
+        XCTAssertNotEqual(section.nextBestAction.title, "Connect Apple Health")
+        XCTAssertEqual(section.nextBestAction.destination, .refreshHealthData)
+    }
+
     func testNoPermissionSnapshotMissingUsesConnectHealthAction() {
         let section = TodayHealthIntelligencePreviewData.noPermission
 
@@ -552,14 +571,41 @@ final class TodayHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
     }
 
+    private var completedConnectionRecord: HealthIntegrationConnectionRecord {
+        HealthIntegrationConnectionRecord(
+            hasCompletedAppleHealthConnectionFlow: true,
+            lastHealthPermissionRequestAt: referenceDay,
+            lastSuccessfulHealthReadAt: referenceDay,
+            lastHealthSyncAttemptAt: referenceDay
+        )
+    }
+
+    private var readableAvailability: HealthDataAvailability {
+        HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: .uniform(.available, isHealthDataAvailable: true),
+            cachedDayCount: 3
+        )
+    }
+
     private func build(
         snapshot: HealthIntelligenceSnapshot,
-        nutritionProgress: TodayHealthIntelligenceNutritionProgress = .unavailable
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress = .unavailable,
+        trainingIntegrationState: TrainingIntegrationState = .connected,
+        connectionRecord: HealthIntegrationConnectionRecord? = nil,
+        availability: HealthDataAvailability? = nil
     ) -> TodayHealthIntelligenceSectionState {
+        let resolvedRecord = connectionRecord ?? completedConnectionRecord
+        let resolvedAvailability = availability ?? readableAvailability
         guard let section = TodayHealthIntelligencePresentationBuilder.buildSection(
             snapshot: snapshot,
             nutritionProgress: nutritionProgress,
-            isUIEnabled: true
+            isUIEnabled: true,
+            availability: resolvedAvailability,
+            isAppleHealthConnected: trainingIntegrationState.isConnected,
+            trainingIntegrationState: trainingIntegrationState,
+            connectionRecord: resolvedRecord,
+            cachedDayCount: resolvedAvailability.cachedDayCount
         ) else {
             XCTFail("Expected section state")
             return TodayHealthIntelligenceSectionState(
