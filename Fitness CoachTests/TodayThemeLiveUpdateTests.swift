@@ -89,7 +89,7 @@ final class TodayThemeLiveUpdateTests: XCTestCase {
     }
 
     func testTodayThemeTogglePreviewExists() throws {
-        let source = try String(
+        let todaySource = try String(
             contentsOf: ThemeTestSupport.repositoryRoot().appendingPathComponent(
                 "Fitness Coach/Features/Today/TodayView.swift"
             ),
@@ -97,11 +97,11 @@ final class TodayThemeLiveUpdateTests: XCTestCase {
         )
 
         XCTAssertTrue(
-            source.contains("TodayThemeTogglePreview"),
+            todaySource.contains("LiveThemeDebugHarness"),
             "Today must ship a debug preview that switches themes while the screen is visible."
         )
         XCTAssertTrue(
-            source.contains("Theme toggle stress"),
+            todaySource.contains("Theme toggle stress"),
             "Theme toggle preview must be named for designers and QA."
         )
     }

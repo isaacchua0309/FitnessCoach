@@ -329,43 +329,20 @@ struct TodayView: View {
 #if DEBUG
 /// Preview harness that switches palette while Today remains visible — use to verify live card chrome updates.
 #Preview("Theme toggle stress") {
-    TodayThemeTogglePreview()
-}
-
-private struct TodayThemeTogglePreview: View {
-    @StateObject private var themeStore = ThemeStore(userDefaults: ThemeStore.previewUserDefaults())
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                TodayReadOnlyView(
-                    state: TodayPreviewData.state,
-                    actionCoordinator: TodayReadOnlyPreviewSupport.coordinator(),
-                    healthIntelligenceSection: TodayHealthIntelligencePreviewData.workoutDay,
-                    isHealthIntelligenceUIEnabled: true,
-                    onHealthNextBestAction: { _ in }
-                )
-                .padding(.horizontal, TodayLayout.horizontalPadding)
-                .padding(.vertical, FormaTokens.Spacing.md)
-            }
-            .formaMainTabScrollInsets()
-            .background(FormaTokens.Color.canvas)
-            .environmentObject(themeStore)
-            .formaRootTheme()
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu("Theme") {
-                        ForEach(AppThemePalette.allCases) { palette in
-                            Button(palette.displayName) {
-                                themeStore.setTheme(palette)
-                            }
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Today")
-            .navigationBarTitleDisplayMode(.inline)
-        }
+  LiveThemeDebugHarness.shell(title: "Today") { _ in
+    ScrollView {
+      TodayReadOnlyView(
+        state: TodayPreviewData.state,
+        actionCoordinator: TodayReadOnlyPreviewSupport.coordinator(),
+        healthIntelligenceSection: TodayHealthIntelligencePreviewData.workoutDay,
+        isHealthIntelligenceUIEnabled: true,
+        onHealthNextBestAction: { _ in }
+      )
+      .padding(.horizontal, TodayLayout.horizontalPadding)
+      .padding(.vertical, FormaTokens.Spacing.md)
     }
+    .formaMainTabScrollInsets()
+    .background(FormaTokens.Color.canvas)
+  }
 }
 #endif
