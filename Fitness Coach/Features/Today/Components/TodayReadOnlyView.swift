@@ -262,7 +262,7 @@ struct TodayReadOnlyView: View {
 
     @ViewBuilder
     private func hiFallbackBanner(message: String) -> some View {
-        FormaPlanCard {
+        MainTabCard {
             Text(message)
                 .font(TodayHealthIntelligenceCardTypography.detail)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
@@ -289,7 +289,16 @@ enum TodayReadOnlyPreviewSupport {
         healthIntelligenceSection: TodayHealthIntelligenceSectionState? = nil,
         isHealthIntelligenceUIEnabled: Bool = false
     ) -> some View {
-        ScrollView {
+        MainTabPageScaffold(
+            title: FormaProductCopy.Today.Header.title,
+            subtitle: TodayDashboardHeaderFormatting.dateLine(for: state.date),
+            sectionSpacing: TodayLayout.sectionSpacing,
+            trailingAction: {
+                if let planStatusChip = TodayDashboardHeaderFormatting.planStatusChip(for: state.mission.status) {
+                    PageActionPill(title: planStatusChip)
+                }
+            }
+        ) {
             TodayReadOnlyView(
                 state: state,
                 actionCoordinator: coordinator(),
@@ -297,12 +306,7 @@ enum TodayReadOnlyPreviewSupport {
                 isHealthIntelligenceUIEnabled: isHealthIntelligenceUIEnabled,
                 onHealthNextBestAction: { _ in }
             )
-            .padding(.horizontal, TodayLayout.horizontalPadding)
-            .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, TodayLayout.bottomScrollPadding)
         }
-        .formaMainTabScrollInsets()
-        .background(FormaTokens.Color.canvas)
         .formaThemePreview()
     }
 }

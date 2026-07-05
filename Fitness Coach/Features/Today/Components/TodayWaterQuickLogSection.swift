@@ -47,7 +47,7 @@ struct TodayWaterQuickLogSection: View {
     var body: some View {
         let _ = themeManager.themeRevision
         return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: FormaProductCopy.Today.Water.sectionTitle)
+            SectionLabel(title: FormaProductCopy.Today.Water.sectionTitle)
 
             TodayActionCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {

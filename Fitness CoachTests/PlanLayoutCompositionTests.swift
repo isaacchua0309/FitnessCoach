@@ -67,5 +67,9 @@ final class PlanLayoutCompositionTests: XCTestCase {
             FormaMainTabLayout.scrollBottomInset,
             FormaMainTabLayout.scrollContentBottomPadding
         )
+        XCTAssertGreaterThan(
+            FormaMainTabLayout.bottomContentInset(safeAreaBottom: FormaMainTabLayout.defaultBottomSafeAreaFallback),
+            FormaMainTabLayout.tabBarReservedHeight + FormaMainTabLayout.tabBarBreathingRoom
+        )
     }
 }

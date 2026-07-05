@@ -17,37 +17,26 @@ struct TodayGoalConnectionRow: View {
 
     var body: some View {
         Button(action: handleTap) {
-            HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
-                Image(systemName: "arrow.up.forward")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(theme.accent.opacity(0.85))
-                    .accessibilityHidden(true)
+            MainTabCard(style: .surfaceSubtle, compact: true) {
+                HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
+                    Image(systemName: "arrow.up.forward")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(theme.accent.opacity(0.85))
+                        .accessibilityHidden(true)
 
-                Text(connection.message)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(theme.secondaryText)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.9)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(connection.message)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(theme.secondaryText)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.9)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(theme.tertiaryText)
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.sm)
-            .background {
-                RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                    .fill(theme.accentSoftBackground)
-                    .overlay {
-                        RoundedRectangle(
-                            cornerRadius: FormaCardChrome.cornerRadius,
-                            style: .continuous
-                        )
-                        .stroke(theme.inputBorder.opacity(0.45), lineWidth: 0.5)
-                    }
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(theme.tertiaryText)
+                        .accessibilityHidden(true)
+                }
             }
         }
         .buttonStyle(.plain)
@@ -67,6 +56,7 @@ struct TodayGoalConnectionRow: View {
     }
 }
 
+#if DEBUG
 #Preview("Lose weight") {
     TodayGoalConnectionRow(
         connection: TodayGoalConnectionState(
@@ -78,23 +68,8 @@ struct TodayGoalConnectionRow: View {
         onOpenJourney: {},
         onOpenPlan: {}
     )
-    .padding(.horizontal, TodayLayout.horizontalPadding)
+    .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }
-
-#Preview("Maintain") {
-    TodayGoalConnectionRow(
-        connection: TodayGoalConnectionState(
-            message: FormaProductCopy.Today.GoalConnection.maintainProgress,
-            destination: .journey,
-            accessibilityLabel: "Long-term goal. Stay consistent today to protect your weekly progress.",
-            accessibilityHint: "Opens Journey"
-        ),
-        onOpenJourney: {},
-        onOpenPlan: {}
-    )
-    .padding(.horizontal, TodayLayout.horizontalPadding)
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
-}
+#endif

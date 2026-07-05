@@ -19,9 +19,9 @@ struct TodayYesterdayReviewSection: View {
     var body: some View {
         if state.isVisible {
             VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-                TodaySectionLabel(title: state.sectionTitle)
+                SectionLabel(title: state.sectionTitle)
 
-                FormaPlanCard {
+                MainTabCard {
                     VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                         ForEach(Array(state.previewLines.enumerated()), id: \.offset) { _, line in
                             Text(line)

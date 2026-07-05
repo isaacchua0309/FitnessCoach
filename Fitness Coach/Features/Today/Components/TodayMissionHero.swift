@@ -21,7 +21,7 @@ struct TodayMissionHero: View {
     var body: some View {
         let _ = themeManager.themeRevision
         return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: mission.sectionTitle)
+            SectionLabel(title: mission.sectionTitle)
 
             metricsBlock
 
@@ -53,9 +53,11 @@ struct TodayMissionHero: View {
             Text(mission.primaryValue)
                 .font(.system(size: heroValueSize, weight: .bold, design: .rounded))
                 .foregroundStyle(primaryValueColor)
-                .minimumScaleFactor(0.65)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .allowsTightening(true)
+                .layoutPriority(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityAddTraits(.isHeader)
 
             if showsSupportingLines {
