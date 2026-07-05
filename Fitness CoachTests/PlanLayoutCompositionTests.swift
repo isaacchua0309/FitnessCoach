@@ -72,4 +72,9 @@ final class PlanLayoutCompositionTests: XCTestCase {
             FormaMainTabLayout.tabBarReservedHeight + FormaMainTabLayout.tabBarBreathingRoom
         )
     }
+
+    func testPlanSectionSpacingMatchesMainTabLayout() {
+        XCTAssertEqual(PlanLayout.sectionSpacing, FormaMainTabLayout.sectionSpacing)
+        XCTAssertEqual(PlanLayout.headerToCardSpacing, FormaMainTabLayout.sectionContentSpacing)
+    }
 }

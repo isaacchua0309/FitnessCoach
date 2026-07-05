@@ -28,6 +28,11 @@ enum CoachLayoutGuard {
             "Coach transcript must show the shared in-scroll page header."
         ),
         (
+            "CoachConversationView.swift",
+            "safeAreaInset(edge: .bottom",
+            "Coach transcript must reserve layout space for the bottom accessory."
+        ),
+        (
             "CoachBottomAccessoryStack.swift",
             "CoachConfirmationBar",
             "Pending confirmation and composer must share one bottom accessory stack."

@@ -38,7 +38,7 @@ struct CoachEmptyState: View {
             }
 
             if let todayContext {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                VStack(alignment: .leading, spacing: FormaMainTabLayout.sectionContentSpacing) {
                     SectionLabel(title: FormaProductCopy.Coach.todaySoFarSectionTitle)
                     CoachTodayContextCard(state: todayContext)
                 }
@@ -51,7 +51,6 @@ struct CoachEmptyState: View {
             }
         }
         .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
-        .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
         .accessibilityElement(children: .contain)
     }
 
@@ -75,7 +74,7 @@ struct CoachEmptyState: View {
         _ chips: [CoachLaunchChip],
         onTap: @escaping (CoachLaunchChip) -> Void
     ) -> some View {
-        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: FormaMainTabLayout.sectionContentSpacing) {
             SectionLabel(title: FormaProductCopy.Coach.Launch.chipSectionTitle)
 
             CoachLaunchChips(chips: chips, isDisabled: isDisabled, onTap: onTap)
@@ -83,7 +82,7 @@ struct CoachEmptyState: View {
     }
 
     private var defaultQuickActionsSection: some View {
-        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: FormaMainTabLayout.sectionContentSpacing) {
             SectionLabel(title: FormaProductCopy.Coach.quickActionsSectionTitle)
 
             CoachStarterChips(

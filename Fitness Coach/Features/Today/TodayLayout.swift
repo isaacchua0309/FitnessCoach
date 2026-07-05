@@ -18,7 +18,7 @@ enum TodayLayout {
     /// Tighter stack inside a zone.
     static let planBlockSpacing = loggedZoneSpacing
     /// Label to card within a section.
-    static let headerToCardSpacing = FormaTokens.Spacing.xs
+    static let headerToCardSpacing = FormaMainTabLayout.sectionContentSpacing
     /// Tight label-to-content gap in the status zone.
     static let compactSpacing: CGFloat = 4
     /// Gap between hero value and supporting metrics.
@@ -32,8 +32,6 @@ enum TodayLayout {
     static let metricsProgressHeightPrimary: CGFloat = 6
     /// Vertical padding inside meal and list rows.
     static let cardRowVerticalPadding = FormaTokens.Spacing.sm
-    /// Scroll padding below the last Today section (see `FormaMainTabLayout`).
-    static let bottomScrollPadding = FormaFeatureLayout.scrollBottomPadding
     /// Tighter spacing for reinforcement sections at the bottom of Today.
     static let reinforcementSpacing = FormaTokens.Spacing.sm
 }
@@ -57,23 +55,6 @@ private struct TodayLiveThemeModifier: ViewModifier {
 extension View {
     func todayLiveTheme() -> some View {
         modifier(TodayLiveThemeModifier())
-    }
-}
-
-struct TodaySectionLabel: View {
-    let title: String
-
-    var body: some View {
-        SectionLabel(title: title)
-    }
-}
-
-/// Softer section label for measurement rows (Targets).
-struct TodayMutedSectionLabel: View {
-    let title: String
-
-    var body: some View {
-        SectionLabel(title: title, style: .muted)
     }
 }
 

@@ -13,7 +13,7 @@ struct WeeklyReviewCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
-            JourneySectionLabel(title: state.sectionTitle)
+            SectionLabel(title: state.sectionTitle)
 
             WeeklyReviewLoadingContainer(isLoading: isLoading || state.phase == .loading) {
                 JourneyCard(elevation: .quiet) {

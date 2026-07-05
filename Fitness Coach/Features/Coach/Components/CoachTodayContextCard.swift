@@ -25,11 +25,10 @@ struct CoachTodayContextCard: View {
                 CoachContextDivider()
 
                 VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xxs) {
-                    Text(FormaProductCopy.Coach.suggestedNextSectionTitle)
-                        .font(CoachDesignTokens.Typography.hintLabel)
-                        .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
-                        .textCase(.uppercase)
-                        .tracking(0.4)
+                    SectionLabel(
+                        title: FormaProductCopy.Coach.suggestedNextSectionTitle,
+                        style: .muted
+                    )
 
                     Text(state.suggestedFocus)
                         .font(CoachDesignTokens.Typography.hint)

@@ -53,6 +53,7 @@ enum FormaQuickActionChipStyle {
 struct FormaQuickActionChip: View {
     let title: String
     let action: () -> Void
+    var systemImage: String?
     var style: FormaQuickActionChipStyle = .secondary
     var accessibilityHint: String?
 
@@ -62,17 +63,33 @@ struct FormaQuickActionChip: View {
         Group {
             switch style {
             case .secondary:
-                Button(title, action: action)
-                    .buttonStyle(FormaThemedChipButtonStyle())
+                Button(action: action) {
+                    chipLabel
+                }
+                .buttonStyle(FormaThemedChipButtonStyle())
             case .primary:
-                Button(title, action: action)
-                    .buttonStyle(.borderedProminent)
-                    .tint(theme.buttonBackground)
+                Button(action: action) {
+                    chipLabel
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(theme.buttonBackground)
             }
         }
-        .font(FormaTokens.Typography.caption.weight(.semibold))
+        .accessibilityLabel(title)
         .accessibilityHint(accessibilityHint ?? "")
         .formaThemeReactive()
+    }
+
+    private var chipLabel: some View {
+        HStack(spacing: FormaTokens.Spacing.xs) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 13, weight: .medium))
+            }
+
+            Text(title)
+        }
+        .font(FormaTokens.Typography.caption.weight(.semibold))
     }
 }
 

@@ -49,6 +49,7 @@ struct CoachConversationView<BottomAccessory: View>: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
+                .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
             }
             .accessibilityIdentifier(CoachAccessibilityIdentifier.chatScroll)
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -138,7 +139,6 @@ struct CoachConversationView<BottomAccessory: View>: View {
         }
         .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
         .padding(.top, CoachDesignTokens.Spacing.sm)
-        .padding(.bottom, CoachDesignTokens.Spacing.md)
     }
 
     private func requestScroll(

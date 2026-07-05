@@ -23,6 +23,9 @@ enum FormaMainTabLayout {
     static let sectionSpacing = FormaTokens.Spacing.xl
     /// Gap between a section label and the card below it.
     static let sectionLabelBottomSpacing = FormaTokens.Spacing.xs
+    /// VStack spacing between `SectionLabel` and the content below it.
+    /// SectionLabel already applies `sectionLabelBottomSpacing` beneath the label text.
+    static let sectionContentSpacing = FormaTokens.Spacing.xs
 
     // MARK: Cards
 

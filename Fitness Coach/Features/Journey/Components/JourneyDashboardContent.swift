@@ -112,7 +112,7 @@ struct JourneyDashboardContent: View {
 
         case .transformation:
             VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
-                JourneySectionLabel(title: FormaProductCopy.Journey.Hero.sectionTitle)
+                SectionLabel(title: FormaProductCopy.Journey.Hero.sectionTitle)
 
                 VStack(alignment: .leading, spacing: JourneyLayout.heroStackSpacing) {
                     if state.showsMomentumSection {

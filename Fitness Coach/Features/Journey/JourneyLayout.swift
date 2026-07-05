@@ -9,13 +9,13 @@ import SwiftUI
 
 enum JourneyLayout {
     /// Breathing room between major story beats.
-    static let sectionSpacing = FormaTokens.Spacing.xl
+    static let sectionSpacing = FormaMainTabLayout.sectionSpacing
     static let itemSpacing = FormaTokens.Spacing.sm
     static let compactSpacing: CGFloat = 4
     static let horizontalPadding = FormaFeatureLayout.horizontalPadding
 
     /// Label-to-card gap inside a section.
-    static let headerToCardSpacing = FormaTokens.Spacing.xs
+    static let headerToCardSpacing = FormaMainTabLayout.sectionContentSpacing
 
     /// Tighter stack between momentum chip and transformation hero.
     static let heroStackSpacing = FormaTokens.Spacing.xs
@@ -37,5 +37,5 @@ enum JourneyLayout {
     static let heroProgressBarHeight: CGFloat = 8
 
     /// Legacy padding below the last Journey section (tab clearance is handled by `MainTabPageScaffold`).
-    static let scrollBottomContentPadding = FormaTokens.Spacing.lg
+    static let scrollBottomContentPadding = FormaMainTabLayout.scrollContentBottomPadding
 }

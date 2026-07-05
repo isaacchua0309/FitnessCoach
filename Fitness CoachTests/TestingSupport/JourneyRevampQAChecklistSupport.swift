@@ -254,8 +254,8 @@ enum JourneyRevampQAChecklistSupport {
 
         XCTAssertGreaterThan(contentWidth, 280, file: file, line: line)
         XCTAssertGreaterThan(FormaMainTabLayout.scrollBottomInset, FormaMainTabLayout.scrollContentBottomPadding)
-        XCTAssertGreaterThanOrEqual(JourneyLayout.scrollBottomContentPadding, FormaTokens.Spacing.md)
-        XCTAssertGreaterThan(JourneyLayout.sectionSpacing, FormaTokens.Spacing.sm)
+        XCTAssertEqual(JourneyLayout.scrollBottomContentPadding, FormaMainTabLayout.scrollContentBottomPadding)
+        XCTAssertEqual(JourneyLayout.sectionSpacing, FormaMainTabLayout.sectionSpacing)
     }
 
     private static func allCopyStrings(from dashboard: JourneyDashboardState) -> String {

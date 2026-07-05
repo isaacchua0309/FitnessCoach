@@ -9,26 +9,6 @@ import SwiftUI
 
 // MARK: - Section labels
 
-struct JourneySectionLabel: View {
-    let title: String
-
-    var body: some View {
-        SectionLabel(title: title)
-    }
-}
-
-struct JourneyEyebrowLabel: View {
-    let title: String
-
-    var body: some View {
-        Text(title)
-            .font(FormaTokens.Typography.caption2.weight(.semibold))
-            .foregroundStyle(FormaTokens.Color.textTertiary)
-            .textCase(.uppercase)
-            .tracking(0.8)
-    }
-}
-
 // MARK: - Cards
 
 enum JourneyCardElevation {

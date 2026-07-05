@@ -16,7 +16,6 @@ struct TodayMissionHero: View {
 
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.theme) private var theme
-    @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 48
 
     var body: some View {
         let _ = themeManager.themeRevision
@@ -50,15 +49,11 @@ struct TodayMissionHero: View {
 
     private var metricsBlock: some View {
         VStack(alignment: .leading, spacing: TodayLayout.heroMetricsSpacing) {
-            Text(mission.primaryValue)
-                .font(.system(size: heroValueSize, weight: .bold, design: .rounded))
-                .foregroundStyle(primaryValueColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.55)
-                .allowsTightening(true)
-                .layoutPriority(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityAddTraits(.isHeader)
+            MainTabHeroText(
+                mission.primaryValue,
+                tier: .primary,
+                color: primaryValueColor
+            )
 
             if showsSupportingLines {
                 supportingLinesBlock

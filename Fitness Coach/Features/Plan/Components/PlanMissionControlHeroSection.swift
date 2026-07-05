@@ -10,20 +10,13 @@ import SwiftUI
 struct PlanMissionControlHeroSection: View {
     let strategy: PlanStrategyState
 
-    @ScaledMetric(relativeTo: .largeTitle) private var primaryGoalSize: CGFloat = 40
-
     var body: some View {
-        VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
+        VStack(alignment: .leading, spacing: PlanLayout.headerToCardSpacing) {
             FormaSectionLabel(title: strategy.sectionTitle)
 
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
-                    Text(strategy.primaryGoal)
-                        .font(.system(size: primaryGoalSize, weight: .bold, design: .rounded))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
-                        .minimumScaleFactor(0.75)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    MainTabHeroText(strategy.primaryGoal, tier: .goal)
                         .accessibilityHidden(true)
 
                     keyValuesBlock

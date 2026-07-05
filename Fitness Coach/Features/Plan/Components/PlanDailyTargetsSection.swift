@@ -11,20 +11,13 @@ struct PlanDailyTargetsSection: View {
     let state: DailyTargetsState
     var onGoToToday: (() -> Void)?
 
-    @ScaledMetric(relativeTo: .title) private var calorieTargetSize: CGFloat = 30
-
     var body: some View {
-        VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
+        VStack(alignment: .leading, spacing: PlanLayout.headerToCardSpacing) {
             FormaSectionLabel(title: state.sectionTitle)
 
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
-                    Text(state.caloriesLabel)
-                        .font(.system(size: calorieTargetSize, weight: .bold, design: .rounded))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
-                        .minimumScaleFactor(0.75)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    MainTabHeroText(state.caloriesLabel, tier: .metric)
                         .accessibilityHidden(true)
 
                     macroTargetsBlock

@@ -9,17 +9,10 @@ struct JourneyTransformationHeroSection: View {
     let state: JourneyTransformationState
     var onCTA: ((JourneyCTA) -> Void)?
 
-    @ScaledMetric(relativeTo: .largeTitle) private var primarySize: CGFloat = 34
-
     var body: some View {
         JourneyCard(elevation: .hero) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                Text(state.primaryMessage)
-                    .font(.system(size: primarySize, weight: .bold, design: .rounded))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
-                    .minimumScaleFactor(0.72)
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
+                MainTabHeroText(state.primaryMessage, tier: .narrative)
                     .accessibilityHidden(true)
 
                 if !state.body.isEmpty {
