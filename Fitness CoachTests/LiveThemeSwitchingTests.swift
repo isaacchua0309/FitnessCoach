@@ -213,6 +213,16 @@ final class LiveThemeSwitchingTests: XCTestCase {
     XCTAssertTrue(source.contains("#Preview(\"Today — Ocean Blue\")"))
     XCTAssertTrue(source.contains("#Preview(\"Today — Blossom Pink\")"))
     XCTAssertTrue(source.contains("MainTabThemePreviewScreens.today(palette: .blossomPink)"))
+    XCTAssertTrue(source.contains("#Preview(\"Recovery card — Ocean Blue\")"))
+    XCTAssertTrue(source.contains("#Preview(\"Recovery card — Blossom Pink\")"))
+    XCTAssertTrue(source.contains("#Preview(\"Nutrition card — Ocean Blue\")"))
+    XCTAssertTrue(source.contains("#Preview(\"Nutrition card — Blossom Pink\")"))
+    XCTAssertTrue(source.contains("#Preview(\"Next action card — Ocean Blue\")"))
+    XCTAssertTrue(source.contains("#Preview(\"Next action card — Blossom Pink\")"))
+    XCTAssertTrue(source.contains("#Preview(\"Main tab bar — Ocean Blue\")"))
+    XCTAssertTrue(source.contains("#Preview(\"Main tab bar — Blossom Pink\")"))
+    XCTAssertTrue(source.contains("#Preview(\"Coach input — Ocean Blue\")"))
+    XCTAssertTrue(source.contains("#Preview(\"Coach input — Blossom Pink\")"))
   }
 
   func testLiveThemeDebugHarnessSupportsMountedToggle() throws {

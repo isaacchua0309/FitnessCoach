@@ -11,6 +11,8 @@ import SwiftUI
 struct JourneyView: View {
 
     @ObservedObject var model: JourneyModel
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
     @State private var presentedWeeklyReviewDetail: WeeklyReviewDetailPresentation?
@@ -49,7 +51,8 @@ struct JourneyView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        let _ = themeManager.themeRevision
+        return NavigationStack {
             content
                 .navigationTitle(FormaProductCopy.Journey.Header.title)
                 .task {
@@ -66,7 +69,8 @@ struct JourneyView: View {
                 .refreshable {
                     await performPullToRefresh()
                 }
-                .background(FormaTokens.Color.canvas)
+                .background(theme.appBackground)
+                .formaThemeReactive()
                 .sheet(item: $presentedWeeklyReviewDetail) { presentation in
                     NavigationStack {
                         WeeklyReviewDetailView(

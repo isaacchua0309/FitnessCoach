@@ -74,6 +74,7 @@ struct TodayWaterQuickLogSection: View {
         .onChange(of: water.consumedMl) { _, _ in
             pendingAddedMl = 0
         }
+        .todayLiveTheme()
     }
 
     private var headerRow: some View {

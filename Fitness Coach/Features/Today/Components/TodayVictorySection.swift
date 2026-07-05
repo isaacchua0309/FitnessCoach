@@ -49,6 +49,7 @@ struct TodayVictorySection: View {
                 }
             }
         }
+        .todayLiveTheme()
     }
 }
 

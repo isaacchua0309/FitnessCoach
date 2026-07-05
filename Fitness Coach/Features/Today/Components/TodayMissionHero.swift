@@ -45,6 +45,7 @@ struct TodayMissionHero: View {
         .onAppear {
             onViewed?()
         }
+        .todayLiveTheme()
     }
 
     private var metricsBlock: some View {

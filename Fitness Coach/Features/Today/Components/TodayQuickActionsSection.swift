@@ -12,11 +12,15 @@ struct TodayQuickActionsSection: View {
     let onLogMeal: () -> Void
     let onScanMeal: () -> Void
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     private let primaryActionMinHeight: CGFloat = 92
     private let iconSize: CGFloat = 28
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.QuickActions.sectionTitle)
 
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
@@ -30,7 +34,7 @@ struct TodayQuickActionsSection: View {
 
                 Text(FormaProductCopy.Today.QuickActions.logMealMicrocopy)
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .foregroundStyle(theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityHidden(true)
 
@@ -41,6 +45,7 @@ struct TodayQuickActionsSection: View {
             }
         }
         .accessibilityElement(children: .contain)
+        .todayLiveTheme()
     }
 
     private var scanMealSecondaryAction: some View {
@@ -49,18 +54,18 @@ struct TodayQuickActionsSection: View {
                 Image(systemName: FormaProductCopy.Today.QuickActions.symbolName(for: .scanFood))
                     .font(.system(size: 18, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .foregroundStyle(theme.accent)
                     .frame(width: 28)
 
                 Text(FormaProductCopy.Today.QuickActions.title(for: .scanFood))
                     .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .foregroundStyle(theme.primaryText)
 
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .foregroundStyle(theme.tertiaryText)
             }
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.sm)
@@ -82,11 +87,11 @@ struct TodayQuickActionsSection: View {
                 Image(systemName: symbolName)
                     .font(.system(size: iconSize, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .foregroundStyle(theme.accent)
 
                 Text(title)
                     .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .foregroundStyle(theme.primaryText)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
