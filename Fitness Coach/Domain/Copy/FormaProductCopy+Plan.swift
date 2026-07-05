@@ -501,6 +501,7 @@ extension FormaProductCopy {
         static let selected = "Selected"
         static let notSelected = "Not selected"
         static let selectCardHint = "Double tap to select."
+        static let selectGoalCardHint = "Double tap to select this goal"
         static let warningPrefix = "Warning"
         static let errorPrefix = "Error"
         static let emptyFieldValue = "Empty"

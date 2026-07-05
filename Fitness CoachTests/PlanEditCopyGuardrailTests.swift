@@ -105,6 +105,7 @@ final class PlanEditCopyGuardrailTests: XCTestCase {
             accessibility.selected,
             accessibility.notSelected,
             accessibility.selectCardHint,
+            accessibility.selectGoalCardHint,
             accessibility.warningPrefix,
             accessibility.errorPrefix,
             accessibility.emptyFieldValue,

@@ -7,6 +7,18 @@
 
 import SwiftUI
 
+private enum PlanGoalSelectionCardLayout {
+    static let iconColumnWidth: CGFloat = 28
+    static let contentSpacing: CGFloat = FormaTokens.Spacing.xs
+    static let textStackSpacing: CGFloat = FormaTokens.Spacing.xs
+    static let contentPadding = EdgeInsets(
+        top: FormaTokens.Spacing.sm,
+        leading: FormaTokens.Spacing.lg,
+        bottom: FormaTokens.Spacing.sm,
+        trailing: FormaTokens.Spacing.lg
+    )
+}
+
 struct PlanGoalSelectionCard: View {
     let presentation: PlanGoalOptionPresentation
     let isSelected: Bool
@@ -16,58 +28,56 @@ struct PlanGoalSelectionCard: View {
         PlanSelectableCard(
             isSelected: isSelected,
             accessibilityLabel: accessibilityLabel,
+            accessibilityHint: FormaProductCopy.PlanEditAccessibility.selectGoalCardHint,
+            contentPadding: PlanGoalSelectionCardLayout.contentPadding,
             action: action
         ) {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                headerRow
-                explanationBlock
-            }
-        }
-    }
+            HStack(alignment: .top, spacing: PlanGoalSelectionCardLayout.contentSpacing) {
+                iconColumn
 
-    private var headerRow: some View {
-        HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
-            Image(systemName: presentation.iconSystemName)
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(
-                    isSelected
-                        ? FormaPlanTokens.Color.planAccent
-                        : FormaPlanTokens.Color.planSecondaryText
-                )
-                .frame(width: 30, height: 30)
-                .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: PlanGoalSelectionCardLayout.textStackSpacing) {
+                    Text(presentation.title)
+                        .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                        .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
 
-            HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xs) {
-                Text(presentation.title)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.9)
+                    if presentation.isRecommended {
+                        PlanMetricPill(
+                            text: FormaProductCopy.PlanEditGoal.recommendedBadge,
+                            style: .compact
+                        )
+                    }
 
-                if presentation.isRecommended {
-                    PlanMetricPill(text: FormaProductCopy.PlanEditGoal.recommendedBadge)
+                    Text(presentation.explanation)
+                        .font(FormaTokens.Typography.body)
+                        .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(presentation.outcomePreview)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer(minLength: 0)
+                Spacer(minLength: PlanGoalSelectionCardLayout.contentSpacing)
+
+                PlanSelectableCardAccessory.selectionCheckmark(isSelected: isSelected)
             }
-
-            PlanSelectableCardAccessory.selectionCheckmark(isSelected: isSelected)
         }
     }
 
-    private var explanationBlock: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(presentation.explanation)
-                .font(FormaTokens.Typography.body)
-                .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(presentation.outcomePreview)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.leading, 30 + FormaTokens.Spacing.md)
+    private var iconColumn: some View {
+        Image(systemName: presentation.iconSystemName)
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(
+                isSelected
+                    ? FormaPlanTokens.Color.planAccent
+                    : FormaPlanTokens.Color.planSecondaryText
+            )
+            .frame(width: PlanGoalSelectionCardLayout.iconColumnWidth, alignment: .center)
+            .accessibilityHidden(true)
     }
 
     private var accessibilityLabel: String {
@@ -82,7 +92,7 @@ struct PlanGoalSelectionCard: View {
 #if DEBUG
 #Preview("Goal Cards") {
     ScrollView {
-        VStack(spacing: 12) {
+        VStack(spacing: FormaTokens.Spacing.sm) {
             PlanGoalSelectionCard(
                 presentation: PlanGoalSelectionBuilder.options(recommendedGoal: .loseFat)[0],
                 isSelected: true,

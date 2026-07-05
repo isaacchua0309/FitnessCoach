@@ -276,9 +276,10 @@ struct PlanEditWizard: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             }
+            .listSectionSpacing(FormaTokens.Spacing.md)
 
             Section {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                     PlanTransformationSummaryCard(state: transformationSummary)
 
                     if goalType == .maintain {

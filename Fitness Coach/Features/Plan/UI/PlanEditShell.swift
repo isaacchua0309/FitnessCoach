@@ -11,7 +11,8 @@ private enum PlanEditShellLayout {
     static let progressHeight: CGFloat = 3
     static let progressSpacing: CGFloat = 6
     static let sectionSpacing: CGFloat = FormaTokens.Spacing.sm
-    static let bottomInset: CGFloat = FormaTokens.Spacing.md
+    static let bottomInset: CGFloat = FormaTokens.Layout.tabBarScrollPadding
+    static let toolbarActionMinWidth: CGFloat = 64
 }
 
 // MARK: - Shell
@@ -53,14 +54,26 @@ struct PlanEditShell<Content: View>: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .background(FormaPlanTokens.Color.planBackground.ignoresSafeArea())
-        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .tint(FormaPlanTokens.Color.planAccent)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
+            ToolbarItem(placement: .topBarLeading) {
                 Button(FormaProductCopy.PlanEditCommon.cancel, action: onCancel)
+                    .frame(
+                        minWidth: PlanEditShellLayout.toolbarActionMinWidth,
+                        alignment: .leading
+                    )
             }
-            ToolbarItem(placement: .confirmationAction) {
+
+            ToolbarItem(placement: .principal) {
+                Text(title)
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
                 if showsConfirmation {
                     Button(action: onConfirm) {
                         Group {
@@ -74,6 +87,10 @@ struct PlanEditShell<Content: View>: View {
                     }
                     .foregroundStyle(confirmActionColor)
                     .disabled(!isConfirmationEnabled || isConfirmationLoading)
+                    .frame(
+                        minWidth: PlanEditShellLayout.toolbarActionMinWidth,
+                        alignment: .trailing
+                    )
                 }
             }
         }
@@ -81,6 +98,7 @@ struct PlanEditShell<Content: View>: View {
             Color.clear.frame(height: PlanEditShellLayout.bottomInset)
         }
         .planEditSupportsDynamicType()
+        .formaThemeReactive()
     }
 
     private var confirmActionColor: Color {
@@ -99,7 +117,7 @@ struct PlanEditProgressIndicator: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: PlanEditShellLayout.progressSpacing) {
             ForEach(0..<max(stepCount, 1), id: \.self) { index in
                 Capsule()
                     .fill(
@@ -107,7 +125,8 @@ struct PlanEditProgressIndicator: View {
                             ? FormaPlanTokens.Color.planProgressFill
                             : FormaPlanTokens.Color.planProgressTrack
                     )
-                    .frame(height: 3)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: PlanEditShellLayout.progressHeight)
             }
         }
         .animation(
