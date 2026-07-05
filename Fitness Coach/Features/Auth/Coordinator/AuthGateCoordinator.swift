@@ -51,35 +51,15 @@ final class AuthGateCoordinator: ObservableObject {
     private var testingSignedInUID: String?
     #endif
 
-    init(container: AppContainer) {
-        self.container = container
-        self.authManager = container.authManager
-        self.rootModel = container.makeRootModel()
-        self.publicEntryFlowCoordinator = PublicEntryFlowCoordinator(
-            container: container,
-            authManager: container.authManager
-        )
-        self.onboardingShellCoordinator = AuthOnboardingShellCoordinator(
-            container: container,
-            authManager: container.authManager
-        )
-        self.profileConflictCoordinator = AuthProfileConflictCoordinator(
-            container: container,
-            authManager: container.authManager,
-            rootModel: rootModel
-        )
-        self.restoreShellCoordinator = AuthRestoreShellCoordinator(
-            container: container,
-            authManager: container.authManager,
-            rootModel: rootModel
-        )
-        self.signedInShellCoordinator = AuthSignedInShellCoordinator(
-            container: container,
-            authManager: container.authManager,
-            rootModel: rootModel,
-            profileConflictCoordinator: profileConflictCoordinator,
-            restoreShellCoordinator: restoreShellCoordinator
-        )
+    init(dependencies: AuthGateDependencies) {
+        self.container = dependencies.container
+        self.authManager = dependencies.container.authManager
+        self.rootModel = dependencies.rootModel
+        self.publicEntryFlowCoordinator = dependencies.publicEntry
+        self.onboardingShellCoordinator = dependencies.onboardingShell
+        self.profileConflictCoordinator = dependencies.profileConflict
+        self.restoreShellCoordinator = dependencies.restoreShell
+        self.signedInShellCoordinator = dependencies.signedInShell
 
         publicEntryFlowCoordinator.configure(delegate: self)
         onboardingShellCoordinator.configure(delegate: self)
@@ -94,6 +74,10 @@ final class AuthGateCoordinator: ObservableObject {
         authManager.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
+    }
+
+    convenience init(container: AppContainer) {
+        self.init(dependencies: .live(container: container))
     }
 
     // MARK: - Routing

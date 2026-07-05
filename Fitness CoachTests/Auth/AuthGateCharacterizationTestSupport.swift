@@ -166,7 +166,8 @@ enum AuthGateCharacterizationTestSupport {
   }
 
   static func makeHarness(
-    onboardingUserDefaults: UserDefaults? = nil
+    onboardingUserDefaults: UserDefaults? = nil,
+    dependencies: AuthGateDependencies? = nil
   ) throws -> Harness {
     let analytics = CapturingPublicEntryAnalyticsLogger()
     let container = try AppContainer(
@@ -174,7 +175,8 @@ enum AuthGateCharacterizationTestSupport {
       onboardingUserDefaults: onboardingUserDefaults,
       publicEntryAnalyticsLogger: analytics
     )
-    let coordinator = AuthGateCoordinator(container: container)
+    let resolvedDependencies = dependencies ?? .live(container: container)
+    let coordinator = AuthGateCoordinator(dependencies: resolvedDependencies)
     return Harness(container: container, analytics: analytics, coordinator: coordinator)
   }
 
