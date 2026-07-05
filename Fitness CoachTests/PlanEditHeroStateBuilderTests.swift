@@ -32,7 +32,7 @@ final class PlanEditHeroStateBuilderTests: XCTestCase {
         XCTAssertEqual(state.currentWeight, "80 kg")
         XCTAssertEqual(state.targetWeight, "70 kg")
         XCTAssertEqual(state.totalChangeLine, "10 kg between now and your goal.")
-        XCTAssertEqual(state.estimatedFinishLine, "On track for March 2026.")
+        XCTAssertEqual(state.estimatedFinishLine, "On track for 26 March 2026.")
         XCTAssertTrue(state.accessibilitySummary.contains("10 kg between now and your goal."))
     }
 
@@ -73,7 +73,7 @@ final class PlanEditHeroStateBuilderTests: XCTestCase {
         )
         let state = PlanEditHeroStateBuilder.build(projection: projection)
 
-        XCTAssertEqual(state.estimatedFinishLine, "On track for March 2027.")
+        XCTAssertEqual(state.estimatedFinishLine, "On track for 1 March 2027.")
     }
 
     func testMissingWeightsUseUnavailablePlaceholder() {

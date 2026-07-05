@@ -52,6 +52,44 @@ final class PlanEditSnapshotTests: XCTestCase {
         }
     }
 
+    func testAdjustPlanRegressionSnapshotMatrix() throws {
+        guard writesSnapshots else {
+            throw XCTSkip("Set PLAN_EDIT_SNAPSHOTS=1 to export Edit Plan screenshots.")
+        }
+
+        for scenario in AdjustPlanRegressionScenario.allCases {
+            let name = "adjust-plan-regression-\(scenario.rawValue)-\(scenario.palette.rawValue)"
+            try exportAdjustPlanRegressionSnapshot(
+                name: name,
+                scenario: scenario
+            )
+        }
+    }
+
+    private func exportAdjustPlanRegressionSnapshot(
+        name: String,
+        scenario: AdjustPlanRegressionScenario
+    ) throws {
+        let view = AdjustPlanRenderTestSupport.regressionPreview(scenario: scenario)
+            .frame(width: scenario.contentWidth, height: scenario.contentHeight)
+
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 3
+        guard let image = renderer.uiImage else {
+            XCTFail("Failed to render Adjust Plan regression snapshot for \(name)")
+            return
+        }
+
+        let directory = snapshotDirectory().appendingPathComponent("adjust-plan-regression", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("\(name).png")
+        guard let data = image.pngData() else {
+            XCTFail("Failed to encode PNG for \(name)")
+            return
+        }
+        try data.write(to: url)
+    }
+
     private func exportSnapshot(
         name: String,
         screen: PlanEditSnapshotScreen,
@@ -166,7 +204,7 @@ private struct PlanEditSnapshotGoalHost: View {
 
     var body: some View {
         ScrollView {
-            PlanGoalSelectionView(
+            GoalOptionSelector(
                 selection: $selection,
                 recommendedGoal: .loseFat,
                 onSelect: { selection = $0 }
@@ -192,7 +230,7 @@ private struct PlanEditSnapshotTargetPaceHost: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
-                PlanTransformationSummaryCard(
+                GoalPathPreviewCard(
                     state: PlanTransformationSummaryBuilder.build(
                         projection: projection,
                         currentWeightKg: 90,
