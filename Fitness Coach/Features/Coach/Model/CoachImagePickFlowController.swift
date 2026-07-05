@@ -460,7 +460,7 @@ final class CoachImagePickFlowController: ObservableObject {
         isPhotoPickerPresented = false
         isCameraPresented = false
         switch state {
-        case .pickerPresented:
+        case .pickerPresented, .requestingPermission:
             clearLibraryPickSession()
             state = .idle
         case .idle:
