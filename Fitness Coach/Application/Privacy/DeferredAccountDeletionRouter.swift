@@ -14,10 +14,18 @@ final class DeferredAccountDeletionRouter: AccountDeletionRouting {
     var onLocalDeviceOnlyWipe: (() async -> Void)?
 
     func routeToSignedOutAfterFullAccountDeletion() async {
+        AccountDeletionDebugEventLogger.routerRouteStarted(
+            scope: .fullAccount,
+            callbackIsNil: onFullAccountDeletion == nil
+        )
         await onFullAccountDeletion?()
     }
 
     func routeToSignedOutAfterLocalDeviceOnlyWipe() async {
+        AccountDeletionDebugEventLogger.routerRouteStarted(
+            scope: .localDeviceOnly,
+            callbackIsNil: onLocalDeviceOnlyWipe == nil
+        )
         await onLocalDeviceOnlyWipe?()
     }
 }

@@ -12,19 +12,29 @@ enum SettingsDeleteDataActionHandler {
     @discardableResult
     static func perform(scope: AccountDeletionScope) -> SettingsDeleteDataResult {
         guard SettingsDataDeletionCapability.isImplemented else {
-            return .unavailable
+            let result = SettingsDeleteDataResult.unavailable
+            AccountDeletionDebugEventLogger.settingsDeleteDataAction(scope: scope, result: result)
+            return result
         }
 
         switch scope {
         case .fullAccount:
-            return .opensDeletionFlow
+            let result = SettingsDeleteDataResult.opensDeletionFlow
+            AccountDeletionDebugEventLogger.settingsDeleteDataAction(scope: scope, result: result)
+            return result
         case .localDeviceOnly:
             guard SettingsDataDeletionCapability.isLocalDeviceOnlyEnabled else {
-                return .unavailable
+                let result = SettingsDeleteDataResult.unavailable
+                AccountDeletionDebugEventLogger.settingsDeleteDataAction(scope: scope, result: result)
+                return result
             }
-            return .opensDeletionFlow
+            let result = SettingsDeleteDataResult.opensDeletionFlow
+            AccountDeletionDebugEventLogger.settingsDeleteDataAction(scope: scope, result: result)
+            return result
         case .remoteAccountDataOnly:
-            return .unavailable
+            let result = SettingsDeleteDataResult.unavailable
+            AccountDeletionDebugEventLogger.settingsDeleteDataAction(scope: scope, result: result)
+            return result
         }
     }
 }

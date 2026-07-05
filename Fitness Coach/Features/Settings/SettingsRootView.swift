@@ -108,6 +108,9 @@ struct SettingsRootView: View {
                 )
                 analyticsCoordinator.logSettingsViewed()
                 accountDeletionViewModel.configure(coordinator: accountDeletionCoordinator)
+                AccountDeletionDebugEventLogger.settingsCoordinatorConfigured(
+                    coordinatorIsNil: accountDeletionCoordinator == nil
+                )
             }
             .sheet(item: $activeDeletionScope) { scope in
                 AccountDeletionView(
@@ -153,6 +156,10 @@ struct SettingsRootView: View {
     }
 
     private func openAccountDeletion(scope: AccountDeletionScope) {
+        AccountDeletionDebugEventLogger.settingsOpenAccountDeletion(
+            scope: scope,
+            coordinatorIsNil: accountDeletionCoordinator == nil
+        )
         switch SettingsDeleteDataActionHandler.perform(scope: scope) {
         case .opensDeletionFlow:
             accountDeletionViewModel.beginConfirmation(scope: scope)

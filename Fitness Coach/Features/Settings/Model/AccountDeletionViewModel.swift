@@ -27,6 +27,9 @@ final class AccountDeletionViewModel: ObservableObject {
 
     func configure(coordinator: AccountDeletionCoordinator?) {
         self.coordinator = coordinator
+        AccountDeletionDebugEventLogger.settingsCoordinatorConfigured(
+            coordinatorIsNil: coordinator == nil
+        )
     }
 
     var activeScope: AccountDeletionScope? {
@@ -105,6 +108,10 @@ final class AccountDeletionViewModel: ObservableObject {
 
     func confirmDeletion() {
         guard let scope = activeScope, canConfirmDeletion else { return }
+        AccountDeletionDebugEventLogger.viewModelConfirmDeletion(
+            scope: scope,
+            coordinatorIsNil: coordinator == nil
+        )
         guard let coordinator else {
             phase = .finished(
                 scope: scope,
@@ -119,6 +126,10 @@ final class AccountDeletionViewModel: ObservableObject {
     func retryDeletion() {
         guard let scope = activeScope, let coordinator else { return }
         guard let summary = terminalSummary, summary.status.allowsRetry else { return }
+        AccountDeletionDebugEventLogger.viewModelRetryDeletion(
+            scope: scope,
+            priorStatus: summary.status
+        )
         startDeletion(
             scope: scope,
             coordinator: coordinator,

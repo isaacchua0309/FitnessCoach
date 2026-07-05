@@ -175,7 +175,7 @@ final class LocalAccountDataWipeService: LocalAccountDataWiping {
         }
 
         guard scope.wipesLocalAppData else {
-            return completedSummary(
+            let summary = completedSummary(
                 uid: normalizedUID,
                 scope: scope,
                 startedAt: startedAt,
@@ -183,6 +183,12 @@ final class LocalAccountDataWipeService: LocalAccountDataWiping {
                 localHealthCacheDeleted: false,
                 localPreferencesDeleted: false
             )
+            AccountDeletionDebugEventLogger.localWipeFinished(
+                scope: scope,
+                status: summary.status,
+                uidHash: AccountDeletionPolicy.privacySafeUIDField(normalizedUID)
+            )
+            return summary
         }
 
         guard isAuthorizedToWipe(
@@ -202,6 +208,9 @@ final class LocalAccountDataWipeService: LocalAccountDataWiping {
             await sessionPreparer?.prepareForLocalWipe(uid: normalizedUID)
         }
 
+        let uidHash = AccountDeletionPolicy.privacySafeUIDField(normalizedUID)
+        AccountDeletionDebugEventLogger.localWipeStarted(scope: scope, uidHash: uidHash)
+
         var swiftDataError: Error?
         var swiftCounts = LocalSwiftDataWipeCounts()
         do {
@@ -216,15 +225,19 @@ final class LocalAccountDataWipeService: LocalAccountDataWiping {
         clearInMemoryStateIfCurrentSession(matches: normalizedUID)
 
         if let swiftDataError {
-            return partialSummary(
-                uid: normalizedUID,
+            return finishLocalWipeLogging(
+                summary: partialSummary(
+                    uid: normalizedUID,
+                    scope: scope,
+                    startedAt: startedAt,
+                    counts: swiftCounts,
+                    localHealthCacheDeleted: healthCacheDeleted,
+                    localPreferencesDeleted: preferencesResult.didClearAny,
+                    message: "Some local data could not be removed.",
+                    underlying: swiftDataError
+                ),
                 scope: scope,
-                startedAt: startedAt,
-                counts: swiftCounts,
-                localHealthCacheDeleted: healthCacheDeleted,
-                localPreferencesDeleted: preferencesResult.didClearAny,
-                message: "Some local data could not be removed.",
-                underlying: swiftDataError
+                uidHash: uidHash
             )
         }
 
@@ -233,26 +246,48 @@ final class LocalAccountDataWipeService: LocalAccountDataWiping {
             rootDirectory: healthCacheRootDirectory,
             fileManager: fileManager
         ).map({ fileManager.fileExists(atPath: $0.path) }) == true {
-            return partialSummary(
+            return finishLocalWipeLogging(
+                summary: partialSummary(
+                    uid: normalizedUID,
+                    scope: scope,
+                    startedAt: startedAt,
+                    counts: swiftCounts,
+                    localHealthCacheDeleted: false,
+                    localPreferencesDeleted: preferencesResult.didClearAny,
+                    message: "Some local health cache files could not be removed.",
+                    underlying: nil
+                ),
+                scope: scope,
+                uidHash: uidHash
+            )
+        }
+
+        return finishLocalWipeLogging(
+            summary: completedSummary(
                 uid: normalizedUID,
                 scope: scope,
                 startedAt: startedAt,
                 counts: swiftCounts,
-                localHealthCacheDeleted: false,
-                localPreferencesDeleted: preferencesResult.didClearAny,
-                message: "Some local health cache files could not be removed.",
-                underlying: nil
-            )
-        }
-
-        return completedSummary(
-            uid: normalizedUID,
+                localHealthCacheDeleted: healthCacheDeleted,
+                localPreferencesDeleted: preferencesResult.didClearAny
+            ),
             scope: scope,
-            startedAt: startedAt,
-            counts: swiftCounts,
-            localHealthCacheDeleted: healthCacheDeleted,
-            localPreferencesDeleted: preferencesResult.didClearAny
+            uidHash: uidHash
         )
+    }
+
+    private func finishLocalWipeLogging(
+        summary: AccountDeletionSummary,
+        scope: AccountDeletionScope,
+        uidHash: String
+    ) -> AccountDeletionSummary {
+        AccountDeletionDebugEventLogger.localWipeFinished(
+            scope: scope,
+            status: summary.status,
+            uidHash: uidHash,
+            failureCategory: summary.failureCategory
+        )
+        return summary
     }
 
     // MARK: - SwiftData

@@ -95,7 +95,8 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
         confirmation: String,
         onProgress: (@MainActor (AccountDeletionStatus) -> Void)? = nil
     ) async -> AccountDeletionSummary {
-        await runDeletion(
+        AccountDeletionDebugEventLogger.coordinatorDeleteAccountInvoked(scope: .fullAccount)
+        return await runDeletion(
             scope: .fullAccount,
             confirmation: confirmation,
             resumeFromPendingReauthentication: false,
@@ -248,7 +249,19 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
 
         let uidField = AccountDeletionPolicy.privacySafeUIDField(uid)
         AccountDeletionCoordinatorLogger.flowStarted(scope: scope, uidField: uidField)
+        AccountDeletionDebugEventLogger.coordinatorRunDeletionStarted(
+            scope: scope,
+            runToken: token,
+            resumeFromReauth: resumeFromPendingReauthentication,
+            uidHash: uidField
+        )
         reportProgress(.preparing, onProgress: onProgress)
+        AccountDeletionDebugEventLogger.coordinatorPhaseTransition(
+            phase: .preparing,
+            scope: scope,
+            runToken: token,
+            uidHash: uidField
+        )
 
         guard isRunStillValid(uid: uid, token: token) else {
             abortDeletion(uid: uid)
@@ -285,6 +298,12 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
                 uidField: uidField
             )
             reportProgress(.deletingRemoteData, onProgress: onProgress)
+            AccountDeletionDebugEventLogger.coordinatorPhaseTransition(
+                phase: .deletingRemoteData,
+                scope: scope,
+                runToken: token,
+                uidHash: uidField
+            )
 
             do {
                 let remote = try await remoteDeletionClient.deleteRemoteAccountData(
@@ -373,6 +392,12 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
             uidField: uidField
         )
         reportProgress(.deletingAuthAccount, onProgress: onProgress)
+        AccountDeletionDebugEventLogger.coordinatorPhaseTransition(
+            phase: .deletingFirebaseAuth,
+            scope: scope,
+            runToken: token,
+            uidHash: uidField
+        )
 
         do {
             try await authDeleting.deleteCurrentAuthAccount()
@@ -437,6 +462,12 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
             uidField: uidField
         )
         reportProgress(.wipingLocalData, onProgress: onProgress)
+        AccountDeletionDebugEventLogger.coordinatorPhaseTransition(
+            phase: .wipingLocalData,
+            scope: scope,
+            runToken: token,
+            uidHash: uidField
+        )
 
         let localSummary = await localWiper.wipeLocalData(
             for: uid,
@@ -447,6 +478,12 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
         if localSummary.status == .completed {
             completeDeletion(uid: uid)
             reportProgress(.completed, onProgress: onProgress)
+            AccountDeletionDebugEventLogger.coordinatorPhaseTransition(
+                phase: .routingSignedOut,
+                scope: scope,
+                runToken: token,
+                uidHash: uidField
+            )
             await router?.routeToSignedOutAfterFullAccountDeletion()
             let summary = mergeSummary(
                 uid: uid,
@@ -460,10 +497,26 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
                 userFacingMessage: nil
             )
             logTerminalSuccess(summary: summary, uidField: uidField, startedAt: startedAt)
+            AccountDeletionDebugEventLogger.coordinatorTerminalSummary(
+                summary: summary,
+                runToken: token
+            )
+            AccountDeletionDebugEventLogger.coordinatorPhaseTransition(
+                phase: .completed,
+                scope: scope,
+                runToken: token,
+                uidHash: uidField
+            )
             return summary
         }
 
         completeDeletion(uid: uid)
+        AccountDeletionDebugEventLogger.coordinatorPhaseTransition(
+            phase: .routingSignedOut,
+            scope: scope,
+            runToken: token,
+            uidHash: uidField
+        )
         await router?.routeToSignedOutAfterFullAccountDeletion()
 
         let partial = mergeSummary(
@@ -482,6 +535,16 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
             scope: scope,
             category: AccountDeletionFailureCategory.localWipeFailed.rawValue,
             uidField: uidField
+        )
+        AccountDeletionDebugEventLogger.coordinatorTerminalSummary(
+            summary: partial,
+            runToken: token
+        )
+        AccountDeletionDebugEventLogger.coordinatorPhaseTransition(
+            phase: .partial,
+            scope: scope,
+            runToken: token,
+            uidHash: uidField
         )
         return partial
     }
@@ -780,7 +843,7 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
             uidField: AccountDeletionPolicy.privacySafeUIDField(uid)
         )
 
-        return failureSummary(
+        let summary = failureSummary(
             uid: uid,
             scope: scope,
             startedAt: startedAt,
@@ -788,6 +851,8 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
             category: category,
             message: message
         )
+        logDebugTerminal(summary)
+        return summary
     }
 
     private func authFailureSummary(
@@ -881,7 +946,7 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
         startedAt: Date,
         remoteResult: RemoteAccountDeletionResult
     ) -> AccountDeletionSummary {
-        mergeSummary(
+        let summary = mergeSummary(
             uid: uid,
             scope: scope,
             startedAt: startedAt,
@@ -892,6 +957,8 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
             failureCategory: .reauthenticationRequired,
             userFacingMessage: "Confirm your identity to finish deleting your account."
         )
+        logDebugTerminal(summary)
+        return summary
     }
 
     private func partialSummary(
@@ -905,7 +972,7 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
         category: AccountDeletionFailureCategory?,
         message: String?
     ) -> AccountDeletionSummary {
-        mergeSummary(
+        let summary = mergeSummary(
             uid: uid,
             scope: scope,
             startedAt: startedAt,
@@ -915,6 +982,23 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
             localSummary: localSummary,
             failureCategory: category,
             userFacingMessage: message
+        )
+        logDebugTerminal(summary)
+        return summary
+    }
+
+    private func logDebugTerminal(_ summary: AccountDeletionSummary) {
+        AccountDeletionDebugEventLogger.coordinatorTerminalSummary(
+            summary: summary,
+            runToken: activeDeletionToken
+        )
+        AccountDeletionDebugEventLogger.coordinatorPhaseTransition(
+            phase: AccountDeletionDebugEventLogger.terminalPhase(for: summary),
+            scope: summary.scope,
+            runToken: activeDeletionToken,
+            uidHash: summary.uid.isEmpty
+                ? nil
+                : AccountDeletionPolicy.privacySafeUIDField(summary.uid)
         )
     }
 }

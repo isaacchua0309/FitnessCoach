@@ -186,6 +186,7 @@ enum FormaAbTest {
         static var todayHydrationTrace: Bool { resolved.todayHydrationTrace }
         static var accountSyncTrace: Bool { resolved.accountSyncTrace }
         static var accountRestoreTrace: Bool { resolved.accountRestoreTrace }
+        static var accountDeletionTrace: Bool { resolved.accountDeletionTrace }
     }
 
     // MARK: Snapshot
@@ -254,6 +255,7 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
     var todayHydrationTrace: Bool
     var accountSyncTrace: Bool
     var accountRestoreTrace: Bool
+    var accountDeletionTrace: Bool
 
     static let allEnabled = FormaAbTestSnapshot(
         foundationEnabled: true,
@@ -300,7 +302,8 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
         authSignInTrace: true,
         todayHydrationTrace: true,
         accountSyncTrace: true,
-        accountRestoreTrace: true
+        accountRestoreTrace: true,
+        accountDeletionTrace: true
     )
 
     /// Documented App Store-safe defaults. Used by release checklists and production-critical tests.
@@ -350,6 +353,7 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
         authSignInTrace: false,
         todayHydrationTrace: false,
         accountSyncTrace: false,
-        accountRestoreTrace: false
+        accountRestoreTrace: false,
+        accountDeletionTrace: false
     )
 }
