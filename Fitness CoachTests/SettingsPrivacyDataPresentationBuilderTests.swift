@@ -27,7 +27,15 @@ final class SettingsPrivacyDataPresentationBuilderTests: XCTestCase {
                     isDeleteAccountEnabled: true,
                     isDeleteLocalDeviceDataEnabled: true
                 ),
-                legalAvailability: .production
+                legalAvailability: .production,
+                accountDeletionWiring: SettingsAccountDeletionWiring(
+                    featureAvailability: SettingsFeatureAvailability(
+                        isDataExportEnabled: false,
+                        isDeleteAccountEnabled: true,
+                        isDeleteLocalDeviceDataEnabled: true
+                    ),
+                    hasCoordinator: true
+                )
             )
         )
 

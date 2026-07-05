@@ -129,6 +129,7 @@ struct SettingsPresentationInput: Equatable, Sendable {
     let supportConfiguration: SettingsSupportConfiguration
     let isDebugOrInternalBuild: Bool
     let privacyDataStatus: SettingsPrivacyDataStatusSnapshot
+    let accountDeletionWiring: SettingsAccountDeletionWiring
 
     init(
         integrationState: TrainingIntegrationState,
@@ -139,7 +140,8 @@ struct SettingsPresentationInput: Equatable, Sendable {
         legalAvailability: SettingsLegalAvailability,
         supportConfiguration: SettingsSupportConfiguration,
         isDebugOrInternalBuild: Bool,
-        privacyDataStatus: SettingsPrivacyDataStatusSnapshot = .empty
+        privacyDataStatus: SettingsPrivacyDataStatusSnapshot = .empty,
+        accountDeletionWiring: SettingsAccountDeletionWiring? = nil
     ) {
         self.integrationState = integrationState
         self.unitSystem = unitSystem
@@ -150,6 +152,11 @@ struct SettingsPresentationInput: Equatable, Sendable {
         self.supportConfiguration = supportConfiguration
         self.isDebugOrInternalBuild = isDebugOrInternalBuild
         self.privacyDataStatus = privacyDataStatus
+        self.accountDeletionWiring = accountDeletionWiring
+            ?? SettingsAccountDeletionWiring(
+                featureAvailability: featureAvailability,
+                hasCoordinator: false
+            )
     }
 }
 

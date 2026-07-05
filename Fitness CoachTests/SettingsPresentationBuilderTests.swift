@@ -18,7 +18,8 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         featureAvailability: SettingsFeatureAvailability = .production,
         legalAvailability: SettingsLegalAvailability = .production,
         supportConfiguration: SettingsSupportConfiguration = .production,
-        isDebugOrInternalBuild: Bool = false
+        isDebugOrInternalBuild: Bool = false,
+        hasAccountDeletionCoordinator: Bool = true
     ) -> SettingsPresentationInput {
         SettingsPresentationInput(
             integrationState: integrationState,
@@ -28,7 +29,11 @@ final class SettingsPresentationBuilderTests: XCTestCase {
             featureAvailability: featureAvailability,
             legalAvailability: legalAvailability,
             supportConfiguration: supportConfiguration,
-            isDebugOrInternalBuild: isDebugOrInternalBuild
+            isDebugOrInternalBuild: isDebugOrInternalBuild,
+            accountDeletionWiring: SettingsAccountDeletionWiring(
+                featureAvailability: featureAvailability,
+                hasCoordinator: hasAccountDeletionCoordinator
+            )
         )
     }
 

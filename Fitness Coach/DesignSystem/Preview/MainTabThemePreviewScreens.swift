@@ -72,6 +72,7 @@ enum MainTabThemePreviewScreens {
         let themeDefaults = UserDefaults(suiteName: "MainTabSettingsPreview.\(palette.rawValue)")!
         let themeStore = ThemeStore(userDefaults: themeDefaults)
         themeStore.setPalette(palette)
+        let container = try! AppContainer(inMemory: true)
 
         return SettingsRootView(
             formState: .constant(PlanPreviewData.formState),
@@ -86,6 +87,7 @@ enum MainTabThemePreviewScreens {
             )
         )
         .environmentObject(themeStore)
+        .environment(\.accountDeletionCoordinator, container.accountDeletionCoordinator)
         .formaThemePreview(appearance: appearance, palette: palette)
     }
 }

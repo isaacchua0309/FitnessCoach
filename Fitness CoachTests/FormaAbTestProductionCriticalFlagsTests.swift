@@ -87,12 +87,44 @@ final class FormaAbTestProductionCriticalFlagsTests: XCTestCase {
                 featureAvailability: .production,
                 legalAvailability: .production,
                 supportConfiguration: .production,
-                isDebugOrInternalBuild: false
+                isDebugOrInternalBuild: false,
+                accountDeletionWiring: SettingsAccountDeletionWiring(
+                    featureAvailability: .production,
+                    hasCoordinator: true
+                )
             )
         )
 
         XCTAssertTrue(state.visibleRowIDs.contains(.deleteAccount))
         XCTAssertTrue(state.visibleRowIDs.contains(.deleteLocalDeviceData))
+    }
+
+    func testDeletionRowsDisabledWhenCoordinatorMissing() {
+        let state = SettingsPresentationBuilder.build(
+            input: SettingsPresentationInput(
+                integrationState: .connected,
+                unitSystem: .metric,
+                themePalette: .oceanBlue,
+                appVersion: "1.0",
+                featureAvailability: .production,
+                legalAvailability: .production,
+                supportConfiguration: .production,
+                isDebugOrInternalBuild: false,
+                accountDeletionWiring: SettingsAccountDeletionWiring(
+                    featureAvailability: .production,
+                    hasCoordinator: false
+                )
+            )
+        )
+
+        XCTAssertTrue(state.visibleRowIDs.contains(.deleteAccount))
+        let deleteAccountRow = state.privacyData.rows.first(where: { $0.id == .deleteAccount })
+        XCTAssertNil(deleteAccountRow?.destination)
+        XCTAssertFalse(deleteAccountRow?.isEnabled ?? true)
+        XCTAssertEqual(
+            deleteAccountRow?.status,
+            FormaProductCopy.Settings.PrivacyData.deletionCoordinatorUnavailableStatus
+        )
     }
 
     func testDeletionRowsHiddenWhenFlagDisabled() {
