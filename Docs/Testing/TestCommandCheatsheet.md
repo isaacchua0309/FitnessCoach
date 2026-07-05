@@ -176,9 +176,16 @@ See BW-002 in [`Docs/TechnicalDebt/BuildWarningsRegister.md`](../TechnicalDebt/B
 
 ---
 
-## CI parity (planned)
+## CI parity
 
-There is **no GitHub Actions workflow in this repo yet**. When PR CI is added, it should run the same local gates:
+GitHub Actions workflow: [`.github/workflows/prdx-ci.yml`](../../.github/workflows/prdx-ci.yml)
+
+Triggers on `pull_request` and `workflow_dispatch`. Jobs run in parallel:
+
+| Job | Runner | Commands |
+|-----|--------|----------|
+| `functions` | `ubuntu-latest` | `npm --prefix functions ci`, `run lint`, `test` |
+| `ios-fast-core` | `macos-latest` | `xcodebuild -resolvePackageDependencies`, then Fast-Core test (below) |
 
 **iOS — Fast-Core**
 
@@ -198,9 +205,11 @@ npm --prefix functions run lint
 npm --prefix functions test
 ```
 
-Optional follow-up job (not part of default `npm test`): `npm --prefix functions run test:firestore-rules` with a Firestore emulator.
+Optional follow-up job (not in PRDX CI today): `npm --prefix functions run test:firestore-rules` with a Firestore emulator.
 
-Full iOS regression (`Fitness Coach CI` scheme / `Full` test plan) remains a pre-merge manual or scheduled check until wired into CI.
+Full iOS regression (`Fitness Coach CI` scheme / `Full` test plan) remains a manual or scheduled check until wired into CI.
+
+**GitHub Actions simulator note:** PR CI targets `iPhone 17` to match local/CI documentation. If `macos-latest` runners do not yet ship that simulator, the `ios-fast-core` job fails at destination resolution — update the workflow destination to the newest available iPhone simulator on the runner, or install the required runtime via Xcode platforms.
 
 ---
 
