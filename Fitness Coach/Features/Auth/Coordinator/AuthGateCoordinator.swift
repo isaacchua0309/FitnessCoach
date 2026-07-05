@@ -45,6 +45,7 @@ final class AuthGateCoordinator: ObservableObject {
     private let publicEntryFlowCoordinator: PublicEntryFlowCoordinator
     private let onboardingShellCoordinator: AuthOnboardingShellCoordinator
     private let profileConflictCoordinator: AuthProfileConflictCoordinator
+    private let restoreShellCoordinator: AuthRestoreShellCoordinator
     private let signedInShellCoordinator: AuthSignedInShellCoordinator
     #if DEBUG
     private var testingSignedInUID: String?
@@ -67,16 +68,23 @@ final class AuthGateCoordinator: ObservableObject {
             authManager: container.authManager,
             rootModel: rootModel
         )
+        self.restoreShellCoordinator = AuthRestoreShellCoordinator(
+            container: container,
+            authManager: container.authManager,
+            rootModel: rootModel
+        )
         self.signedInShellCoordinator = AuthSignedInShellCoordinator(
             container: container,
             authManager: container.authManager,
             rootModel: rootModel,
-            profileConflictCoordinator: profileConflictCoordinator
+            profileConflictCoordinator: profileConflictCoordinator,
+            restoreShellCoordinator: restoreShellCoordinator
         )
 
         publicEntryFlowCoordinator.configure(delegate: self)
         onboardingShellCoordinator.configure(delegate: self)
         profileConflictCoordinator.configure(delegate: self)
+        restoreShellCoordinator.configure(delegate: self)
         signedInShellCoordinator.configure(delegate: self)
 
         rootModel.objectWillChange
@@ -294,22 +302,34 @@ final class AuthGateCoordinator: ObservableObject {
         signedInShellCoordinator.reconcileSignedInProfile(uid: uid, isFreshSignIn: isFreshSignIn)
     }
 
+    func handleSignedOutTransition(
+        from previous: AuthState,
+        to state: AuthState,
+        wasSignedIn: Bool
+    ) {
+        signedInShellCoordinator.handleSignedOutTransition(
+            from: previous,
+            to: state,
+            wasSignedIn: wasSignedIn
+        )
+    }
+
     // MARK: - Account restore routing
 
     func routeToMainWithAccountRestore(uid: String, reason: AccountRestoreReason) {
-        signedInShellCoordinator.routeToMainWithAccountRestore(uid: uid, reason: reason)
+        restoreShellCoordinator.routeToMainWithAccountRestore(uid: uid, reason: reason)
     }
 
     func completeRouteToMain(uid: String, restoreSummary: AccountRestoreSummary? = nil) {
-        signedInShellCoordinator.completeRouteToMain(uid: uid, restoreSummary: restoreSummary)
+        restoreShellCoordinator.completeRouteToMain(uid: uid, restoreSummary: restoreSummary)
     }
 
     func scheduleRouteToMainWithAccountRestore(uid: String, reason: AccountRestoreReason) {
-        signedInShellCoordinator.scheduleRouteToMainWithAccountRestore(uid: uid, reason: reason)
+        restoreShellCoordinator.scheduleRouteToMainWithAccountRestore(uid: uid, reason: reason)
     }
 
     func retryAccountRestore() {
-        signedInShellCoordinator.retryAccountRestore()
+        restoreShellCoordinator.retryAccountRestore()
     }
 
     func isUIDStillCurrent(_ uid: String) -> Bool {

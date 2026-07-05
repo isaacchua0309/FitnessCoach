@@ -13,7 +13,6 @@ protocol AuthSignedInShellCoordinatorDelegate: AnyObject {
     var awaitingCloudSync: Bool { get set }
     var suppressSignOutEntrySourceAnnotation: Bool { get set }
     var lastExistingUserResolutionResult: ExistingUserSignInResolutionResult? { get set }
-    var accountRestoreViewModel: AccountRestoreViewModel? { get set }
     var pendingExistingUserSignIn: Bool { get set }
     var existingUserSignInSessionActive: Bool { get set }
     var existingUserSignInError: ExistingUserSignInFailureKind? { get set }
@@ -59,18 +58,20 @@ final class AuthSignedInShellCoordinator {
     private let authManager: AuthManager
     private let rootModel: RootModel
     private let profileConflictCoordinator: AuthProfileConflictCoordinator
-    private var accountRestoreRouteTask: Task<Void, Never>?
+    private let restoreShellCoordinator: AuthRestoreShellCoordinator
 
     init(
         container: AppContainer,
         authManager: AuthManager,
         rootModel: RootModel,
-        profileConflictCoordinator: AuthProfileConflictCoordinator
+        profileConflictCoordinator: AuthProfileConflictCoordinator,
+        restoreShellCoordinator: AuthRestoreShellCoordinator
     ) {
         self.container = container
         self.authManager = authManager
         self.rootModel = rootModel
         self.profileConflictCoordinator = profileConflictCoordinator
+        self.restoreShellCoordinator = restoreShellCoordinator
     }
 
     func configure(delegate: AuthSignedInShellCoordinatorDelegate) {
@@ -107,7 +108,7 @@ final class AuthSignedInShellCoordinator {
                 try await container.profileBootstrapCoordinatorService.syncLocalProfileToCloud(uid: uid)
                 delegate.awaitingCloudSync = false
                 rootModel.endCloudSync()
-                scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
+                restoreShellCoordinator.scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
             } catch {
                 delegate.awaitingCloudSync = false
                 rootModel.endCloudSync()
@@ -263,47 +264,6 @@ final class AuthSignedInShellCoordinator {
 
     // MARK: - Account restore routing
 
-    func routeToMainWithAccountRestore(uid: String, reason: AccountRestoreReason) {
-        guard AccountRestoreCoordinatorSupport.isRestoreEnabled else {
-            completeRouteToMain(uid: uid)
-            return
-        }
-
-        container.accountRestoreSessionState.beginBlockingRestore()
-        let viewModel = delegate?.accountRestoreViewModel ?? makeAccountRestoreViewModel()
-        delegate?.accountRestoreViewModel = viewModel
-        rootModel.beginAccountRestore(uid: uid)
-        viewModel.start(uid: uid, reason: reason)
-    }
-
-    func completeRouteToMain(uid: String, restoreSummary: AccountRestoreSummary? = nil) {
-        guard delegate?.isUIDStillCurrent(uid) == true else { return }
-        delegate?.awaitingCloudSync = false
-        delegate?.completeExistingUserSignInSuccessIfNeeded()
-        delegate?.pendingExistingUserSignIn = false
-        try? container.actionCenter.syncTodayTargetsFromProfile()
-        container.onboardingCoachingContextStore.clear()
-        if let restoreSummary {
-            container.accountRestoreSessionState.recordRestoreCompletion(restoreSummary)
-            container.refreshCenter.notifyAccountRestoreDidComplete()
-        }
-        rootModel.didEnterSignedInMainShell(uid: uid)
-        container.handleSignedInSessionReady(uid: uid)
-        rootModel.didCompleteOnboarding()
-    }
-
-    func scheduleRouteToMainWithAccountRestore(uid: String, reason: AccountRestoreReason) {
-        accountRestoreRouteTask?.cancel()
-        accountRestoreRouteTask = Task { @MainActor in
-            guard delegate?.isUIDStillCurrent(uid) == true else { return }
-            routeToMainWithAccountRestore(uid: uid, reason: reason)
-        }
-    }
-
-    func retryAccountRestore() {
-        delegate?.accountRestoreViewModel?.retry()
-    }
-
     func runExistingUserSignInResolution(uid: String, isFreshSignIn: Bool) async {
         delegate?.pendingExistingUserSignIn = true
         rootModel.beginOnboardingCompletionCloudCheck()
@@ -332,7 +292,7 @@ final class AuthSignedInShellCoordinator {
         case .profileFound:
             clearStaleOnboardingDraftIfSafe()
             delegate.clearOnboardingModel()
-            scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
+            restoreShellCoordinator.scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
         case .noProfileFound:
             delegate.clearOnboardingModel()
             delegate.awaitingCloudSync = false
@@ -375,7 +335,7 @@ final class AuthSignedInShellCoordinator {
         case .resolveOnboardingCompletion(let uid):
             Task { await delegate.resolveOnboardingCompletionAfterSignIn(uid: uid) }
         case .routeToMain:
-            scheduleRouteToMainWithAccountRestore(
+            restoreShellCoordinator.scheduleRouteToMainWithAccountRestore(
                 uid: uid,
                 reason: isFreshSignIn ? .afterSignIn : .appLaunch
             )
@@ -391,7 +351,7 @@ final class AuthSignedInShellCoordinator {
                 guard delegate.isUIDStillCurrent(uid) else { return }
                 switch bootstrapState {
                 case .main:
-                    await routeToMainWithAccountRestore(
+                    restoreShellCoordinator.routeToMainWithAccountRestore(
                         uid: uid,
                         reason: isFreshSignIn ? .afterSignIn : .appLaunch
                     )
@@ -486,9 +446,7 @@ final class AuthSignedInShellCoordinator {
     }
 
     private func clearAuthenticatedSessionPresentationState() {
-        accountRestoreRouteTask?.cancel()
-        accountRestoreRouteTask = nil
-        delegate?.accountRestoreViewModel = nil
+        restoreShellCoordinator.cancelRestorePresentation()
         profileConflictCoordinator.resetConflictPresentationState()
         delegate?.lastExistingUserResolutionResult = nil
         container.onboardingCoachingContextStore.clear()
@@ -501,21 +459,5 @@ final class AuthSignedInShellCoordinator {
             return
         }
         container.onboardingDraftStore.clearDraft()
-    }
-
-    private func makeAccountRestoreViewModel() -> AccountRestoreViewModel {
-        let viewModel = AccountRestoreViewModel(container: container)
-        viewModel.onContinueToMain = { [weak self] summary in
-            guard let self, let uid = self.authManager.currentUID else { return }
-            self.delegate?.accountRestoreViewModel = nil
-            self.completeRouteToMain(uid: uid, restoreSummary: summary)
-        }
-        viewModel.onSignOut = { [weak self] in
-            guard let self else { return }
-            self.delegate?.accountRestoreViewModel = nil
-            self.prepareAuthenticatedSignOut(source: "account_restore_failed_sign_out")
-            self.authManager.signOut()
-        }
-        return viewModel
     }
 }
