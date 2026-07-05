@@ -10,12 +10,16 @@ import SwiftUI
 struct TodayActivitySection: View {
     let activity: ActivityTodayState
     let onConnectAppleHealth: () -> Void
+    var includesAppleHealthSetupCard: Bool = true
 
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.theme) private var theme
 
     private var display: TodayActivityCompactDisplayModel {
-        TodayActivitySectionFormatting.displayModel(for: activity)
+        TodayActivitySectionFormatting.displayModel(
+            for: activity,
+            includesAppleHealthSetupCard: includesAppleHealthSetupCard
+        )
     }
 
     var body: some View {

@@ -26,6 +26,7 @@ actor HealthSyncService: HealthSyncServing {
     private let repository: any HealthDataRepositorying
     private let permissionService: any HealthPermissionServing
     private let cacheStore: any HealthCacheStore
+    private let connectionStore: (any HealthIntegrationConnectionStoring)?
     private let calendar: Calendar
     private let foregroundMinimumInterval: TimeInterval
 
@@ -37,12 +38,14 @@ actor HealthSyncService: HealthSyncServing {
         repository: any HealthDataRepositorying = HealthDataRepository(),
         permissionService: any HealthPermissionServing = HealthPermissionService(),
         cacheStore: any HealthCacheStore = LocalHealthCacheStore(),
+        connectionStore: (any HealthIntegrationConnectionStoring)? = nil,
         calendar: Calendar = .current,
         foregroundMinimumInterval: TimeInterval = HealthCachePolicy.todayFreshnessInterval
     ) {
         self.repository = repository
         self.permissionService = permissionService
         self.cacheStore = cacheStore
+        self.connectionStore = connectionStore
         self.calendar = calendar
         self.foregroundMinimumInterval = foregroundMinimumInterval
     }
@@ -100,6 +103,10 @@ actor HealthSyncService: HealthSyncServing {
 
         isSyncing = true
         defer { isSyncing = false }
+
+        connectionStore.map {
+            HealthIntegrationConnectionRecorder.recordSyncAttempt(store: $0)
+        }
 
         let syncStartedAt = Date()
         let availability = await repository.getHealthDataAvailability()
@@ -227,6 +234,11 @@ actor HealthSyncService: HealthSyncServing {
         )
         state = finished
         let durationMs = Int(Date().timeIntervalSince(syncStartedAt) * 1_000)
+        if phase == .succeeded || phase == .partialSuccess {
+            connectionStore.map {
+                HealthIntegrationConnectionRecorder.recordSuccessfulRead(store: $0)
+            }
+        }
         HealthSyncLogger.syncCompleted(context: "completed", state: finished, durationMs: durationMs)
         HealthSyncLogger.logState(finished, context: "completed")
         HealthIntelligencePipelineAnalytics.logLocalSyncFinished(finished, durationMs: durationMs)

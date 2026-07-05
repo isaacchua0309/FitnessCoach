@@ -228,13 +228,13 @@ final class CoachV2ResponseHandlingTests: XCTestCase {
             date: harness.today
         )
 
-        let response = await executor.execute(
+        let result = await executor.execute(
             ParsedCommand(intent: .status, originalText: "how am I doing today?")
         )
 
-        XCTAssertTrue(response.contains("180 /"))
-        XCTAssertTrue(response.contains("Greek yogurt"))
-        XCTAssertTrue(response.contains("Next:"))
+        XCTAssertTrue(result.message.contains("180 /"))
+        XCTAssertTrue(result.message.contains("Greek yogurt"))
+        XCTAssertTrue(result.message.contains("Next:"))
     }
 
     // MARK: Workout advice includes workout when present

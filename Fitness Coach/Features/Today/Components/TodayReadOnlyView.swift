@@ -21,7 +21,6 @@ struct TodayReadOnlyView: View {
 
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @EnvironmentObject private var themeManager: ThemeManager
-    @Environment(\.theme) private var theme
 
     private var sectionSpacing: CGFloat {
         verticalSizeClass == .compact
@@ -29,15 +28,8 @@ struct TodayReadOnlyView: View {
             : TodayLayout.sectionSpacing
     }
 
-    private var showsHealthIntelligence: Bool {
-        TodayReadOnlyCompositionPolicy.showsHealthIntelligenceSection(
-            isUIEnabled: isHealthIntelligenceUIEnabled,
-            sectionState: healthIntelligenceSection
-        )
-    }
-
-    private var showsLegacyNextBestAction: Bool {
-        TodayReadOnlyCompositionPolicy.showsLegacyNextBestAction(
+    private var showsRecoverySection: Bool {
+        TodayReadOnlyCompositionPolicy.showsRecoverySection(
             isUIEnabled: isHealthIntelligenceUIEnabled,
             sectionState: healthIntelligenceSection
         )
@@ -49,6 +41,22 @@ struct TodayReadOnlyView: View {
             sectionState: healthIntelligenceSection,
             activity: state.activity
         )
+    }
+
+    private var showsAppleHealthSetupCard: Bool {
+        TodayReadOnlyCompositionPolicy.showsAppleHealthSetupCard(activity: state.activity)
+    }
+
+    private var missionForDisplay: TodayMissionState {
+        var mission = state.mission
+        let nextStep = TodayReadOnlyCompositionPolicy.missionNextStepLine(
+            dashboardNextStep: state.mission.nextStepLine,
+            healthIntelligenceSection: healthIntelligenceSection
+        )
+        if !nextStep.isEmpty {
+            mission.nextStepLine = nextStep
+        }
+        return mission
     }
 
     init(
@@ -73,38 +81,16 @@ struct TodayReadOnlyView: View {
 
     var body: some View {
         let _ = themeManager.themeRevision
-        return VStack(alignment: .leading, spacing: sectionSpacing) {
-            TodayDashboardHeader(date: state.date)
 
-            if showsHealthIntelligence, let healthIntelligenceSection {
-                TodayHealthIntelligenceSection(
-                    state: healthIntelligenceSection,
-                    healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-                    onNextBestAction: onHealthNextBestAction
-                )
-            }
+        VStack(alignment: .leading, spacing: sectionSpacing) {
+            TodayDashboardHeader(
+                date: state.date,
+                planStatusChip: TodayDashboardHeaderFormatting.planStatusChip(for: state.mission.status)
+            )
 
-            VStack(alignment: .leading, spacing: TodayLayout.primaryActionZoneSpacing) {
-                missionBlock
+            missionBlock
 
-                if showsLegacyNextBestAction {
-                TodayNextActionSection(
-                    action: state.nextBestAction,
-                    onPrimaryCTA: {
-                        actionCoordinator.handleCTA(
-                            state.nextBestAction.primaryCTA,
-                            from: state.nextBestAction
-                        )
-                    },
-                    onSecondaryCTA: { cta in
-                        actionCoordinator.handleCTA(cta, from: state.nextBestAction)
-                    },
-                    onViewed: {
-                        actionCoordinator.logNextActionViewed(for: state.nextBestAction)
-                    }
-                )
-                }
-            }
+            quickActionsBlock
 
             TodayWaterQuickLogSection(
                 water: state.macroHydration.waterSummary,
@@ -121,6 +107,10 @@ struct TodayReadOnlyView: View {
                 onAddMeal: { mealType in
                     actionCoordinator.logMeal(for: mealType)
                 },
+                onLogFirstMeal: {
+                    actionCoordinator.logPrimaryCTATapped()
+                    actionCoordinator.performQuickAction(.logMeal)
+                },
                 onEditEntry: { entry in
                     actionCoordinator.openEditFood(entry)
                 },
@@ -135,10 +125,16 @@ struct TodayReadOnlyView: View {
                 calorieSummary: state.mission.calorieSummary
             )
 
-            if showsActivitySection {
-                TodayActivitySection(
-                    activity: state.activity,
-                    onConnectAppleHealth: {
+            recoveryBlock
+
+            activityBlock
+
+            if showsAppleHealthSetupCard {
+                TodayAppleHealthSetupCard(
+                    actionTitle: TodayReadOnlyCompositionPolicy.appleHealthSetupActionTitle(
+                        for: state.activity
+                    ),
+                    onAction: {
                         actionCoordinator.onOpenTrainingInsights?()
                     }
                 )
@@ -152,12 +148,12 @@ struct TodayReadOnlyView: View {
     private var missionBlock: some View {
         VStack(alignment: .leading, spacing: TodayLayout.statusZoneSpacing) {
             TodayMissionHero(
-                mission: state.mission,
+                mission: missionForDisplay,
                 onLogMeal: {
                     actionCoordinator.logPrimaryCTATapped()
                     actionCoordinator.performQuickAction(.logMeal)
                 },
-                suppressLogMealCTA: Self.suppressesHeroLogMealCTA(for: state.nextBestAction),
+                suppressLogMealCTA: true,
                 onViewed: {
                     actionCoordinator.logMissionViewed()
                 }
@@ -182,6 +178,70 @@ struct TodayReadOnlyView: View {
                     }
                 )
             }
+        }
+    }
+
+    private var quickActionsBlock: some View {
+        TodayQuickActionsSection(
+            showsScanMeal: state.quickActions.showsScanMeal,
+            onLogMeal: {
+                actionCoordinator.logPrimaryCTATapped()
+                actionCoordinator.performQuickAction(.logMeal)
+            },
+            onAddWater: {
+                _ = actionCoordinator.addWater(amountMl: 500)
+            },
+            onAskCoach: {
+                actionCoordinator.onOpenCoach?(.normal)
+            },
+            onViewPlan: onOpenPlan,
+            onScanMeal: {
+                actionCoordinator.performQuickAction(.scanFood)
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var recoveryBlock: some View {
+        if showsRecoverySection, let healthIntelligenceSection {
+            TodayRecoverySection(
+                state: healthIntelligenceSection.recoveryCard,
+                isLoading: healthIntelligenceSection.isLoading,
+                staleDataLabel: healthIntelligenceSection.staleDataLabel
+            )
+            .onAppear {
+                guard !healthIntelligenceSection.isLoading else { return }
+                healthIntelligenceAnalyticsCoordinator?.logTodayRecoveryCardViewed()
+            }
+
+            if TodayReadOnlyCompositionPolicy.showsHealthWorkoutCard(
+                isUIEnabled: isHealthIntelligenceUIEnabled,
+                sectionState: healthIntelligenceSection
+            ), let workoutCard = healthIntelligenceSection.workoutCard {
+                TodayHealthWorkoutCard(
+                    state: workoutCard,
+                    isLoading: healthIntelligenceSection.isLoading
+                )
+            }
+
+            if TodayReadOnlyCompositionPolicy.showsStandaloneHIFallback(
+                sectionState: healthIntelligenceSection
+            ), let fallbackMessage = healthIntelligenceSection.fallbackMessage {
+                hiFallbackBanner(message: fallbackMessage)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var activityBlock: some View {
+        if showsActivitySection {
+            TodayActivitySection(
+                activity: state.activity,
+                onConnectAppleHealth: {
+                    actionCoordinator.onOpenTrainingInsights?()
+                },
+                includesAppleHealthSetupCard: showsAppleHealthSetupCard
+            )
         }
     }
 
@@ -228,14 +288,18 @@ struct TodayReadOnlyView: View {
         }
     }
 
-    /// Hides the hero log-meal chip when Next Best Action already offers a meal-logging primary CTA.
-    private static func suppressesHeroLogMealCTA(for action: TodayNextBestActionState) -> Bool {
-        switch action.primaryCTA {
-        case .logMeal, .scanFood:
-            return true
-        case .addWater, .logWorkout, .logWeight, .openHealth, .reviewToday, .none:
-            return false
+    @ViewBuilder
+    private func hiFallbackBanner(message: String) -> some View {
+        FormaPlanCard {
+            Text(message)
+                .font(TodayHealthIntelligenceCardTypography.detail)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .healthIntelligenceMultilineText()
+                .healthIntelligenceCardInnerPadding()
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(message)
+        .accessibilityIdentifier("today-hi-fallback-banner")
     }
 }
 
@@ -248,11 +312,18 @@ enum TodayReadOnlyPreviewSupport {
     }
 
     @ViewBuilder
-    static func screen(_ state: TodayDashboardState) -> some View {
+    static func screen(
+        _ state: TodayDashboardState,
+        healthIntelligenceSection: TodayHealthIntelligenceSectionState? = nil,
+        isHealthIntelligenceUIEnabled: Bool = false
+    ) -> some View {
         ScrollView {
             TodayReadOnlyView(
                 state: state,
-                actionCoordinator: coordinator()
+                actionCoordinator: coordinator(),
+                healthIntelligenceSection: healthIntelligenceSection,
+                isHealthIntelligenceUIEnabled: isHealthIntelligenceUIEnabled,
+                onHealthNextBestAction: { _ in }
             )
             .padding(.horizontal, TodayLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.md)
@@ -264,21 +335,36 @@ enum TodayReadOnlyPreviewSupport {
     }
 }
 
-#Preview("Health Intelligence enabled") {
-    ScrollView {
-        TodayReadOnlyView(
-            state: TodayPreviewData.partialDay,
-            actionCoordinator: TodayActionCoordinator(
-                actionCenter: try! AppContainer(inMemory: true).actionCenter
-            ),
-            healthIntelligenceSection: TodayHealthIntelligencePreviewData.workoutDay,
-            isHealthIntelligenceUIEnabled: true,
-            onHealthNextBestAction: { _ in }
-        )
-        .padding(.horizontal, TodayLayout.horizontalPadding)
-        .padding(.vertical, FormaTokens.Spacing.md)
-    }
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
+#Preview("Empty day") {
+    TodayReadOnlyPreviewSupport.screen(TodayPreviewData.brandNewDay)
+}
+
+#Preview("Partial day") {
+    TodayReadOnlyPreviewSupport.screen(TodayPreviewData.partialDay)
+}
+
+#Preview("Health Intelligence — low recovery") {
+    TodayReadOnlyPreviewSupport.screen(
+        TodayPreviewData.partialDay,
+        healthIntelligenceSection: TodayHealthIntelligencePreviewData.lowRecoveryDay,
+        isHealthIntelligenceUIEnabled: true
+    )
+}
+
+#Preview("Apple Health disconnected") {
+    TodayReadOnlyPreviewSupport.screen(TodayPreviewData.healthDisconnected)
+}
+
+#Preview("No health data") {
+    TodayReadOnlyPreviewSupport.screen(
+        TodayPreviewData.brandNewDay,
+        healthIntelligenceSection: TodayHealthIntelligencePreviewData.noHealthData,
+        isHealthIntelligenceUIEnabled: true
+    )
+}
+
+#Preview("Large text") {
+    TodayReadOnlyPreviewSupport.screen(TodayPreviewData.partialDay)
+        .dynamicTypeSize(.accessibility2)
 }
 #endif

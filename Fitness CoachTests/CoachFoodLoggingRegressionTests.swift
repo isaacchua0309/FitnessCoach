@@ -342,7 +342,7 @@ private final class RegressionFoodEstimateAIService: AIServiceProtocol, @uncheck
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 

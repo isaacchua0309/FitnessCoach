@@ -41,6 +41,9 @@ struct HealthIntelligencePresentationContext: Equatable, Sendable {
     var snapshot: HealthIntelligenceSnapshot? = nil
     var isAppleHealthConnected: Bool = false
     var cachedDayCount: Int = 0
+    var trainingIntegrationState: TrainingIntegrationState = .notConnected
+    var connectionRecord: HealthIntegrationConnectionRecord = .empty
+    var baseline: HealthBaselineContext? = nil
 }
 
 struct HealthIntelligencePresentationMessage: Equatable, Sendable {

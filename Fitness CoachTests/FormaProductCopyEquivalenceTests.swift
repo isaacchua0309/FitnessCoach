@@ -18,7 +18,7 @@ final class FormaProductCopyEquivalenceTests: XCTestCase {
         XCTAssertEqual(FormaProductCopy.Today.Mission.sectionTitle, "Today's Mission")
         XCTAssertEqual(FormaProductCopy.Today.focusOnTrack, "You're on track. Keep the next choice simple.")
         XCTAssertEqual(FormaProductCopy.Today.HealthIntelligence.staleDataLabel, "May be out of date")
-        XCTAssertEqual(FormaProductCopy.Today.QuickActions.title(for: .logMeal), "Log Meal")
+        XCTAssertEqual(FormaProductCopy.Today.QuickActions.title(for: .logMeal), "Log meal with Coach")
         XCTAssertEqual(FormaProductCopy.Today.QuickActions.title(for: .scanFood), "Scan Meal")
         XCTAssertEqual(
             FormaProductCopy.Today.MacroBalance.caloriesRemaining(250),

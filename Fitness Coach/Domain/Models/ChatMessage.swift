@@ -53,6 +53,14 @@ struct ChatMessage: Codable, Identifiable, Equatable, Sendable {
         imageAttachment?.kind == .mealPhoto
     }
 
+    /// True when the message has meal-photo bytes that can be shown in the transcript.
+    var hasRenderableMealPhotoAttachment: Bool {
+        guard let attachment = imageAttachment, attachment.kind == .mealPhoto else {
+            return false
+        }
+        return !attachment.imageJPEG.isEmpty || !attachment.thumbnailJPEG.isEmpty
+    }
+
     /// Full-resolution JPEG for analysis retry and expanded preview.
     var mealPhotoJPEG: Data? {
         imageAttachment?.imageJPEG

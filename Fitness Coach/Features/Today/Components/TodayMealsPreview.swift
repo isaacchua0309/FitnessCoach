@@ -12,6 +12,7 @@ struct TodayMealsPreview: View {
     let date: Date
     let mealsEmptyKind: TodayMealsEmptyKind
     let onAddMeal: (MealType) -> Void
+    let onLogFirstMeal: () -> Void
     let onEditEntry: (FoodEntry) -> Void
     let onDeleteEntry: (FoodEntry) -> Void
 
@@ -24,12 +25,45 @@ struct TodayMealsPreview: View {
 
     var body: some View {
         let _ = themeManager.themeRevision
-        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+
+        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Meals.sectionTitle)
 
-            FormaPlanCard {
-                VStack(spacing: 0) {
-                    ForEach(section.groups) { group in
+            if section.isFullyEmpty {
+                emptyDayCard
+            } else {
+                loggedMealsCard
+            }
+        }
+        .todayLiveTheme()
+    }
+
+    private var emptyDayCard: some View {
+        FormaPlanCard {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                Text(FormaProductCopy.Today.Meals.emptyDayMessage)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(theme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button(FormaProductCopy.Today.Meals.logFirstMealCTA, action: onLogFirstMeal)
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(theme.accent)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
+                    .accessibilityLabel(FormaProductCopy.Today.Meals.logFirstMealCTA)
+                    .accessibilityHint(FormaProductCopy.Today.Meals.logFirstMealAccessibilityHint)
+            }
+            .padding(.vertical, FormaTokens.Spacing.sm)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var loggedMealsCard: some View {
+        FormaPlanCard {
+            VStack(spacing: 0) {
+                ForEach(section.groups) { group in
+                    if group.isLogged {
                         mealGroupRow(group)
 
                         if group.mealType != section.groups.last?.mealType {
@@ -37,9 +71,23 @@ struct TodayMealsPreview: View {
                         }
                     }
                 }
+
+                let unloggedGroups = section.groups.filter { !$0.isLogged }
+                if !unloggedGroups.isEmpty {
+                    if section.groups.contains(where: \.isLogged) {
+                        FormaPlanRowDivider()
+                    }
+
+                    ForEach(unloggedGroups) { group in
+                        mealGroupRow(group)
+
+                        if group.mealType != unloggedGroups.last?.mealType {
+                            FormaPlanRowDivider()
+                        }
+                    }
+                }
             }
         }
-        .todayLiveTheme()
     }
 
     @ViewBuilder
@@ -63,7 +111,7 @@ struct TodayMealsPreview: View {
                 onAddMeal(group.mealType)
             } label: {
                 Text(FormaProductCopy.Today.Meals.addAction)
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .font(FormaTokens.Typography.caption2.weight(.semibold))
                     .foregroundStyle(theme.accent)
                     .frame(minHeight: FormaTokens.Layout.minTouchTarget)
             }
@@ -72,7 +120,7 @@ struct TodayMealsPreview: View {
             .accessibilityHint(display.accessibilityHint ?? "")
         }
         .padding(.horizontal, FormaTokens.Spacing.md)
-        .padding(.vertical, TodayLayout.cardRowVerticalPadding)
+        .padding(.vertical, TodayLayout.compactSpacing)
     }
 
     private func loggedMealRow(group: TodayMealGroupState, display: TodayMealRowDisplayModel) -> some View {
@@ -162,6 +210,7 @@ struct TodayMealsPreview: View {
         date: Date(),
         mealsEmptyKind: .newDayNoMeals,
         onAddMeal: { _ in },
+        onLogFirstMeal: {},
         onEditEntry: { _ in },
         onDeleteEntry: { _ in }
     )
@@ -176,6 +225,7 @@ struct TodayMealsPreview: View {
         date: Date(),
         mealsEmptyKind: .hasMeals,
         onAddMeal: { _ in },
+        onLogFirstMeal: {},
         onEditEntry: { _ in },
         onDeleteEntry: { _ in }
     )
@@ -190,6 +240,7 @@ struct TodayMealsPreview: View {
         date: Date(),
         mealsEmptyKind: .hasMeals,
         onAddMeal: { _ in },
+        onLogFirstMeal: {},
         onEditEntry: { _ in },
         onDeleteEntry: { _ in }
     )

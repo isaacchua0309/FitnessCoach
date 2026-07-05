@@ -862,14 +862,14 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub review.", confidence: .medium)
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub review.", confidence: .medium)
+    ) async throws -> DailyReviewAIResponse {
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
@@ -945,14 +945,14 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub review.", confidence: .medium)
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub review.", confidence: .medium)
+    ) async throws -> DailyReviewAIResponse {
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {

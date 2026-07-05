@@ -17,13 +17,16 @@ final class TrainingInsightsStore: ObservableObject {
 
     private let integration: TrainingIntegrationProviding
     private let healthSyncStateStore: HealthSyncStateStore?
+    private let connectionStore: (any HealthIntegrationConnectionStoring)?
 
     init(
         integration: TrainingIntegrationProviding,
-        healthSyncStateStore: HealthSyncStateStore? = nil
+        healthSyncStateStore: HealthSyncStateStore? = nil,
+        connectionStore: (any HealthIntegrationConnectionStoring)? = nil
     ) {
         self.integration = integration
         self.healthSyncStateStore = healthSyncStateStore
+        self.connectionStore = connectionStore
         self.dataSource = integration.dataSource
     }
 
@@ -34,6 +37,9 @@ final class TrainingInsightsStore: ObservableObject {
         dataSource = integration.dataSource
         if state.isConnected {
             lastSyncedAt = Date()
+            connectionStore.map {
+                HealthIntegrationConnectionRecorder.recordConnectionCompleted(store: $0)
+            }
         }
         HealthTrainingDebugLogger.logIntegrationTransition(
             from: previous,
@@ -60,6 +66,9 @@ final class TrainingInsightsStore: ObservableObject {
 
         integrationState = .requestingPermission
         dataSource = integration.dataSource
+        connectionStore.map {
+            HealthIntegrationConnectionRecorder.recordPermissionRequestStarted(store: $0)
+        }
 
         let result = await integration.requestConnection()
         integrationState = result
@@ -67,6 +76,9 @@ final class TrainingInsightsStore: ObservableObject {
         if result.isConnected {
             lastSyncedAt = Date()
             healthSyncStateStore?.syncInitialHealthData()
+            connectionStore.map {
+                HealthIntegrationConnectionRecorder.recordConnectionCompleted(store: $0)
+            }
         }
 
         HealthTrainingDebugLogger.logIntegrationTransition(

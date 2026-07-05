@@ -38,6 +38,8 @@ struct TodayMissionHeroDisplayModel: Equatable {
     var goalLine: String
     var consumedLine: String
     var proteinRemainingLine: String
+    var waterRemainingLine: String
+    var nextStepLine: String
     var statusLine: String
     var showsLogMealCTA: Bool
     var accessibilityLabel: String
@@ -53,19 +55,23 @@ enum TodayMissionHeroFormatter {
     static func displayModel(
         calorieSummary: CalorieSummary,
         proteinProgress: MacroProgress,
-        mealsEmptyKind: TodayMealsEmptyKind
+        waterSummary: WaterSummary,
+        mealsEmptyKind: TodayMealsEmptyKind,
+        nextStepLine: String = ""
     ) -> TodayMissionHeroDisplayModel {
         let primaryKind = primaryKind(for: calorieSummary)
         let primaryValue = primaryValue(for: calorieSummary, kind: primaryKind)
         let goalLine = goalLine(for: calorieSummary)
         let consumedLine = consumedLine(for: calorieSummary)
         let proteinRemainingLine = proteinRemainingLine(for: proteinProgress)
+        let waterRemainingLine = waterRemainingLine(for: waterSummary)
         let statusLine = statusLine(
             mealsEmptyKind: mealsEmptyKind,
             calorieSummary: calorieSummary,
             primaryKind: primaryKind
         )
-        let showsLogMealCTA = mealsEmptyKind != .hasMeals
+        let trimmedNextStep = nextStepLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        let formattedNextStep = TodayMissionHeroFormatter.formattedNextStepLine(trimmedNextStep)
 
         return TodayMissionHeroDisplayModel(
             primaryKind: primaryKind,
@@ -73,6 +79,8 @@ enum TodayMissionHeroFormatter {
             goalLine: goalLine,
             consumedLine: consumedLine,
             proteinRemainingLine: proteinRemainingLine,
+            waterRemainingLine: waterRemainingLine,
+            nextStepLine: formattedNextStep,
             statusLine: statusLine,
             showsLogMealCTA: showsLogMealCTA,
             accessibilityLabel: accessibilityLabel(
@@ -80,6 +88,8 @@ enum TodayMissionHeroFormatter {
                 goalLine: goalLine,
                 consumedLine: consumedLine,
                 proteinRemainingLine: proteinRemainingLine,
+                waterRemainingLine: waterRemainingLine,
+                nextStepLine: formattedNextStep,
                 statusLine: statusLine
             )
         )
@@ -140,6 +150,20 @@ enum TodayMissionHeroFormatter {
         return FormaProductCopy.Today.Mission.proteinRemainingLine(grams: protein.remaining)
     }
 
+    static func waterRemainingLine(for water: WaterSummary) -> String {
+        guard water.targetMl > 0 else { return "" }
+        if TodayNutritionProgressFormatting.isWaterTargetHit(water) {
+            return FormaProductCopy.Today.Mission.waterOnTrack
+        }
+        return FormaProductCopy.Today.Mission.waterRemainingLine(ml: water.remainingMl)
+    }
+
+    static func formattedNextStepLine(_ line: String) -> String {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        return "\(FormaProductCopy.Today.Mission.nextStepPrefix) \(trimmed)"
+    }
+
     static func statusLine(
         mealsEmptyKind: TodayMealsEmptyKind,
         calorieSummary: CalorieSummary,
@@ -167,6 +191,8 @@ enum TodayMissionHeroFormatter {
         goalLine: String,
         consumedLine: String,
         proteinRemainingLine: String,
+        waterRemainingLine: String,
+        nextStepLine: String,
         statusLine: String
     ) -> String {
         var parts = [
@@ -176,6 +202,12 @@ enum TodayMissionHeroFormatter {
             consumedLine,
             proteinRemainingLine
         ]
+        if !waterRemainingLine.isEmpty {
+            parts.append(waterRemainingLine)
+        }
+        if !nextStepLine.isEmpty {
+            parts.append(nextStepLine)
+        }
         if !statusLine.isEmpty {
             parts.append(statusLine)
         }

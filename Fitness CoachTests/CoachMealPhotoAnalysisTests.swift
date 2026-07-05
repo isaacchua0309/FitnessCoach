@@ -481,7 +481,7 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub", confidence: .medium)
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
@@ -497,11 +497,11 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub", confidence: .medium)
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
-    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub", confidence: .medium)
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> DailyReviewAIResponse {
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
@@ -572,7 +572,7 @@ private final class GenericFallbackPhotoAIService: AIServiceProtocol, @unchecked
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse {
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -648,7 +648,7 @@ private final class RetryImprovingPhotoAIService: AIServiceProtocol, @unchecked 
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse {
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -712,7 +712,7 @@ private final class ClarifyingPhotoAIService: AIServiceProtocol, @unchecked Send
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub", confidence: .medium)
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
@@ -728,11 +728,11 @@ private final class ClarifyingPhotoAIService: AIServiceProtocol, @unchecked Send
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub", confidence: .medium)
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
-    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub", confidence: .medium)
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> DailyReviewAIResponse {
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {

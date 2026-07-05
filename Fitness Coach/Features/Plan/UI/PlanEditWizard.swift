@@ -81,7 +81,7 @@ struct PlanEditWizard: View {
     }
 
     private var wizardContent: some View {
-        PlanEditShell(
+        AdjustPlanView(
                 title: FormaProductCopy.PlanEditHero.shellTitle,
                 stepCount: flow.count,
                 currentStepIndex: stepIndex,
@@ -267,7 +267,7 @@ struct PlanEditWizard: View {
     private var goalAndTargetWeightStep: some View {
         Group {
             Section {
-                PlanGoalSelectionView(
+                GoalOptionSelector(
                     selection: $goalType,
                     recommendedGoal: PlanGoalSelectionBuilder.recommendedGoal(for: baselineProfile),
                     onSelect: applyGoalType
@@ -276,10 +276,11 @@ struct PlanEditWizard: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             }
+            .listSectionSpacing(FormaTokens.Spacing.md)
 
             Section {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
-                    PlanTransformationSummaryCard(state: transformationSummary)
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                    GoalPathPreviewCard(state: transformationSummary)
 
                     if goalType == .maintain {
                         maintainGoalSummary

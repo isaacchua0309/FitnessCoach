@@ -69,7 +69,9 @@ enum TodayPresentationBuilder {
         let hero = TodayMissionHeroFormatter.displayModel(
             calorieSummary: calories,
             proteinProgress: macroHydration.macroSummary.protein,
-            mealsEmptyKind: mealsEmptyKind
+            waterSummary: macroHydration.waterSummary,
+            mealsEmptyKind: mealsEmptyKind,
+            nextStepLine: missionNextStepLine(from: inputs)
         )
 
         return TodayMissionState(
@@ -81,6 +83,8 @@ enum TodayPresentationBuilder {
             goalLine: hero.goalLine,
             consumedLine: hero.consumedLine,
             proteinRemainingLine: hero.proteinRemainingLine,
+            waterRemainingLine: hero.waterRemainingLine,
+            nextStepLine: hero.nextStepLine,
             statusLine: hero.statusLine,
             showsLogMealCTA: hero.showsLogMealCTA,
             accessibilityLabel: hero.accessibilityLabel,
@@ -132,6 +136,12 @@ enum TodayPresentationBuilder {
         }
 
         return .onTrack
+    }
+
+    static func missionNextStepLine(from inputs: TodayMissionControlInputs) -> String {
+        let action = nextBestAction(from: inputs)
+        guard action.reason != .allTargetsMet else { return "" }
+        return action.title
     }
 
     static func isCalorieTargetMet(_ summary: CalorieSummary) -> Bool {

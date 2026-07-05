@@ -56,12 +56,11 @@ final class CoachAIRouteHandler {
         case .localCommand(let command):
             switch ConfirmationPolicy.decision(for: command) {
             case .executeImmediately:
-                let response = await mutationExecutor.execute(
+                return await mutationExecutor.execute(
                     command,
                     healthIntelligence: resolvedHealthIntelligence(from: context),
                     contextHints: CoachResponseContextHints.from(context)
                 )
-                return .message(response)
             case .requiresConfirmation(let message):
                 return .message(message)
             case .reject(let message):

@@ -10,6 +10,8 @@ import SwiftUI
 struct PlanSelectableCard<Content: View>: View {
     let isSelected: Bool
     let accessibilityLabel: String
+    var accessibilityHint: String = FormaProductCopy.PlanEditAccessibility.selectCardHint
+    var contentPadding: EdgeInsets?
     let action: () -> Void
     @ViewBuilder var content: () -> Content
 
@@ -18,11 +20,10 @@ struct PlanSelectableCard<Content: View>: View {
     var body: some View {
         Button(action: action) {
             content()
-                .padding(FormaTokens.Spacing.cardPadding)
+                .padding(resolvedContentPadding)
                 .frame(maxWidth: .infinity, minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
                 .background(cardBackground)
                 .overlay(cardBorder)
-                .scaleEffect(selectionScale, anchor: .center)
                 .contentShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -33,14 +34,19 @@ struct PlanSelectableCard<Content: View>: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityValue(PlanEditAccessibility.selectionValue(isSelected: isSelected))
-        .accessibilityHint(FormaProductCopy.PlanEditAccessibility.selectCardHint)
+        .accessibilityHint(accessibilityHint)
         .accessibilityAddTraits(.isButton)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private var selectionScale: CGFloat {
-        guard isSelected, !reduceMotion else { return 1 }
-        return PlanEditMotion.selectedScale
+    private var resolvedContentPadding: EdgeInsets {
+        contentPadding
+            ?? EdgeInsets(
+                top: FormaTokens.Spacing.cardPadding,
+                leading: FormaTokens.Spacing.cardPadding,
+                bottom: FormaTokens.Spacing.cardPadding,
+                trailing: FormaTokens.Spacing.cardPadding
+            )
     }
 
     private var cardBackground: some View {
@@ -59,14 +65,14 @@ struct PlanSelectableCard<Content: View>: View {
 
 enum PlanSelectableCardAccessory {
 
-    @ViewBuilder
+    static let selectionCheckmarkColumnWidth: CGFloat = 28
+
     static func selectionCheckmark(isSelected: Bool) -> some View {
-        if isSelected {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                .transition(.opacity)
-                .accessibilityHidden(true)
-        }
+        Image(systemName: "checkmark.circle.fill")
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(FormaPlanTokens.Color.planAccent)
+            .opacity(isSelected ? 1 : 0)
+            .accessibilityHidden(true)
+            .frame(width: selectionCheckmarkColumnWidth, alignment: .trailing)
     }
 }

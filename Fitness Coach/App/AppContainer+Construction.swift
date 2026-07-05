@@ -52,6 +52,7 @@ extension AppContainer {
         let weeklyReviewEngine: WeeklyReviewEngine
         let healthActivityQueryService: HealthActivityQueryService
         let healthSyncService: HealthSyncService
+        let healthIntegrationConnectionStore: any HealthIntegrationConnectionStoring
         let healthSummarySyncConsentStorage: any HealthSummarySyncConsentStoring
         let healthSummarySyncConsentStore: HealthSummarySyncConsentStore
         let healthSummaryRemoteSyncClient: any HealthSummaryRemoteSyncing
@@ -243,9 +244,13 @@ extension AppContainer {
             stepReader: stepReader,
             healthDataRepository: healthDataRepository
         )
+        let healthIntegrationConnectionStore: any HealthIntegrationConnectionStoring = inMemory
+            ? LockedHealthIntegrationConnectionStore()
+            : UserDefaultsHealthIntegrationConnectionStore()
         let healthSyncService = HealthSyncService(
             repository: healthDataRepository,
-            cacheStore: healthCacheStore
+            cacheStore: healthCacheStore,
+            connectionStore: healthIntegrationConnectionStore
         )
 
         let remoteSummarySyncCapable = HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled
@@ -291,7 +296,8 @@ extension AppContainer {
             integration: healthTrainingService,
             healthSyncStateStore: HealthIntelligenceFeatureFlags.isSyncEnabled
                 ? healthSyncStateStore
-                : nil
+                : nil,
+            connectionStore: healthIntegrationConnectionStore
         )
         let trainingInsightsModel = TrainingInsightsModel(workoutReader: workoutReader)
 
@@ -318,6 +324,7 @@ extension AppContainer {
             weeklyReviewEngine: weeklyReviewEngine,
             healthActivityQueryService: healthActivityQueryService,
             healthSyncService: healthSyncService,
+            healthIntegrationConnectionStore: healthIntegrationConnectionStore,
             healthSummarySyncConsentStorage: healthSummarySyncConsentStorage,
             healthSummarySyncConsentStore: healthSummarySyncConsentStore,
             healthSummaryRemoteSyncClient: healthSummaryRemoteSyncClient,

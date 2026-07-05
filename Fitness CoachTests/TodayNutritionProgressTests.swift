@@ -106,7 +106,30 @@ final class TodayNutritionProgressTests: XCTestCase {
         XCTAssertFalse(TodayNutritionProgressFormatting.showsCaloriesRow(
             calorieSummary: CalorieSummary(consumed: 710, target: 1_800, remaining: 1_090, progress: 0.39, isOverTarget: false)
         ))
-        XCTAssertEqual(display.rows.map(\.name), ["Protein", "Carbs", "Fat", "Water"])
+        XCTAssertEqual(display.rows.map(\.name), ["Protein", "Carbs", "Fat"])
+    }
+
+    func testOmitsWaterWhenDedicatedWaterCardExists() {
+        let display = TodayNutritionProgressFormatting.displayModel(
+            macros: sampleMacros,
+            water: sampleWater,
+            calorieSummary: CalorieSummary(
+                consumed: 710,
+                target: 1_800,
+                remaining: 1_090,
+                progress: 0.39,
+                isOverTarget: false
+            ),
+            includesDedicatedWaterCard: true
+        )
+
+        XCTAssertFalse(
+            TodayNutritionProgressFormatting.showsWaterRow(
+                water: sampleWater,
+                includesDedicatedWaterCard: true
+            )
+        )
+        XCTAssertEqual(display.rows.map(\.name), ["Protein", "Carbs", "Fat"])
     }
 
     func testShowsCaloriesWhenHeroHasNoCalorieTarget() {
@@ -125,8 +148,25 @@ final class TodayNutritionProgressTests: XCTestCase {
         XCTAssertTrue(TodayNutritionProgressFormatting.showsCaloriesRow(
             calorieSummary: CalorieSummary(consumed: 710, target: 0, remaining: 0, progress: 0, isOverTarget: false)
         ))
-        XCTAssertEqual(display.rows.map(\.name), ["Protein", "Calories", "Carbs", "Fat", "Water"])
+        XCTAssertEqual(display.rows.map(\.name), ["Protein", "Calories", "Carbs", "Fat"])
         XCTAssertEqual(display.rows[1].ratioText, "710 kcal logged")
+    }
+
+    func testShowsWaterWhenNoDedicatedWaterCard() {
+        let display = TodayNutritionProgressFormatting.displayModel(
+            macros: sampleMacros,
+            water: sampleWater,
+            calorieSummary: CalorieSummary(
+                consumed: 710,
+                target: 1_800,
+                remaining: 1_090,
+                progress: 0.39,
+                isOverTarget: false
+            ),
+            includesDedicatedWaterCard: false
+        )
+
+        XCTAssertEqual(display.rows.map(\.name), ["Protein", "Carbs", "Fat", "Water"])
     }
 
     func testProteinRowIsPrimaryAndSecondaryMacrosStaySecondary() {
@@ -145,7 +185,6 @@ final class TodayNutritionProgressTests: XCTestCase {
         XCTAssertEqual(display.rows[0].emphasis, .primary)
         XCTAssertEqual(display.rows[1].emphasis, .secondary)
         XCTAssertEqual(display.rows[2].emphasis, .secondary)
-        XCTAssertEqual(display.rows[3].emphasis, .standard)
     }
 
     // MARK: - Helpers

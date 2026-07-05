@@ -65,11 +65,33 @@ final class HealthIntelligenceUIStateTests: XCTestCase {
         XCTAssertTrue(state.missingInsightKinds.isEmpty)
     }
 
+    func testConnectedSnapshotWithLegacyConnectHealthActionDoesNotForceNoPermission() {
+        let state = resolve(
+            HealthIntelligenceUIContext(
+                availability: readableAvailability,
+                snapshot: connectHealthSnapshot,
+                isAppleHealthConnected: true,
+                cachedDayCount: 3,
+                trainingIntegrationState: .connected,
+                connectionRecord: HealthIntegrationConnectionRecord(
+                    hasCompletedAppleHealthConnectionFlow: true,
+                    lastHealthPermissionRequestAt: now,
+                    lastSuccessfulHealthReadAt: now,
+                    lastHealthSyncAttemptAt: now
+                )
+            )
+        )
+
+        XCTAssertNotEqual(state.kind, .noHealthPermission)
+    }
+
     func testNoHealthPermissionState() {
         let state = resolve(
             HealthIntelligenceUIContext(
                 availability: deniedAvailability,
-                snapshot: connectHealthSnapshot
+                snapshot: connectHealthSnapshot,
+                trainingIntegrationState: .notConnected,
+                connectionRecord: .empty
             )
         )
 

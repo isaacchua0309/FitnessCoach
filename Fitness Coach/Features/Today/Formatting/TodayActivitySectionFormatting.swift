@@ -30,14 +30,19 @@ enum TodayActivitySectionFormatting {
         return formatter
     }()
 
-    static func displayModel(for activity: ActivityTodayState) -> TodayActivityCompactDisplayModel {
+    static func displayModel(
+        for activity: ActivityTodayState,
+        includesAppleHealthSetupCard: Bool = true
+    ) -> TodayActivityCompactDisplayModel {
         let stepsLine = stepsLine(
             stepsToday: activity.stepsToday,
             stepGoalAssumption: activity.stepGoalAssumption
         )
         let workoutStatus = workoutStatus(for: activity)
         let workoutLine = workoutLine(for: workoutStatus)
-        let health = healthConnection(for: activity)
+        let health = includesAppleHealthSetupCard
+            ? nil
+            : healthConnection(for: activity)
 
         return TodayActivityCompactDisplayModel(
             stepsLine: stepsLine,

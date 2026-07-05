@@ -126,11 +126,27 @@ enum AIPromptBuilder {
     static func dailyReviewSystemPrompt() -> String {
         """
         \(sharedRules)
+        \(healthIntelligenceRules)
 
-        Task: Write a short, encouraging daily review from the provided deterministic summary.
-        - Use the numbers exactly as given. Do not recompute totals.
-        - Highlight one win and one practical suggestion for tomorrow.
-        - Keep it concise and supportive.
+        Task: Return structured daily review copy as JSON only. Do not return prose paragraphs.
+
+        Required JSON fields:
+        - statusSummary (string, max \(DailyReviewContentContract.maxStatusSummaryLength) characters)
+        - bestNextMove (string, max \(DailyReviewContentContract.maxBestNextMoveLength) characters)
+        - tomorrowFocus (string or null, max \(DailyReviewContentContract.maxTomorrowFocusLength) characters)
+        - missingSignals (array of short labels or null; use only: Steps, Workout, Sleep, HRV)
+        - detailNote (string or null, max \(DailyReviewContentContract.maxDetailNoteLength) characters)
+
+        Rules:
+        - Use the deterministic numbers exactly as given. Do not recompute totals.
+        - Do not include headers like "Daily review (timezone):" or location labels.
+        - Do not write long paragraphs or multiple sentences in one field.
+        - Do not repeat unavailable-data disclaimers; list missing Apple Health signals once in missingSignals only.
+        - Do not give false praise or "win" language unless the user clearly met a target with logged data.
+        - If no food or water has been logged, statusSummary must say no logs exist.
+        - bestNextMove must be one practical action for right now or the next meal.
+        - tomorrowFocus must be one short focus for tomorrow, or null when unnecessary.
+        - detailNote is optional extra context; keep it to one short sentence or null.
         """
     }
 }

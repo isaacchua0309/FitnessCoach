@@ -36,7 +36,10 @@ enum HealthIntelligencePresentationCore {
         isAppleHealthConnected: Bool,
         cachedDayCount: Int,
         errorMessage: String?,
-        syncPhase: HealthSyncPhase? = nil
+        syncPhase: HealthSyncPhase? = nil,
+        trainingIntegrationState: TrainingIntegrationState = .notConnected,
+        connectionRecord: HealthIntegrationConnectionRecord = .empty,
+        baseline: HealthBaselineContext? = nil
     ) -> HealthIntelligencePresentationContext {
         HealthIntelligencePresentationContext(
             isLoading: isLoading,
@@ -45,7 +48,10 @@ enum HealthIntelligencePresentationCore {
             availability: availability,
             snapshot: snapshot,
             isAppleHealthConnected: isAppleHealthConnected,
-            cachedDayCount: cachedDayCount
+            cachedDayCount: cachedDayCount,
+            trainingIntegrationState: trainingIntegrationState,
+            connectionRecord: connectionRecord,
+            baseline: baseline
         )
     }
 

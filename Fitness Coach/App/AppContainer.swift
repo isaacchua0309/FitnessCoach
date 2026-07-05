@@ -98,6 +98,7 @@ final class AppContainer {
     let nextBestActionEngine: HealthNextBestActionEngine
     let weeklyReviewEngine: WeeklyReviewEngine
     let healthSyncService: HealthSyncService
+    let healthIntegrationConnectionStore: any HealthIntegrationConnectionStoring
     let healthSyncStateStore: HealthSyncStateStore
     let healthSummaryRemoteSyncClient: any HealthSummaryRemoteSyncing
     let healthSummarySyncService: HealthSummarySyncService
@@ -280,6 +281,7 @@ final class AppContainer {
         nextBestActionEngine = health.nextBestActionEngine
         weeklyReviewEngine = health.weeklyReviewEngine
         healthSyncService = health.healthSyncService
+        healthIntegrationConnectionStore = health.healthIntegrationConnectionStore
         healthSyncStateStore = health.healthSyncStateStore
         healthSummaryRemoteSyncClient = health.healthSummaryRemoteSyncClient
         healthSummarySyncService = health.healthSummarySyncService

@@ -99,34 +99,23 @@ enum HealthIntelligencePresentationStateMapper {
     // MARK: - Resolution helpers
 
     private static func requiresHealthPermission(_ context: HealthIntelligencePresentationContext) -> Bool {
-        if let snapshot = context.snapshot,
-           snapshot.nextBestAction.reason == .connectHealth,
-           !snapshot.nextBestAction.id.isEmpty {
-            return true
-        }
-
-        if context.isAppleHealthConnected {
-            return false
-        }
-
-        if context.availability?.hasAnyReadableSignal == true {
-            return false
-        }
-
-        if context.snapshot == nil {
-            return true
-        }
-
-        let recovery = context.snapshot?.recovery ?? .unknown
-        let workout = context.snapshot?.workout
-        let activity = context.snapshot?.activity ?? .empty
-
-        let hasWorkout = workout?.hasWorkout == true
-        let hasActivity = activity.steps != nil
-            || activity.activeEnergyKcal != nil
-            || activity.exerciseMinutes != nil
-
-        return recovery.status == .unknown && !hasWorkout && !hasActivity
+        let status = HealthIntegrationStatusResolver.resolve(
+            HealthIntegrationStatusInput(
+                isHealthDataAvailable: context.availability?.isHealthDataAvailable ?? true,
+                permissionStatus: context.availability?.permissionStatus,
+                trainingIntegrationState: context.trainingIntegrationState,
+                connectionRecord: context.connectionRecord,
+                snapshot: context.snapshot,
+                baseline: context.baseline,
+                cachedDayCount: context.cachedDayCount
+            )
+        )
+        return status.requiresInitialConnection(
+            hasPriorConnectionEvidence: context.connectionRecord.hasPriorConnectionEvidence(
+                trainingIntegrationState: context.trainingIntegrationState,
+                permissionStatus: context.availability?.permissionStatus
+            )
+        )
     }
 
     private static func hasPartialHealthPermission(_ context: HealthIntelligencePresentationContext) -> Bool {

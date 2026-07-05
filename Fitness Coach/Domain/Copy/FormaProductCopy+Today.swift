@@ -21,6 +21,9 @@ extension FormaProductCopy {
 
         enum Header {
             static let title = "Today"
+
+            static let planStatusNeedsFocus = "Needs focus"
+            static let planStatusOverTarget = "Over target"
         }
 
         enum MacroBalance {
@@ -226,12 +229,15 @@ extension FormaProductCopy {
             static let targetReachedPrimary = "Target reached"
             static let remainingSuffix = "remaining"
             static let overSuffix = "over"
-            static let logMealCTA = "Log meal"
-            static let statusPlanReady = "Your plan is ready. Log your first meal to start today."
+            static let logMealCTA = "Log meal with Coach"
+            static let statusEmptyDay = "No meals logged yet. Start with protein + water."
+            static let statusPlanReady = statusEmptyDay
             static let statusOverTarget = "You're over target. Focus on protein and hydration for the rest of today."
             static let statusTargetReached = "Nice work. Keep the rest of the day steady."
             static let missingCalorieTarget = "No calorie target set"
             static let proteinOnTrack = "Protein on track"
+            static let waterOnTrack = "Water on track"
+            static let nextStepPrefix = "Next:"
 
             static func goalLine(targetKcal: Int) -> String {
                 "Goal: \(TodayMissionHeroFormatting.calories(targetKcal)) kcal"
@@ -243,6 +249,10 @@ extension FormaProductCopy {
 
             static func proteinRemainingLine(grams: Double) -> String {
                 "Protein remaining: \(TodayMissionHeroFormatting.proteinGrams(grams))g"
+            }
+
+            static func waterRemainingLine(ml: Int) -> String {
+                "Water remaining: \(max(ml, 0)) ml"
             }
 
             static func primaryRemaining(_ calories: Int) -> String {
@@ -410,6 +420,9 @@ extension FormaProductCopy {
 
         enum Meals {
             static let sectionTitle = "Meals"
+            static let emptyDayMessage = "No meals logged yet."
+            static let logFirstMealCTA = "Log first meal with Coach"
+            static let logFirstMealAccessibilityHint = "Opens Coach to log your first meal"
             static let readyStatus = "Ready"
             static let addAction = "Add"
             static let optionalLabel = "Optional"
@@ -456,10 +469,31 @@ extension FormaProductCopy {
             }
         }
 
+        enum Recovery {
+            static let sectionTitle = FormaProductCopy.Today.HealthIntelligence.Recovery.sectionTitle
+            static let unclearTitle = "Recovery unclear"
+            static let unclearBody =
+                "Not enough health data yet. Use how you feel before adding intensity today."
+        }
+
+        enum AppleHealthSetup {
+            static let sectionTitle = "Improve plan accuracy"
+            static let body =
+                "Connect Apple Health to enable steps, workouts, sleep and recovery insights."
+            static let connectAction = TrainingIntegrationCopy.connectAppleHealth
+            static let manageAction = TrainingIntegrationCopy.manageHealthAccess
+        }
+
         enum QuickActions {
-            static let sectionTitle = "Fast log"
+            static let sectionTitle = "Quick actions"
             static let logMealMicrocopy = "Coach will estimate it from a photo, voice note, or text."
             static let scanMealAccessibilityHint = "Opens the camera to scan your meal"
+            static let addWater = "Add water"
+            static let askCoach = "Ask Coach"
+            static let viewPlan = "View plan"
+            static let addWaterAccessibilityHint = "Adds 500 milliliters of water"
+            static let askCoachAccessibilityHint = "Opens Coach"
+            static let viewPlanAccessibilityHint = "Opens Plan"
 
             static func inlineAccessibilityHint(for kind: TodayQuickActionKind) -> String {
                 switch kind {
@@ -471,7 +505,7 @@ extension FormaProductCopy {
             static func title(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "Scan Meal"
-                case .logMeal: return "Log Meal"
+                case .logMeal: return "Log meal with Coach"
                 }
             }
 

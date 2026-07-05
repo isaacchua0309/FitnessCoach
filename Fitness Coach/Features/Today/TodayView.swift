@@ -13,6 +13,7 @@ struct TodayView: View {
     @StateObject private var actionCoordinator: TodayActionCoordinator
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
+    @EnvironmentObject private var healthSyncStateStore: HealthSyncStateStore
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var authManager: AuthManager
     @EnvironmentObject private var themeManager: ThemeManager
@@ -183,6 +184,9 @@ struct TodayView: View {
         }
         actionCoordinator.onOpenTrainingInsights = {
             isShowingTrainingInsights = true
+        }
+        actionCoordinator.onRefreshHealthData = {
+            healthSyncStateStore.syncToday()
         }
     }
 
