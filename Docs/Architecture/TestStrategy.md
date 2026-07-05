@@ -101,7 +101,7 @@ firebase emulators:exec --only firestore "cd functions && npm test -- accountPer
 | Journey | `JourneyDashboardBuilderTests`, `JourneyWeeklyReviewBuilderTests` | Fast-Core |
 | Coach routing | `CoachRoutingTests`, `CoachImageWorkflowE2ETests` | Fast-Core + Integration |
 | Coach context v2 | `CoachContextPacketV2BuilderTests`, `CoachContextV2ContractTests` | Fast-Core |
-| Auth routing | `AuthGateRoutingPolicyTests`, `AuthProfileRouteSafetyTests` | Fast-Core / Integration |
+| Auth routing | `AuthGateRoutingPolicyTests`, `AuthProfileRouteSafetyTests`, `AuthGateCoordinatorDecompositionCharacterizationTests`, `AuthGateCoordinatorRoutingCharacterizationTests` | Fast-Core / Integration |
 | Onboarding | `OnboardingModelTests`, `OnboardingCompletionTests` | Fast-Core / Integration |
 | Theme | `ThemeStoreTests`, `HardcodedColorGuardTests` | Fast-Core |
 | Account sync | `AccountSyncCoordinatorTests`, `AccountSyncUploaderTests` | Integration |

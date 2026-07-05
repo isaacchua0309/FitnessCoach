@@ -58,6 +58,26 @@ When closing an item, remove the source `TD-*` comment and update this register 
 
 ---
 
+## Closed — Auth decomposition v1 (2026-07-05)
+
+| ID | Item | Resolution |
+|----|------|------------|
+| TD-AUTH-001 | AuthGateCoordinator lifecycle decomposition | **Resolved** — shell orchestration split into focused coordinators + `AuthGateDependencies`. `AuthGateCoordinator.swift` reduced from ~1,331 LOC to ~170 LOC façade (target ≤400 LOC). Behavior-neutral per characterization tests. Docs: `Docs/Architecture/AuthGateArchitecture.md`. |
+
+### TD-AUTH-001 — detail
+
+| Field | Value |
+|-------|-------|
+| **Title** | AuthGateCoordinator lifecycle decomposition |
+| **Problem** | `AuthGateCoordinator` had become a god coordinator mixing route resolution, public entry, onboarding shell lifecycle, signed-in bootstrap, profile conflict handling, account restore presentation, analytics, and root/auth reactions. |
+| **Scope** | Shell orchestration only. Service-layer restore, deletion, sync, and onboarding domain logic are excluded. |
+| **Target** | Reduce `AuthGateCoordinator.swift` from ~1,331 LOC to ≤400 LOC façade. **Achieved:** ~170 LOC in `Fitness Coach/Features/Auth/Coordinator/AuthGateCoordinator.swift`. |
+| **Resolution** | Auth lifecycle orchestration split into: `AuthGateRoutingCoordinator`, `PublicEntryFlowCoordinator`, `AuthOnboardingShellCoordinator`, `AuthSignedInShellCoordinator`, `AuthProfileConflictCoordinator`, `AuthRestoreShellCoordinator`, `AuthGateDependencies`, and delegate bridge extensions (`AuthGateCoordinator+PublicEntryDelegate.swift`, `+OnboardingDelegate.swift`, `+SignedInDelegate.swift`, `+ProfileConflictDelegate.swift`, `+RestoreDelegate.swift`, `+ShellLifecycle.swift`). |
+| **Tests** | Characterization: `Fitness CoachTests/Auth/AuthGateCoordinatorDecompositionCharacterizationTests.swift`, `Fitness CoachTests/Auth/AuthGateCoordinatorRoutingCharacterizationTests.swift`, `Fitness CoachTests/Auth/AuthGateCharacterizationTestSupport.swift`. Fast-Core auth gate: `AppRouteResolverTests`, `AuthSignInPolicyTests`, `AuthRestoreRoutingTests`, `ProfilePlanConflictFlowTests`, `AccountPersistenceAuthLifecycleTests`, `OnboardingCompletionSignInPolicyTests` (see `Docs/Testing/TestCommandCheatsheet.md`). |
+| **Status** | **Closed / Resolved** (2026-07-05) — decomposition complete; characterization and auth suites are the behavior gate (verify green in local CI before release). |
+
+---
+
 ## Closed — Coach decomposition v1 (2026-07-05)
 
 | ID | Item | Resolution |
@@ -125,6 +145,8 @@ See `Docs/PersistenceCleanupNotes.md` and entity file headers.
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | **Auth gate Fast-Core wiring** — TD-AUTH-001 tests in Fast-Core; BW-101 TEST_HOST fix; `generate_test_plans.py` recursive discovery |
+| 2026-07-05 | **Auth decomposition v1** — TD-AUTH-001 closed; `AuthGateCoordinator` façade ~170 LOC; `Docs/Architecture/AuthGateArchitecture.md` added |
 | 2026-07-05 | **Coach decomposition v1** — TD-COACH-001 partially closed; architecture docs added |
 | 2026-07-05 | **Code Bloat Reduction v2 finalized** — closed TD-AI-001, TD-COPY-001; doc archive; fixture consolidation; account-test polling; build/hygiene registers |
 | 2026-07-05 | Added links to BuildWarningsRegister + ProjectHygieneRegister |

@@ -31,6 +31,8 @@ Tests are grouped with **Xcode Test Plans** under `TestPlans/`. The default **Fi
 - Calculation engines (`FormaCalculation*`, `WeightLossPace*`, nutrition builders)
 - Onboarding state, copy guardrails, builders, and model navigation (no full `AppContainer` completion flows)
 - Auth routing policy (`AuthGateRoutingPolicy`, `AppRouteResolver*`, `PublicEntry*`, shell resolvers)
+- **Auth gate decomposition characterization** (`AuthGateCoordinatorDecompositionCharacterizationTests`, `AuthGateCoordinatorRoutingCharacterizationTests`)
+- Auth lifecycle fast suites (`AuthRestoreRoutingTests`, `AccountPersistenceAuthLifecycleTests`, `ProfilePlanConflictFlowTests`, `OnboardingCompletionSignInPolicyTests`)
 - Profile mapping (`CloudUserProfileDocument`, ownership mapping)
 - Today / Plan / Journey **pure state builders** and formatters
 - Food logging builders and manual logging tests
@@ -40,7 +42,7 @@ Tests are grouped with **Xcode Test Plans** under `TestPlans/`. The default **Fi
 
 - AppContainer analytics classes routed from mixed files (`OnboardingAlmostThereAnalyticsTests`, `OnboardingFormaProofAnalyticsTests`, `OnboardingModelAnalyticsTests` via `INTEGRATION_CLASSES` in `generate_test_plans.py`)
 - Profile bootstrap & restore (`ProfileBootstrap*`, `ProfileRestoreRouting`, `CloudProfile*`)
-- Cloud conflict & upload failure (`ProfilePlanConflict*`, `AccountProfileMismatch`, persistence safety)
+- Cloud conflict & upload failure (`AccountProfileMismatch`, persistence safety; `ProfilePlanConflictFlowTests` moved to Fast-Core)
 - Onboarding completion & auth save (`OnboardingCompletion*`, `OnboardingAuthFlow`, `WelcomeOnboardingHandoff`)
 - SwiftData service integration (`DailyLogServiceTests`, `FitnessActionCenterTests`)
 - HealthKit / training integration mocks (`TrainingIntegration*`, `OnboardingAppleHealth*`, `AppleHealthTrainingStrategy*`)

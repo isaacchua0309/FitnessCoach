@@ -116,7 +116,7 @@ npm --prefix functions run test:firestore-rules   # requires Firestore emulator
 
 | ID | Category | Symptom | Count (approx.) | Notes / safe fix path |
 |----|----------|---------|-----------------|------------------------|
-| BW-101 | Test compile | `Fitness CoachTests` cannot resolve Firebase/GoogleSignIn SPM modules | 12 errors | BW-002 removed test-target SPM links to avoid runtime duplicate ObjC classes; `@testable import Fitness_Coach` still needs transitive modules at compile time. **Needs design:** link SPM for compile only, or `-enable-testing` module map strategy. Verify with serial `xcodebuild test -parallel-testing-enabled NO` after fix. |
+| BW-101 | Test compile | `Fitness CoachTests` cannot resolve Firebase/GoogleSignIn SPM modules | 12 errors | **Fix applied (2026-07-05):** removed duplicate SPM frameworks from test target; wired `TEST_HOST` + `BUNDLE_LOADER` instead of `Fitness Coach.debug.dylib` `OTHER_LDFLAGS` (avoids BW-002 duplicate ObjC classes). Re-verify with `xcodebuild build-for-testing` and serial `xcodebuild test -parallel-testing-enabled NO`. |
 | BW-102 | Concurrency | `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` project-wide | ~500+ | Per-site `@MainActor` / `nonisolated` / `await MainActor.run` — audit by subsystem; do **not** blanket-suppress. Top buckets: `init()` in nonisolated context, static config flags, `HealthKitManager.mapQueryError`, `resumed` capture in async tests. |
 | BW-104 | Previews | Canvas compile failures on individual screens | — | Triage per-preview; prefer `StubTrainingIntegrationProvider` |
 | BW-105 | Packages | SPM resolution / missing package | — | Run `xcodebuild -resolvePackageDependencies`; commit `Package.resolved` |
@@ -148,15 +148,15 @@ npm --prefix functions run test:firestore-rules   # requires Firestore emulator
 - **App + tests** use `PBXFileSystemSynchronizedRootGroup`. New files under `Fitness Coach/` or `Fitness CoachTests/` are included automatically.
 - **`GoogleService-Info.plist`** is included via folder-sync only (BW-106). Do not re-add to explicit Resources phase.
 - **`Fitness Coach/TestingSupport/StubTrainingIntegrationProvider.swift`** ships in the app target intentionally (previews + test doubles).
-- **Do not** blindly re-add Firebase/GoogleSignIn SPM products to `Fitness CoachTests` — caused duplicate ObjC class crashes (BW-002). Coordinate with BW-101 fix.
+- **Do not** re-add Firebase/GoogleSignIn SPM products to `Fitness CoachTests` Frameworks phase — caused duplicate ObjC class crashes (BW-002). Tests load the app host via `TEST_HOST` / `BUNDLE_LOADER` (BW-101 fix).
 
 ---
 
 ## Acceptance checklist (pre-merge)
 
 - [x] `xcodebuild build -scheme "Fitness Coach" -destination 'platform=iOS Simulator,name=iPhone 17'` → **BUILD SUCCEEDED**
-- [ ] `xcodebuild build-for-testing` → **TEST BUILD SUCCEEDED** (blocked: BW-101)
-- [ ] `xcodebuild test … -testPlan Fast-Core` → pass (blocked: BW-101)
+- [ ] `xcodebuild build-for-testing` → **TEST BUILD SUCCEEDED** (BW-101 fix applied — verify on Mac)
+- [ ] `xcodebuild test … -testPlan Fast-Core` → pass (BW-101 fix applied — verify on Mac; run auth gate subset serially first)
 - [x] `npm --prefix functions run build` → success
 - [x] `npm --prefix functions run lint` → 0 issues
 - [x] `npm --prefix functions test` → 679 unit tests pass

@@ -81,10 +81,11 @@ Fitness_CoachApp (@main)
 | Aspect | Detail |
 |--------|--------|
 | **Ownership** | `Features/Auth/`, `App/Routing/` |
-| **Orchestration** | `AuthGateCoordinator` — session, bootstrap, restore gating, conflict resolution |
-| **Policies** | `AuthGateRoutingPolicy`, `AppRouteResolver`, `ProfileBootstrapCoordinator` |
+| **Orchestration** | `AuthGateCoordinator` façade (~170 LOC) + child lifecycle coordinators (`PublicEntryFlowCoordinator`, `AuthOnboardingShellCoordinator`, `AuthSignedInShellCoordinator`, `AuthProfileConflictCoordinator`, `AuthRestoreShellCoordinator`); assembly via `AuthGateDependencies` |
+| **Policies** | `AuthGateRoutingPolicy`, `AppRouteResolver`, `AuthGateRoutingCoordinator`, `ProfileBootstrapCoordinator` |
 | **Persistence** | Firebase Auth (SDK keychain); profile in SwiftData + Firestore |
 | **Key files** | `AuthManager.swift`, `ProfileBootstrapService.swift`, `AuthGateView.swift` |
+| **Docs** | [AuthGateArchitecture.md](./AuthGateArchitecture.md) |
 
 ### 4.2 Onboarding
 

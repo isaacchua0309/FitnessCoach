@@ -13,7 +13,7 @@ Cross-cutting repo health: documentation layout, command defaults, test plans, t
 | Xcode available | Yes (`/Applications/Xcode.app`) |
 | iPhone 16 simulator | **Missing** — machine has iPhone 17 (iOS 26.5) |
 | App builds | Pass |
-| Unit tests (`Fast-Core`) | **Blocked** — test target SPM resolution (BW-101) |
+| Unit tests (`Fast-Core`) | **Unverified in cloud agent** — local Mac required; BW-101 fix applied (TEST_HOST wiring) |
 | `functions` build / lint / test | Pass |
 | Swift `TODO`/`FIXME` in `Fitness Coach/` | **0** |
 | TypeScript `TODO` in `functions/src/` | **0** |
@@ -144,7 +144,7 @@ Full register: [TechnicalDebtRegister.md](./TechnicalDebtRegister.md).
 
 | ID | Priority | Item | Unblock |
 |----|----------|------|---------|
-| PH-001 | P0 | Fix `Fitness CoachTests` SPM module resolution (BW-101) | Design compile-time vs runtime Firebase linking |
+| PH-001 | P0 | Fix `Fitness CoachTests` SPM module resolution (BW-101) | **Fix applied** — TEST_HOST/BUNDLE_LOADER; remove duplicate test-target SPM link. Verify green `build-for-testing` + Fast-Core on Mac. |
 | PH-002 | P1 | Update CI / docs still referencing iPhone 16 | Grep `iPhone 16`; align to available simulators |
 | PH-003 | P2 | Concurrency warning burn-down (BW-102) | Subsystem-by-subsystem Swift 6 isolation pass |
 | PH-004 | P2 | Complete test fixture migration to `TestingSupport/` | Replace `ProfileTestFixtures` alias usages |

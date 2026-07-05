@@ -18,26 +18,12 @@ struct AuthGateView: View {
     var body: some View {
         AuthGateRouteView(coordinator: coordinator)
             .environmentObject(coordinator.authManager)
-            .environment(\.publicEntrySessionStore, coordinator.container.publicEntrySessionStore)
+            .environment(\.publicEntrySessionStore, coordinator.publicEntrySessionStore)
             .environment(\.performAppSignOut, coordinator.signOutFromAccount)
-            .environment(\.accountDeletionCoordinator, coordinator.container.accountDeletionCoordinator)
-            .environment(\.settingsPrivacyDataEnvironment, coordinator.container.makeSettingsPrivacyDataEnvironment())
+            .environment(\.accountDeletionCoordinator, coordinator.accountDeletionCoordinator)
+            .environment(\.settingsPrivacyDataEnvironment, coordinator.settingsPrivacyDataEnvironment)
             .task {
-                coordinator.authManager.startListening()
-                coordinator.wireAccountDeletionRouter()
-            }
-            .onChange(of: coordinator.effectiveRoute, initial: true) { _, route in
-                coordinator.handleEffectiveRouteChange(route)
-            }
-            .onChange(of: coordinator.authManager.authState, initial: true) { previous, state in
-                coordinator.handleAuthStateChange(from: previous, to: state)
-            }
-            .onChange(of: coordinator.rootModel.state) { _, state in
-                coordinator.handleRootStateChange(state)
-            }
-            .onChange(of: coordinator.container.cloudUploadFailureNotifier.pendingContext) { _, context in
-                guard let context else { return }
-                coordinator.presentCloudProfileUploadFailure(context: context)
+                coordinator.activateShell()
             }
             .alert(
                 FormaProductCopy.Onboarding.V2.AccountProfileMismatch.useDeviceProfileConfirmTitle,

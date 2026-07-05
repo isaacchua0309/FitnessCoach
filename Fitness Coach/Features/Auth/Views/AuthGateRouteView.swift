@@ -40,14 +40,14 @@ struct AuthGateRouteView: View {
                 }
             case .welcome:
                 PublicWelcomeView(
-                    analyticsLogger: coordinator.container.publicEntryAnalyticsLogger,
+                    analyticsLogger: coordinator.publicEntryAnalyticsLogger,
                     analyticsProperties: coordinator.publicEntryAnalyticsProperties(),
                     onCreateMyPlan: coordinator.beginOnboardingFromWelcome,
                     onSignIn: coordinator.beginExistingUserSignInFromWelcome
                 )
             case .existingUserSignIn:
                 ExistingUserSignInView(
-                    analyticsLogger: coordinator.container.publicEntryAnalyticsLogger,
+                    analyticsLogger: coordinator.publicEntryAnalyticsLogger,
                     analyticsProperties: coordinator.publicEntryAnalyticsProperties(),
                     localError: coordinator.existingUserSignInError,
                     onBack: coordinator.returnToWelcomeFromExistingUserSignIn,
@@ -62,7 +62,7 @@ struct AuthGateRouteView: View {
                 )
             case .noExistingProfileFound:
                 NoExistingProfileFoundView(
-                    analyticsLogger: coordinator.container.publicEntryAnalyticsLogger,
+                    analyticsLogger: coordinator.publicEntryAnalyticsLogger,
                     analyticsProperties: coordinator.publicEntryAnalyticsProperties(
                         profileResolutionResult: .noProfileFound
                     ),

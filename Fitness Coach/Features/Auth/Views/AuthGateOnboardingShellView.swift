@@ -15,7 +15,7 @@ struct AuthGateOnboardingShellView: View {
     var body: some View {
         Group {
             if let onboardingModel = coordinator.onboardingModel {
-                if AppRouteResolver.isSignedIn(coordinator.authManager.authState) {
+                if coordinator.isUserSignedIn {
                     OnboardingView(model: onboardingModel)
                 } else {
                     OnboardingView(model: onboardingModel, onExitToWelcome: onExitToWelcome)
