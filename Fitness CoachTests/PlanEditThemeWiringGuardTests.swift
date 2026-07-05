@@ -19,6 +19,7 @@ final class PlanEditThemeWiringGuardTests: XCTestCase {
         "Fitness Coach/Features/Plan/UI/AdjustPlan/GoalOptionCard.swift",
         "Fitness Coach/Features/Plan/UI/AdjustPlan/RecommendedChip.swift",
         "Fitness Coach/Features/Plan/UI/AdjustPlan/GoalPathPreviewCard.swift",
+        "Fitness Coach/Features/Plan/UI/AdjustPlan/AdjustPlanModels.swift",
         "Fitness Coach/Features/Plan/UI/AdjustPlan/AdjustPlanLayoutPolicy.swift",
         "Fitness Coach/Features/Plan/UI/AdjustPlan/AdjustPlanRegressionFixtures.swift",
         "Fitness Coach/Features/Plan/UI/AdjustPlan/AdjustPlanRegressionPreviews.swift",
