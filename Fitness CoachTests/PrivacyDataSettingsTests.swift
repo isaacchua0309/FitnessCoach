@@ -18,10 +18,22 @@ final class PrivacyDataSettingsTests: XCTestCase {
         XCTAssertTrue(section.rows.contains(where: { $0.id == .healthDataNote }))
     }
 
-    func testDeleteActionsRequireImplementedCapability() {
+    func testDeleteActionsRequireImplementedCapabilityAndCoordinator() throws {
+        let coordinator = try AppContainer(inMemory: true).accountDeletionCoordinator
+
         XCTAssertTrue(SettingsDataDeletionCapability.isImplemented)
-        XCTAssertEqual(SettingsDeleteDataActionHandler.perform(scope: .fullAccount), .opensDeletionFlow)
-        XCTAssertEqual(SettingsDeleteDataActionHandler.perform(scope: .localDeviceOnly), .opensDeletionFlow)
+        XCTAssertEqual(
+            SettingsDeleteDataActionHandler.perform(scope: .fullAccount, coordinator: coordinator),
+            .opensDeletionFlow
+        )
+        XCTAssertEqual(
+            SettingsDeleteDataActionHandler.perform(scope: .localDeviceOnly, coordinator: coordinator),
+            .opensDeletionFlow
+        )
+        XCTAssertEqual(
+            SettingsDeleteDataActionHandler.perform(scope: .fullAccount, coordinator: nil),
+            .unavailable
+        )
     }
 
     func testExportDisabledByDefaultShowsPlaceholderBehavior() {
@@ -74,9 +86,13 @@ final class PrivacyDataSettingsTests: XCTestCase {
         XCTAssertTrue(SettingsFeatureAvailability.production.isDeleteAccountEnabled)
         XCTAssertTrue(SettingsFeatureAvailability.production.isDeleteLocalDeviceDataEnabled)
 
-        let state = makeProductionSettingsState()
+        let state = makeProductionSettingsState(hasAccountDeletionCoordinator: true)
         XCTAssertTrue(state.visibleRowIDs.contains(.deleteAccount))
         XCTAssertTrue(state.visibleRowIDs.contains(.deleteLocalDeviceData))
+        XCTAssertEqual(
+            state.privacyData.rows.first(where: { $0.id == .deleteAccount })?.destination,
+            .deleteAccount
+        )
     }
 
     private func makeProductionPrivacySection() -> SettingsPrivacyDataSectionState {
@@ -89,7 +105,9 @@ final class PrivacyDataSettingsTests: XCTestCase {
         )
     }
 
-    private func makeProductionSettingsState() -> SettingsPresentationState {
+    private func makeProductionSettingsState(
+        hasAccountDeletionCoordinator: Bool = true
+    ) -> SettingsPresentationState {
         SettingsPresentationBuilder.build(
             input: SettingsPresentationInput(
                 integrationState: .connected,
@@ -99,7 +117,11 @@ final class PrivacyDataSettingsTests: XCTestCase {
                 featureAvailability: .production,
                 legalAvailability: .production,
                 supportConfiguration: .production,
-                isDebugOrInternalBuild: false
+                isDebugOrInternalBuild: false,
+                accountDeletionWiring: SettingsAccountDeletionWiring(
+                    featureAvailability: .production,
+                    hasCoordinator: hasAccountDeletionCoordinator
+                )
             )
         )
     }

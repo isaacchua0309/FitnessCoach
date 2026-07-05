@@ -21,7 +21,8 @@ enum SettingsPresentationBuilder {
                 input: SettingsPrivacyDataPresentationInput(
                     status: input.privacyDataStatus,
                     featureAvailability: input.featureAvailability,
-                    legalAvailability: input.legalAvailability
+                    legalAvailability: input.legalAvailability,
+                    accountDeletionWiring: input.accountDeletionWiring
                 )
             ),
             support: SettingsSupportPresentationBuilder.buildSection(

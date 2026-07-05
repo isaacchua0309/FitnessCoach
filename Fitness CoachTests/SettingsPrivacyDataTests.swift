@@ -51,7 +51,15 @@ final class SettingsPrivacyDataTests: XCTestCase {
                 ),
                 legalAvailability: .production,
                 supportConfiguration: .production,
-                isDebugOrInternalBuild: false
+                isDebugOrInternalBuild: false,
+                accountDeletionWiring: SettingsAccountDeletionWiring(
+                    featureAvailability: SettingsFeatureAvailability(
+                        isDataExportEnabled: true,
+                        isDeleteAccountEnabled: true,
+                        isDeleteLocalDeviceDataEnabled: true
+                    ),
+                    hasCoordinator: true
+                )
             )
         )
 
@@ -189,10 +197,18 @@ final class SettingsPrivacyDataTests: XCTestCase {
         )
     }
 
-    func testDeleteActionOpensFlowWhenEnabled() {
+    func testDeleteActionOpensFlowWhenEnabled() throws {
+        let coordinator = try AppContainer(inMemory: true).accountDeletionCoordinator
+
         XCTAssertTrue(SettingsDataDeletionCapability.isImplemented)
-        XCTAssertEqual(SettingsDeleteDataActionHandler.perform(scope: .fullAccount), .opensDeletionFlow)
-        XCTAssertEqual(SettingsDeleteDataActionHandler.perform(scope: .localDeviceOnly), .opensDeletionFlow)
+        XCTAssertEqual(
+            SettingsDeleteDataActionHandler.perform(scope: .fullAccount, coordinator: coordinator),
+            .opensDeletionFlow
+        )
+        XCTAssertEqual(
+            SettingsDeleteDataActionHandler.perform(scope: .localDeviceOnly, coordinator: coordinator),
+            .opensDeletionFlow
+        )
     }
 
     func testExportCapabilityDisabledByDefault() {

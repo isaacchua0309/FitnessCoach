@@ -38,6 +38,13 @@ struct SettingsRootView: View {
         bodyDetailsInput ?? BodyDetailsSettingsPresentationInput(formState: formState)
     }
 
+    private var accountDeletionWiring: SettingsAccountDeletionWiring {
+        SettingsAccountDeletionWiring.resolved(
+            featureAvailability: featureAvailability,
+            coordinator: accountDeletionCoordinator
+        )
+    }
+
     private var presentationState: SettingsPresentationState {
         SettingsPresentationBuilder.build(
             input: SettingsPresentationInput(
@@ -49,7 +56,8 @@ struct SettingsRootView: View {
                 legalAvailability: .production,
                 supportConfiguration: supportConfiguration,
                 isDebugOrInternalBuild: isDebugOrInternalBuild,
-                privacyDataStatus: privacyDataStatus
+                privacyDataStatus: privacyDataStatus,
+                accountDeletionWiring: accountDeletionWiring
             )
         )
     }
@@ -108,6 +116,13 @@ struct SettingsRootView: View {
                 )
                 analyticsCoordinator.logSettingsViewed()
                 accountDeletionViewModel.configure(coordinator: accountDeletionCoordinator)
+                #if DEBUG
+                SettingsAccountDeletionWiringDiagnostics.logMissingCoordinatorIfNeeded(
+                    coordinator: accountDeletionCoordinator,
+                    accountConnection: privacyDataStatus.accountConnection,
+                    source: "settings_on_appear"
+                )
+                #endif
             }
             .sheet(item: $activeDeletionScope) { scope in
                 AccountDeletionView(
@@ -126,12 +141,12 @@ struct SettingsRootView: View {
                 )
             }
             .alert(
-                FormaProductCopy.Settings.PrivacyData.deleteUnavailableTitle,
+                deletionUnavailableAlertTitle,
                 isPresented: $showsDeletionUnavailableAlert
             ) {
                 Button(FormaProductCopy.Common.ok, role: .cancel) {}
             } message: {
-                Text(FormaProductCopy.Settings.PrivacyData.deleteUnavailableMessage)
+                Text(deletionUnavailableAlertMessage)
             }
             .sheet(item: $supportMailTopic) { topic in
                 #if canImport(MessageUI)
@@ -148,13 +163,44 @@ struct SettingsRootView: View {
         }
     }
 
+    private var deletionUnavailableAlertTitle: String {
+        if accountDeletionWiring.showsDeleteAccountRow,
+           !accountDeletionWiring.hasCoordinator {
+            return FormaProductCopy.Settings.PrivacyData.deletionCoordinatorUnavailableAlertTitle
+        }
+        return FormaProductCopy.Settings.PrivacyData.deleteUnavailableTitle
+    }
+
+    private var deletionUnavailableAlertMessage: String {
+        if accountDeletionWiring.showsDeleteAccountRow,
+           !accountDeletionWiring.hasCoordinator {
+            return FormaProductCopy.Settings.PrivacyData.deletionCoordinatorUnavailableAlertMessage
+        }
+        return FormaProductCopy.Settings.PrivacyData.deleteUnavailableMessage
+    }
+
     private func refreshPrivacyDataStatus() async {
         privacyDataStatus = await privacyDataEnvironment.loadStatus()
     }
 
     private func openAccountDeletion(scope: AccountDeletionScope) {
-        switch SettingsDeleteDataActionHandler.perform(scope: scope) {
+        #if DEBUG
+        SettingsAccountDeletionWiringDiagnostics.logMissingCoordinatorIfNeeded(
+            coordinator: accountDeletionCoordinator,
+            accountConnection: privacyDataStatus.accountConnection,
+            source: "delete_row_tap_\(scope.rawValue)"
+        )
+        #endif
+
+        switch SettingsDeleteDataActionHandler.perform(
+            scope: scope,
+            coordinator: accountDeletionCoordinator
+        ) {
         case .opensDeletionFlow:
+            guard accountDeletionCoordinator != nil else {
+                showsDeletionUnavailableAlert = true
+                return
+            }
             accountDeletionViewModel.beginConfirmation(scope: scope)
             activeDeletionScope = scope
         case .unavailable:

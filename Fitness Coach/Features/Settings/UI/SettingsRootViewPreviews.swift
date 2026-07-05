@@ -14,12 +14,15 @@ enum SettingsRootViewPreviews {
         integrationState: TrainingIntegrationState = .connected,
         isDebugOrInternalBuild: Bool = false,
         palette: AppThemePalette = .oceanBlue,
-        unitSystem: UnitSystem = .metric
+        unitSystem: UnitSystem = .metric,
+        accountDeletionCoordinator: AccountDeletionCoordinator? = nil
     ) -> some View {
         let formState = configuredFormState(unitSystem: unitSystem)
         let themeDefaults = UserDefaults(suiteName: "SettingsRootPreview.\(palette.rawValue)")!
         let themeStore = ThemeStore(userDefaults: themeDefaults)
         themeStore.setPalette(palette)
+        let resolvedCoordinator =
+            accountDeletionCoordinator ?? previewAccountDeletionCoordinator()
 
         return SettingsRootView(
             formState: .constant(formState),
@@ -35,7 +38,12 @@ enum SettingsRootViewPreviews {
             )
         )
         .environmentObject(themeStore)
+        .environment(\.accountDeletionCoordinator, resolvedCoordinator)
         .formaThemePreview(appearance: .dark, palette: palette)
+    }
+
+    static func previewAccountDeletionCoordinator() -> AccountDeletionCoordinator {
+        try! AppContainer(inMemory: true).accountDeletionCoordinator
     }
 
     private static func configuredFormState(unitSystem: UnitSystem) -> PlanFormState {
@@ -43,6 +51,23 @@ enum SettingsRootViewPreviews {
         formState.unitSystem = unitSystem
         return formState
     }
+}
+
+#Preview("Settings — Missing Deletion Coordinator") {
+    SettingsRootView(
+        formState: .constant(PlanPreviewData.formState),
+        errorMessage: nil,
+        onSaveUnits: { _ in },
+        onDismiss: {}
+    )
+    .environmentObject(AuthManager())
+    .environmentObject(
+        TrainingInsightsStore(
+            integration: StubTrainingIntegrationProvider(refreshResult: .connected)
+        )
+    )
+    .environmentObject(ThemeStore(userDefaults: UserDefaults(suiteName: "SettingsRootPreview.missing-coordinator")!))
+    .formaThemePreview(appearance: .dark, palette: .oceanBlue)
 }
 
 #Preview("Settings — Production User") {

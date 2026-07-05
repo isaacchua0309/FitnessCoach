@@ -171,6 +171,7 @@ struct MainTabView: View {
         )
         .environment(\.settingsAnalyticsCoordinator, settingsAnalyticsCoordinator)
         .environment(\.settingsPrivacyDataEnvironment, container.makeSettingsPrivacyDataEnvironment())
+        .environment(\.accountDeletionCoordinator, container.accountDeletionCoordinator)
         #if DEBUG
         .environment(\.healthIntelligenceDebugVerification) { [container] in
             await container.verifyTodayHealthIntelligenceSnapshot()

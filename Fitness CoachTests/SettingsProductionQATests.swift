@@ -13,7 +13,8 @@ final class SettingsProductionQATests: XCTestCase {
     // MARK: - Fixtures
 
     private func productionInput(
-        supportConfiguration: SettingsSupportConfiguration = .production
+        supportConfiguration: SettingsSupportConfiguration = .production,
+        hasAccountDeletionCoordinator: Bool = true
     ) -> SettingsPresentationInput {
         SettingsPresentationInput(
             integrationState: .connected,
@@ -23,7 +24,11 @@ final class SettingsProductionQATests: XCTestCase {
             featureAvailability: .production,
             legalAvailability: .production,
             supportConfiguration: supportConfiguration,
-            isDebugOrInternalBuild: false
+            isDebugOrInternalBuild: false,
+            accountDeletionWiring: SettingsAccountDeletionWiring(
+                featureAvailability: .production,
+                hasCoordinator: hasAccountDeletionCoordinator
+            )
         )
     }
 
@@ -36,7 +41,11 @@ final class SettingsProductionQATests: XCTestCase {
             featureAvailability: .production,
             legalAvailability: .production,
             supportConfiguration: .production,
-            isDebugOrInternalBuild: true
+            isDebugOrInternalBuild: true,
+            accountDeletionWiring: SettingsAccountDeletionWiring(
+                featureAvailability: .production,
+                hasCoordinator: true
+            )
         )
     }
 

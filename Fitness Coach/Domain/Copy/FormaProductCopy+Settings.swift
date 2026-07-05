@@ -328,6 +328,10 @@ extension FormaProductCopy {
             }
 
             static let exportUnavailableStatus = "Not available"
+            static let deletionCoordinatorUnavailableStatus = "Unavailable"
+            static let deletionCoordinatorUnavailableAlertTitle = "Deletion isn't available"
+            static let deletionCoordinatorUnavailableAlertMessage =
+                "Account deletion could not start. Sign in and try again."
             static let exportUnavailableMessage =
                 "Export account data is not available in this version of Forma yet."
 

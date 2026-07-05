@@ -10,8 +10,15 @@ import Foundation
 enum SettingsDeleteDataActionHandler {
 
     @discardableResult
-    static func perform(scope: AccountDeletionScope) -> SettingsDeleteDataResult {
+    static func perform(
+        scope: AccountDeletionScope,
+        coordinator: AccountDeletionCoordinator?
+    ) -> SettingsDeleteDataResult {
         guard SettingsDataDeletionCapability.isImplemented else {
+            return .unavailable
+        }
+
+        guard coordinator != nil else {
             return .unavailable
         }
 

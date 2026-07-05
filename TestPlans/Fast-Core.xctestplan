@@ -471,6 +471,7 @@
         "RecoveryEngineTests",
         "RootModelSignedOutResetTests",
         "SettingsAboutTests",
+        "SettingsAccountDeletionWiringTests",
         "SettingsAnalyticsTests",
         "SettingsChromeAccessibilityTests",
         "SettingsDeveloperTests",

@@ -11,6 +11,23 @@ struct SettingsPrivacyDataPresentationInput: Equatable, Sendable {
     let status: SettingsPrivacyDataStatusSnapshot
     let featureAvailability: SettingsFeatureAvailability
     let legalAvailability: SettingsLegalAvailability
+    let accountDeletionWiring: SettingsAccountDeletionWiring
+
+    init(
+        status: SettingsPrivacyDataStatusSnapshot,
+        featureAvailability: SettingsFeatureAvailability,
+        legalAvailability: SettingsLegalAvailability,
+        accountDeletionWiring: SettingsAccountDeletionWiring? = nil
+    ) {
+        self.status = status
+        self.featureAvailability = featureAvailability
+        self.legalAvailability = legalAvailability
+        self.accountDeletionWiring = accountDeletionWiring
+            ?? SettingsAccountDeletionWiring(
+                featureAvailability: featureAvailability,
+                hasCoordinator: false
+            )
+    }
 }
 
 enum SettingsPrivacyDataPresentationBuilder {
@@ -38,22 +55,24 @@ enum SettingsPrivacyDataPresentationBuilder {
             )
         )
 
-        if input.featureAvailability.isDeleteLocalDeviceDataEnabled {
+        if input.accountDeletionWiring.showsDeleteLocalDeviceRow {
             rows.append(
-                row(
+                deletionRow(
                     id: .deleteLocalDeviceData,
                     title: FormaProductCopy.Settings.Rows.deleteLocalDeviceData,
-                    destination: .deleteLocalDeviceData
+                    destination: .deleteLocalDeviceData,
+                    isActionable: input.accountDeletionWiring.canOpenDeleteLocalDeviceFlow
                 )
             )
         }
 
-        if input.featureAvailability.isDeleteAccountEnabled {
+        if input.accountDeletionWiring.showsDeleteAccountRow {
             rows.append(
-                row(
+                deletionRow(
                     id: .deleteAccount,
                     title: FormaProductCopy.Settings.Rows.deleteAccount,
-                    destination: .deleteAccount
+                    destination: .deleteAccount,
+                    isActionable: input.accountDeletionWiring.canOpenDeleteAccountFlow
                 )
             )
         }
@@ -235,6 +254,29 @@ enum SettingsPrivacyDataPresentationBuilder {
             status: status,
             destination: destination,
             isEnabled: destination != nil
+        )
+    }
+
+    private static func deletionRow(
+        id: SettingsRowID,
+        title: String,
+        destination: SettingsRowDestination,
+        isActionable: Bool
+    ) -> SettingsRowPresentation {
+        guard isActionable else {
+            return SettingsRowPresentation(
+                id: id,
+                title: title,
+                status: FormaProductCopy.Settings.PrivacyData.deletionCoordinatorUnavailableStatus,
+                destination: nil,
+                isEnabled: false
+            )
+        }
+
+        return row(
+            id: id,
+            title: title,
+            destination: destination
         )
     }
 
