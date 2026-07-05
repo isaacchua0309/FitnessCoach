@@ -13,8 +13,11 @@ struct TodayView: View {
     @StateObject private var actionCoordinator: TodayActionCoordinator
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
+    @EnvironmentObject private var healthSyncStateStore: HealthSyncStateStore
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var authManager: AuthManager
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let healthActivityQuery: HealthActivityQueryService
@@ -134,7 +137,7 @@ struct TodayView: View {
                 } message: {
                     Text(FormaProductCopy.Today.Meals.deleteConfirmationMessage)
                 }
-                .background(FormaTokens.Color.canvas)
+                .background(theme.appBackground)
                 .overlay(alignment: .bottom) {
                     if let feedback = actionCoordinator.snackbarMessage {
                         FormaTransientBanner(
@@ -159,6 +162,8 @@ struct TodayView: View {
                         }
                     }
                 }
+                .formaThemeReactive()
+                .todayLiveTheme()
         }
     }
 
@@ -179,6 +184,9 @@ struct TodayView: View {
         }
         actionCoordinator.onOpenTrainingInsights = {
             isShowingTrainingInsights = true
+        }
+        actionCoordinator.onRefreshHealthData = {
+            healthSyncStateStore.syncToday()
         }
     }
 
@@ -250,7 +258,8 @@ struct TodayView: View {
     }
 
     private func dashboard(_ state: TodayDashboardState) -> some View {
-        ScrollView {
+        let _ = themeManager.themeRevision
+        return ScrollView {
             VStack(alignment: .leading, spacing: TodayLayout.sectionSpacing) {
                 TodayReadOnlyView(
                     state: state,
@@ -295,6 +304,7 @@ struct TodayView: View {
         .onChange(of: state.date) { _, _ in
             syncAnalyticsContext(for: state)
         }
+        .todayLiveTheme()
     }
 
     private func syncAnalyticsContext(for state: TodayDashboardState) {
@@ -319,3 +329,24 @@ struct TodayView: View {
     .environmentObject(container.themeStore)
     .formaThemePreview()
 }
+
+#if DEBUG
+/// Preview harness that switches palette while Today remains visible — use to verify live card chrome updates.
+#Preview("Theme toggle stress") {
+  LiveThemeDebugHarness.shell(title: "Today") { _ in
+    ScrollView {
+      TodayReadOnlyView(
+        state: TodayPreviewData.state,
+        actionCoordinator: TodayReadOnlyPreviewSupport.coordinator(),
+        healthIntelligenceSection: TodayHealthIntelligencePreviewData.workoutDay,
+        isHealthIntelligenceUIEnabled: true,
+        onHealthNextBestAction: { _ in }
+      )
+      .padding(.horizontal, TodayLayout.horizontalPadding)
+      .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .formaMainTabScrollInsets()
+    .background(FormaTokens.Color.canvas)
+  }
+}
+#endif

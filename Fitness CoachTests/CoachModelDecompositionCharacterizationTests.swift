@@ -253,6 +253,33 @@ final class CoachModelDecompositionCharacterizationTests: XCTestCase {
         XCTAssertFalse(model.isSending)
     }
 
+    func testTextOnlySendClearsStagedMealPhoto() async throws {
+        let container = try AppContainer(inMemory: true)
+        try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        let model = CoachModel(
+            actionCenter: container.actionCenter,
+            dailyLogReader: container.dailyLogService,
+            healthActivityQuery: container.healthActivityQueryService,
+            aiService: CoachModelCharacterizationTestSupport.UnreachableAIService(),
+            userProfileReader: container.userProfileService,
+            aiCommandParsingEnabled: true
+        )
+
+        XCTAssertTrue(
+            await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+                on: model,
+                jpeg: CoachImageWorkflowTestSupport.makeTestJPEG(),
+                source: .library
+            )
+        )
+        XCTAssertTrue(model.inputState.hasReadyPendingImage)
+
+        await model.send("daily review")
+
+        XCTAssertNil(model.inputState.pendingImage)
+        XCTAssertNil(model.inputState.imageError)
+    }
+
     // MARK: - Photo send success
 
     func testPhotoSendSuccess_createsPendingConfirmationAndClearsStagedImage() async throws {

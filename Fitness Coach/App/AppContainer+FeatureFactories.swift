@@ -67,6 +67,21 @@ extension AppContainer {
             localDataInspector: accountLocalDataInspector,
             ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
             healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            },
+            connectionRecordProvider: { [weak self] in
+                self?.healthIntegrationConnectionStore.load() ?? .empty
+            },
             accountDataRefreshEventBus: accountDataRefreshEventBus,
             crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
         )

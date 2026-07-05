@@ -35,6 +35,7 @@ private struct FormaMainTabScrollInsetModifier: ViewModifier {
         content.safeAreaInset(edge: .bottom, spacing: 0) {
             Color.clear
                 .frame(height: FormaMainTabLayout.scrollBottomInset(dynamicTypeSize: dynamicTypeSize))
+                .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
     }

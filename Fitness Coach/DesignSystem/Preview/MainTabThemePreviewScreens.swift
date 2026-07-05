@@ -88,6 +88,90 @@ enum MainTabThemePreviewScreens {
         .environmentObject(themeStore)
         .formaThemePreview(appearance: appearance, palette: palette)
     }
+
+    static func recoveryCard(
+        palette: AppThemePalette = .oceanBlue,
+        appearance: AppAppearanceMode = .dark
+    ) -> some View {
+        TodayRecoveryCard(state: TodayHealthIntelligencePreviewData.workoutDay.recoveryCard)
+            .padding(.horizontal, TodayLayout.horizontalPadding)
+            .padding(.vertical, FormaTokens.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FormaTokens.Color.canvas)
+            .formaThemePreview(appearance: appearance, palette: palette)
+    }
+
+    static func nutritionCard(
+        palette: AppThemePalette = .oceanBlue,
+        appearance: AppAppearanceMode = .dark
+    ) -> some View {
+        TodayNutritionProgressCard(
+            macros: TodayPreviewData.state.macroHydration.macroSummary,
+            water: TodayPreviewData.state.macroHydration.waterSummary,
+            calorieSummary: TodayPreviewData.state.mission.calorieSummary
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+        .background(FormaTokens.Color.canvas)
+        .formaThemePreview(appearance: appearance, palette: palette)
+    }
+
+    static func nextActionCard(
+        palette: AppThemePalette = .oceanBlue,
+        appearance: AppAppearanceMode = .dark
+    ) -> some View {
+        TodayNextBestActionCard(state: TodayHealthIntelligencePreviewData.workoutDay.nextBestAction)
+            .padding(.horizontal, TodayLayout.horizontalPadding)
+            .padding(.vertical, FormaTokens.Spacing.md)
+            .background(FormaTokens.Color.canvas)
+            .formaThemePreview(appearance: appearance, palette: palette)
+    }
+
+    static func mainTabShell(
+        palette: AppThemePalette = .oceanBlue,
+        appearance: AppAppearanceMode = .dark
+    ) -> some View {
+        let container = try! AppContainer(inMemory: true)
+        return MainTabView(container: container)
+            .environmentObject(container.authManager)
+            .environmentObject(container.refreshCenter)
+            .environmentObject(container.trainingInsightsStore)
+            .environmentObject(container.trainingInsightsModel)
+            .environmentObject(container.healthSyncStateStore)
+            .environmentObject(container.healthSummarySyncConsentStore)
+            .environmentObject(container.themeStore)
+            .formaThemePreview(appearance: appearance, palette: palette)
+    }
+
+    static func coachComposer(
+        palette: AppThemePalette = .oceanBlue,
+        appearance: AppAppearanceMode = .dark
+    ) -> some View {
+        LiveThemeComposerPreviewHost()
+            .padding(.vertical, FormaTokens.Spacing.md)
+            .background(FormaTokens.Color.canvas)
+            .formaThemePreview(appearance: appearance, palette: palette)
+    }
+}
+
+private struct LiveThemeComposerPreviewHost: View {
+    @State private var text = ""
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        CoachComposer(
+            text: $text,
+            canPickAttachment: true,
+            isFocused: $isFocused,
+            isSending: false,
+            onSend: {},
+            onVoiceTap: {},
+            onAttachmentSelect: { _ in },
+            onRemoveAttachment: {},
+            onRetryImageSelection: {}
+        )
+        .padding(.horizontal, FormaTokens.Spacing.md)
+    }
 }
 
 #Preview("Today — Ocean Blue") {
@@ -168,5 +252,45 @@ enum MainTabThemePreviewScreens {
 
 #Preview("Settings — Sunset Orange") {
     MainTabThemePreviewScreens.settings(palette: .sunsetOrange)
+}
+
+#Preview("Recovery card — Ocean Blue") {
+    MainTabThemePreviewScreens.recoveryCard()
+}
+
+#Preview("Recovery card — Blossom Pink") {
+    MainTabThemePreviewScreens.recoveryCard(palette: .blossomPink)
+}
+
+#Preview("Nutrition card — Ocean Blue") {
+    MainTabThemePreviewScreens.nutritionCard()
+}
+
+#Preview("Nutrition card — Blossom Pink") {
+    MainTabThemePreviewScreens.nutritionCard(palette: .blossomPink)
+}
+
+#Preview("Next action card — Ocean Blue") {
+    MainTabThemePreviewScreens.nextActionCard()
+}
+
+#Preview("Next action card — Blossom Pink") {
+    MainTabThemePreviewScreens.nextActionCard(palette: .blossomPink)
+}
+
+#Preview("Main tab bar — Ocean Blue") {
+    MainTabThemePreviewScreens.mainTabShell()
+}
+
+#Preview("Main tab bar — Blossom Pink") {
+    MainTabThemePreviewScreens.mainTabShell(palette: .blossomPink)
+}
+
+#Preview("Coach input — Ocean Blue") {
+    MainTabThemePreviewScreens.coachComposer()
+}
+
+#Preview("Coach input — Blossom Pink") {
+    MainTabThemePreviewScreens.coachComposer(palette: .blossomPink)
 }
 #endif

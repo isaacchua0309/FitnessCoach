@@ -165,10 +165,19 @@ final class FitnessActionCenter {
     // MARK: - Reviews
 
     func generateDailyReview(for date: Date = Date()) async throws -> DailyReview {
+        try await generateDailyReviewWithSummary(for: date).review
+    }
+
+    func generateDailyReviewWithSummary(for date: Date = Date()) async throws -> DailyReviewGenerationResult {
         _ = try requireCurrentUID(for: "generate daily review")
-        let review = try await reviewService.generateDailyReview(for: date)
+        let result = try await reviewService.generateDailyReviewWithSummary(for: date)
         notifyAccountDataChanged()
-        return review
+        return result
+    }
+
+    func buildDailyReviewSummary(for date: Date = Date()) async throws -> DailyReviewSummary {
+        _ = try requireCurrentUID(for: "build daily review summary")
+        return try await reviewService.buildDailyReviewSummary(for: date)
     }
 
     // MARK: - Plan (canonical: Plan screen only — strategy, not daily logs)

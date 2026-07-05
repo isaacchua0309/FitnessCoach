@@ -79,7 +79,7 @@ final class PlanProjectionBuilderTests: XCTestCase {
         XCTAssertEqual(projection.weightToLoseOrGainKg, 10)
         XCTAssertEqual(projection.weeklyRateKg, 1.0)
         XCTAssertEqual(projection.estimatedWeeks, 10)
-        XCTAssertEqual(projection.estimatedCompletionLabel, "On track for March 2026.")
+        XCTAssertEqual(projection.estimatedCompletionLabel, "On track for 26 March 2026.")
         XCTAssertNotNil(projection.monthlyRateKg)
     }
 

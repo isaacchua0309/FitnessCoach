@@ -11,8 +11,12 @@ struct TodayAdaptiveNutritionCard: View {
     let state: TodayAdaptiveNutritionCardState
     var isLoading: Bool = false
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodayMutedSectionLabel(title: state.sectionTitle)
 
             TodayHealthIntelligenceLoadingCard(isLoading: isLoading) {
@@ -20,7 +24,7 @@ struct TodayAdaptiveNutritionCard: View {
                     VStack(alignment: .leading, spacing: TodayHealthIntelligenceCardSupport.cardContentSpacing) {
                         Text(state.title)
                             .font(TodayHealthIntelligenceCardTypography.headline)
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .foregroundStyle(theme.primaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(nil)
                             .minimumScaleFactor(0.85)
@@ -28,7 +32,7 @@ struct TodayAdaptiveNutritionCard: View {
                         if let subtitle = state.subtitle {
                             Text(subtitle)
                                 .font(TodayHealthIntelligenceCardTypography.detail)
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .foregroundStyle(theme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .lineLimit(nil)
                                 .minimumScaleFactor(0.85)
@@ -47,7 +51,7 @@ struct TodayAdaptiveNutritionCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityIdentifier("today-hi-adaptive-nutrition-card")
-        .formaThemeReactive()
+        .todayLiveTheme()
     }
 
     @ViewBuilder
@@ -57,7 +61,7 @@ struct TodayAdaptiveNutritionCard: View {
                 TodayHealthIntelligenceGuidanceRow(
                     text: proteinGuidance,
                     iconName: "bolt.fill",
-                    iconColor: FormaTokens.Theme.primary
+                    iconAccent: .primary
                 )
             }
 
@@ -65,7 +69,7 @@ struct TodayAdaptiveNutritionCard: View {
                 TodayHealthIntelligenceGuidanceRow(
                     text: calorieGuidance,
                     iconName: "flame.fill",
-                    iconColor: FormaTokens.Color.textTertiary
+                    iconAccent: .tertiary
                 )
             }
 
@@ -73,7 +77,7 @@ struct TodayAdaptiveNutritionCard: View {
                 TodayHealthIntelligenceGuidanceRow(
                     text: waterGuidance,
                     iconName: "drop.fill",
-                    iconColor: FormaTokens.Theme.secondary
+                    iconAccent: .secondary
                 )
             }
         }

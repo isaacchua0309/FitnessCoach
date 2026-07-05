@@ -15,6 +15,8 @@ struct PlanView: View {
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
     @EnvironmentObject private var themeStore: ThemeStore
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
     @EnvironmentObject private var healthSyncStateStore: HealthSyncStateStore
     @Environment(\.appleHealthSettingsEnvironment) private var appleHealthSettingsEnvironment
     @Environment(\.accountDeletionCoordinator) private var accountDeletionCoordinator
@@ -35,7 +37,8 @@ struct PlanView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        let _ = themeManager.themeRevision
+        return NavigationStack {
             content
                 .navigationTitle(FormaProductCopy.PlanHeader.title)
                 .toolbar {
@@ -151,6 +154,7 @@ struct PlanView: View {
                         .environment(\.appleHealthSettingsEnvironment, appleHealthSettingsEnvironment)
                         .environment(\.accountDeletionCoordinator, accountDeletionCoordinator)
                         .environment(\.settingsPrivacyDataEnvironment, settingsPrivacyDataEnvironment)
+                        .formaThemeReactive()
                     }
                 }
                 .sheet(isPresented: $model.isShowingTargetRegenerationSheet) {
@@ -166,7 +170,8 @@ struct PlanView: View {
                         )
                     }
                 }
-                .background(FormaTokens.Color.canvas)
+                .background(theme.appBackground)
+                .formaThemeReactive()
         }
     }
 

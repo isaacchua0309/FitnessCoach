@@ -54,6 +54,8 @@ struct HealthIntelligenceUIContext: Equatable, Sendable {
     var baseline: HealthBaselineContext? = nil
     var isAppleHealthConnected: Bool = false
     var cachedDayCount: Int = 0
+    var trainingIntegrationState: TrainingIntegrationState = .notConnected
+    var connectionRecord: HealthIntegrationConnectionRecord = .empty
     var surface: HealthIntelligenceSurface = .today
     var now: Date = Date()
     var staleAfter: TimeInterval = HealthIntelligenceUIStatePolicy.defaultStaleInterval
@@ -262,34 +264,27 @@ enum HealthIntelligenceUIStateMapper {
     }
 
     private static func requiresHealthPermission(_ context: HealthIntelligenceUIContext) -> Bool {
-        if let snapshot = context.snapshot,
-           snapshot.nextBestAction.reason == .connectHealth,
-           !snapshot.nextBestAction.id.isEmpty {
-            return true
-        }
+        let status = integrationStatus(from: context)
+        return status.requiresInitialConnection(
+            hasPriorConnectionEvidence: context.connectionRecord.hasPriorConnectionEvidence(
+                trainingIntegrationState: context.trainingIntegrationState,
+                permissionStatus: context.availability?.permissionStatus
+            )
+        )
+    }
 
-        if context.isAppleHealthConnected {
-            return false
-        }
-
-        if context.availability?.hasAnyReadableSignal == true {
-            return false
-        }
-
-        if context.snapshot == nil {
-            return true
-        }
-
-        let recovery = context.snapshot?.recovery ?? .unknown
-        let workout = context.snapshot?.workout
-        let activity = context.snapshot?.activity ?? .empty
-
-        let hasWorkout = workout?.hasWorkout == true
-        let hasActivity = activity.steps != nil
-            || activity.activeEnergyKcal != nil
-            || activity.exerciseMinutes != nil
-
-        return recovery.status == .unknown && !hasWorkout && !hasActivity
+    private static func integrationStatus(from context: HealthIntelligenceUIContext) -> HealthIntegrationStatus {
+        HealthIntegrationStatusResolver.resolve(
+            HealthIntegrationStatusInput(
+                isHealthDataAvailable: context.availability?.isHealthDataAvailable ?? true,
+                permissionStatus: context.availability?.permissionStatus,
+                trainingIntegrationState: context.trainingIntegrationState,
+                connectionRecord: context.connectionRecord,
+                snapshot: context.snapshot,
+                baseline: context.baseline,
+                cachedDayCount: context.cachedDayCount
+            )
+        )
     }
 
     private static func hasPartialHealthPermission(_ context: HealthIntelligenceUIContext) -> Bool {
@@ -456,6 +451,8 @@ extension HealthIntelligenceUIContext {
             baseline: baseline,
             isAppleHealthConnected: presentationContext.isAppleHealthConnected,
             cachedDayCount: presentationContext.cachedDayCount,
+            trainingIntegrationState: presentationContext.trainingIntegrationState,
+            connectionRecord: presentationContext.connectionRecord,
             surface: surface,
             now: now
         )

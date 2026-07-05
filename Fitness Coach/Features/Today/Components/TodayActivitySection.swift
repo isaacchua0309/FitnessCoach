@@ -12,6 +12,9 @@ struct TodayActivitySection: View {
     let onConnectAppleHealth: () -> Void
     var includesAppleHealthSetupCard: Bool = true
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     private var display: TodayActivityCompactDisplayModel {
         TodayActivitySectionFormatting.displayModel(
             for: activity,
@@ -20,21 +23,22 @@ struct TodayActivitySection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Activity.sectionTitle)
 
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                     Text(display.stepsLine)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(theme.primaryText)
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
 
                     Text(display.workoutLine)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
 
@@ -51,6 +55,7 @@ struct TodayActivitySection: View {
             }
         }
         .accessibilityElement(children: .contain)
+        .todayLiveTheme()
     }
 
     @ViewBuilder
@@ -60,7 +65,7 @@ struct TodayActivitySection: View {
                 onConnectAppleHealth()
             }
             .font(FormaTokens.Typography.caption)
-            .foregroundStyle(FormaTokens.Theme.primary)
+            .foregroundStyle(theme.accent)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, FormaTokens.Spacing.xs)
             .accessibilityLabel(actionTitle)
@@ -68,7 +73,7 @@ struct TodayActivitySection: View {
         } else {
             Text(note)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .foregroundStyle(theme.tertiaryText)
                 .padding(.top, FormaTokens.Spacing.xs)
         }
     }

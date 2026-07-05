@@ -16,7 +16,6 @@ final class TodayLayoutCompositionTests: XCTestCase {
             [
                 "header",
                 "missionHero",
-                "quickActions",
                 "waterQuickLog",
                 "meals",
                 "macroHydration",
@@ -94,12 +93,12 @@ final class TodayLayoutCompositionTests: XCTestCase {
         XCTAssertTrue(state.activity.showsConnectCTA)
     }
 
-    func testBrandNewDaySuppressesHeroLogMealChipInFavorOfQuickActions() {
+    func testBrandNewDayShowsHeroLogMealCTA() {
         let state = TodayPreviewData.brandNewDay
 
         XCTAssertTrue(state.mission.showsLogMealCTA)
         XCTAssertEqual(
-            FormaProductCopy.Today.QuickActions.title(for: .logMeal),
+            FormaProductCopy.Today.Mission.logMealCTA,
             "Log meal with Coach"
         )
     }

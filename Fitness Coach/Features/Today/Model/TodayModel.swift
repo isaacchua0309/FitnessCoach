@@ -35,6 +35,7 @@ final class TodayModel: ObservableObject {
     private let lastSuccessfulLocalSyncAtProvider: () -> Date?
     private let remoteSyncConsentDecisionProvider: () -> HealthSummarySyncConsentDecision
     private let isRemoteSyncCapabilityEnabled: () -> Bool
+    private let connectionRecordProvider: () -> HealthIntegrationConnectionRecord
     private let accountDataRefreshEventBus: AccountDataRefreshEventBus?
     private let crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating?
 
@@ -65,6 +66,7 @@ final class TodayModel: ObservableObject {
         lastSuccessfulLocalSyncAtProvider: @escaping () -> Date? = { nil },
         remoteSyncConsentDecisionProvider: @escaping () -> HealthSummarySyncConsentDecision = { .notDetermined },
         isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled },
+        connectionRecordProvider: @escaping () -> HealthIntegrationConnectionRecord = { .empty },
         accountDataRefreshEventBus: AccountDataRefreshEventBus? = nil,
         crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating? = nil
     ) {
@@ -88,6 +90,7 @@ final class TodayModel: ObservableObject {
         self.lastSuccessfulLocalSyncAtProvider = lastSuccessfulLocalSyncAtProvider
         self.remoteSyncConsentDecisionProvider = remoteSyncConsentDecisionProvider
         self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
+        self.connectionRecordProvider = connectionRecordProvider
         self.accountDataRefreshEventBus = accountDataRefreshEventBus
         self.crossDeviceSyncCoordinator = crossDeviceSyncCoordinator
         bindAccountDataRefreshEventsIfNeeded()
@@ -337,6 +340,7 @@ final class TodayModel: ObservableObject {
         )
         let uiEnabled = healthIntelligenceUIEnabled()
         let isAppleHealthConnected = activityContext.trainingIntegration.isConnected
+        let connectionRecord = connectionRecordProvider()
 
         do {
             try Task.checkCancellation()
@@ -358,19 +362,26 @@ final class TodayModel: ObservableObject {
                 nutritionProgress: nutritionProgress,
                 uiEnabled: uiEnabled,
                 availability: availability,
-                isAppleHealthConnected: isAppleHealthConnected
+                isAppleHealthConnected: isAppleHealthConnected,
+                trainingIntegrationState: activityContext.trainingIntegration,
+                connectionRecord: connectionRecord,
+                cachedDayCount: availability?.cachedDayCount ?? 0
             ) ?? fallbackHealthIntelligenceSection(
                 nutritionProgress: nutritionProgress,
                 uiEnabled: uiEnabled,
                 availability: availability,
-                isAppleHealthConnected: isAppleHealthConnected
+                isAppleHealthConnected: isAppleHealthConnected,
+                trainingIntegrationState: activityContext.trainingIntegration,
+                connectionRecord: connectionRecord
             )
 
             let analyticsContext = HealthIntelligencePresentationContext(
                 availability: availability,
                 snapshot: snapshot,
                 isAppleHealthConnected: isAppleHealthConnected,
-                cachedDayCount: availability?.cachedDayCount ?? 0
+                cachedDayCount: availability?.cachedDayCount ?? 0,
+                trainingIntegrationState: activityContext.trainingIntegration,
+                connectionRecord: connectionRecord
             )
             healthIntelligenceAnalyticsCoordinator?.logSnapshotLoaded(
                 surface: .today,
@@ -384,13 +395,17 @@ final class TodayModel: ObservableObject {
                 uiEnabled: uiEnabled,
                 availability: nil,
                 isAppleHealthConnected: isAppleHealthConnected,
+                trainingIntegrationState: activityContext.trainingIntegration,
+                connectionRecord: connectionRecord,
                 errorMessage: "load_failed"
             )
 
             let analyticsContext = HealthIntelligencePresentationContext(
                 explicitErrorMessage: "load_failed",
                 snapshot: nil,
-                isAppleHealthConnected: isAppleHealthConnected
+                isAppleHealthConnected: isAppleHealthConnected,
+                trainingIntegrationState: activityContext.trainingIntegration,
+                connectionRecord: connectionRecord
             )
             healthIntelligenceAnalyticsCoordinator?.logSnapshotFailed(
                 surface: .today,
@@ -406,6 +421,9 @@ final class TodayModel: ObservableObject {
         uiEnabled: Bool,
         availability: HealthDataAvailability?,
         isAppleHealthConnected: Bool,
+        trainingIntegrationState: TrainingIntegrationState,
+        connectionRecord: HealthIntegrationConnectionRecord,
+        cachedDayCount: Int = 0,
         errorMessage: String? = nil
     ) -> TodayHealthIntelligenceSectionState? {
         guard uiEnabled else { return nil }
@@ -416,7 +434,9 @@ final class TodayModel: ObservableObject {
             isUIEnabled: true,
             availability: availability,
             isAppleHealthConnected: isAppleHealthConnected,
-            cachedDayCount: availability?.cachedDayCount ?? 0,
+            trainingIntegrationState: trainingIntegrationState,
+            connectionRecord: connectionRecord,
+            cachedDayCount: cachedDayCount > 0 ? cachedDayCount : (availability?.cachedDayCount ?? 0),
             errorMessage: errorMessage,
             syncPhase: healthSyncPhaseProvider(),
             lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAtProvider(),
@@ -430,6 +450,8 @@ final class TodayModel: ObservableObject {
         uiEnabled: Bool,
         availability: HealthDataAvailability?,
         isAppleHealthConnected: Bool,
+        trainingIntegrationState: TrainingIntegrationState,
+        connectionRecord: HealthIntegrationConnectionRecord,
         errorMessage: String? = nil
     ) -> TodayHealthIntelligenceSectionState? {
         buildHealthIntelligenceSection(
@@ -438,6 +460,9 @@ final class TodayModel: ObservableObject {
             uiEnabled: uiEnabled,
             availability: availability,
             isAppleHealthConnected: isAppleHealthConnected,
+            trainingIntegrationState: trainingIntegrationState,
+            connectionRecord: connectionRecord,
+            cachedDayCount: availability?.cachedDayCount ?? 0,
             errorMessage: errorMessage
         )
     }

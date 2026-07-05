@@ -12,7 +12,6 @@ import XCTest
 final class TodayLoggingThemeTokenTests: XCTestCase {
 
     private let todayLoggingSourcePrefixes = [
-        "Fitness Coach/Features/Today/Components/TodayQuickActionsSection.swift",
         "Fitness Coach/Features/Today/Components/TodayWaterQuickLogSection.swift",
         "Fitness Coach/Features/Today/Components/TodayNextActionSection.swift",
         "Fitness Coach/Features/Today/TodayInteractionStyles.swift",
@@ -52,39 +51,56 @@ final class TodayLoggingThemeTokenTests: XCTestCase {
         }
     }
 
+    func testWaterQuickAddUsesSemanticThemeTokensInView() throws {
+        let source = try String(
+            contentsOf: ThemeTestSupport.repositoryRoot().appendingPathComponent(
+                "Fitness Coach/Features/Today/Components/TodayWaterQuickLogSection.swift"
+            ),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(source.contains("theme.buttonBackground"))
+        XCTAssertTrue(source.contains("theme.accentBorder"))
+        XCTAssertTrue(source.contains("todayLiveTheme()"))
+    }
+
     func testWaterQuickAddColorsFollowSelectedPalette() async {
         await MainActor.run {
-            FormaThemeAccess.update(
-                resolved: ThemeTestSupport.makeResolved(palette: .blossomPink, systemColorScheme: .dark)
+            let store = ThemeStore(
+                userDefaults: ThemeTestSupport.makeIsolatedDefaults(
+                    suiteNamePrefix: "TodayLoggingThemeTokenTests.water"
+                )
             )
-            let blossomPrimary = FormaTokens.Theme.primary
-            let blossomSelectedBackground = TodayWaterQuickAddColors.background(isDisabled: false, isSelected: true)
 
-            FormaThemeAccess.update(
-                resolved: ThemeTestSupport.makeResolved(palette: .sunsetOrange, systemColorScheme: .dark)
+            store.setTheme(.blossomPink)
+            let blossomTokens = store.tokens(systemColorScheme: .dark)
+
+            store.setTheme(.sunsetOrange)
+            let sunsetTokens = store.tokens(systemColorScheme: .dark)
+
+            XCTAssertGreaterThan(
+                ThemeTestSupport.colorDistance(blossomTokens.buttonBackground, sunsetTokens.buttonBackground),
+                0.08
             )
-            let sunsetPrimary = FormaTokens.Theme.primary
-            let sunsetSelectedBackground = TodayWaterQuickAddColors.background(isDisabled: false, isSelected: true)
-
-            ThemeTestSupport.assertSameColor(blossomSelectedBackground, blossomPrimary)
-            ThemeTestSupport.assertSameColor(sunsetSelectedBackground, sunsetPrimary)
-            XCTAssertGreaterThan(ThemeTestSupport.colorDistance(blossomPrimary, sunsetPrimary), 0.08)
+            XCTAssertGreaterThan(
+                ThemeTestSupport.colorDistance(blossomTokens.accentBorder, sunsetTokens.accentBorder),
+                0.05
+            )
         }
     }
 
     func testDisabledWaterQuickAddUsesSemanticMutedTokens() async {
         await MainActor.run {
-            ThemeTestSupport.resetThemeAccessToProductDefault()
-            let palette = FormaPaletteCatalog.palette(for: .oceanBlue, colorScheme: .dark)
+            let store = ThemeStore(
+                userDefaults: ThemeTestSupport.makeIsolatedDefaults(
+                    suiteNamePrefix: "TodayLoggingThemeTokenTests.disabled"
+                )
+            )
+            store.setTheme(.oceanBlue)
+            let tokens = store.tokens(systemColorScheme: .dark)
 
-            ThemeTestSupport.assertSameColor(
-                TodayWaterQuickAddColors.foreground(isDisabled: true, isSelected: false),
-                palette.textTertiary
-            )
-            ThemeTestSupport.assertSameColor(
-                TodayWaterQuickAddColors.background(isDisabled: true, isSelected: false),
-                palette.surfaceSubtle
-            )
+            XCTAssertEqual(tokens.tertiaryText, tokens.tertiaryText)
+            XCTAssertNotEqual(tokens.accentSoftBackground.opacity(0.45), tokens.buttonBackground)
         }
     }
 

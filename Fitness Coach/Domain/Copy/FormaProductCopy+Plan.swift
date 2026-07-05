@@ -166,19 +166,19 @@ extension FormaProductCopy {
 
     enum PlanEditGoal {
         static let sectionTitle = "What are you working toward?"
-        static let recommendedBadge = "Recommended for you"
+        static let recommendedBadge = "Recommended"
 
         static let loseFatTitle = "Lose fat"
-        static let loseFatExplanation = "Trim body fat while keeping strength on the menu."
-        static let loseFatOutcome = "Gradual scale changes with room to stay consistent."
+        static let loseFatExplanation = "Trim fat, keep strength."
+        static let loseFatOutcome = "Steady weekly progress."
 
         static let maintainTitle = "Maintain weight"
-        static let maintainExplanation = "Hold your weight steady while you build habits."
-        static let maintainOutcome = "Daily targets stay near maintenance so progress feels calm."
+        static let maintainExplanation = "Hold your current weight."
+        static let maintainOutcome = "Steady maintenance targets."
 
         static let gainMuscleTitle = "Build muscle"
-        static let gainMuscleExplanation = "Fuel training with a modest surplus."
-        static let gainMuscleOutcome = "Weight may climb slowly while strength gets priority."
+        static let gainMuscleExplanation = "Modest surplus for training."
+        static let gainMuscleOutcome = "Gradual strength-first gains."
     }
 
     // MARK: - Plan Edit Target & Pace
@@ -287,9 +287,9 @@ extension FormaProductCopy {
     // MARK: - Plan Edit Wizard
 
     enum PlanEditWizardCopy {
-        static let discardChangesTitle = "Discard your edits?"
+        static let discardChangesTitle = "Discard changes?"
         static let discardChangesMessage =
-            "You have unsaved changes. Leaving now will restore your previous plan."
+            "You changed your plan, but haven’t saved it yet."
         static let keepEditing = "Keep Editing"
         static let discardChanges = "Discard Changes"
         static let saveNoChangesHint =
@@ -501,6 +501,7 @@ extension FormaProductCopy {
         static let selected = "Selected"
         static let notSelected = "Not selected"
         static let selectCardHint = "Double tap to select."
+        static let selectGoalCardHint = "Double tap to select this goal"
         static let warningPrefix = "Warning"
         static let errorPrefix = "Error"
         static let emptyFieldValue = "Empty"

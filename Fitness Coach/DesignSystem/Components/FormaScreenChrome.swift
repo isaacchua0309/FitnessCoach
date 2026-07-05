@@ -9,30 +9,24 @@ import SwiftUI
 
 extension View {
     func formaScreenBackground() -> some View {
-        self
-            .scrollContentBackground(.hidden)
-            .background(FormaTokens.Color.canvas.ignoresSafeArea())
+        modifier(FormaScreenBackgroundModifier())
     }
 
     func formaGroupedList() -> some View {
-        self
-            .listStyle(.insetGrouped)
-            .listSectionSpacing(FormaTokens.Spacing.sm)
-            .scrollContentBackground(.hidden)
-            .background(FormaTokens.Color.canvas.ignoresSafeArea())
-            .tint(FormaTokens.Theme.primary)
+        modifier(FormaGroupedListModifier())
     }
 
     func formaScrollBottomInset() -> some View {
         safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear.frame(height: FormaTokens.Layout.tabBarScrollPadding)
+            Color.clear
+                .frame(height: FormaTokens.Layout.tabBarScrollPadding)
+                .allowsHitTesting(false)
         }
     }
 
     func formaFormScreen() -> some View {
         self
-            .background(FormaTokens.Color.canvas.ignoresSafeArea())
-            .formaScrollBottomInset()
+            .modifier(FormaFormScreenModifier())
     }
 
     func formaFormSection() -> some View {
@@ -42,13 +36,7 @@ extension View {
     }
 
     func formaSettingsRowChrome(isEnabled: Bool = true) -> some View {
-        listRowInsets(FormaTokens.Layout.settingsRowInsets)
-            .listRowBackground(
-                isEnabled
-                    ? FormaTokens.Color.surface
-                    : FormaTokens.Color.surfaceSubtle
-            )
-            .allowsHitTesting(isEnabled)
+        modifier(FormaSettingsRowChromeModifier(isEnabled: isEnabled))
     }
 
     /// Centers readable settings detail content and caps width on large phones.
@@ -71,5 +59,89 @@ extension View {
         .formaScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
         .formaScrollBottomInset()
+    }
+}
+
+// MARK: - Environment-backed modifiers
+
+private struct FormaScreenBackgroundModifier: ViewModifier {
+    @Environment(\.theme) private var theme
+
+    func body(content: Content) -> some View {
+        content
+            .scrollContentBackground(.hidden)
+            .background(theme.appBackground.ignoresSafeArea())
+    }
+}
+
+private struct FormaGroupedListModifier: ViewModifier {
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.colorScheme) private var systemColorScheme
+    @Environment(\.theme) private var theme
+
+    func body(content: Content) -> some View {
+        content
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(FormaTokens.Spacing.sm)
+            .scrollContentBackground(.hidden)
+            .background(theme.appBackground.ignoresSafeArea())
+            .tint(theme.accent)
+            .onAppear {
+                applyListAppearance()
+            }
+            .onChange(of: themeManager.selectedTheme) { _, _ in
+                applyListAppearance()
+            }
+            .onChange(of: themeManager.themeRevision) { _, _ in
+                applyListAppearance()
+            }
+            .onChange(of: systemColorScheme) { _, _ in
+                applyListAppearance()
+            }
+    }
+
+    private func applyListAppearance() {
+        FormaUIKitAppearance.applyListAppearance(
+            from: themeManager.tokens(systemColorScheme: systemColorScheme)
+        )
+    }
+}
+
+private struct FormaFormScreenModifier: ViewModifier {
+    @Environment(\.theme) private var theme
+
+    func body(content: Content) -> some View {
+        content
+            .background(theme.appBackground.ignoresSafeArea())
+            .formaScrollBottomInset()
+    }
+}
+
+private struct FormaSettingsRowChromeModifier: ViewModifier {
+    let isEnabled: Bool
+
+    @Environment(\.theme) private var theme
+
+    func body(content: Content) -> some View {
+        content
+            .listRowInsets(FormaTokens.Layout.settingsRowInsets)
+            .listRowBackground(SettingsListRowBackground(isEnabled: isEnabled, theme: theme))
+            .allowsHitTesting(isEnabled)
+    }
+}
+
+/// Decorative settings list-row fill. Must not participate in hit testing or it blocks row taps.
+private struct SettingsListRowBackground: View {
+    let isEnabled: Bool
+    let theme: ThemeTokens
+
+    var body: some View {
+        Rectangle()
+            .fill(
+                isEnabled
+                    ? theme.cardBackground
+                    : theme.accentSoftBackground.opacity(0.45)
+            )
+            .allowsHitTesting(false)
     }
 }

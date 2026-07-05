@@ -20,6 +20,7 @@ struct TodayReadOnlyView: View {
     let onOpenPlan: () -> Void
 
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @EnvironmentObject private var themeManager: ThemeManager
 
     private var sectionSpacing: CGFloat {
         verticalSizeClass == .compact
@@ -79,6 +80,8 @@ struct TodayReadOnlyView: View {
     }
 
     var body: some View {
+        let _ = themeManager.themeRevision
+
         VStack(alignment: .leading, spacing: sectionSpacing) {
             TodayDashboardHeader(
                 date: state.date,
@@ -86,8 +89,6 @@ struct TodayReadOnlyView: View {
             )
 
             missionBlock
-
-            quickActionsBlock
 
             TodayWaterQuickLogSection(
                 water: state.macroHydration.waterSummary,
@@ -139,6 +140,7 @@ struct TodayReadOnlyView: View {
 
             reinforcementBlock
         }
+        .todayLiveTheme()
     }
 
     private var missionBlock: some View {
@@ -149,7 +151,6 @@ struct TodayReadOnlyView: View {
                     actionCoordinator.logPrimaryCTATapped()
                     actionCoordinator.performQuickAction(.logMeal)
                 },
-                suppressLogMealCTA: true,
                 onViewed: {
                     actionCoordinator.logMissionViewed()
                 }
@@ -175,26 +176,6 @@ struct TodayReadOnlyView: View {
                 )
             }
         }
-    }
-
-    private var quickActionsBlock: some View {
-        TodayQuickActionsSection(
-            showsScanMeal: state.quickActions.showsScanMeal,
-            onLogMeal: {
-                actionCoordinator.logPrimaryCTATapped()
-                actionCoordinator.performQuickAction(.logMeal)
-            },
-            onAddWater: {
-                _ = actionCoordinator.addWater(amountMl: 500)
-            },
-            onAskCoach: {
-                actionCoordinator.onOpenCoach?(.normal)
-            },
-            onViewPlan: onOpenPlan,
-            onScanMeal: {
-                actionCoordinator.performQuickAction(.scanFood)
-            }
-        )
     }
 
     @ViewBuilder

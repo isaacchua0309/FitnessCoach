@@ -13,6 +13,9 @@ struct TodayNutritionProgressCard: View {
     let calorieSummary: CalorieSummary
     var includesDedicatedWaterCard: Bool = true
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     private var display: TodayNutritionProgressCardDisplayModel {
         TodayNutritionProgressFormatting.displayModel(
             macros: macros,
@@ -23,7 +26,8 @@ struct TodayNutritionProgressCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(display.rows.enumerated()), id: \.offset) { index, row in
                 if index > 0 {
                     FormaPlanRowDivider()
@@ -34,9 +38,12 @@ struct TodayNutritionProgressCard: View {
         .padding(.horizontal, FormaTokens.Spacing.md)
         .padding(.vertical, FormaTokens.Spacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FormaCardChrome.background(.accentLeading))
+        .background {
+            FormaCardChrome.background(.accentLeading)
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(display.accessibilitySummary)
+        .todayLiveTheme()
     }
 
     @ViewBuilder
@@ -107,18 +114,18 @@ struct TodayNutritionProgressCard: View {
     private func titleColor(for emphasis: TodayNutritionRowEmphasis) -> Color {
         switch emphasis {
         case .primary:
-            return FormaTokens.Color.textPrimary
+            return theme.primaryText
         case .secondary, .standard:
-            return FormaTokens.Color.textSecondary
+            return theme.secondaryText
         }
     }
 
     private func valueColor(for emphasis: TodayNutritionRowEmphasis) -> Color {
         switch emphasis {
         case .primary:
-            return FormaTokens.Color.textPrimary
+            return theme.primaryText
         case .secondary, .standard:
-            return FormaTokens.Color.textSecondary
+            return theme.secondaryText
         }
     }
 
@@ -127,7 +134,7 @@ struct TodayNutritionProgressCard: View {
         state: TodayNutritionDisplayState
     ) -> Color {
         if state == .overTarget {
-            return FormaTokens.Color.destructive
+            return theme.destructive
         }
         return valueColor(for: emphasis)
     }
@@ -135,11 +142,11 @@ struct TodayNutritionProgressCard: View {
     private func remainingTextColor(for state: TodayNutritionDisplayState) -> Color {
         switch state {
         case .overTarget:
-            FormaTokens.Color.destructive.opacity(0.9)
+            theme.destructive.opacity(0.9)
         case .missingTarget:
-            FormaTokens.Color.textTertiary
+            theme.tertiaryText
         case .nearTarget, .belowTarget:
-            FormaTokens.Color.textSecondary
+            theme.secondaryText
         }
     }
 }

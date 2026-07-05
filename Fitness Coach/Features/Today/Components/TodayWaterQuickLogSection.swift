@@ -12,6 +12,8 @@ struct TodayWaterQuickLogSection: View {
     let presetAmountsMl: [Int]
     let onAddWater: (Int) -> Bool
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var pendingAddedMl = 0
@@ -43,7 +45,8 @@ struct TodayWaterQuickLogSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Water.sectionTitle)
 
             TodayActionCard {
@@ -58,7 +61,7 @@ struct TodayWaterQuickLogSection: View {
 
                     Text(remainingText)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .monospacedDigit()
                         .animation(valueAnimation, value: displayedWater.consumedMl)
 
@@ -71,6 +74,7 @@ struct TodayWaterQuickLogSection: View {
         .onChange(of: water.consumedMl) { _, _ in
             pendingAddedMl = 0
         }
+        .todayLiveTheme()
     }
 
     private var headerRow: some View {
@@ -78,11 +82,11 @@ struct TodayWaterQuickLogSection: View {
             Image(systemName: FormaProductCopy.Today.Water.symbolName)
                 .font(.system(size: 18, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(FormaTokens.Theme.primary)
+                .foregroundStyle(theme.accent)
 
             Text(FormaProductCopy.Today.MacroBalance.water)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .foregroundStyle(theme.primaryText)
 
             Spacer(minLength: FormaTokens.Spacing.xs)
 
@@ -91,7 +95,7 @@ struct TodayWaterQuickLogSection: View {
                 targetMl: displayedWater.targetMl
             ))
             .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
-            .foregroundStyle(FormaTokens.Color.textPrimary)
+            .foregroundStyle(theme.primaryText)
             .monospacedDigit()
             .modifier(WaterValueTransitionModifier(reduceMotion: reduceMotion))
             .animation(valueAnimation, value: displayedWater.consumedMl)
@@ -116,7 +120,11 @@ struct TodayWaterQuickLogSection: View {
                 Button {
                     logWater(amountMl: amountMl)
                 } label: {
-                    quickAddButtonLabel(amountMl: amountMl)
+                    TodayWaterQuickAddButtonLabel(
+                        amountMl: amountMl,
+                        isSelected: highlightedAmountMl == amountMl,
+                        isDisabled: isTapLocked
+                    )
                 }
                 .buttonStyle(
                     TodayWaterQuickAddButtonStyle(
@@ -130,41 +138,6 @@ struct TodayWaterQuickLogSection: View {
         }
         .padding(.top, FormaTokens.Spacing.xs)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: isTapLocked)
-    }
-
-    private func quickAddButtonLabel(amountMl: Int) -> some View {
-        let isSelected = highlightedAmountMl == amountMl
-        let isDisabled = isTapLocked
-
-        return Text(FormaProductCopy.Today.Water.quickAddLabel(amountMl))
-            .font(FormaTokens.Typography.caption.weight(.semibold))
-            .foregroundStyle(
-                TodayWaterQuickAddColors.foreground(
-                    isDisabled: isDisabled,
-                    isSelected: isSelected
-                )
-            )
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, FormaTokens.Spacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                    .fill(
-                        TodayWaterQuickAddColors.background(
-                            isDisabled: isDisabled,
-                            isSelected: isSelected
-                        )
-                    )
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                    .stroke(
-                        TodayWaterQuickAddColors.border(
-                            isDisabled: isDisabled,
-                            isSelected: isSelected
-                        ),
-                        lineWidth: TodayWaterQuickAddColors.borderWidth(isSelected: isSelected)
-                    )
-            }
     }
 
     private func logWater(amountMl: Int) {
@@ -199,6 +172,48 @@ struct TodayWaterQuickLogSection: View {
                 }
             }
         }
+    }
+}
+
+private struct TodayWaterQuickAddButtonLabel: View {
+    let amountMl: Int
+    let isSelected: Bool
+    let isDisabled: Bool
+
+    @Environment(\.theme) private var theme
+
+    var body: some View {
+        Text(FormaProductCopy.Today.Water.quickAddLabel(amountMl))
+            .font(FormaTokens.Typography.caption.weight(.semibold))
+            .foregroundStyle(foregroundColor)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, FormaTokens.Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                    .fill(backgroundColor)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                    .stroke(borderColor, lineWidth: isSelected ? 1 : 0.5)
+            }
+    }
+
+    private var foregroundColor: Color {
+        if isDisabled { return theme.tertiaryText }
+        if isSelected { return theme.buttonText }
+        return theme.accent
+    }
+
+    private var backgroundColor: Color {
+        if isDisabled { return theme.accentSoftBackground.opacity(0.45) }
+        if isSelected { return theme.buttonBackground }
+        return theme.accentSoftBackground
+    }
+
+    private var borderColor: Color {
+        if isDisabled { return theme.inputBorder.opacity(0.45) }
+        if isSelected { return theme.accentBorder }
+        return theme.accentBorder.opacity(0.62)
     }
 }
 

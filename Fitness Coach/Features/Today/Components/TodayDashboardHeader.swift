@@ -11,22 +11,27 @@ struct TodayDashboardHeader: View {
     let date: Date
     var planStatusChip: String?
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     var body: some View {
+        let _ = themeManager.themeRevision
+
         VStack(alignment: .leading, spacing: TodayLayout.compactSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
                 Text(FormaProductCopy.Today.Header.title)
                     .font(FormaTokens.Typography.screenTitle)
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .foregroundStyle(theme.primaryText)
 
                 Spacer(minLength: FormaTokens.Spacing.xs)
 
                 if let planStatusChip {
                     Text(planStatusChip)
                         .font(FormaTokens.Typography.caption2.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Theme.primary)
+                        .foregroundStyle(theme.accent)
                         .padding(.horizontal, FormaTokens.Spacing.sm)
                         .padding(.vertical, FormaTokens.Spacing.xs)
-                        .background(FormaTokens.Theme.softBackground)
+                        .background(theme.accentSoftBackground)
                         .clipShape(Capsule())
                         .accessibilityLabel("Plan status: \(planStatusChip)")
                 }
@@ -34,12 +39,13 @@ struct TodayDashboardHeader: View {
 
             Text(TodayDashboardHeaderFormatting.dateLine(for: date))
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .foregroundStyle(theme.tertiaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(.isHeader)
+        .todayLiveTheme()
     }
 
     private var accessibilityLabel: String {

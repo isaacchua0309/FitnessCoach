@@ -544,14 +544,14 @@ private final class StrategyStubClassifierAIService: AIServiceProtocol, @uncheck
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub review.", confidence: .medium)
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub review.", confidence: .medium)
+    ) async throws -> DailyReviewAIResponse {
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {

@@ -41,6 +41,7 @@ final class TodayActionCoordinator: ObservableObject {
 
     var onOpenCoach: ((CoachLaunchIntent) -> Void)?
     var onOpenTrainingInsights: (() -> Void)?
+    var onRefreshHealthData: (() -> Void)?
 
     init(
         actionCenter: FitnessActionCenter,
@@ -180,6 +181,10 @@ final class TodayActionCoordinator: ObservableObject {
             perform(.presentLogWeight)
         case .connectHealth:
             perform(.openTrainingInsights)
+        case .refreshHealthData:
+            onRefreshHealthData?()
+        case .manageHealthPermissions:
+            HealthAppSettingsNavigator.openHealthPermissions()
         case .none:
             break
         }

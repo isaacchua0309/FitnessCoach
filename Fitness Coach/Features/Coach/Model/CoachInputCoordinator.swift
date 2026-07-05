@@ -170,6 +170,14 @@ final class CoachInputCoordinator {
 
     // MARK: Send snapshot
 
+    /// Clears any staged meal photo before a text-only outbound command (e.g. daily review starter).
+    func discardStagedAttachmentForTextSend() {
+        guard state.pendingImage != nil || state.imageError != nil else { return }
+        mutateState { state in
+            state.clearPendingImage()
+        }
+    }
+
     /// Freezes the current composer payload, clears editable fields, and returns the snapshot.
     func takeSendSnapshot() -> CoachInputSendSnapshot? {
         var next = state

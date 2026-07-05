@@ -72,6 +72,7 @@ enum TodayMissionHeroFormatter {
         )
         let trimmedNextStep = nextStepLine.trimmingCharacters(in: .whitespacesAndNewlines)
         let formattedNextStep = TodayMissionHeroFormatter.formattedNextStepLine(trimmedNextStep)
+        let showsLogMealCTA = mealsEmptyKind != .hasMeals
 
         return TodayMissionHeroDisplayModel(
             primaryKind: primaryKind,

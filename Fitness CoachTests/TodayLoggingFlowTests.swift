@@ -293,12 +293,9 @@ final class TodayLoggingFlowCompositionTests: XCTestCase {
     func testTodayDashboardShowsLogMealAndWaterSections() {
         let state = TodayDashboardFixtures.emptyDay()
 
+        XCTAssertTrue(state.mission.showsLogMealCTA)
         XCTAssertEqual(
-            state.quickActions.sectionTitle,
-            FormaProductCopy.Today.QuickActions.sectionTitle
-        )
-        XCTAssertEqual(
-            FormaProductCopy.Today.QuickActions.title(for: .logMeal),
+            FormaProductCopy.Today.Mission.logMealCTA,
             "Log meal with Coach"
         )
         XCTAssertGreaterThan(state.macroHydration.waterSummary.targetMl, 0)
@@ -575,7 +572,7 @@ private final class TodayLoggingFlowFoodEstimateService: AIServiceProtocol, @unc
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 

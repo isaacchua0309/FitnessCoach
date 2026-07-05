@@ -571,7 +571,7 @@ private final class ClarifyingPhotoContextAIService: AIServiceProtocol, @uncheck
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -628,7 +628,7 @@ private final class PhotoContextCapturingAIService: AIServiceProtocol, @unchecke
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        AICoachResponse(message: "Stub", confidence: .medium)
+        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
     }
 
     func generateNutritionEstimate(
@@ -668,7 +668,7 @@ private final class PhotoContextCapturingAIService: AIServiceProtocol, @unchecke
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -745,7 +745,7 @@ private final class FailingMealPhotoAIService: AIServiceProtocol, @unchecked Sen
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         throw AIServiceError.backendUnavailable
     }
 

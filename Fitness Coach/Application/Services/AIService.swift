@@ -42,7 +42,7 @@ protocol AIServiceProtocol: Sendable {
     func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand
     func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse
-    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> AICoachResponse
+    func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> DailyReviewAIResponse
     func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand
 }
 
@@ -268,16 +268,20 @@ final class AIService: AIServiceProtocol {
             from: context,
             date: context.meta.generatedAt
         )
-        return try await generateDailyReviewText(input: input, context: context)
+        let structured = try await generateDailyReviewText(input: input, context: context)
+        return AICoachResponse(
+            message: structured.statusSummary,
+            confidence: .medium
+        )
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
         context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
+    ) async throws -> DailyReviewAIResponse {
         let request = AIDailyReviewRequest(input: input, context: context)
         return try await traced(method: "generateDailyReview") {
-            try await llmClient.generateDailyReview(request: request).response
+            try await llmClient.generateDailyReview(request: request).review
         }
     }
 

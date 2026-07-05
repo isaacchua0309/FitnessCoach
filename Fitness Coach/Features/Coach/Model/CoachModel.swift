@@ -344,6 +344,8 @@ final class CoachModel: ObservableObject {
             )
         case .nutritionComparison:
             logCoachAnalytics(.nutritionComparisonCardShown, properties: CoachAnalyticsProperties())
+        case .dailyReview:
+            break
         }
     }
 }

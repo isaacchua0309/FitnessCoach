@@ -11,38 +11,45 @@ struct TodayVictorySection: View {
     let victory: TodayVictoryState
     var onViewed: (() -> Void)?
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     var body: some View {
-        if victory.isVisible {
-            Group {
-                if victory.kind == .startEncouragement {
-                    Text(victory.message)
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    Text(victory.message)
-                        .font(FormaTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Theme.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, FormaTokens.Spacing.sm)
-                        .padding(.vertical, FormaTokens.Spacing.xs)
-                        .background(
-                            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                                .fill(FormaTokens.Theme.softBackground.opacity(0.72))
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                                .stroke(FormaTokens.Theme.borderTint.opacity(0.35), lineWidth: 0.5)
-                        }
+        let _ = themeManager.themeRevision
+        return Group {
+            if victory.isVisible {
+                Group {
+                    if victory.kind == .startEncouragement {
+                        Text(victory.message)
+                            .font(FormaTokens.Typography.caption)
+                            .foregroundStyle(theme.tertiaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Text(victory.message)
+                            .font(FormaTokens.Typography.caption.weight(.semibold))
+                            .foregroundStyle(theme.accent)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, FormaTokens.Spacing.sm)
+                            .padding(.vertical, FormaTokens.Spacing.xs)
+                            .background(
+                                RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                                    .fill(theme.accentSoftBackground.opacity(0.72))
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                                    .stroke(theme.accentBorder.opacity(0.78), lineWidth: 0.5)
+                            }
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(victory.message)
+                .onAppear {
+                    onViewed?()
                 }
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(victory.message)
-            .onAppear {
-                onViewed?()
-            }
         }
+        .todayLiveTheme()
     }
 }
 

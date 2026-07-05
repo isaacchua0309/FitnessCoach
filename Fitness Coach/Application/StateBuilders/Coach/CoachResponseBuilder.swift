@@ -248,6 +248,42 @@ enum CoachResponseBuilder {
         )
     }
 
+    static func dailyReviewActionResult(
+        review: DailyReview,
+        summary: DailyReviewSummary,
+        aiResponse: DailyReviewAIResponse? = nil,
+        contextHints: CoachResponseContextHints? = nil,
+        generatedAt: Date = Date(),
+        calendar: Calendar = .current
+    ) -> CoachActionResult {
+        let payload = DailyReviewPayloadBuilder.buildSafely(
+            review: review,
+            summary: summary,
+            aiResponse: aiResponse,
+            contextHints: contextHints,
+            generatedAt: generatedAt,
+            calendar: calendar
+        )
+        let accessibilityText = DailyReviewPayloadAccessibilityFormatter.text(from: payload)
+        return .structured(.dailyReview(payload), accessibilityText: accessibilityText)
+    }
+
+    static func dailyReviewFallbackActionResult(
+        summary: DailyReviewSummary,
+        contextHints: CoachResponseContextHints? = nil,
+        generatedAt: Date = Date(),
+        calendar: Calendar = .current
+    ) -> CoachActionResult {
+        let payload = DailyReviewPayloadBuilder.compactFallback(
+            summary: summary,
+            contextHints: contextHints,
+            generatedAt: generatedAt,
+            calendar: calendar
+        )
+        let accessibilityText = DailyReviewPayloadAccessibilityFormatter.text(from: payload)
+        return .structured(.dailyReview(payload), accessibilityText: accessibilityText)
+    }
+
     // MARK: Meal Advice
 
     static func mealAdvice(

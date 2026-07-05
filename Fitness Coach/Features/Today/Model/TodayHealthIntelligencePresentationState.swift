@@ -119,6 +119,8 @@ enum TodayHealthNextBestActionDestination: Equatable, Sendable {
     case viewRecovery
     case logWeight
     case connectHealth
+    case refreshHealthData
+    case manageHealthPermissions
     case none
 }
 
