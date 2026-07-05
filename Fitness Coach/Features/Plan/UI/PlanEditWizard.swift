@@ -600,10 +600,13 @@ struct PlanEditWizard: View {
     }
 
     private func requestCancel() {
-        if hasUnsavedChanges {
-            isShowingDiscardConfirmation = true
-        } else {
+        switch PlanEditDiscardConfirmationPolicy.cancelRequestAction(
+            hasUnsavedChanges: hasUnsavedChanges
+        ) {
+        case .dismissImmediately:
             dismissAdjustPlan()
+        case .presentConfirmation:
+            isShowingDiscardConfirmation = true
         }
     }
 

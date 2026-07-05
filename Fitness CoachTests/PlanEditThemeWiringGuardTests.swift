@@ -11,7 +11,6 @@ final class PlanEditThemeWiringGuardTests: XCTestCase {
 
     private let editPlanSourceFiles = [
         "Fitness Coach/Features/Plan/UI/PlanEditWizard.swift",
-        "Fitness Coach/Features/Plan/UI/AdjustPlan/AdjustPlanDiscardConfirmationOverlay.swift",
         "Fitness Coach/Features/Plan/UI/AdjustPlan/AdjustPlanHeader.swift",
         "Fitness Coach/Features/Plan/UI/AdjustPlan/AdjustPlanStepIndicator.swift",
         "Fitness Coach/Features/Plan/UI/AdjustPlan/AdjustPlanSummaryCard.swift",
