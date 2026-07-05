@@ -1,9 +1,11 @@
 # Feature Flag Registry
 
-**Last updated:** 2026-07-04  
+**Last updated:** 2026-07-05  
 **Sources of truth:** `Fitness Coach/Configuration/FormaAbTest.swift`, `Fitness Coach/Infrastructure/Cloud/AccountPersistenceFeatureFlags.swift`, `Fitness Coach/Health/HealthIntelligenceFeatureFlags.swift`
 
-**Tests:** `FormaAbTestProductionCriticalFlagsTests`, `AppContainerAccountDataRemoteStoreWiringTests`, `HealthIntelligenceFeatureFlagsTests`, `SettingsPrivacyDataTests`
+**PRDX v1 matrix (runtime vs production intent):** [PRDX_V1_FLAG_MATRIX.md](./PRDX_V1_FLAG_MATRIX.md)
+
+**Tests:** `FormaAbTestResolvedSnapshotTests`, `FormaAbTestProductionSnapshotTests`, `FormaAbTestProductionCriticalFlagsTests`, `AppContainerAccountDataRemoteStoreWiringTests`, `HealthIntelligenceFeatureFlagsTests`, `SettingsPrivacyDataTests`
 
 ---
 
@@ -11,9 +13,11 @@
 
 | Registry | Type | Runtime resolver |
 |----------|------|------------------|
-| `FormaAbTest` | `FormaAbTestSnapshot` | `testOverride ?? .allEnabled` |
+| `FormaAbTest` | `FormaAbTestSnapshot` | `testOverride ?? resolvedSnapshot(for: .debug \| .release)` → `allEnabled` in PRDX v1 |
 | `AccountPersistenceFeatureFlags` | `static let` constants | Compile-time |
 | `HealthIntelligenceFeatureFlags` | Facade over `FormaAbTest` | `AbTestHealthIntelligenceFeatureFlags` |
+
+See [PRDX_V1_FLAG_MATRIX.md](./PRDX_V1_FLAG_MATRIX.md) for the full runtime vs production-intent table.
 
 **There is no Firebase Remote Config** in this repo.
 
@@ -24,7 +28,7 @@
 | `FormaAbTestSnapshot.allEnabled` | Internal/dev — all gates on | **Yes** — default for app and most tests |
 | `FormaAbTestSnapshot.production` | App Store safe defaults | **No** — documented ship intent + production-critical tests only |
 
-**Known contradiction (documented, not silent):** `allEnabled` sets HI UI, weekly review, remote sync, and debug traces to `true`, while `production` sets several to `false`. Runtime behavior remains `allEnabled` until an explicit release pass wires `production`.
+**Known contradiction (documented, not silent):** `allEnabled` sets HI UI, weekly review, remote sync, and debug traces to `true`, while `production` sets several to `false`. Runtime behavior remains `allEnabled` until an explicit release pass wires `production`. Full diff: [PRDX_V1_FLAG_MATRIX.md](./PRDX_V1_FLAG_MATRIX.md#runtime-vs-production-intent--flags-that-differ-today).
 
 ### Column legend
 
@@ -241,5 +245,6 @@ Before App Store release, verify or wire `FormaAbTestSnapshot.production`:
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Linked [PRDX_V1_FLAG_MATRIX.md](./PRDX_V1_FLAG_MATRIX.md); documented `resolvedSnapshot(for:)` |
 | 2026-07-04 | Initial registry for PRDX v1 |
 | 2026-07-04 | Added `FormaAbTestSnapshot.production`, per-flag metadata, removed `dataExportEnabled`, production-critical tests |

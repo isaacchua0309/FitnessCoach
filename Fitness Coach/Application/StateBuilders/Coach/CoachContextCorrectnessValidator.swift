@@ -1099,12 +1099,13 @@ enum CoachContextCorrectnessValidator {
 
     private static func containsSensitiveString(_ value: String?) -> Bool {
         guard let value, !value.isEmpty else { return false }
+        if FormaLogRedactor.containsObviousSecrets(value) {
+            return true
+        }
         let lowered = value.lowercased()
         if lowered.contains("data:image") { return true }
         if lowered.contains("imagejpegbase64") { return true }
-        if lowered.contains("bearer ") { return true }
         if lowered.contains("sk-") { return true }
-        if lowered.contains("api_key") || lowered.contains("apikey") { return true }
         if value.count > 512, value.unicodeScalars.allSatisfy({ $0.isASCII }) {
             let base64Charset = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=")
             if CharacterSet(charactersIn: value).isSubset(of: base64Charset) {

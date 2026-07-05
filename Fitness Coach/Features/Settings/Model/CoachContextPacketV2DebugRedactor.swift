@@ -63,11 +63,11 @@ enum CoachContextPacketV2DebugRedactor {
     }
 
     static func redactSecrets(in text: String) -> String {
-        LogRedactor.redactSecrets(in: text)
+        FormaLogRedactor.redactSecrets(in: text)
     }
 
     private static func truncate(_ value: String, maxLength: Int) -> String {
-        LogRedactor.truncate(value, maxLength: maxLength)
+        FormaLogRedactor.truncate(value, maxLength: maxLength)
     }
 }
 #endif

@@ -242,6 +242,7 @@
         "FormaCalculationEngineComprehensiveTests",
         "FormaCalculationEngineTests",
         "FormaCalculationGuardrailTests",
+        "FormaLogRedactorTests",
         "FormaPaletteAccessibilityTests",
         "FormaPaletteCatalogTests",
         "FormaPlanTokensColorTests",

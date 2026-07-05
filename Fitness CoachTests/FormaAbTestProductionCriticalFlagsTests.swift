@@ -19,6 +19,7 @@ final class FormaAbTestProductionCriticalFlagsTests: XCTestCase {
 
     func testRuntimeResolverUsesAllEnabledByDefault() {
         XCTAssertEqual(FormaAbTest.snapshot(), FormaAbTestSnapshot.allEnabled)
+        XCTAssertEqual(FormaAbTest.snapshot(), FormaAbTest.resolvedSnapshot(for: .test))
     }
 
     func testProductionSnapshotDiffersFromRuntimeOnHealthIntelligenceGates() {
@@ -75,6 +76,14 @@ final class FormaAbTestProductionCriticalFlagsTests: XCTestCase {
 
     func testProductionIntentKeepsDeletionEnabled() {
         XCTAssertTrue(FormaAbTestSnapshot.production.dataDeletionEnabled)
+    }
+
+    func testExportCapabilityUsesAccountDataExportPolicyNotFormaAbTest() {
+        XCTAssertFalse(AccountDataExportPolicy.isEnabled)
+        XCTAssertEqual(
+            SettingsDataExportCapability.isImplemented,
+            AccountDataExportPolicy.isEnabled
+        )
     }
 
     func testDeletionRowsVisibleWhenCapabilityEnabled() {

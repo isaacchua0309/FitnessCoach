@@ -4,68 +4,45 @@
 //
 //  Forma — Shared privacy-safe logging redaction for Release and DEBUG diagnostics.
 //
+//  Field/JSON policies and OSLog helpers. Core text redaction lives in `FormaLogRedactor`.
+//
 //  Registry: Docs/Architecture/LoggingAndPrivacyContract.md
 //
 
-import CryptoKit
 import Foundation
 import OSLog
 
 enum LogRedactor {
 
-    static let jsonRedactedPlaceholder = "<redacted>"
-    static let secretRedactedPlaceholder = "[REDACTED]"
+    static var jsonRedactedPlaceholder: String { FormaLogRedactor.jsonFieldPlaceholder }
+    static var secretRedactedPlaceholder: String { FormaLogRedactor.secretPlaceholder }
 
     // MARK: - Identifiers
 
     /// Short stable hash for correlating logs without logging full Firebase UIDs.
     static func hashedUID(_ uid: String) -> String {
-        let digest = SHA256.hash(data: Data(uid.utf8))
-        return digest.prefix(4).map { String(format: "%02x", $0) }.joined()
+        FormaLogRedactor.hashedUID(uid)
     }
 
     /// Suffix-only UID for bootstrap/auth traces.
     static func redactUID(_ uid: String) -> String {
-        let trimmed = uid.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count > 6 else { return "***" }
-        return "***\(trimmed.suffix(6))"
+        FormaLogRedactor.redactUID(uid)
     }
 
     /// Prefix UID for deletion coordinator traces (legacy-safe; prefer `hashedUID`).
     static func privacySafeUIDPrefix(_ uid: String) -> String {
-        let trimmed = uid.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count > 8 else { return "uid_redacted" }
-        return String(trimmed.prefix(8)) + "…"
+        FormaLogRedactor.privacySafeUIDPrefix(uid)
     }
 
     // MARK: - Text
 
     static func truncate(_ value: String, maxLength: Int) -> String {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count > maxLength else { return trimmed }
-        let index = trimmed.index(trimmed.startIndex, offsetBy: maxLength)
-        return String(trimmed[..<index]) + "…"
+        FormaLogRedactor.truncate(value, maxLength: maxLength)
     }
 
     /// Redacts bearer tokens, JWTs, API keys, long base64 blobs, and email addresses in free text.
     static func redactSecrets(in text: String) -> String {
-        var result = text
-        for pattern in secretPatterns {
-            let range = NSRange(result.startIndex..<result.endIndex, in: result)
-            result = pattern.stringByReplacingMatches(
-                in: result,
-                options: [],
-                range: range,
-                withTemplate: secretRedactedPlaceholder
-            )
-        }
-        result = emailPattern.stringByReplacingMatches(
-            in: result,
-            options: [],
-            range: NSRange(result.startIndex..<result.endIndex, in: result),
-            withTemplate: secretRedactedPlaceholder
-        )
-        return result
+        FormaLogRedactor.redactSecrets(in: text)
     }
 
     // MARK: - JSON snippets
@@ -181,18 +158,11 @@ enum LogRedactor {
     }
 
     static func isSensitiveFieldValue(_ value: String) -> Bool {
+        if FormaLogRedactor.containsObviousSecrets(value) {
+            return true
+        }
         let lowered = value.lowercased()
-        if lowered.contains("bearer ") || lowered.contains("eyj") {
-            return true
-        }
         if lowered.contains("firebase") || lowered.contains("users/") {
-            return true
-        }
-        if emailPattern.firstMatch(
-            in: value,
-            options: [],
-            range: NSRange(value.startIndex..<value.endIndex, in: value)
-        ) != nil {
             return true
         }
         if value.count > 120 {
@@ -274,21 +244,6 @@ enum LogRedactor {
     }
 
     // MARK: - Private
-
-    private static let secretPatterns: [NSRegularExpression] = {
-        let rawPatterns = [
-            #"(?i)bearer\s+[A-Za-z0-9\-._~+/]+=*"#,
-            #"eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+"#,
-            #"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*\S+"#,
-            #"[A-Za-z0-9+/]{120,}={0,2}"#
-        ]
-        return rawPatterns.compactMap { try? NSRegularExpression(pattern: $0) }
-    }()
-
-    private static let emailPattern: NSRegularExpression = {
-        // swiftlint:disable:next force_try
-        try! NSRegularExpression(pattern: #"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}"#, options: [.caseInsensitive])
-    }()
 
     private static func truncateValue(_ value: String, maxLength: Int) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)

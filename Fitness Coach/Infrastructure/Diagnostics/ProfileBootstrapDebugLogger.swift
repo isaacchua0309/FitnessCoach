@@ -14,7 +14,7 @@ enum ProfileBootstrapDebugLogger {
 
     /// Redacts Firebase UID for logs (suffix only).
     nonisolated static func redactedUID(_ uid: String) -> String {
-        LogRedactor.redactUID(uid)
+        FormaLogRedactor.redactUID(uid)
     }
 
     /// Emits structured `[ProfileBootstrap]` lines to the unified log.
