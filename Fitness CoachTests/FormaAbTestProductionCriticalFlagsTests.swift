@@ -19,6 +19,7 @@ final class FormaAbTestProductionCriticalFlagsTests: XCTestCase {
 
     func testRuntimeResolverUsesAllEnabledByDefault() {
         XCTAssertEqual(FormaAbTest.snapshot(), FormaAbTestSnapshot.allEnabled)
+        XCTAssertEqual(FormaAbTest.snapshot(), FormaAbTest.resolvedSnapshot(for: .test))
     }
 
     func testProductionSnapshotDiffersFromRuntimeOnHealthIntelligenceGates() {
