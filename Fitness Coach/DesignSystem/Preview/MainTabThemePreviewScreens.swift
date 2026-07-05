@@ -36,8 +36,9 @@ enum MainTabThemePreviewScreens {
     ) -> some View {
         ScrollView {
             PlanDashboardContent(state: PlanPreviewScreens.dashboard(.aggressiveCut))
+                .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
+                .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
         }
-        .formaMainTabScrollInsets()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview(appearance: appearance, palette: palette)
     }
@@ -49,6 +50,8 @@ enum MainTabThemePreviewScreens {
     ) -> some View {
         ScrollView {
             JourneyDashboardContent(state: JourneyPreviewData.dashboard(.strongMomentum))
+                .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
+                .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
         }
         .background(FormaTokens.Color.canvas)
         .formaThemePreview(appearance: appearance, palette: palette)

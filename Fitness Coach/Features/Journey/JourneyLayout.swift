@@ -23,19 +23,8 @@ enum JourneyLayout {
     /// Extra breathing room after the flagship transformation hero.
     static let heroBottomSpacing = FormaTokens.Spacing.md
 
-    // MARK: Card padding
-
-    static let cardPaddingHorizontal = FormaTokens.Spacing.md
-    static let heroCardPaddingVertical = FormaTokens.Spacing.md + 2
-    static let featuredCardPaddingVertical = FormaTokens.Spacing.md
-    static let standardCardPaddingVertical = FormaTokens.Spacing.sm + 2
-    static let quietCardPaddingVertical = FormaTokens.Spacing.sm
-
     // MARK: Progress
 
     static let progressBarHeight: CGFloat = 6
     static let heroProgressBarHeight: CGFloat = 8
-
-    /// Legacy padding below the last Journey section (tab clearance is handled by `MainTabPageScaffold`).
-    static let scrollBottomContentPadding = FormaMainTabLayout.scrollContentBottomPadding
 }

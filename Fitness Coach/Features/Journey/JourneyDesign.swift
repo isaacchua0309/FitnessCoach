@@ -7,8 +7,6 @@
 
 import SwiftUI
 
-// MARK: - Section labels
-
 // MARK: - Cards
 
 enum JourneyCardElevation {

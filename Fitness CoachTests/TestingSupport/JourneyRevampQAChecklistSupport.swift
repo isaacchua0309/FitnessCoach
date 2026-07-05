@@ -254,7 +254,7 @@ enum JourneyRevampQAChecklistSupport {
 
         XCTAssertGreaterThan(contentWidth, 280, file: file, line: line)
         XCTAssertGreaterThan(FormaMainTabLayout.scrollBottomInset, FormaMainTabLayout.scrollContentBottomPadding)
-        XCTAssertEqual(JourneyLayout.scrollBottomContentPadding, FormaMainTabLayout.scrollContentBottomPadding)
+        XCTAssertGreaterThan(FormaMainTabLayout.scrollContentBottomPadding, 0)
         XCTAssertEqual(JourneyLayout.sectionSpacing, FormaMainTabLayout.sectionSpacing)
     }
 
