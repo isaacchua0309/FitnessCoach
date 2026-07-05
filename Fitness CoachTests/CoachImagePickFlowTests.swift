@@ -28,6 +28,7 @@ final class CoachImagePickFlowTests: XCTestCase {
         XCTAssertFalse(pending.thumbnail.isEmpty)
         XCTAssertNotEqual(pending.uploadData, pending.thumbnail)
         XCTAssertEqual(pending.status, .ready)
+        XCTAssertTrue(pending.hasValidReadyAttachment)
     }
 
     func testCameraCaptureSendUsesProcessedUploadBytes() async throws {
@@ -82,7 +83,7 @@ final class CoachImagePickFlowTests: XCTestCase {
 
         flow.setStateForTests(.processingImage(.library))
 
-        XCTAssertFalse(flow.beginPhotoLibraryPick(model: model))
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .rejectedFlowBusy)
         await flow.beginCameraPick(model: model)
         XCTAssertEqual(flow.state, .processingImage(.library))
     }
@@ -152,7 +153,7 @@ final class CoachImagePickFlowTests: XCTestCase {
         let flow = CoachImagePickFlowController()
         flow.setStateForTests(.pickerPresented(.library))
 
-        flow.markLibrarySelectionReceived()
+        flow.markLibrarySelectionReceived(claimedPickID: try XCTUnwrap(flow.activeLibraryPickSessionID))
         flow.handlePhotoLibraryPickerDismissed()
 
         XCTAssertEqual(flow.state, .pickerPresented(.library))

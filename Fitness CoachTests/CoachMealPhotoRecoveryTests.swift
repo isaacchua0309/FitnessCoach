@@ -10,6 +10,12 @@ import XCTest
 
 final class CoachMealPhotoRecoveryTests: XCTestCase {
 
+    func testAttachFailedUsesDedicatedCopy() {
+        let message = CoachResponseBuilder.mealPhotoError(.attachFailed)
+        XCTAssertEqual(message, FormaProductCopy.Coach.mealPhotoAttachFailed)
+        XCTAssertTrue(CoachMealPhotoError.attachFailed.supportsComposerRetry)
+    }
+
     func testEncodingFailedUsesPreparationCopyWithoutCropGuidance() {
         let message = CoachResponseBuilder.mealPhotoError(.encodingFailed)
         XCTAssertEqual(message, FormaProductCopy.Coach.mealPhotoPreparationFailed)

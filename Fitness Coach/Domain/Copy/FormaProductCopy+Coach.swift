@@ -49,6 +49,8 @@ extension FormaProductCopy {
         static let composerImageRetry = "Retry"
         static let mealPhotoPreparationFailed =
             "Couldn't prepare this photo. Try taking another photo in better lighting."
+        static let mealPhotoAttachFailed =
+            "We couldn't attach that photo. Please try again."
         static let photoAnalysisLeadIn = "From your meal photo:"
         static let foodEditPortionFooter = "Edit if the portion or cut is different."
         static let foodEditIngredientsFooter = "Edit if you know the ingredients."

@@ -32,6 +32,20 @@ final class CoachInputStateTests: XCTestCase {
         XCTAssertTrue(state.canStartImageSelection)
     }
 
+    func testProcessingDisablesSendButKeepsPreviewVisibleDuringReplacement() throws {
+        var state = CoachInputState.empty
+        let jpeg = try makeTestJPEG()
+        XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
+        XCTAssertTrue(state.pendingImage?.showsComposerPreview == true)
+
+        state.beginProcessingNewSelection(source: .camera)
+
+        XCTAssertFalse(state.canSend)
+        XCTAssertFalse(state.canStartImageSelection)
+        XCTAssertTrue(state.isImageProcessing)
+        XCTAssertTrue(state.pendingImage?.showsComposerPreview == true)
+    }
+
     func testProcessingDisablesSendAndNewSelection() throws {
         var state = CoachInputState.empty
         let jpeg = try makeTestJPEG()

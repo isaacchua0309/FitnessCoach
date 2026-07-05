@@ -66,10 +66,14 @@ final class CoachInputCoordinator {
     }
 
     func attachPendingImageLocalReference(_ id: UUID) {
+        let previousID = state.pendingImage?.localReferenceID
         mutateState { state in
             guard var pending = state.pendingImage else { return }
             pending.localReferenceID = id
             state.pendingImage = pending
+        }
+        if let previousID, previousID != id {
+            pendingImageLocalSources.remove(previousID)
         }
     }
 
@@ -79,7 +83,9 @@ final class CoachInputCoordinator {
 
     @discardableResult
     func beginPendingImageProcessing(source: CoachInputAttachmentSource) -> Bool {
-        guard state.canStartImageSelection else { return false }
+        guard state.canStartImageSelection else {
+            return false
+        }
         mutateState { $0.beginProcessingNewSelection(source: source) }
         return true
     }
@@ -120,15 +126,34 @@ final class CoachInputCoordinator {
             return true
         }
 
-        guard staged else { return false }
+        guard staged else {
+            return false
+        }
 
         CoachMealPhotoPipeline.assertImagePayloadPresent(processed.uploadData)
+        #if DEBUG
+        assert(
+            state.pendingImage?.hasValidReadyAttachment == true,
+            "Staged pending image must satisfy the unified ready attachment contract"
+        )
+        #endif
         return true
     }
 
     func failPendingImageProcessing(_ error: CoachMealPhotoError) {
         guard hasActivePendingImageImport() else { return }
         mutateState { $0.failImageProcessing(error) }
+    }
+
+    func reportComposerImageSelectionError(_ error: CoachMealPhotoError) {
+        guard error != .userCancelled else { return }
+        mutateState { state in
+            if var pending = state.pendingImage, pending.isProcessing {
+                pending.status = .failed
+                state.pendingImage = pending
+            }
+            state.imageError = error
+        }
     }
 
     func revertPendingImageProcessingCancel() {

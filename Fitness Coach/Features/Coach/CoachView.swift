@@ -21,6 +21,8 @@ struct CoachView: View {
     var isActive: Bool = true
 
     @State private var photoPickerItem: PhotosPickerItem?
+    @State private var presentedLibraryPickID: UUID?
+    @State private var photoLibrarySelectionTask: Task<Void, Never>?
     @State private var isRetryingCoachSession = false
 
     init(model: CoachModel, isActive: Bool = true) {
@@ -127,17 +129,11 @@ struct CoachView: View {
                 matching: .images
             )
             .onChange(of: imagePickFlow.isPhotoPickerPresented) { _, isPresented in
-                if !isPresented {
-                    imagePickFlow.handlePhotoLibraryPickerDismissed()
-                }
+                guard !isPresented else { return }
+                imagePickFlow.handlePhotoLibraryPickerDismissed()
             }
             .onChange(of: photoPickerItem) { _, item in
-                guard let item else { return }
-                photoPickerItem = nil
-                imagePickFlow.markLibrarySelectionReceived()
-                Task {
-                    await imagePickFlow.handlePhotoLibrarySelection(item, model: model)
-                }
+                handlePhotoPickerItemChanged(item)
             }
             .fullScreenCover(
                 isPresented: $imagePickFlow.isCameraPresented,
@@ -235,6 +231,10 @@ struct CoachView: View {
                 handleAttachmentSelection(option)
             },
             onRemoveAttachment: {
+                photoLibrarySelectionTask?.cancel()
+                photoLibrarySelectionTask = nil
+                photoPickerItem = nil
+                presentedLibraryPickID = nil
                 model.removeStagedMealPhoto()
                 imagePickFlow.handleAttachmentRemoved()
             },
@@ -280,7 +280,7 @@ struct CoachView: View {
         speechService.stopRecording()
         switch prompt.behavior {
         case .openPhotoPicker:
-            _ = imagePickFlow.beginPhotoLibraryPick(model: model)
+            requestPhotoLibraryPick()
         case .prefill:
             Task { await model.applyStarterPromptSpec(prompt) }
             isInputFocused = true
@@ -297,7 +297,55 @@ struct CoachView: View {
                 await imagePickFlow.beginCameraPick(model: model)
             }
         case .choosePhoto:
-            _ = imagePickFlow.beginPhotoLibraryPick(model: model)
+            requestPhotoLibraryPick()
+        }
+    }
+
+    private func requestPhotoLibraryPick() {
+        photoLibrarySelectionTask?.cancel()
+        photoLibrarySelectionTask = nil
+        photoPickerItem = nil
+
+        switch imagePickFlow.beginPhotoLibraryPick(model: model) {
+        case .started:
+            presentedLibraryPickID = imagePickFlow.activeLibraryPickSessionID
+        case .rejectedComposerImageProcessing:
+            presentedLibraryPickID = nil
+        case .rejectedFlowBusy, .rejectedComposerSending:
+            presentedLibraryPickID = nil
+        }
+    }
+
+    private func handlePhotoPickerItemChanged(_ item: PhotosPickerItem?) {
+        guard let item else { return }
+
+        let selectedItem = item
+
+        guard let pickID = presentedLibraryPickID else {
+            photoPickerItem = nil
+            return
+        }
+
+        guard photoLibrarySelectionTask == nil else {
+            photoPickerItem = nil
+            return
+        }
+
+        imagePickFlow.markLibrarySelectionReceived(claimedPickID: pickID)
+        let selectionWasAccepted = imagePickFlow.debugLibrarySelectionReceivedForLogging()
+        guard imagePickFlow.beginPhotoLibrarySelectionHandling() else {
+            photoPickerItem = nil
+            if selectionWasAccepted {
+                imagePickFlow.handleDroppedLibrarySelection(model: model)
+            }
+            return
+        }
+
+        photoPickerItem = nil
+
+        photoLibrarySelectionTask = Task { @MainActor in
+            await imagePickFlow.handlePhotoLibrarySelection(selectedItem, model: model)
+            photoLibrarySelectionTask = nil
         }
     }
 

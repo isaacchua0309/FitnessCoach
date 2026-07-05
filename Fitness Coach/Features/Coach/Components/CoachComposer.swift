@@ -41,19 +41,23 @@ struct CoachComposer: View {
     }
 
     private var canSend: Bool {
-        !isSending && !isProcessingImage && (!trimmedText.isEmpty || hasAttachmentPreview)
+        !isSending && !isProcessingImage && (!trimmedText.isEmpty || hasReadyPendingImage)
     }
 
     private var showVoiceButton: Bool {
-        (text.isEmpty && !hasAttachmentPreview && !isSending) || isListening
+        (text.isEmpty && !hasReadyPendingImage && !isSending) || isListening
     }
 
     private var showSendButton: Bool {
         canSend && !isListening
     }
 
-    private var hasAttachmentPreview: Bool {
+    private var hasReadyPendingImage: Bool {
         pendingImage?.isReady == true
+    }
+
+    private var showsAttachmentThumbnail: Bool {
+        pendingImage?.showsComposerPreview == true
     }
 
     var body: some View {
@@ -92,7 +96,7 @@ struct CoachComposer: View {
 
     private var composerCapsule: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if let pendingImage, pendingImage.isReady {
+            if let pendingImage, pendingImage.showsComposerPreview {
                 attachmentPreviewStrip(pendingImage)
                     .padding(.horizontal, CoachDesignTokens.Spacing.sm)
                     .padding(.top, CoachDesignTokens.Spacing.sm)
@@ -140,7 +144,7 @@ struct CoachComposer: View {
                     .transition(.opacity)
             }
 
-            if hasAttachmentPreview {
+            if showsAttachmentThumbnail {
                 composerDivider
             }
 
