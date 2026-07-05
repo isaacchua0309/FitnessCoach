@@ -295,12 +295,42 @@ struct AIDailyReviewRequest: Codable, Equatable, Sendable {
 }
 
 struct AIDailyReviewResponse: Codable, Equatable, Sendable {
-    var response: AICoachResponse
+    var review: DailyReviewAIResponse
     var usage: AIUsageMetadata?
 
-    init(response: AICoachResponse, usage: AIUsageMetadata? = nil) {
-        self.response = response
+    init(review: DailyReviewAIResponse, usage: AIUsageMetadata? = nil) {
+        self.review = review
         self.usage = usage
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let review = try container.decodeIfPresent(DailyReviewAIResponse.self, forKey: .review) {
+            self.review = review
+        } else if let legacy = try container.decodeIfPresent(AICoachResponse.self, forKey: .response) {
+            self.review = DailyReviewAIResponse(
+                statusSummary: legacy.message,
+                bestNextMove: legacy.message
+            )
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.review,
+                .init(codingPath: container.codingPath, debugDescription: "Expected review or legacy response")
+            )
+        }
+        self.usage = try container.decodeIfPresent(AIUsageMetadata.self, forKey: .usage)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(review, forKey: .review)
+        try container.encodeIfPresent(usage, forKey: .usage)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case review
+        case response
+        case usage
     }
 }
 

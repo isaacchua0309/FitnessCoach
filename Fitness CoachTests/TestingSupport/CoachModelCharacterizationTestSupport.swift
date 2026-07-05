@@ -246,14 +246,14 @@ final class CharacterizationAIService: AIServiceProtocol, @unchecked Sendable {
   }
 
   func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-    AICoachResponse(message: "Stub review.", confidence: .medium)
+    DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
   }
 
   func generateDailyReviewText(
     input: DailyReviewAIInput,
     context: CoachContextPacketV2
-  ) async throws -> AICoachResponse {
-    AICoachResponse(message: "Stub review.", confidence: .medium)
+  ) async throws -> DailyReviewAIResponse {
+    DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
   }
 
   func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
@@ -314,7 +314,7 @@ final class CharacterizationClarifyingPhotoAIService: AIServiceProtocol, @unchec
     intentResult: CoachIntentResult?,
     tier: CoachModelTier
   ) async throws -> AICoachResponse {
-    AICoachResponse(message: "Stub", confidence: .medium)
+    DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
   }
 
   func generateNutritionEstimate(
@@ -348,14 +348,14 @@ final class CharacterizationClarifyingPhotoAIService: AIServiceProtocol, @unchec
   }
 
   func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-    AICoachResponse(message: "Stub", confidence: .medium)
+    DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
   }
 
   func generateDailyReviewText(
     input: DailyReviewAIInput,
     context: CoachContextPacketV2
-  ) async throws -> AICoachResponse {
-    AICoachResponse(message: "Stub", confidence: .medium)
+  ) async throws -> DailyReviewAIResponse {
+    DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
   }
 
   func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {

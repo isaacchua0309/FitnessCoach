@@ -249,6 +249,7 @@ enum CoachResponseBuilder {
     static func dailyReviewActionResult(
         review: DailyReview,
         summary: DailyReviewSummary,
+        aiResponse: DailyReviewAIResponse? = nil,
         contextHints: CoachResponseContextHints? = nil,
         generatedAt: Date = Date(),
         calendar: Calendar = .current
@@ -256,6 +257,7 @@ enum CoachResponseBuilder {
         let payload = DailyReviewPayloadBuilder.buildSafely(
             review: review,
             summary: summary,
+            aiResponse: aiResponse,
             contextHints: contextHints,
             generatedAt: generatedAt,
             calendar: calendar

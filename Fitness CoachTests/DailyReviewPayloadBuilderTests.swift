@@ -131,7 +131,14 @@ final class DailyReviewPayloadBuilderTests: XCTestCase {
 
         XCTAssertNil(payload.detailNote)
         XCTAssertFalse(payload.bestNextMove.lowercased().contains("win"))
-        XCTAssertLessThanOrEqual(payload.statusSummary.count, 160)
+        XCTAssertLessThanOrEqual(
+            payload.statusSummary.count,
+            DailyReviewContentContract.maxStatusSummaryLength
+        )
+        XCTAssertLessThanOrEqual(
+            payload.bestNextMove.count,
+            DailyReviewContentContract.maxBestNextMoveLength
+        )
     }
 
     func testCompactFallbackUsesLocalSummaryOnly() {

@@ -483,6 +483,7 @@ final class CoachMutationExecutor {
             return CoachResponseBuilder.dailyReviewActionResult(
                 review: result.review,
                 summary: result.summary,
+                aiResponse: result.aiResponse,
                 contextHints: contextHints
             )
         } catch ServiceError.missingUserProfile {

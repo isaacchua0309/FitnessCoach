@@ -9,29 +9,42 @@ import Foundation
 
 enum DailyReviewPayloadBuilder {
 
-    private static let maxDetailNoteLength = 100
-    private static let maxFieldLength = 160
+    private static let maxDetailNoteLength = DailyReviewContentContract.maxDetailNoteLength
+    private static let maxStatusSummaryLength = DailyReviewContentContract.maxStatusSummaryLength
+    private static let maxBestNextMoveLength = DailyReviewContentContract.maxBestNextMoveLength
+    private static let maxTomorrowFocusLength = DailyReviewContentContract.maxTomorrowFocusLength
 
     // MARK: - Public API
 
     static func build(
         review: DailyReview,
         summary: DailyReviewSummary,
+        aiResponse: DailyReviewAIResponse? = nil,
         contextHints: CoachResponseContextHints? = nil,
         generatedAt: Date = Date(),
         calendar: Calendar = .current
     ) -> DailyReviewPayload {
-        let snapshot = snapshot(from: summary)
+        let normalizedAI = aiResponse.flatMap {
+            DailyReviewAIResponseNormalizer.normalize(
+                $0,
+                summary: summary,
+                contextHints: contextHints
+            )
+        }
+
         return DailyReviewPayload(
             title: "Daily Review",
             timezoneLabel: timezoneLabel(for: summary.date, generatedAt: generatedAt, calendar: calendar),
             generatedAt: generatedAt,
-            snapshot: snapshot,
-            statusSummary: statusSummary(from: summary),
-            bestNextMove: bestNextMove(from: summary, review: review),
-            tomorrowFocus: tomorrowFocus(from: summary, review: review),
-            missingSignals: missingSignalLabels(from: contextHints?.missingData),
-            detailNote: detailNote(from: review)
+            snapshot: snapshot(from: summary),
+            statusSummary: normalizedAI?.statusSummary ?? statusSummary(from: summary),
+            bestNextMove: normalizedAI?.bestNextMove ?? bestNextMove(from: summary, review: review),
+            tomorrowFocus: normalizedAI?.tomorrowFocus ?? tomorrowFocus(from: summary, review: review),
+            missingSignals: mergedMissingSignals(
+                aiSignals: normalizedAI?.missingSignals,
+                contextHints: contextHints
+            ),
+            detailNote: normalizedAI?.detailNote ?? detailNote(from: review)
         )
     }
 
@@ -39,6 +52,7 @@ enum DailyReviewPayloadBuilder {
     static func buildSafely(
         review: DailyReview,
         summary: DailyReviewSummary,
+        aiResponse: DailyReviewAIResponse? = nil,
         contextHints: CoachResponseContextHints? = nil,
         generatedAt: Date = Date(),
         calendar: Calendar = .current
@@ -46,6 +60,7 @@ enum DailyReviewPayloadBuilder {
         let payload = build(
             review: review,
             summary: summary,
+            aiResponse: aiResponse,
             contextHints: contextHints,
             generatedAt: generatedAt,
             calendar: calendar
@@ -89,6 +104,13 @@ enum DailyReviewPayloadBuilder {
             return false
         }
 
+        guard payload.statusSummary.count <= maxStatusSummaryLength,
+              payload.bestNextMove.count <= maxBestNextMoveLength,
+              (payload.tomorrowFocus?.count ?? 0) <= maxTomorrowFocusLength,
+              (payload.detailNote?.count ?? 0) <= maxDetailNoteLength else {
+            return false
+        }
+
         let fields = [
             payload.statusSummary,
             payload.bestNextMove,
@@ -96,17 +118,27 @@ enum DailyReviewPayloadBuilder {
             payload.detailNote
         ].compactMap { $0 }
 
-        return fields.allSatisfy { $0.count <= maxFieldLength && !looksLikeParagraph($0) }
+        return fields.allSatisfy { !looksLikeParagraph($0) }
+    }
+
+    private static func mergedMissingSignals(
+        aiSignals: [String]?,
+        contextHints: CoachResponseContextHints?
+    ) -> [String] {
+        let deterministic = missingSignalLabels(from: contextHints?.missingData)
+        guard deterministic.isEmpty else { return deterministic }
+        guard let aiSignals else { return [] }
+        let allowed = Set(["Steps", "Workout", "Sleep", "HRV"])
+        return aiSignals.filter { allowed.contains($0) }
     }
 
     private static func looksLikeParagraph(_ text: String) -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count > maxFieldLength else { return false }
         let sentenceCount = trimmed
             .split(whereSeparator: { ".!?".contains($0) })
             .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             .count
-        return sentenceCount > 2
+        return sentenceCount > 2 || trimmed.contains("\n\n")
     }
 
     // MARK: - Snapshot
@@ -299,7 +331,7 @@ enum DailyReviewPayloadBuilder {
         if containsWinLanguage(trimmed), !hasCompletedPositiveOutcome(summary) {
             return defaultNextMove(for: summary)
         }
-        return compactText(trimmed, maxLength: maxFieldLength)
+        return compactText(trimmed, maxLength: maxBestNextMoveLength)
     }
 
     private static func hasCompletedPositiveOutcome(_ summary: DailyReviewSummary) -> Bool {
