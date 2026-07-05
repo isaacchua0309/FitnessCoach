@@ -12,13 +12,15 @@ struct TodaySmartCoachBanner: View {
     let onOpenCoach: (CoachLaunchIntent) -> Void
     var onViewed: (() -> Void)?
 
+    @Environment(\.theme) private var theme
+
     var body: some View {
         if smartCoach.isVisible {
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     Text(smartCoach.message)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let actionTitle = smartCoach.coachActionTitle,

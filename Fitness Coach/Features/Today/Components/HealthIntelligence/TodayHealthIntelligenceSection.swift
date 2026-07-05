@@ -13,9 +13,11 @@ struct TodayHealthIntelligenceSection: View {
     var onNextBestAction: ((TodayHealthNextBestActionDestination) -> Void)?
 
     @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.loggedZoneSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.loggedZoneSpacing) {
             if let staleDataLabel = state.staleDataLabel {
                 staleDataBanner(label: staleDataLabel)
             }
@@ -62,7 +64,7 @@ struct TodayHealthIntelligenceSection: View {
             }
         }
         .accessibilityIdentifier("today-health-intelligence-section")
-        .formaThemeReactive()
+        .todayLiveTheme()
     }
 
     private var shouldShowStandaloneFallback: Bool {

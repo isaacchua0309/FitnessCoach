@@ -12,8 +12,11 @@ struct TodayReadOnlyProgressSection: View {
     let water: WaterSummary
     let calorieSummary: CalorieSummary
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodayMutedSectionLabel(title: FormaProductCopy.Today.MacroBalance.sectionTitle)
 
             TodayNutritionProgressCard(
@@ -23,7 +26,7 @@ struct TodayReadOnlyProgressSection: View {
             )
         }
         .accessibilityElement(children: .contain)
-        .formaThemeReactive()
+        .todayLiveTheme()
     }
 }
 

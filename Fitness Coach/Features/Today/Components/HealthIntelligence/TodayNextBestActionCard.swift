@@ -56,6 +56,7 @@ struct TodayNextBestActionCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityIdentifier("today-hi-next-best-action-card")
+        .todayLiveTheme()
     }
 
     private var resolvedActionTitle: String? {

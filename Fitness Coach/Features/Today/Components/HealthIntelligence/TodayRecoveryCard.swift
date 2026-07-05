@@ -55,6 +55,7 @@ struct TodayRecoveryCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityIdentifier("today-hi-recovery-card")
+        .todayLiveTheme()
     }
 
     @ViewBuilder

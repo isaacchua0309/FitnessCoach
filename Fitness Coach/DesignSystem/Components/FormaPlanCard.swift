@@ -19,7 +19,10 @@ struct FormaPlanCard<Content: View>: View {
             .padding(.horizontal, compact ? FormaTokens.Spacing.sm : FormaTokens.Spacing.md)
             .padding(.vertical, compact ? FormaTokens.Spacing.xs : FormaTokens.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FormaCardChrome.background(.surface))
+            .background {
+                FormaCardChrome.background(.surface)
+            }
+            .todayLiveTheme()
     }
 }
 

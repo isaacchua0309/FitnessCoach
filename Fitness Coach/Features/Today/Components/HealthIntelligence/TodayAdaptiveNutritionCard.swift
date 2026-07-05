@@ -51,6 +51,7 @@ struct TodayAdaptiveNutritionCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityIdentifier("today-hi-adaptive-nutrition-card")
+        .todayLiveTheme()
     }
 
     @ViewBuilder

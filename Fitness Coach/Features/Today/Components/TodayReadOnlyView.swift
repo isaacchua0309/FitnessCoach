@@ -20,6 +20,8 @@ struct TodayReadOnlyView: View {
     let onOpenPlan: () -> Void
 
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
 
     private var sectionSpacing: CGFloat {
         verticalSizeClass == .compact
@@ -70,7 +72,8 @@ struct TodayReadOnlyView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: sectionSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: sectionSpacing) {
             TodayDashboardHeader(date: state.date)
 
             if showsHealthIntelligence, let healthIntelligenceSection {
@@ -143,7 +146,7 @@ struct TodayReadOnlyView: View {
 
             reinforcementBlock
         }
-        .formaThemeReactive()
+        .todayLiveTheme()
     }
 
     private var missionBlock: some View {

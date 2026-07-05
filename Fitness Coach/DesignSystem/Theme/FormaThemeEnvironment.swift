@@ -105,11 +105,13 @@ struct FormaThemeRootState: Equatable, Sendable {
 /// re-render when palette or appearance changes.
 private struct FormaThemeReactiveModifier: ViewModifier {
     @Environment(\.formaResolvedTheme) private var resolvedTheme
+    @Environment(\.theme) private var theme
     @EnvironmentObject private var themeStore: ThemeStore
 
     func body(content: Content) -> some View {
         let _ = resolvedTheme
         let _ = themeStore.themeRevision
+        let _ = theme.accent
         return content
     }
 }

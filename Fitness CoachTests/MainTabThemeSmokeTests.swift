@@ -163,6 +163,10 @@ final class MainTabThemeSmokeTests: XCTestCase {
             contentsOf: root.appendingPathComponent("Fitness Coach/DesignSystem/Theme/FormaThemeScreenModifier.swift"),
             encoding: .utf8
         )
+        let themeEnvironmentSource = try String(
+            contentsOf: root.appendingPathComponent("Fitness Coach/DesignSystem/Theme/FormaThemeEnvironment.swift"),
+            encoding: .utf8
+        )
 
         XCTAssertTrue(
             mainTabSource.contains("@Environment(\\.theme)"),
@@ -179,6 +183,10 @@ final class MainTabThemeSmokeTests: XCTestCase {
         XCTAssertTrue(
             rootModifierSource.contains(".environment(\\.theme, theme)"),
             "Root theme injection must publish semantic ThemeTokens on the environment."
+        )
+        XCTAssertTrue(
+            themeEnvironmentSource.contains("let _ = theme.accent"),
+            "Reactive theme modifier must depend on semantic accent tokens."
         )
         XCTAssertTrue(
             rootModifierSource.contains(".formaThemeReactive()"),

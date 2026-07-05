@@ -12,9 +12,11 @@ struct TodayHealthWorkoutCard: View {
     var isLoading: Bool = false
 
     @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodayMutedSectionLabel(title: state.sectionTitle)
 
             TodayHealthIntelligenceLoadingCard(isLoading: isLoading) {
@@ -45,7 +47,7 @@ struct TodayHealthWorkoutCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
         .accessibilityIdentifier("today-hi-workout-card")
-        .formaThemeReactive()
+        .todayLiveTheme()
     }
 
     @ViewBuilder

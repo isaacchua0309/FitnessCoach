@@ -11,17 +11,19 @@ struct TodayInlineEmptyCard: View {
     let copy: TodayEmptyStateCopy
     let onAction: (() -> Void)?
 
+    @Environment(\.theme) private var theme
+
     var body: some View {
         FormaPlanCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 Text(copy.title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .foregroundStyle(theme.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(copy.body)
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .foregroundStyle(theme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let actionTitle = copy.actionTitle, let onAction {

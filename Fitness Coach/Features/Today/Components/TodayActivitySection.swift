@@ -51,6 +51,7 @@ struct TodayActivitySection: View {
             }
         }
         .accessibilityElement(children: .contain)
+        .todayLiveTheme()
     }
 
     @ViewBuilder

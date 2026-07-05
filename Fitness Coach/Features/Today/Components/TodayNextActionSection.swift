@@ -13,19 +13,23 @@ struct TodayNextActionSection: View {
     var onSecondaryCTA: ((NextBestActionCTA) -> Void)?
     var onViewed: (() -> Void)?
 
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
     private var display: TodayNextActionDisplayModel {
         TodayNextActionFormatting.displayModel(for: action)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        let _ = themeManager.themeRevision
+        return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: display.sectionTitle)
 
             TodayActionCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     Text(display.headline)
                         .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(theme.primaryText)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineLimit(3)
                         .minimumScaleFactor(0.85)
@@ -34,7 +38,7 @@ struct TodayNextActionSection: View {
                     if let subtitle = display.subtitle {
                         Text(subtitle)
                             .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(FormaTokens.Color.textSecondary)
+                            .foregroundStyle(theme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .lineLimit(3)
                             .minimumScaleFactor(0.85)
@@ -52,7 +56,7 @@ struct TodayNextActionSection: View {
         .onAppear {
             onViewed?()
         }
-        .formaThemeReactive()
+        .todayLiveTheme()
     }
 
     @ViewBuilder

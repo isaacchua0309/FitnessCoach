@@ -39,6 +39,7 @@ struct TodayMealsPreview: View {
                 }
             }
         }
+        .todayLiveTheme()
     }
 
     @ViewBuilder
@@ -98,7 +99,7 @@ struct TodayMealsPreview: View {
         .padding(.horizontal, FormaTokens.Spacing.md)
         .padding(.vertical, TodayLayout.cardRowVerticalPadding)
         .background(
-            palette.softBackground.opacity(0.45),
+            theme.accentSoftBackground.opacity(0.45),
             in: RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
         )
         .accessibilityElement(children: .combine)

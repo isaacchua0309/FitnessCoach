@@ -38,6 +38,28 @@ enum TodayLayout {
     static let reinforcementSpacing = FormaTokens.Spacing.sm
 }
 
+// MARK: - Live theme observation
+
+/// Establishes SwiftUI dependencies on the shared theme store and semantic tokens so
+/// Today cards repaint immediately when palette or appearance changes.
+private struct TodayLiveThemeModifier: ViewModifier {
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.theme) private var theme
+
+    func body(content: Content) -> some View {
+        let _ = themeManager.themeRevision
+        let _ = theme.accent
+        let _ = theme.accentLine
+        return content
+    }
+}
+
+extension View {
+    func todayLiveTheme() -> some View {
+        modifier(TodayLiveThemeModifier())
+    }
+}
+
 struct TodaySectionLabel: View {
     let title: String
 
@@ -51,10 +73,12 @@ struct TodaySectionLabel: View {
 struct TodayMutedSectionLabel: View {
     let title: String
 
+    @Environment(\.theme) private var theme
+
     var body: some View {
         Text(title)
             .font(FormaTokens.Typography.caption.weight(.medium))
-            .foregroundStyle(FormaTokens.Color.textTertiary)
+            .foregroundStyle(theme.tertiaryText)
             .textCase(.uppercase)
             .tracking(0.4)
             .accessibilityAddTraits(.isHeader)
@@ -66,13 +90,18 @@ struct TodayMutedSectionLabel: View {
 struct TodayActionCard<Content: View>: View {
     @ViewBuilder var content: Content
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
-        content
+        let _ = themeManager.themeRevision
+        return content
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FormaCardChrome.background(.accentLeading))
-            .formaThemeReactive()
+            .background {
+                FormaCardChrome.background(.accentLeading)
+            }
+            .todayLiveTheme()
     }
 }
 
@@ -81,13 +110,18 @@ struct TodayActionCard<Content: View>: View {
 struct TodayMetricsCard<Content: View>: View {
     @ViewBuilder var content: Content
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
-        content
+        let _ = themeManager.themeRevision
+        return content
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.xs)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FormaCardChrome.background(.surfaceSubtle))
-            .formaThemeReactive()
+            .background {
+                FormaCardChrome.background(.surfaceSubtle)
+            }
+            .todayLiveTheme()
     }
 }
 
@@ -97,6 +131,7 @@ struct TodayMetricProgressBar: View {
     var subdued: Bool = true
     var isOverTarget: Bool = false
 
+    @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.theme) private var theme
 
     private var clampedProgress: Double {
@@ -111,7 +146,8 @@ struct TodayMetricProgressBar: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
+        let _ = themeManager.themeRevision
+        return GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
                     .fill(theme.progressTrack)

@@ -33,8 +33,10 @@ private struct FormaCardChromeBackground: View {
     let style: FormaCardChrome.Style
 
     @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
 
     var body: some View {
+        let _ = themeManager.themeRevision
         switch style {
         case .surface:
             surfaceBackground(accentLeading: false)
