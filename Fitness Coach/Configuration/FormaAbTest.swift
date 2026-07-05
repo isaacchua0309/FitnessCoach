@@ -5,15 +5,31 @@
 //  Forma — Single source of truth for feature gates and rollout toggles.
 //
 //  ## Runtime vs production intent
-//  - **Runtime default:** `FormaAbTestSnapshot.allEnabled` (internal builds and current tests).
+//  - **Runtime default:** `FormaAbTestSnapshot.allEnabled` in DEBUG and Release (PRDX v1).
 //  - **Production intent:** `FormaAbTestSnapshot.production` — documented App Store-safe
-//    defaults for release checklists and production-critical tests. Not wired as the runtime
+//    defaults for release checklists and production-critical tests. Request via
+//    `FormaAbTest.resolvedSnapshot(for: .productionIntent)`; not wired as the runtime
 //    resolver until an explicit release pass approves behavior changes.
 //
 //  Registry: `Docs/Architecture/FeatureFlagRegistry.md`
 //
 
 import Foundation
+
+// MARK: - Runtime environment
+
+/// Selects which snapshot `FormaAbTest.resolvedSnapshot(for:)` returns.
+/// App runtime uses `.debug` or `.release`; tests may also query `.productionIntent`.
+enum FormaRuntimeEnvironment: Sendable, Equatable {
+    /// DEBUG app builds. PRDX v1 runtime still resolves `allEnabled`.
+    case debug
+    /// Release app builds. PRDX v1 runtime still resolves `allEnabled`.
+    case release
+    /// Unit/integration test context without an app build configuration.
+    case test
+    /// Documented App Store ship intent (`FormaAbTestSnapshot.production`). Not the default runtime path.
+    case productionIntent
+}
 
 // MARK: - FormaAbTest
 
@@ -190,12 +206,39 @@ enum FormaAbTest {
 
     // MARK: Snapshot
 
+    /// Snapshot for the live app and default unit-test runtime (`testOverride` when set).
     static func snapshot() -> FormaAbTestSnapshot {
-        testOverride ?? .allEnabled
+        if let testOverride {
+            return testOverride
+        }
+        return resolvedSnapshot(for: currentRuntimeEnvironment)
+    }
+
+    /// Explicit snapshot for a runtime environment without applying `testOverride`.
+    ///
+    /// PRDX v1: `.debug`, `.release`, and `.test` intentionally return `allEnabled`.
+    /// Use `.productionIntent` to read documented ship defaults in tests and checklists.
+    static func resolvedSnapshot(for environment: FormaRuntimeEnvironment) -> FormaAbTestSnapshot {
+        switch environment {
+        case .debug, .release, .test:
+            // PRDX v1 — DEBUG and Release runtime remain allEnabled until product signs off
+            // on wiring `FormaAbTestSnapshot.production` as the Release resolver.
+            return .allEnabled
+        case .productionIntent:
+            return .production
+        }
+    }
+
+    private static var currentRuntimeEnvironment: FormaRuntimeEnvironment {
+        #if DEBUG
+        return .debug
+        #else
+        return .release
+        #endif
     }
 
     private static var resolved: FormaAbTestSnapshot {
-        testOverride ?? .allEnabled
+        snapshot()
     }
 }
 

@@ -101,7 +101,7 @@ npm --prefix functions run test:firestore-rules   # requires Firestore emulator
 | ID | Area | Issue | Resolution |
 |----|------|-------|------------|
 | BW-001 | `functions` ESLint | Unused `field` params in `coachContextPacketV2.ts` validators | Renamed to `_field` |
-| BW-002 | `Fitness CoachTests` target | Duplicate Firebase/GoogleSignIn SPM products linked in test bundle **and** app `debug.dylib` | Removed SPM framework deps from test target (see BW-101 regression) |
+| BW-002 | `Fitness CoachTests` target | Duplicate Firebase/GoogleSignIn SPM products linked in test bundle **and** app `debug.dylib` | **Resolved (2026-07-05)** — SPM products linked for compile-time module resolution; post-build script strips `Frameworks/` from `.xctest` so runtime loads a single copy from the host app |
 | BW-003 | `functions` Jest | `npm test` failed without Firestore emulator | Default `npm test` runs unit suite; `test:all` + `test:firestore-rules` for rules integration |
 | BW-106 | Xcode project | Duplicate `GoogleService-Info.plist` in Copy Bundle Resources (folder-sync + explicit Resources phase) | Removed explicit `PBXBuildFile` / Resources entry; folder-sync group retains file |
 | BW-107 | SwiftUI previews | `previewInterfaceOrientation` / `previewDevice` ignored inside `#Preview` macro | Landscape previews use `traits: .landscapeLeft`; removed ignored `previewDevice` modifiers |
@@ -116,7 +116,7 @@ npm --prefix functions run test:firestore-rules   # requires Firestore emulator
 
 | ID | Category | Symptom | Count (approx.) | Notes / safe fix path |
 |----|----------|---------|-----------------|------------------------|
-| BW-101 | Test compile | `Fitness CoachTests` cannot resolve Firebase/GoogleSignIn SPM modules | 12 errors | BW-002 removed test-target SPM links to avoid runtime duplicate ObjC classes; `@testable import Fitness_Coach` still needs transitive modules at compile time. **Needs design:** link SPM for compile only, or `-enable-testing` module map strategy. Verify with serial `xcodebuild test -parallel-testing-enabled NO` after fix. |
+| BW-101 | Test compile | `Fitness CoachTests` cannot resolve Firebase/GoogleSignIn SPM modules | 12 errors | **Resolved (2026-07-05)** — `Fitness CoachTests` links the same seven SPM products as the app (`FirebaseAnalytics`, `FirebaseAuth`, `FirebaseCore`, `FirebaseFirestore`, `FirebaseFunctions`, `GoogleSignIn`, `SwiftHorizontalRuler`). Verify: `./Scripts/run-fast-core-serial.sh` |
 | BW-102 | Concurrency | `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` project-wide | ~500+ | Per-site `@MainActor` / `nonisolated` / `await MainActor.run` — audit by subsystem; do **not** blanket-suppress. Top buckets: `init()` in nonisolated context, static config flags, `HealthKitManager.mapQueryError`, `resumed` capture in async tests. |
 | BW-104 | Previews | Canvas compile failures on individual screens | — | Triage per-preview; prefer `StubTrainingIntegrationProvider` |
 | BW-105 | Packages | SPM resolution / missing package | — | Run `xcodebuild -resolvePackageDependencies`; commit `Package.resolved` |
@@ -148,15 +148,16 @@ npm --prefix functions run test:firestore-rules   # requires Firestore emulator
 - **App + tests** use `PBXFileSystemSynchronizedRootGroup`. New files under `Fitness Coach/` or `Fitness CoachTests/` are included automatically.
 - **`GoogleService-Info.plist`** is included via folder-sync only (BW-106). Do not re-add to explicit Resources phase.
 - **`Fitness Coach/TestingSupport/StubTrainingIntegrationProvider.swift`** ships in the app target intentionally (previews + test doubles).
-- **Do not** blindly re-add Firebase/GoogleSignIn SPM products to `Fitness CoachTests` — caused duplicate ObjC class crashes (BW-002). Coordinate with BW-101 fix.
+- **Do not** remove SPM products from `Fitness CoachTests` without restoring compile-time module resolution (BW-101).
+- **Do** keep the `Strip Duplicate SPM Frameworks` build phase on `Fitness CoachTests` so XCTest does not embed a second copy of Firebase/GoogleSignIn at runtime (BW-002).
 
 ---
 
 ## Acceptance checklist (pre-merge)
 
 - [x] `xcodebuild build -scheme "Fitness Coach" -destination 'platform=iOS Simulator,name=iPhone 17'` → **BUILD SUCCEEDED**
-- [ ] `xcodebuild build-for-testing` → **TEST BUILD SUCCEEDED** (blocked: BW-101)
-- [ ] `xcodebuild test … -testPlan Fast-Core` → pass (blocked: BW-101)
+- [ ] `xcodebuild build-for-testing` → **TEST BUILD SUCCEEDED** (verify on macOS after BW-101 fix)
+- [ ] `xcodebuild test … -testPlan Fast-Core` → pass (verify: `./Scripts/run-fast-core-serial.sh`)
 - [x] `npm --prefix functions run build` → success
 - [x] `npm --prefix functions run lint` → 0 issues
 - [x] `npm --prefix functions test` → 679 unit tests pass

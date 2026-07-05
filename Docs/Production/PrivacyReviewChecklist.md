@@ -115,7 +115,7 @@ Use before App Store submission, enabling **remote health summary sync**, or cha
 
 | Capability | Status | User-facing |
 |------------|--------|-------------|
-| In-app JSON export | Foundation in `AccountDataExportService` | **Off** — `FormaAbTest.Settings.dataExportEnabled` / `AccountDataExportPolicy` |
+| In-app JSON export | Foundation in `AccountDataExportService` | **Off** — `AccountDataExportPolicy.isEnabled` (compile-time `false`) |
 | Settings export row | Placeholder when off | Shows "Not available" — not a broken action |
 
 **Action:** If enabling export, add share-sheet QA and update App Privacy "Data Used to Track You" / access answers.
