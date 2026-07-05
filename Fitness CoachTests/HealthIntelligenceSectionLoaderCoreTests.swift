@@ -138,7 +138,187 @@ final class HealthIntelligenceSectionLoaderCoreTests: XCTestCase {
         XCTAssertTrue(weeklyReviewService.lastForceRefresh)
     }
 
+    // MARK: - Section loading classification
+
+    func testClassifySectionLoadingReturnsDisabledWhenUIEnabledIsFalse() {
+        let result = HealthIntelligenceSectionLoaderCore.classifySectionLoading(
+            from: HealthIntelligenceSectionLoadingInput(isUIEnabled: false)
+        )
+
+        XCTAssertEqual(result.availability, .disabled)
+        XCTAssertFalse(result.shouldShowSection)
+        XCTAssertNil(result.staleDataLabel)
+        XCTAssertNil(result.partialSignalsLabel)
+        XCTAssertNil(result.unavailableReason)
+    }
+
+    func testClassifySectionLoadingReturnsLoadingWhenSnapshotLoadInProgress() {
+        let result = HealthIntelligenceSectionLoaderCore.classifySectionLoading(
+            from: HealthIntelligenceSectionLoadingInput(
+                isUIEnabled: true,
+                isLoading: true
+            )
+        )
+
+        XCTAssertEqual(result.availability, .loading)
+        XCTAssertTrue(result.shouldShowSection)
+    }
+
+    func testClassifySectionLoadingReturnsLoadingWhenSyncPhaseIsSyncing() {
+        let result = HealthIntelligenceSectionLoaderCore.classifySectionLoading(
+            from: HealthIntelligenceSectionLoadingInput(
+                isUIEnabled: true,
+                syncPhase: .syncing
+            )
+        )
+
+        XCTAssertEqual(result.availability, .loading)
+        XCTAssertTrue(result.shouldShowSection)
+    }
+
+    func testCharacterizationFixtureA_ClassifiesReadyAcrossSurfaces() {
+        for surface in [HealthIntelligenceSurface.today, .plan, .journey] {
+            let result = HealthIntelligenceSectionLoaderCore.classifySectionLoading(
+                from: HealthIntelligencePresentationCharacterizationFixtures.sectionLoadingInput(
+                    for: .fullyReady,
+                    surface: surface
+                )
+            )
+
+            XCTAssertEqual(result.availability, .ready, "Expected ready for \(surface.rawValue)")
+            XCTAssertTrue(result.shouldShowSection)
+            XCTAssertNil(result.staleDataLabel)
+            XCTAssertNil(result.partialSignalsLabel)
+            XCTAssertNil(result.unavailableReason)
+        }
+    }
+
+    func testCharacterizationFixtureB_ClassifiesDisconnectedOrHealthUnavailable() {
+        for surface in [HealthIntelligenceSurface.today, .plan, .journey] {
+            let result = HealthIntelligenceSectionLoaderCore.classifySectionLoading(
+                from: HealthIntelligencePresentationCharacterizationFixtures.sectionLoadingInput(
+                    for: .healthKitDisconnected,
+                    surface: surface
+                )
+            )
+
+            XCTAssertTrue(
+                result.availability == .disconnected || result.availability == .healthUnavailable,
+                "Expected disconnected or healthUnavailable for \(surface.rawValue), got \(result.availability)"
+            )
+            XCTAssertTrue(result.shouldShowSection)
+            XCTAssertNotNil(result.unavailableReason)
+        }
+    }
+
+    func testCharacterizationFixtureC_ClassifiesStaleWithStaleLabel() {
+        let now = Date()
+        for surface in [HealthIntelligenceSurface.today, .plan, .journey] {
+            let result = HealthIntelligenceSectionLoaderCore.classifySectionLoading(
+                from: HealthIntelligencePresentationCharacterizationFixtures.sectionLoadingInput(
+                    for: .staleData,
+                    surface: surface,
+                    now: now
+                )
+            )
+
+            XCTAssertEqual(result.availability, .stale, "Expected stale for \(surface.rawValue)")
+            XCTAssertTrue(result.shouldShowSection)
+            XCTAssertNotNil(result.staleDataLabel)
+            XCTAssertNil(result.unavailableReason)
+        }
+    }
+
+    func testCharacterizationFixtureD_ClassifiesPartialWithPartialSignalsLabelOnJourney() {
+        let now = Date()
+        let today = HealthIntelligenceSectionLoaderCore.classifySectionLoading(
+            from: HealthIntelligencePresentationCharacterizationFixtures.sectionLoadingInput(
+                for: .partialSignals,
+                surface: .today,
+                now: now
+            )
+        )
+        let journey = HealthIntelligenceSectionLoaderCore.classifySectionLoading(
+            from: HealthIntelligencePresentationCharacterizationFixtures.sectionLoadingInput(
+                for: .partialSignals,
+                surface: .journey,
+                now: now
+            )
+        )
+
+        XCTAssertEqual(today.availability, .partial)
+        XCTAssertTrue(today.shouldShowSection)
+        XCTAssertNil(today.partialSignalsLabel)
+
+        XCTAssertEqual(journey.availability, .partial)
+        XCTAssertTrue(journey.shouldShowSection)
+        XCTAssertNotNil(journey.partialSignalsLabel)
+    }
+
+    func testCharacterizationFixtureE_ClassifiesReadyWhenWeeklyReviewUnavailable() {
+        for surface in [HealthIntelligenceSurface.today, .plan, .journey] {
+            let result = HealthIntelligenceSectionLoaderCore.classifySectionLoading(
+                from: HealthIntelligencePresentationCharacterizationFixtures.sectionLoadingInput(
+                    for: .weeklyReviewUnavailable,
+                    surface: surface,
+                    weeklyReviewEnabled: false
+                )
+            )
+
+            XCTAssertEqual(result.availability, .ready, "Expected ready for \(surface.rawValue)")
+            XCTAssertTrue(result.shouldShowSection)
+            XCTAssertNil(result.unavailableReason)
+        }
+    }
+
+    func testClassifySectionLoadingReturnsEmptyWhenEnginesUnavailableWithoutCachedData() {
+        let result = HealthIntelligenceSectionLoaderCore.classifySectionLoading(
+            from: HealthIntelligenceSectionLoadingInput(
+                isUIEnabled: true,
+                enginesEnabled: false,
+                snapshot: nil,
+                availability: deniedAvailability(),
+                isAppleHealthConnected: false,
+                cachedDayCount: 0
+            )
+        )
+
+        XCTAssertEqual(result.availability, .empty)
+        XCTAssertTrue(result.shouldShowSection)
+        XCTAssertNotNil(result.unavailableReason)
+    }
+
+    func testShouldShowConnectOnlySectionDelegatesToPresentationPolicy() {
+        let uiState = HealthIntelligenceUIState(
+            kind: .noHealthPermission,
+            title: "Connect Apple Health",
+            message: "Permission needed",
+            primaryActionTitle: "Connect",
+            secondaryActionTitle: nil,
+            primaryAction: .connectAppleHealth,
+            secondaryAction: .none,
+            severity: .warning,
+            canShowInsight: false,
+            confidenceLabel: nil,
+            missingSignals: [],
+            fallbackReason: .permissionsRequired
+        )
+
+        XCTAssertEqual(
+            HealthIntelligenceSectionLoaderCore.shouldShowConnectOnlySection(uiState: uiState),
+            HealthIntelligencePresentationPolicy.shouldShowConnectOnlySection(uiState: uiState)
+        )
+    }
+
     // MARK: - Helpers
+
+    private func deniedAvailability() -> HealthDataAvailability {
+        HealthDataAvailability(
+            isHealthDataAvailable: false,
+            permissionStatus: .unavailable(),
+            cachedDayCount: 0
+        )
+    }
 
     private func makeSnapshot(
         on day: Date,

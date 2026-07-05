@@ -594,4 +594,81 @@ enum HealthIntelligencePresentationCharacterizationFixtures {
 
     return HealthIntelligenceUIStateMapper.resolve(context)
   }
+
+  // MARK: - Section loading classification inputs
+
+  static func sectionLoadingInput(
+    for fixture: Fixture,
+    surface: HealthIntelligenceSurface,
+    isUIEnabled: Bool = true,
+    isLoading: Bool = false,
+    enginesEnabled: Bool = true,
+    weeklyReviewEnabled: Bool = true,
+    now: Date = Date()
+  ) -> HealthIntelligenceSectionLoadingInput {
+    let snapshot: HealthIntelligenceSnapshot?
+    let availability: HealthDataAvailability?
+    let isConnected: Bool
+    let cachedDayCount: Int
+    let lastSync: Date?
+    let weeklyReview: WeeklyHealthReview?
+
+    switch fixture {
+    case .fullyReady:
+      snapshot = fullyReadyWorkoutSnapshot()
+      availability = connectedAvailability
+      isConnected = true
+      cachedDayCount = connectedAvailability.cachedDayCount
+      lastSync = now
+      weeklyReview = surface == .journey ? weeklyReview() : nil
+
+    case .healthKitDisconnected:
+      snapshot = disconnectedSnapshot()
+      availability = deniedAvailability
+      isConnected = false
+      cachedDayCount = 0
+      lastSync = nil
+      weeklyReview = nil
+
+    case .staleData:
+      snapshot = fullyReadyWorkoutSnapshot()
+      availability = connectedAvailability
+      isConnected = true
+      cachedDayCount = 10
+      lastSync = staleLastSyncAt(from: now)
+      weeklyReview = nil
+
+    case .partialSignals:
+      snapshot = partialSignalsSnapshot()
+      availability = partialStepsOnlyAvailability
+      isConnected = true
+      cachedDayCount = partialStepsOnlyAvailability.cachedDayCount
+      lastSync = now
+      weeklyReview = nil
+
+    case .weeklyReviewUnavailable:
+      snapshot = fullyReadyWorkoutSnapshot()
+      availability = connectedAvailability
+      isConnected = true
+      cachedDayCount = connectedAvailability.cachedDayCount
+      lastSync = now
+      weeklyReview = nil
+    }
+
+    return HealthIntelligenceSectionLoadingInput(
+      isUIEnabled: isUIEnabled,
+      isLoading: isLoading,
+      enginesEnabled: enginesEnabled,
+      weeklyReviewEnabled: weeklyReviewEnabled,
+      weeklyReview: weeklyReview,
+      snapshot: snapshot,
+      availability: availability,
+      isAppleHealthConnected: isConnected,
+      cachedDayCount: cachedDayCount,
+      lastSuccessfulLocalSyncAt: lastSync,
+      surface: surface,
+      trainingIntegrationState: isConnected ? .connected : .notConnected,
+      connectionRecord: isConnected ? completedConnectionRecord : .empty
+    )
+  }
 }

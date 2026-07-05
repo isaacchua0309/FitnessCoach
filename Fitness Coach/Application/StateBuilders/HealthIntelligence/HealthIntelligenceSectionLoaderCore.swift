@@ -8,6 +8,48 @@
 
 import Foundation
 
+// MARK: - Section loading classification
+
+enum HealthIntelligenceSectionAvailability: Equatable, Sendable {
+    case disabled
+    case healthUnavailable
+    case disconnected
+    case loading
+    case empty
+    case ready
+    case stale
+    case partial
+}
+
+struct HealthIntelligenceSectionLoadingResult: Equatable, Sendable {
+    let availability: HealthIntelligenceSectionAvailability
+    let shouldShowSection: Bool
+    let staleDataLabel: String?
+    let partialSignalsLabel: String?
+    let unavailableReason: String?
+}
+
+struct HealthIntelligenceSectionLoadingInput: Equatable, Sendable {
+    var isUIEnabled: Bool = true
+    var isLoading: Bool = false
+    var enginesEnabled: Bool = true
+    var weeklyReviewEnabled: Bool = true
+    var weeklyReview: WeeklyHealthReview? = nil
+    var snapshot: HealthIntelligenceSnapshot? = nil
+    var availability: HealthDataAvailability? = nil
+    var isAppleHealthConnected: Bool = false
+    var cachedDayCount: Int = 0
+    var errorMessage: String? = nil
+    var syncPhase: HealthSyncPhase? = nil
+    var lastSuccessfulLocalSyncAt: Date? = nil
+    var baseline: HealthBaselineContext? = nil
+    var surface: HealthIntelligenceSurface = .today
+    var trainingIntegrationState: TrainingIntegrationState = .notConnected
+    var connectionRecord: HealthIntegrationConnectionRecord = .empty
+    var isRemoteSyncCapabilityEnabled: Bool = false
+    var remoteSyncConsentDecision: HealthSummarySyncConsentDecision = .notDetermined
+}
+
 enum HealthIntelligenceSectionLoaderCore {
 
     // MARK: - Parallel fetch
@@ -59,15 +101,41 @@ enum HealthIntelligenceSectionLoaderCore {
         return .notConnected
     }
 
+    // MARK: - Section loading / gating classification
+
+    /// Classifies shared loading and gating state for Today, Plan, and Journey.
+    /// Tab loaders retain surface-specific fetch orchestration and presentation wiring.
+    static func classifySectionLoading(
+        from input: HealthIntelligenceSectionLoadingInput
+    ) -> HealthIntelligenceSectionLoadingResult {
+        guard input.isUIEnabled else {
+            return HealthIntelligenceSectionLoadingResult(
+                availability: .disabled,
+                shouldShowSection: false,
+                staleDataLabel: nil,
+                partialSignalsLabel: nil,
+                unavailableReason: nil
+            )
+        }
+
+        if input.isLoading || input.syncPhase == .syncing {
+            return makeLoadingResult()
+        }
+
+        let uiState = resolveUIState(from: input)
+
+        if uiState.kind == .loading {
+            return makeLoadingResult()
+        }
+
+        let availability = mapSectionAvailability(uiState: uiState, input: input)
+        return makeResult(availability: availability, uiState: uiState, input: input)
+    }
+
     // MARK: - UI gating
 
     static func shouldShowConnectOnlySection(uiState: HealthIntelligenceUIState) -> Bool {
-        switch uiState.kind {
-        case .noHealthPermission, .healthKitUnavailable:
-            return !uiState.canShowInsight
-        default:
-            return false
-        }
+        HealthIntelligencePresentationPolicy.shouldShowConnectOnlySection(uiState: uiState)
     }
 
     // MARK: - UI state resolution
@@ -110,6 +178,27 @@ enum HealthIntelligenceSectionLoaderCore {
                 remoteSyncConsentDecision: remoteSyncConsentDecision,
                 surface: surface
             )
+        )
+    }
+
+    static func resolveUIState(
+        from input: HealthIntelligenceSectionLoadingInput
+    ) -> HealthIntelligenceUIState {
+        resolveUIState(
+            snapshot: input.snapshot,
+            isLoading: false,
+            availability: input.availability,
+            isAppleHealthConnected: input.isAppleHealthConnected,
+            cachedDayCount: resolvedCachedDayCount(from: input),
+            errorMessage: input.errorMessage,
+            syncPhase: input.syncPhase,
+            surface: input.surface,
+            baseline: input.baseline,
+            lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
+            isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: input.remoteSyncConsentDecision,
+            trainingIntegrationState: input.trainingIntegrationState,
+            connectionRecord: input.connectionRecord
         )
     }
 
@@ -156,5 +245,117 @@ enum HealthIntelligenceSectionLoaderCore {
             baseline: baseline,
             cachedDayCount: cachedDayCount
         )
+    }
+
+    // MARK: - Private classification helpers
+
+    private static func makeLoadingResult() -> HealthIntelligenceSectionLoadingResult {
+        HealthIntelligenceSectionLoadingResult(
+            availability: .loading,
+            shouldShowSection: true,
+            staleDataLabel: nil,
+            partialSignalsLabel: nil,
+            unavailableReason: nil
+        )
+    }
+
+    private static func makeResult(
+        availability: HealthIntelligenceSectionAvailability,
+        uiState: HealthIntelligenceUIState,
+        input: HealthIntelligenceSectionLoadingInput
+    ) -> HealthIntelligenceSectionLoadingResult {
+        HealthIntelligenceSectionLoadingResult(
+            availability: availability,
+            shouldShowSection: input.isUIEnabled,
+            staleDataLabel: HealthIntelligencePresentationCore.staleDataLabel(
+                for: uiState,
+                surface: input.surface
+            ),
+            partialSignalsLabel: HealthIntelligencePresentationCore.partialSignalsNote(
+                for: uiState,
+                surface: input.surface
+            ),
+            unavailableReason: unavailableReason(
+                availability: availability,
+                uiState: uiState,
+                input: input
+            )
+        )
+    }
+
+    private static func mapSectionAvailability(
+        uiState: HealthIntelligenceUIState,
+        input: HealthIntelligenceSectionLoadingInput
+    ) -> HealthIntelligenceSectionAvailability {
+        if snapshotPromptsConnectHealth(input.snapshot) {
+            return .disconnected
+        }
+
+        if isEnginesUnavailableWithoutData(input: input) {
+            return .empty
+        }
+
+        switch uiState.kind {
+        case .loading:
+            return .loading
+        case .healthKitUnavailable:
+            return .healthUnavailable
+        case .noHealthPermission:
+            return .disconnected
+        case .partialPermission:
+            return .partial
+        case .staleData:
+            return .stale
+        case .ready:
+            return .ready
+        case .syncFailed:
+            return uiState.canShowInsight ? .stale : .empty
+        case .noSleepData, .noHeartData:
+            return .partial
+        case .noWorkoutHistory:
+            return .partial
+        case .notEnoughBaseline, .unknown, .remoteSyncDisabled:
+            return .empty
+        }
+    }
+
+    private static func isEnginesUnavailableWithoutData(
+        input: HealthIntelligenceSectionLoadingInput
+    ) -> Bool {
+        !input.enginesEnabled
+            && input.cachedDayCount == 0
+            && input.snapshot == nil
+            && !input.isAppleHealthConnected
+            && input.availability?.hasAnyReadableSignal != true
+    }
+
+    private static func unavailableReason(
+        availability: HealthIntelligenceSectionAvailability,
+        uiState: HealthIntelligenceUIState,
+        input: HealthIntelligenceSectionLoadingInput
+    ) -> String? {
+        switch availability {
+        case .disabled, .loading, .ready, .stale, .partial:
+            return nil
+        case .healthUnavailable, .disconnected, .empty:
+            if !input.enginesEnabled,
+               input.cachedDayCount == 0,
+               input.snapshot == nil {
+                return trimmedMessage(uiState.message) ?? trimmedMessage(input.errorMessage)
+            }
+            return trimmedMessage(uiState.message)
+        }
+    }
+
+    private static func resolvedCachedDayCount(
+        from input: HealthIntelligenceSectionLoadingInput
+    ) -> Int {
+        input.cachedDayCount > 0 ? input.cachedDayCount : (input.availability?.cachedDayCount ?? 0)
+    }
+
+    private static func trimmedMessage(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
