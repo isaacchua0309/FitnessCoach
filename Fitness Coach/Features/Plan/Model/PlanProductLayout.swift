@@ -12,6 +12,7 @@ enum PlanProductSection: String, CaseIterable, Equatable {
     case goalProgress = "goal_progress"
     case todayMission = "today_mission"
     case planStatus = "plan_status"
+    case weeklyRecommendation = "weekly_recommendation"
     case whyThisWorks = "why_this_works"
     case planConfidence = "plan_confidence"
     case whenToAdjust = "when_to_adjust"
@@ -27,6 +28,7 @@ enum PlanProductLayout {
         .goalProgress,
         .todayMission,
         .planStatus,
+        .weeklyRecommendation,
         .whyThisWorks,
         .planConfidence,
         .whenToAdjust,
@@ -40,6 +42,7 @@ enum PlanProductLayout {
         .goalProgress,
         .todayMission,
         .planStatus,
+        .weeklyRecommendation,
         .whyThisWorks,
         .planConfidence
     ]

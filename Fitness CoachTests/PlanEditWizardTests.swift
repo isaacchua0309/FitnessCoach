@@ -64,6 +64,7 @@ final class PlanEditWizardTests: XCTestCase {
 
         XCTAssertEqual(steps[steps.count - 2], .reviewChanges)
         XCTAssertEqual(steps.last, .confirmTargets)
+        XCTAssertEqual(PlanEditWizardFlow.weeklyReviewEntryStep, .reviewChanges)
     }
 
     func testActivityDeepLinkResolvesToActivityStepIndex() {

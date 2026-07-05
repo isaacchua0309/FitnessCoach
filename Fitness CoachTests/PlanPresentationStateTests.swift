@@ -98,10 +98,11 @@ final class PlanPresentationStateTests: XCTestCase {
         XCTAssertFalse(state.explanation.guidanceCopy.isEmpty)
         XCTAssertFalse(state.confidence.sectionTitle.isEmpty)
         XCTAssertFalse(state.adjustmentRules.rules.isEmpty)
-        XCTAssertEqual(state.adjustmentRules.rules.count, 4)
+        XCTAssertEqual(state.adjustmentRules.rules.count, 5)
         XCTAssertFalse(state.assumptions.sectionTitle.isEmpty)
         XCTAssertFalse(state.review.headline.isEmpty)
         XCTAssertEqual(state.review.sectionTitle, "Next Review")
+        XCTAssertEqual(state.weeklyRecommendation.sectionTitle, "Weekly recommendation")
         XCTAssertEqual(state.adjustPlanCTA.buttonTitle, FormaProductCopy.PlanMissionControl.adjustPlan)
         XCTAssertTrue(state.adjustPlanCTA.isEnabled)
     }

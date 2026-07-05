@@ -366,6 +366,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         XCTAssertEqual(order.first, "header")
         XCTAssertTrue(order.contains("transformation"))
         XCTAssertTrue(order.contains("goalProjection"))
+        XCTAssertTrue(order.contains("weeklyProgress"))
         XCTAssertTrue(order.contains("healthIntelligence"))
         XCTAssertTrue(order.contains("weeklyReview"))
         XCTAssertTrue(order.contains("insights"))

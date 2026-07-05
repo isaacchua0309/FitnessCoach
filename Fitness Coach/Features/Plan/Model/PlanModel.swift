@@ -21,6 +21,8 @@ final class PlanModel: ObservableObject {
     @Published private(set) var formErrorMessage: String?
     @Published var editFormState: PlanFormState?
     @Published var editPlanInitialStep: PlanEditWizardStep = .goalAndTargetWeight
+    @Published private(set) var editWeeklyReviewContext: PlanEditWeeklyReviewContext?
+    @Published var shouldHighlightWeeklyRecommendation = false
     @Published private(set) var editBaselineProfile: UserProfile?
 
     private var settingsBaselineProfile: UserProfile?
@@ -29,6 +31,7 @@ final class PlanModel: ObservableObject {
     private var activeRefreshTask: Task<Void, Never>?
 
     private var loggedSectionImpressions = Set<PlanAnalyticsSectionImpression>()
+    private var cachedWeeklyProgressSummary: WeeklyProgressSummary?
 
     private let actionCenter: FitnessActionCenter
     private let userProfileReader: any UserProfileReading
@@ -37,6 +40,7 @@ final class PlanModel: ObservableObject {
     private let weightLogReader: any WeightLogReading
     private let trainingInsightsStore: TrainingInsightsStore
     private let analyticsLogger: any PlanAnalyticsLogging
+    private let planAnalyticsCoordinator: PlanAnalyticsCoordinator?
     private let healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing
     private let healthBaselineService: any HealthBaselineProviding
     private let healthDataRepository: (any HealthDataRepositorying)?
@@ -59,6 +63,7 @@ final class PlanModel: ObservableObject {
         weightLogReader: any WeightLogReading,
         trainingInsightsStore: TrainingInsightsStore,
         analyticsLogger: (any PlanAnalyticsLogging)? = nil,
+        planAnalyticsCoordinator: PlanAnalyticsCoordinator? = nil,
         healthBaselineService: any HealthBaselineProviding,
         healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing = NoOpHealthIntelligenceSnapshotService(),
         healthDataRepository: (any HealthDataRepositorying)? = nil,
@@ -80,6 +85,7 @@ final class PlanModel: ObservableObject {
         self.weightLogReader = weightLogReader
         self.trainingInsightsStore = trainingInsightsStore
         self.analyticsLogger = analyticsLogger ?? NoOpPlanAnalyticsLogger()
+        self.planAnalyticsCoordinator = planAnalyticsCoordinator
         self.healthBaselineService = healthBaselineService
         self.healthIntelligenceSnapshotProvider = healthIntelligenceSnapshotProvider
         self.healthDataRepository = healthDataRepository
@@ -160,6 +166,9 @@ final class PlanModel: ObservableObject {
         settingsBaselineProfile = nil
         editFormState = nil
         editBaselineProfile = nil
+        editWeeklyReviewContext = nil
+        shouldHighlightWeeklyRecommendation = false
+        cachedWeeklyProgressSummary = nil
         isShowingEditSheet = false
         isShowingSettingsSheet = false
         viewState = .loading
@@ -188,6 +197,14 @@ final class PlanModel: ObservableObject {
                     return
                 }
                 let context = try await makePlanDashboardContext(profile: profile)
+                let referenceDate = Date()
+                cachedWeeklyProgressSummary = PlanWeeklyRecommendationStateBuilder.weeklyProgressSummary(
+                    context: context,
+                    referenceDate: referenceDate
+                )
+                if let cachedWeeklyProgressSummary {
+                    planAnalyticsCoordinator?.updateWeeklyProgressContext(from: cachedWeeklyProgressSummary)
+                }
                 async let healthIntelligenceTask = refreshPlanHealthIntelligenceSection(
                     profile: profile,
                     context: context
@@ -376,24 +393,54 @@ final class PlanModel: ObservableObject {
         let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
 
         let weekLogs = try dailyLogReader.getLogs(from: weekStart, to: endDate)
+        let maturityLogs = try dailyLogReader.getLogs(from: allTimeStart, to: endDate)
         let allWeights = try weightLogReader.getWeightEntries(from: allTimeStart, to: endDate)
+
+        let integrationState = trainingInsightsStore.integrationState
+        let healthWorkoutDayStarts = await fetchHealthWorkoutDayStarts(
+            from: allTimeStart,
+            to: endDate,
+            integrationState: integrationState,
+            calendar: calendar
+        )
 
         return PlanDashboardContext(
             profile: profile,
             weekLogs: weekLogs,
+            maturityLogs: maturityLogs,
             allWeights: allWeights,
-            integrationState: trainingInsightsStore.integrationState,
+            integrationState: integrationState,
             dataSource: trainingInsightsStore.dataSource,
+            healthWorkoutDayStarts: healthWorkoutDayStarts,
             asOf: endDate,
             calendar: calendar
         )
+    }
+
+    private func fetchHealthWorkoutDayStarts(
+        from startDate: Date,
+        to endDate: Date,
+        integrationState: TrainingIntegrationState,
+        calendar: Calendar
+    ) async -> Set<Date> {
+        guard integrationState.isConnected, let healthDataRepository else {
+            return []
+        }
+
+        let workouts = await healthDataRepository.getWorkouts(
+            from: startDate,
+            to: endDate,
+            calendar: calendar
+        )
+        return Set(workouts.map { calendar.startOfDay(for: $0.startDate) })
     }
 
     // MARK: Sheets
 
     func showEditPlan(
         initialStep: PlanEditWizardStep = .goalAndTargetWeight,
-        entryPoint: String = PlanAdjustPlanEntryPoint.dashboard
+        entryPoint: PlanAdjustPlanEntryPoint = .planTab,
+        weeklyReviewContext: PlanEditWeeklyReviewContext? = nil
     ) {
         guard case .loaded(let state) = viewState else { return }
         let formState = PlanFormState(profile: state.profile)
@@ -401,7 +448,7 @@ final class PlanModel: ObservableObject {
         analyticsLogger.log(
             .adjustStarted,
             properties: makeAnalyticsProperties(healthConnected: trainingInsightsStore.integrationState.isConnected) {
-                $0.entryPoint = entryPoint
+                $0.entryPoint = entryPoint.rawValue
                 $0.initialStep = stepIndex
             }
         )
@@ -409,7 +456,51 @@ final class PlanModel: ObservableObject {
         editFormState = formState
         editBaselineProfile = state.profile
         editPlanInitialStep = initialStep
+        editWeeklyReviewContext = weeklyReviewContext
         isShowingEditSheet = true
+    }
+
+    /// Opens the edit wizard at review with weekly progress context — no target changes are applied.
+    func showEditPlanFromWeeklyReview(entryPoint: PlanAdjustPlanEntryPoint) {
+        let analyticsEntryPoint: WeeklyProgressAnalyticsEntryPoint = switch entryPoint {
+        case .weeklyReview: .weeklyReview
+        case .journeyRecommendation: .journeyRecommendation
+        default: .planDashboard
+        }
+
+        if let summary = cachedWeeklyProgressSummary {
+            let recommendationKind: WeeklyPlanRecommendationKind?
+            if case .loaded(let state) = viewState {
+                recommendationKind = state.weeklyRecommendation.recommendationKind
+            } else {
+                recommendationKind = nil
+            }
+            planAnalyticsCoordinator?.logPlanEditStartedFromWeeklyReview(
+                summary: summary,
+                entryPoint: analyticsEntryPoint,
+                recommendationKind: recommendationKind
+            )
+        }
+
+        guard case .loaded(let state) = viewState else {
+            highlightWeeklyRecommendationSection()
+            return
+        }
+
+        let context = PlanEditWeeklyReviewContextBuilder.build(from: state)
+        showEditPlan(
+            initialStep: PlanEditWizardFlow.weeklyReviewEntryStep,
+            entryPoint: entryPoint,
+            weeklyReviewContext: context
+        )
+    }
+
+    func highlightWeeklyRecommendationSection() {
+        shouldHighlightWeeklyRecommendation = true
+    }
+
+    func clearWeeklyRecommendationHighlight() {
+        shouldHighlightWeeklyRecommendation = false
     }
 
     func showEditPlanActivity() {
@@ -434,6 +525,7 @@ final class PlanModel: ObservableObject {
         formErrorMessage = nil
         editFormState = nil
         editBaselineProfile = nil
+        editWeeklyReviewContext = nil
         editPlanInitialStep = .goalAndTargetWeight
         isShowingEditSheet = false
     }
@@ -591,6 +683,26 @@ final class PlanModel: ObservableObject {
         } catch {
             formErrorMessage = FormaProductCopy.Error.regenerateTargets
         }
+    }
+
+    func logWeeklyRecommendationShown(healthConnected: Bool) {
+        guard case .loaded(let state) = viewState else { return }
+        guard let summary = cachedWeeklyProgressSummary else { return }
+        planAnalyticsCoordinator?.logWeeklyRecommendationShown(
+            summary: summary,
+            recommendationKind: state.weeklyRecommendation.recommendationKind
+        )
+        _ = healthConnected
+    }
+
+    func logWeeklyRecommendationTapped(healthConnected: Bool) {
+        guard case .loaded(let state) = viewState else { return }
+        guard let summary = cachedWeeklyProgressSummary else { return }
+        planAnalyticsCoordinator?.logWeeklyRecommendationTapped(
+            summary: summary,
+            recommendationKind: state.weeklyRecommendation.recommendationKind
+        )
+        _ = healthConnected
     }
 
     // MARK: - Analytics

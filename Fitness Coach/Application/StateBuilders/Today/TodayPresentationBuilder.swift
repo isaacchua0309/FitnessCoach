@@ -27,6 +27,7 @@ enum TodayPresentationBuilder {
         let meals = meals(from: inputs, emptyContext: emptyContext)
         let victory = victory(from: inputs)
         let smartCoach = smartCoach(from: inputs)
+        let yesterdayReview = yesterdayReview(from: inputs)
         let endOfDay = endOfDay(from: inputs)
 
         return TodayDashboardState(
@@ -42,6 +43,7 @@ enum TodayPresentationBuilder {
             activity: activity,
             victory: victory,
             smartCoach: smartCoach,
+            yesterdayReview: yesterdayReview,
             endOfDay: endOfDay
         )
     }
@@ -332,6 +334,62 @@ enum TodayPresentationBuilder {
 
     // MARK: - End of day
 
+    static func yesterdayReview(from inputs: TodayMissionControlInputs) -> TodayYesterdayReviewState {
+        guard let context = inputs.yesterdayReviewInput else {
+            return .hidden
+        }
+
+        let hasEnoughLogs = DailyReviewSummaryBuilder.hasEnoughLogsForReview(
+            foodEntryCount: context.foodEntryCount,
+            waterConsumedMl: context.waterConsumedMl,
+            workoutCaloriesBurned: context.workoutCaloriesBurned,
+            weightLogged: context.weightLogged
+        )
+
+        guard hasEnoughLogs else {
+            return .hidden
+        }
+
+        if let review = context.review {
+            let previewLines = DailyReviewSummaryBuilder.teaserLines(from: review)
+            let copy = FormaProductCopy.Today.YesterdayReview.self
+            return TodayYesterdayReviewState(
+                isVisible: true,
+                sectionTitle: copy.sectionTitle,
+                previewLines: previewLines,
+                actionTitle: copy.viewAction,
+                actionHint: copy.viewHint,
+                cta: .viewReview,
+                reviewDate: context.date,
+                review: review,
+                analyticsFoodEntryCount: context.foodEntryCount,
+                accessibilityLabel: accessibilityLabel(
+                    sectionTitle: copy.sectionTitle,
+                    previewLines: previewLines,
+                    actionTitle: copy.viewAction
+                )
+            )
+        }
+
+        let copy = FormaProductCopy.Today.YesterdayReview.self
+        return TodayYesterdayReviewState(
+            isVisible: true,
+            sectionTitle: copy.sectionTitle,
+            previewLines: [],
+            actionTitle: copy.generateAction,
+            actionHint: copy.generateHint,
+            cta: .generateReview,
+            reviewDate: context.date,
+            review: nil,
+            analyticsFoodEntryCount: context.foodEntryCount,
+            accessibilityLabel: accessibilityLabel(
+                sectionTitle: copy.sectionTitle,
+                previewLines: [],
+                actionTitle: copy.generateAction
+            )
+        )
+    }
+
     static func endOfDay(from inputs: TodayMissionControlInputs) -> TodayEndOfDayState {
         EndOfDayWrapUpEngine.resolve(
             EndOfDayWrapUpInput(
@@ -371,5 +429,13 @@ enum TodayPresentationBuilder {
                 goalWeightKg: inputs.goalWeightKg
             )
         )
+    }
+
+    private static func accessibilityLabel(
+        sectionTitle: String,
+        previewLines: [String],
+        actionTitle: String
+    ) -> String {
+        ([sectionTitle] + previewLines + [actionTitle]).joined(separator: ". ")
     }
 }

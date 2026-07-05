@@ -101,3 +101,47 @@ struct WeeklyReviewFocusItemState: Equatable, Sendable, Identifiable, Codable {
     var message: String
     var accessibilityLabel: String
 }
+
+// MARK: - Weekly progress detail (canonical)
+
+struct WeeklyProgressConsistencySectionState: Equatable {
+    var foodLoggedLabel: String?
+    var averageCaloriesLabel: String?
+    var proteinLabel: String?
+    var waterLabel: String?
+    var calorieAdherenceLabel: String?
+    var trainingLabel: String?
+    var dailyReviewsLabel: String?
+
+    var hasContent: Bool {
+        foodLoggedLabel != nil
+            || averageCaloriesLabel != nil
+            || proteinLabel != nil
+            || waterLabel != nil
+            || calorieAdherenceLabel != nil
+            || trainingLabel != nil
+            || dailyReviewsLabel != nil
+    }
+}
+
+struct WeeklyProgressTDEEComparisonState: Equatable {
+    var learnedMaintenanceKcal: Int
+    var staticTDEEKcal: Int
+    var comparisonCopy: String
+    var accessibilityLabel: String
+}
+
+struct WeeklyProgressDetailState: Equatable {
+    var summary: WeeklyProgressSummary
+    var unified: UnifiedWeeklyReviewState
+    var verdictTitle: String
+    var primaryInsight: String
+    var consistency: WeeklyProgressConsistencySectionState
+    var staticTDEEComparison: WeeklyProgressTDEEComparisonState?
+    var nextWeekFocus: [WeeklyReviewFocusItemState]
+    var generatedAtLabel: String
+    var healthKitLimitedNotice: String?
+    var uncertaintyTitle: String
+    var freshness: WeeklyProgressFreshnessState?
+    var accessibilityLabel: String
+}

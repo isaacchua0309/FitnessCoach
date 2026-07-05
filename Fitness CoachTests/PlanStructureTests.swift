@@ -14,6 +14,7 @@ final class PlanStructureTests: XCTestCase {
             .goalProgress,
             .todayMission,
             .planStatus,
+            .weeklyRecommendation,
             .whyThisWorks,
             .planConfidence,
             .whenToAdjust,
@@ -50,6 +51,7 @@ final class PlanStructureTests: XCTestCase {
         XCTAssertEqual(dashboard.strategy.sectionTitle, FormaProductCopy.PlanStrategyHero.sectionTitle)
         XCTAssertEqual(dashboard.dailyTargets.sectionTitle, "Daily Targets")
         XCTAssertEqual(dashboard.status.sectionTitle, "Plan Status")
+        XCTAssertEqual(dashboard.weeklyRecommendation.sectionTitle, "Weekly recommendation")
         XCTAssertEqual(dashboard.explanation.sectionTitle, "Why This Works")
         XCTAssertEqual(dashboard.confidence.sectionTitle, "Plan Confidence")
         XCTAssertEqual(dashboard.adjustmentRules.sectionTitle, "When to Adjust")
@@ -132,6 +134,8 @@ final class PlanStructureTests: XCTestCase {
             dashboard.status.sectionTitle,
             dashboard.status.statusName,
             dashboard.status.explanation,
+            dashboard.weeklyRecommendation.sectionTitle,
+            dashboard.weeklyRecommendation.safetyCopy,
             dashboard.explanation.sectionTitle,
             dashboard.explanation.guidanceCopy,
             dashboard.confidence.sectionTitle,

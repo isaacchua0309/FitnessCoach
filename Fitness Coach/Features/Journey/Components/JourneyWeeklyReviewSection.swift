@@ -8,9 +8,11 @@ import SwiftUI
 struct JourneyWeeklyReviewSection: View {
     let state: JourneyWeeklyHabitState
     var hidesTrainingHabitRow: Bool = false
+    var hidesHabitRows: Bool = false
     var onCTA: ((JourneyCTA) -> Void)?
 
     private var visibleHabits: [JourneyWeeklyHabitRowState] {
+        guard !hidesHabitRows else { return [] }
         guard hidesTrainingHabitRow else { return state.habits }
         return state.habits.filter { $0.id != "training" }
     }
@@ -21,23 +23,25 @@ struct JourneyWeeklyReviewSection: View {
 
             JourneyCard(elevation: .standard) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                    if state.showsHabitRows {
+                    if !visibleHabits.isEmpty {
                         ForEach(Array(visibleHabits.enumerated()), id: \.element.id) { index, habit in
                             if index > 0 {
                                 FormaPlanRowDivider()
                             }
                             habitRow(habit)
                         }
+                    }
 
-                        if !hidesTrainingHabitRow,
-                           let cta = JourneyCTARouter.weeklyTrainingCTA(training: state.training),
-                           let onCTA {
+                    if !hidesTrainingHabitRow,
+                       let cta = JourneyCTARouter.weeklyTrainingCTA(training: state.training),
+                       let onCTA {
+                        if !visibleHabits.isEmpty {
                             FormaPlanRowDivider()
-                            JourneyCTAButton(cta: cta) {
-                                onCTA(cta)
-                            }
                         }
-                    } else if let emptyMessage = state.emptyMessage {
+                        JourneyCTAButton(cta: cta) {
+                            onCTA(cta)
+                        }
+                    } else if visibleHabits.isEmpty, let emptyMessage = state.emptyMessage {
                         Text(emptyMessage)
                             .font(JourneyTypography.cardSupporting)
                             .foregroundStyle(FormaTokens.Color.textSecondary)

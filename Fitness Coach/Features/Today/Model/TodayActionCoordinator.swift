@@ -24,6 +24,8 @@ final class TodayActionCoordinator: ObservableObject {
     @Published var editFoodPresentation: EditFoodPresentation?
     @Published var pendingDeleteFoodEntry: FoodEntry?
     @Published var isPresentingLogWeightSheet = false
+    @Published var presentedDailyReview: DailyReview?
+    @Published private(set) var isGeneratingYesterdayReview = false
     @Published private(set) var lastErrorMessage: String?
     @Published private(set) var foodEditErrorMessage: String?
     @Published private(set) var snackbarMessage: TodayTransientFeedback?
@@ -31,8 +33,11 @@ final class TodayActionCoordinator: ObservableObject {
     private let actionCenter: FitnessActionCenter
     private let analyticsLogger: any TodayAnalyticsLogging
     private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
+    private let weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator?
     private let logDate: () -> Date
     private var analyticsSnapshot: TodayAnalyticsSnapshot = .empty
+
+    private var dailyReviewTeaserFoodLoggedDays: Int = 0
 
     var onOpenCoach: ((CoachLaunchIntent) -> Void)?
     var onOpenTrainingInsights: (() -> Void)?
@@ -41,11 +46,13 @@ final class TodayActionCoordinator: ObservableObject {
         actionCenter: FitnessActionCenter,
         analyticsLogger: any TodayAnalyticsLogging = NoOpTodayAnalyticsLogger(),
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator? = nil,
         logDate: @escaping () -> Date = { Date() }
     ) {
         self.actionCenter = actionCenter
         self.analyticsLogger = analyticsLogger
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
+        self.weeklyProgressAnalyticsCoordinator = weeklyProgressAnalyticsCoordinator
         self.logDate = logDate
     }
 
@@ -56,6 +63,9 @@ final class TodayActionCoordinator: ObservableObject {
             from: state,
             healthConnected: healthConnected
         )
+        dailyReviewTeaserFoodLoggedDays = state.yesterdayReview.isVisible
+            ? state.yesterdayReview.analyticsFoodEntryCount
+            : 0
     }
 
     func logTodayViewed() {
@@ -87,6 +97,49 @@ final class TodayActionCoordinator: ObservableObject {
 
     func logEndOfDayWrapViewed() {
         log(.endOfDayWrapViewed)
+    }
+
+    func logYesterdayReviewViewed() {
+        log(.yesterdayReviewViewed)
+        weeklyProgressAnalyticsCoordinator?.logDailyReviewTeaserViewed(
+            foodLoggedDays: dailyReviewTeaserFoodLoggedDays
+        )
+    }
+
+    func viewYesterdayReview(_ review: DailyReview) {
+        presentedDailyReview = review
+        log(.yesterdayReviewTapped, actionType: "view_review")
+        weeklyProgressAnalyticsCoordinator?.logDailyReviewOpenedFromToday(
+            foodLoggedDays: dailyReviewTeaserFoodLoggedDays
+        )
+    }
+
+    func generateYesterdayReview(for date: Date) {
+        guard !isGeneratingYesterdayReview else { return }
+        isGeneratingYesterdayReview = true
+        log(.yesterdayReviewTapped, actionType: "generate_review")
+
+        Task {
+            defer { isGeneratingYesterdayReview = false }
+            do {
+                let review = try await actionCenter.generateDailyReview(for: date)
+                presentedDailyReview = review
+                snackbarMessage = TodayTransientFeedback(
+                    message: FormaProductCopy.Today.YesterdayReview.generatedSuccess,
+                    style: .success
+                )
+            } catch {
+                snackbarMessage = TodayTransientFeedback(
+                    message: FormaProductCopy.Today.YesterdayReview.generateFailed,
+                    style: .error
+                )
+                onOpenCoach?(.prefill("daily review"))
+            }
+        }
+    }
+
+    func dismissDailyReviewSheet() {
+        presentedDailyReview = nil
     }
 
     func logGoalConnectionTapped(destination: TodayGoalConnectionDestination) {

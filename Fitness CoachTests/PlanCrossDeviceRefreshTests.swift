@@ -113,6 +113,34 @@ final class PlanCrossDeviceRefreshTests: XCTestCase {
         XCTAssertTrue(domains.contains(.journey))
     }
 
+    func testTodayAndJourneyRefreshAfterConfirmedPlanChangeIfExistingHooksAvailable() async throws {
+        let model = makeModel()
+        await model.loadProfile()
+
+        let refreshBefore = harness.actionCenter.dataRefreshToken
+        guard case .loaded(let initial) = model.viewState else {
+            return XCTFail("Expected loaded Plan state")
+        }
+
+        model.showEditPlan()
+        guard var formState = model.editFormState else {
+            return XCTFail("Expected edit form state")
+        }
+        formState.calorieTargetText = "\(initial.profile.targets.calorieTarget - 75)"
+
+        try await model.savePlanFromWizard(formState)
+
+        XCTAssertGreaterThan(harness.actionCenter.dataRefreshToken, refreshBefore)
+
+        guard case .loaded(let updated) = model.viewState else {
+            return XCTFail("Expected loaded Plan state after save")
+        }
+        XCTAssertEqual(
+            updated.profile.targets.calorieTarget,
+            initial.profile.targets.calorieTarget - 75
+        )
+    }
+
     // MARK: - Helpers
 
     private func makeModel() -> PlanModel {

@@ -33,7 +33,8 @@ final class PlanAdjustmentRulesStateTests: XCTestCase {
             FormaProductCopy.PlanMissionControl.adjustmentRuleWeightFlat,
             FormaProductCopy.PlanMissionControl.adjustmentRulePoorEnergy,
             FormaProductCopy.PlanMissionControl.adjustmentRuleTrainingDrops,
-            FormaProductCopy.PlanMissionControl.adjustmentRuleHighHunger
+            FormaProductCopy.PlanMissionControl.adjustmentRuleHighHunger,
+            FormaProductCopy.PlanMissionControl.adjustmentRuleWaitForWeeklySignal
         ])
     }
 
@@ -132,6 +133,7 @@ final class PlanAdjustmentRulesStateTests: XCTestCase {
                 FormaProductCopy.PlanMissionControl.adjustmentRulePoorEnergy,
                 FormaProductCopy.PlanMissionControl.adjustmentRuleTrainingDrops,
                 FormaProductCopy.PlanMissionControl.adjustmentRuleHighHunger,
+                FormaProductCopy.PlanMissionControl.adjustmentRuleWaitForWeeklySignal,
                 FormaProductCopy.PlanMissionControl.adjustmentRuleAggressiveRecoveryNote,
                 FormaProductCopy.PlanMissionControl.adjustmentTrendTooEarly,
                 FormaProductCopy.PlanMissionControl.adjustmentTrendStable(days: 10)
@@ -141,6 +143,47 @@ final class PlanAdjustmentRulesStateTests: XCTestCase {
         XCTAssertFalse(combined.contains("diagnos"))
         XCTAssertFalse(combined.contains("clinical"))
         XCTAssertNil(PlanCopySafetyPolicy.forbiddenViolation(in: combined))
+    }
+
+    func testWeeklyRecommendationSafetyCopyAlignsWithDashboard() throws {
+        let dashboard = PlanMissionControlFixtures.activeUserDashboard
+        let weekly = dashboard.weeklyRecommendation
+        let editContext = PlanEditWeeklyReviewContextBuilder.build(from: dashboard)
+
+        XCTAssertEqual(weekly.safetyCopy, FormaProductCopy.PlanMissionControl.weeklyRecommendationSafetyCopy)
+        XCTAssertEqual(editContext.safetyCopy, weekly.safetyCopy)
+        XCTAssertTrue(editContext.caveats.contains(weekly.safetyCopy))
+        XCTAssertTrue(weekly.accessibilitySummary.contains(weekly.safetyCopy))
+    }
+
+    func testAdjustmentRulesIncludeWeeklySignalWithoutAutoApplyLanguage() throws {
+        let profile = PlanMissionControlFixtures.loseProfile
+        let result = try PlanCalculationBridge.planResult(
+            from: profile,
+            referenceDate: referenceDate
+        )
+        let state = PlanAdjustmentRulesStateBuilder.build(
+            profile: profile,
+            planResult: result,
+            allWeights: [],
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+
+        XCTAssertTrue(
+            state.rules.contains {
+                $0.text == FormaProductCopy.PlanMissionControl.adjustmentRuleWaitForWeeklySignal
+            }
+        )
+
+        let combined = (
+            state.rules.map(\.text) + [PlanMissionControlFixtures.activeUserDashboard.weeklyRecommendation.safetyCopy]
+        ).joined(separator: " ").lowercased()
+
+        XCTAssertTrue(combined.contains("weekly"))
+        XCTAssertTrue(combined.contains("without confirmation"))
+        XCTAssertFalse(combined.contains("auto-apply"))
+        XCTAssertFalse(combined.contains("automatically update"))
     }
 
     private var stableWeightEntries: [WeightEntry] {

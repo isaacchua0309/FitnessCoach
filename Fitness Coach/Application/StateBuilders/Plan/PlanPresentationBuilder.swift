@@ -31,6 +31,11 @@ enum PlanPresentationBuilder {
             planResult: planResult,
             referenceDate: asOf
         )
+        let weeklyRecommendation = PlanWeeklyRecommendationStateBuilder.build(
+            context: context,
+            planResult: planResult,
+            referenceDate: asOf
+        )
 
         return PlanDashboardState(
             profile: context.profile,
@@ -38,6 +43,7 @@ enum PlanPresentationBuilder {
             strategy: strategy,
             dailyTargets: DailyTargetsStateBuilder.build(profile: context.profile),
             status: status,
+            weeklyRecommendation: weeklyRecommendation,
             explanation: PlanExplanationStateBuilder.build(
                 profile: context.profile,
                 planResult: planResult,
@@ -102,7 +108,7 @@ enum PlanPresentationBuilder {
             JourneyBaselineResolver.Input(
                 profile: context.profile,
                 allWeights: context.allWeights,
-                maturityLogs: context.weekLogs,
+                maturityLogs: context.maturityLogs.isEmpty ? context.weekLogs : context.maturityLogs,
                 goalProjection: projection,
                 asOf: asOf,
                 calendar: context.calendar

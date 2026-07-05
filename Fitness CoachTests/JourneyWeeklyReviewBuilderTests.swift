@@ -6,6 +6,7 @@
 import XCTest
 @testable import Fitness_Coach
 
+@MainActor
 final class JourneyWeeklyReviewBuilderTests: XCTestCase {
 
     private let calendar: Calendar = {
@@ -283,7 +284,149 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
         XCTAssertFalse(review.rows.isEmpty)
     }
 
+    // MARK: - Journey weekly progress state
+
+    func testJourneyStateContainsWeeklyProgressSummary() {
+        let dashboard = JourneyPreviewData.strongMomentum
+
+        XCTAssertFalse(dashboard.weeklyProgressSummary.id.isEmpty)
+        XCTAssertTrue(dashboard.showsWeeklyProgressSection)
+        XCTAssertGreaterThan(dashboard.weeklyProgressSummary.foodLoggedDays, 0)
+
+        let unified = UnifiedWeeklyReviewPresentationBuilder.build(dashboard: dashboard)
+        XCTAssertEqual(unified.id, dashboard.weeklyProgressSummary.id)
+    }
+
+    func testJourneyReloadAfterFoodRefreshUpdatesWeeklyProgress() async throws {
+        let harness = try FitnessActionCenterTestSupport.makeHarness()
+        let refreshEventBus = AccountDataRefreshEventBus()
+        let sessionUID = harness.cloudUID
+        _ = try harness.seedProfile(ownerUID: sessionUID)
+
+        let model = makeJourneyModel(
+            harness: harness,
+            refreshEventBus: refreshEventBus,
+            sessionUID: sessionUID
+        )
+        await model.loadProgress()
+
+        guard case .loaded(let initial) = model.viewState else {
+            return XCTFail("Expected loaded Journey state")
+        }
+        let initialFoodDays = initial.weeklyProgressSummary.foodLoggedDays
+
+        _ = try harness.actionCenter.logFood(
+            DailyLogServiceTestSupport.foodDraft(name: "Dinner", calories: 650),
+            date: harness.today
+        )
+
+        try await CrossDeviceRefreshTestSupport.publishAndWait(
+            bus: refreshEventBus,
+            event: AccountDataRefreshEvent(
+                uid: sessionUID,
+                domains: [.food],
+                reason: .realtimeSnapshot,
+                createdAt: harness.today
+            )
+        )
+
+        guard case .loaded(let updated) = model.viewState else {
+            return XCTFail("Expected loaded Journey state after food refresh")
+        }
+        XCTAssertGreaterThan(
+            updated.weeklyProgressSummary.foodLoggedDays,
+            initialFoodDays
+        )
+    }
+
+    func testJourneyReloadAfterWeightRefreshUpdatesWeeklyProgress() async throws {
+        let harness = try FitnessActionCenterTestSupport.makeHarness()
+        let refreshEventBus = AccountDataRefreshEventBus()
+        let sessionUID = harness.cloudUID
+        _ = try harness.seedProfile(ownerUID: sessionUID)
+
+        let model = makeJourneyModel(
+            harness: harness,
+            refreshEventBus: refreshEventBus,
+            sessionUID: sessionUID
+        )
+        await model.loadProgress()
+
+        guard case .loaded(let initial) = model.viewState else {
+            return XCTFail("Expected loaded Journey state")
+        }
+        let initialEndingWeight = initial.weeklyProgressSummary.endingWeightKg
+
+        _ = try harness.actionCenter.logWeight(82.5, date: harness.today)
+
+        try await CrossDeviceRefreshTestSupport.publishAndWait(
+            bus: refreshEventBus,
+            event: AccountDataRefreshEvent(
+                uid: sessionUID,
+                domains: [.weight],
+                reason: .realtimeSnapshot,
+                createdAt: harness.today
+            )
+        )
+
+        guard case .loaded(let updated) = model.viewState else {
+            return XCTFail("Expected loaded Journey state after weight refresh")
+        }
+        XCTAssertEqual(updated.weeklyProgressSummary.endingWeightKg ?? 0, 82.5, accuracy: 0.01)
+        XCTAssertNotEqual(updated.weeklyProgressSummary.endingWeightKg, initialEndingWeight)
+    }
+
+    func testJourneyRestorePendingDoesNotShowFalseEmpty() async throws {
+        let harness = try FitnessActionCenterTestSupport.makeHarness()
+        _ = try harness.seedProfile(ownerUID: RestoreAwareTestSupport.ownerUID)
+        _ = try harness.base.dailyLogService.getOrCreateLogEntity(for: harness.today)
+
+        let session = AccountRestoreSessionState()
+        session.recordRestoreCompletion(
+            RestoreAwareTestSupport.makeRestoreSummary(status: .offline)
+        )
+
+        let model = RestoreAwareTestSupport.makeJourneyModel(
+            harness: harness,
+            session: session,
+            isEffectivelyEmpty: false
+        )
+
+        await model.loadProgress()
+
+        switch model.viewState {
+        case .loaded(let state):
+            XCTAssertTrue(state.showsWeeklyProgressSection)
+            XCTAssertFalse(state.weeklyProgressSummary.id.isEmpty)
+        case .pendingAccountRestore:
+            break
+        case .empty:
+            XCTFail("Restore pending with local data must not show false empty state")
+        case .loading, .error:
+            XCTFail("Unexpected journey state: \(model.viewState)")
+        }
+    }
+
     // MARK: - Helpers
+
+    @MainActor
+    private func makeJourneyModel(
+        harness: FitnessActionCenterTestSupport.Harness,
+        refreshEventBus: AccountDataRefreshEventBus,
+        sessionUID: String
+    ) -> JourneyModel {
+        let trainingStore = TrainingInsightsStore(
+            integration: StubTrainingIntegrationProvider(refreshResult: .notConnected)
+        )
+        return JourneyModel(
+            dailyLogReader: harness.dailyLogService,
+            weightLogReader: harness.weightLogService,
+            userProfileReader: harness.profileService,
+            trainingInsightsStore: trainingStore,
+            ownerUIDProvider: { sessionUID },
+            accountDataRefreshEventBus: refreshEventBus
+        )
+    }
 
     private func enrich(
         _ review: JourneyWeeklyReviewState,

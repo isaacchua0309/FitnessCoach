@@ -141,7 +141,7 @@ final class TodayGoalConnectionFormattingTests: XCTestCase {
                 ),
                 foodEntries: [],
                 hasPriorFoodLogs: false,
-                dailyReview: nil,
+                yesterdayReviewInput: nil,
                 goalWeightKg: 75,
                 profileWeightKg: 80,
                 latestWeightKg: 87.4,

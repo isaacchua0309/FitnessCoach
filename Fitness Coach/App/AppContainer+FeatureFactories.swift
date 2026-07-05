@@ -21,12 +21,14 @@ extension AppContainer {
     }
 
     func makeTodayActionCoordinator(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator? = nil
     ) -> TodayActionCoordinator {
         TodayActionCoordinator(
             actionCenter: actionCenter,
             analyticsLogger: todayAnalyticsLogger,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator
         )
     }
 
@@ -114,6 +116,18 @@ extension AppContainer {
         JourneyAnalyticsCoordinator(analyticsLogger: journeyAnalyticsLogger)
     }
 
+    func makeWeeklyProgressAnalyticsCoordinator() -> WeeklyProgressAnalyticsCoordinator {
+        WeeklyProgressAnalyticsCoordinator(analyticsLogger: weeklyProgressAnalyticsLogger)
+    }
+
+    func makePlanAnalyticsCoordinator(
+        weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator
+    ) -> PlanAnalyticsCoordinator {
+        PlanAnalyticsCoordinator(
+            weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator
+        )
+    }
+
     func makeSettingsPrivacyDataEnvironment() -> SettingsPrivacyDataEnvironment {
         let provider = SettingsPrivacyDataStatusProvider(
             authManager: authManager,
@@ -169,12 +183,16 @@ extension AppContainer {
             localDataInspector: accountLocalDataInspector,
             ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
             accountDataRefreshEventBus: accountDataRefreshEventBus,
-            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator,
+            accountSyncCursorStore: accountSyncCursorStore,
+            accountSyncOutboxStore: accountSyncOutboxStore,
+            accountRestoreStateStore: accountRestoreStateStore
         )
     }
 
     func makePlanModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        planAnalyticsCoordinator: PlanAnalyticsCoordinator? = nil
     ) -> PlanModel {
         PlanModel(
             actionCenter: actionCenter,
@@ -184,6 +202,7 @@ extension AppContainer {
             weightLogReader: weightLogService,
             trainingInsightsStore: trainingInsightsStore,
             analyticsLogger: planAnalyticsLogger,
+            planAnalyticsCoordinator: planAnalyticsCoordinator,
             healthBaselineService: healthBaselineService,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
             healthDataRepository: healthDataRepository,

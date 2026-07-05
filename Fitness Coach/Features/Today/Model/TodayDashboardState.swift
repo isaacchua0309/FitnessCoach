@@ -38,6 +38,7 @@ struct TodayDashboardState: Equatable {
     var activity: TodayActivityState
     var victory: TodayVictoryState
     var smartCoach: TodaySmartCoachState
+    var yesterdayReview: TodayYesterdayReviewState
     var endOfDay: TodayEndOfDayState
 }
 
@@ -301,6 +302,39 @@ struct TodaySmartCoachState: Equatable {
         message: "",
         coachPrefill: nil,
         coachActionTitle: nil
+    )
+}
+
+// MARK: - Yesterday review
+
+enum TodayYesterdayReviewCTA: Equatable, Sendable {
+    case viewReview
+    case generateReview
+}
+
+struct TodayYesterdayReviewState: Equatable {
+    var isVisible: Bool
+    var sectionTitle: String
+    var previewLines: [String]
+    var actionTitle: String
+    var actionHint: String
+    var cta: TodayYesterdayReviewCTA
+    var reviewDate: Date
+    var review: DailyReview?
+    var analyticsFoodEntryCount: Int
+    var accessibilityLabel: String
+
+    static let hidden = TodayYesterdayReviewState(
+        isVisible: false,
+        sectionTitle: "",
+        previewLines: [],
+        actionTitle: "",
+        actionHint: "",
+        cta: .viewReview,
+        reviewDate: .distantPast,
+        review: nil,
+        analyticsFoodEntryCount: 0,
+        accessibilityLabel: ""
     )
 }
 

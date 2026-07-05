@@ -3,6 +3,7 @@
 //  Fitness Coach
 //
 //  Forma — Journey screen and interaction analytics (read-only, bucketed).
+//  Weekly Progress Loop v1 events: `WeeklyProgressAnalyticsCoordinator`.
 //
 
 import Foundation

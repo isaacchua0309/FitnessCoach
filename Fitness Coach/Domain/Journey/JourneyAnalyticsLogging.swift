@@ -3,6 +3,7 @@
 //  Fitness Coach
 //
 //  Forma — Typed Journey analytics events and safe property bag.
+//  Weekly Progress Loop v1 events live in `WeeklyProgressAnalyticsLogging.swift`.
 //
 //  Contract: Docs/Architecture/AnalyticsReadinessChecklist.md
 //

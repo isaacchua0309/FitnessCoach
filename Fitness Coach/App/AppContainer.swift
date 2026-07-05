@@ -132,6 +132,7 @@ final class AppContainer {
     let todayAnalyticsLogger: any TodayAnalyticsLogging
     let planAnalyticsLogger: any PlanAnalyticsLogging
     let journeyAnalyticsLogger: any JourneyAnalyticsLogging
+    let weeklyProgressAnalyticsLogger: any WeeklyProgressAnalyticsLogging
     let publicEntryAnalyticsLogger: any PublicEntryAnalyticsLogging
     let themeAnalyticsLogger: any ThemeAnalyticsLogging
     let settingsAnalyticsLogger: any SettingsAnalyticsLogging
@@ -148,6 +149,7 @@ final class AppContainer {
         todayAnalyticsLogger: (any TodayAnalyticsLogging)? = nil,
         planAnalyticsLogger: (any PlanAnalyticsLogging)? = nil,
         journeyAnalyticsLogger: (any JourneyAnalyticsLogging)? = nil,
+        weeklyProgressAnalyticsLogger: (any WeeklyProgressAnalyticsLogging)? = nil,
         publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)? = nil,
         themeAnalyticsLogger: (any ThemeAnalyticsLogging)? = nil,
         settingsAnalyticsLogger: (any SettingsAnalyticsLogging)? = nil,
@@ -165,6 +167,7 @@ final class AppContainer {
             todayAnalyticsLogger: todayAnalyticsLogger,
             planAnalyticsLogger: planAnalyticsLogger,
             journeyAnalyticsLogger: journeyAnalyticsLogger,
+            weeklyProgressAnalyticsLogger: weeklyProgressAnalyticsLogger,
             publicEntryAnalyticsLogger: publicEntryAnalyticsLogger,
             themeAnalyticsLogger: themeAnalyticsLogger,
             settingsAnalyticsLogger: settingsAnalyticsLogger,
@@ -298,6 +301,7 @@ final class AppContainer {
         todayAnalyticsLogger = analytics.todayAnalyticsLogger
         planAnalyticsLogger = analytics.planAnalyticsLogger
         journeyAnalyticsLogger = analytics.journeyAnalyticsLogger
+        weeklyProgressAnalyticsLogger = analytics.weeklyProgressAnalyticsLogger
         publicEntryAnalyticsLogger = analytics.publicEntryAnalyticsLogger
         themeAnalyticsLogger = analytics.themeAnalyticsLogger
         settingsAnalyticsLogger = analytics.settingsAnalyticsLogger

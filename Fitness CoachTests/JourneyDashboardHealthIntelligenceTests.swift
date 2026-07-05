@@ -8,15 +8,17 @@ import XCTest
 
 final class JourneyDashboardHealthIntelligenceTests: XCTestCase {
 
-    func testHealthIntelligenceSectionAppearsAfterGoalProjectionInLayout() {
+    func testHealthIntelligenceSectionAppearsAfterWeeklyProgressInLayout() {
         let order = JourneyProductLayout.sectionOrder
         let goalIndex = order.firstIndex(of: .goalProjection)
+        let weeklyProgressIndex = order.firstIndex(of: .weeklyProgress)
         let healthIndex = order.firstIndex(of: .healthIntelligence)
         let milestonesIndex = order.firstIndex(of: .milestones)
 
         XCTAssertEqual(goalIndex, 2)
-        XCTAssertEqual(healthIndex, 3)
-        XCTAssertEqual(milestonesIndex, 4)
+        XCTAssertEqual(weeklyProgressIndex, 3)
+        XCTAssertEqual(healthIndex, 4)
+        XCTAssertEqual(milestonesIndex, 5)
     }
 
     func testVisibleSectionsExcludeHealthIntelligenceWhenFlagDisabled() {
@@ -95,6 +97,8 @@ final class JourneyDashboardHealthIntelligenceTests: XCTestCase {
                 return true
             case .goalProjection:
                 return state.showsGoalProjectionSection
+            case .weeklyProgress:
+                return state.showsWeeklyProgressSection
             case .healthIntelligence:
                 return JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
                     isUIEnabled: healthIntelligenceUIEnabled,
@@ -103,7 +107,12 @@ final class JourneyDashboardHealthIntelligenceTests: XCTestCase {
             case .milestones:
                 return state.showsMilestonesSection
             case .weeklyReview:
-                return state.showsWeeklyReviewSection
+                return JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
+                    dashboard: state,
+                    showsWeeklyProgressHero: state.showsWeeklyProgressSection,
+                    isHealthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
+                    healthIntelligenceSectionState: healthIntelligenceSectionState
+                )
             case .storyTimeline:
                 return state.showsStoryTimelineSection
             case .insights:

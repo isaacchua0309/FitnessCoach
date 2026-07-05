@@ -2,15 +2,19 @@
 //  WeeklyReviewDetailPresentation.swift
 //  Fitness Coach
 //
-//  Forma — Sheet presentation wrapper for weekly review detail.
+//  Forma — Sheet presentation wrapper for weekly progress detail.
 //
 
 import Foundation
 
 struct WeeklyReviewDetailPresentation: Identifiable, Equatable {
-    let state: WeeklyReviewDetailState
+    let detail: WeeklyProgressDetailState
 
     var id: String {
-        "\(state.dateRangeLabel)-\(state.title)"
+        detail.unified.id
+    }
+
+    init(detail: WeeklyProgressDetailState) {
+        self.detail = detail
     }
 }

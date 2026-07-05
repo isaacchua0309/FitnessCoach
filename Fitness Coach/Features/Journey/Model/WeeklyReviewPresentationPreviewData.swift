@@ -32,6 +32,21 @@ enum WeeklyReviewPresentationPreviewData {
         WeeklyReviewPresentationBuilder.buildDetail(from: sparseReview, calendar: calendar)!
     }
 
+    static var strongWeekProgressDetail: WeeklyProgressDetailState {
+        UnifiedWeeklyReviewPresentationBuilder.buildDetail(
+            dashboard: JourneyPreviewData.strongMomentum,
+            healthIntelligence: JourneyHealthIntelligencePreviewData.strongWeek,
+            calendar: calendar
+        )
+    }
+
+    static var sparseWeekProgressDetail: WeeklyProgressDetailState {
+        UnifiedWeeklyReviewPresentationBuilder.buildDetail(
+            dashboard: JourneyPreviewData.sparseData,
+            calendar: calendar
+        )
+    }
+
     private static var strongReview: WeeklyHealthReview {
         let weekEnd = calendar.startOfDay(
             for: calendar.date(from: DateComponents(year: 2026, month: 7, day: 3))!

@@ -82,6 +82,15 @@ struct TodayView: View {
                 .refreshable {
                     await performPullToRefresh()
                 }
+                .sheet(item: $actionCoordinator.presentedDailyReview) { review in
+                    TodayDailyReviewSheet(
+                        review: review,
+                        title: FormaProductCopy.Today.YesterdayReview.sectionTitle,
+                        onDismiss: {
+                            actionCoordinator.dismissDailyReviewSheet()
+                        }
+                    )
+                }
                 .sheet(isPresented: $isShowingTrainingInsights) {
                     TrainingInsightsView(
                         insightsStore: trainingInsightsStore,

@@ -8,12 +8,16 @@
 import SwiftUI
 
 struct PlanDashboardContent: View {
+    static let weeklyRecommendationScrollID = "plan-weekly-recommendation-section"
+
     let state: PlanDashboardState
     var healthIntelligenceUIEnabled: Bool = false
     var planHealthIntelligenceSectionState: PlanHealthIntelligenceSectionState?
+    var highlightWeeklyRecommendation: Bool = false
     var onGoToToday: (() -> Void)? = nil
     var onAdjustActivity: () -> Void = {}
     var onAdjustPlan: () -> Void = {}
+    var onReviewWeeklyRecommendation: (() -> Void)? = nil
     var onCalculationDetailsOpened: () -> Void = {}
     var onAppleHealthTap: (() -> Void)? = nil
     var onConnectHealth: (() -> Void)? = nil
@@ -78,6 +82,22 @@ struct PlanDashboardContent: View {
 
         case .planStatus:
             PlanStatusSection(state: state.status)
+
+        case .weeklyRecommendation:
+            PlanWeeklyRecommendationSection(
+                state: state.weeklyRecommendation,
+                onReviewPlan: onReviewWeeklyRecommendation ?? onAdjustPlan
+            )
+            .id(Self.weeklyRecommendationScrollID)
+            .overlay {
+                if highlightWeeklyRecommendation {
+                    RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
+                        .strokeBorder(FormaPlanTokens.Color.planAccent, lineWidth: 2)
+                        .padding(-FormaTokens.Spacing.xs)
+                        .accessibilityHidden(true)
+                }
+            }
+            .onAppear { onSectionAppear?(.weeklyRecommendation) }
 
         case .whyThisWorks:
             PlanRationaleSection(

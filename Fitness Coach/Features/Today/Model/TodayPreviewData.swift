@@ -97,7 +97,7 @@ enum TodayPreviewData {
             ),
             foodEntries: [],
             hasPriorFoodLogs: false,
-            dailyReview: nil,
+            yesterdayReviewInput: nil,
             goalWeightKg: 75,
             profileWeightKg: 90.15,
             activityContext: .default,
@@ -271,7 +271,7 @@ enum TodayPreviewData {
                 ),
                 foodEntries: foodEntries,
                 hasPriorFoodLogs: hasPriorFoodLogs,
-                dailyReview: nil,
+                yesterdayReviewInput: nil,
                 goalWeightKg: 75,
                 profileWeightKg: 90.15,
                 activityContext: activityContext ?? TodayActivityContext(

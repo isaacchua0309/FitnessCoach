@@ -4,7 +4,7 @@
 **Navigation title:** `FormaProductCopy.Journey.Header.title` ("Your journey")  
 **Code names:** `JourneyView`, `JourneyModel`, `JourneyDashboardState`, `AppTab.journey`
 
-**Related:** [Architecture.md](./Architecture.md), `Fitness CoachTests/JourneyRevampQAChecklistTests.swift`, `Fitness CoachTests/JourneyCleanupTests.swift`
+**Related:** [ANALYTICS.md](./ANALYTICS.md), [WeeklyProgressLoopV1.md](./WeeklyProgressLoopV1.md)
 
 ---
 
@@ -27,15 +27,26 @@ Defined in `JourneyProductLayout.sectionOrder`, rendered by `JourneyDashboardCon
 | 1 | `header` | `JourneyPresentationBuilder.header` → `header` |
 | 2 | `transformation` | `JourneyHeroBuilder` → `transformation` |
 | 3 | `goalProjection` | `JourneyGoalProjectionBuilder` → `goalProjection` |
-| 4 | `milestones` | `JourneyNextMilestoneBuilder` → `milestone` |
-| 5 | `weeklyReview` | `JourneyWeeklyPatternBuilder` → `weeklyHabit` |
-| 6 | `storyTimeline` | `JourneyTimelineBuilder` → `storyEvents` |
-| 7 | `insights` | `JourneyPersonalizedInsightsBuilder` → `insight` |
-| 8 | `monthlyRecap` | `JourneyMonthlyRecapBuilder` → `monthlyRecap` |
-| 9 | `chapters` | `JourneyChapterBuilder` → `chapter` |
-| 10 | `startingEmptyState` | `JourneyStartingEmptyStateView` when `!hasMeaningfulJourneyData` |
+| 4 | `weeklyProgress` | `UnifiedWeeklyReviewPresentationBuilder` → hero via `WeeklyProgressHeroSection`; summary on `JourneyDashboardState.weeklyProgressSummary` |
+| 5 | `healthIntelligence` | `JourneyHealthIntelligenceSectionLoader` (optional; flag + HK) |
+| 6 | `milestones` | `JourneyNextMilestoneBuilder` → `milestone` |
+| 7 | `weeklyReview` | `JourneyWeeklyPatternBuilder` → `weeklyHabit` (legacy rows; collapsed when weekly progress hero visible) |
+| 8 | `storyTimeline` | `JourneyTimelineBuilder` → `storyEvents` |
+| 9 | `insights` | `JourneyPersonalizedInsightsBuilder` → `insight` |
+| 10 | `monthlyRecap` | `JourneyMonthlyRecapBuilder` → `monthlyRecap` |
+| 11 | `chapters` | `JourneyChapterBuilder` → `chapter` |
+| 12 | `startingEmptyState` | `JourneyStartingEmptyStateView` when `!hasMeaningfulJourneyData` |
 
 `hasMeaningfulJourneyData` hides data-rich sections for brand-new users; they see header, transformation hero, next milestone, and the "Go to Today" empty state.
+
+### Weekly Progress Loop v1 (hero)
+
+The **`weeklyProgress`** section is the primary week-2 ritual surface (see [`Docs/WeeklyProgress/WeeklyProgressLoopV1.md`](WeeklyProgress/WeeklyProgressLoopV1.md)):
+
+- Built from `WeeklyProgressSummary` via `WeeklyProgressSummaryBuilder` (local `DailyLog` + `WeightEntry` — **no HealthKit required** for the core loop).
+- `WeeklyProgressHeroSection` shows maintenance estimate, plan recommendation, weight spike education, and CTAs.
+- Tap opens `WeeklyReviewDetailView` (canonical weekly detail sheet).
+- Legacy `weeklyReview` habit rows remain for training fallback but collapse when the hero is shown.
 
 ---
 

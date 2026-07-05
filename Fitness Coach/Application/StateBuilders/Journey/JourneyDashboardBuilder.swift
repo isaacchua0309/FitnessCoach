@@ -96,6 +96,23 @@ enum JourneyDashboardBuilder {
         )
     }
 
+    // MARK: - Weekly progress
+
+    static func weeklyProgressSummary(
+        context: Context,
+        builder: WeeklyProgressSummaryBuilding = WeeklyProgressSummaryBuilder()
+    ) -> WeeklyProgressSummary {
+        builder.buildSummary(
+            asOf: context.asOf,
+            profile: context.profile,
+            dailyLogs: context.maturityLogs,
+            weightEntries: context.allWeights,
+            trainingDayStarts: context.healthWorkoutDayStarts.isEmpty
+                ? nil
+                : context.healthWorkoutDayStarts
+        )
+    }
+
     // MARK: - Milestones
 
     static func milestones(context: Context) -> JourneyMilestonesState {

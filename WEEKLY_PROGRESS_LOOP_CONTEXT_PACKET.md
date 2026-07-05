@@ -1,5 +1,7 @@
 # Weekly Progress Loop Context Packet
 
+> **Implementation note (2026-07):** Weekly Progress Loop **v1 is implemented** on branch `cursor/unified-weekly-review-presentation-027b`. Post-implementation documentation lives in [`Docs/WeeklyProgress/WeeklyProgressLoopV1.md`](Docs/WeeklyProgress/WeeklyProgressLoopV1.md). The audit below remains as the pre-sprint baseline record.
+
 **Generated:** 2026-07-05  
 **Sprint scope target:** Weekly Progress Loop v1 — Learned Maintenance, Unified Weekly Review, and Plan Recommendations  
 **Branch audited:** `feature/account-persistence-restore` (working tree)  

@@ -183,6 +183,20 @@ struct TodayReadOnlyView: View {
 
     private var reinforcementBlock: some View {
         VStack(alignment: .leading, spacing: TodayLayout.reinforcementSpacing) {
+            TodayYesterdayReviewSection(
+                state: state.yesterdayReview,
+                isGenerating: actionCoordinator.isGeneratingYesterdayReview,
+                onViewReview: { review in
+                    actionCoordinator.viewYesterdayReview(review)
+                },
+                onGenerateReview: { date in
+                    actionCoordinator.generateYesterdayReview(for: date)
+                },
+                onViewed: {
+                    actionCoordinator.logYesterdayReviewViewed()
+                }
+            )
+
             TodayVictorySection(
                 victory: state.victory,
                 onViewed: {

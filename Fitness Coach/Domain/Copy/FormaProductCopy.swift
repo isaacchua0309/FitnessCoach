@@ -1161,6 +1161,16 @@ enum FormaProductCopy {
             static let coachReviewAction = "Review with Coach"
         }
 
+        enum YesterdayReview {
+            static let sectionTitle = "Yesterday's review"
+            static let viewAction = "View review"
+            static let viewHint = "Opens yesterday's daily review"
+            static let generateAction = "Generate yesterday's review"
+            static let generateHint = "Creates a daily review for yesterday"
+            static let generatedSuccess = "Yesterday's review is ready."
+            static let generateFailed = "Couldn't generate the review. Try again in Coach."
+        }
+
         enum EndOfDay {
             static let sectionTitle = "Today's Wrap-Up"
             static let overallGreatWork = "Great work"
@@ -2838,6 +2848,17 @@ enum FormaProductCopy {
         }
     }
 
+    enum PlanEditWeeklyReview {
+        static let defaultTitle = "Review your weekly progress"
+        static let defaultMessage =
+            "Use this context to decide whether to adjust your plan. Nothing changes until you confirm."
+        static let contextCardTitle = "Weekly recommendation"
+        static let currentTargetLabel = "Current calorie target"
+        static let suggestedChangeLabel = "Optional review"
+        static let confidenceLabel = "Confidence"
+        static let caveatsTitle = "Keep in mind"
+    }
+
     // MARK: - Plan Target Regeneration
 
     enum PlanTargetRegeneration {
@@ -3003,7 +3024,17 @@ enum FormaProductCopy {
         static let adjustPlan = "Adjust Plan"
         static let adjustPlanCTAHeading = "Need to change direction?"
         static let adjustPlanCTABody =
-            "Update your goal, target weight, activity, or calories."
+            "Update your goal, target weight, activity, or calories. "
+            + "Forma will not change your targets without confirmation."
+
+        static let weeklyRecommendationSectionTitle = "Weekly recommendation"
+        static let formulaMaintenanceLabel = "Initial estimate"
+        static let learnedMaintenanceLabel = "Learned maintenance"
+        static let learnedMaintenanceUnavailable =
+            "Keep logging to learn your maintenance"
+        static let weeklyRecommendationSafetyCopy =
+            "Forma will not change your targets without confirmation."
+        static let weeklyRecommendationReviewPlan = "Review plan"
 
         static let planAssumptionsSectionTitle = "Plan Assumptions"
         static let planAssumptionsAge = "Age"
@@ -3084,6 +3115,8 @@ enum FormaProductCopy {
         static let adjustmentRulePoorEnergy = "Energy is poor for 3+ days"
         static let adjustmentRuleTrainingDrops = "Training performance drops"
         static let adjustmentRuleHighHunger = "Hunger is consistently high"
+        static let adjustmentRuleWaitForWeeklySignal =
+            "Wait for a clear weekly trend before changing calories"
         static let adjustmentRuleAggressiveRecoveryNote =
             "Because this is an aggressive plan, recovery matters."
         static let adjustmentTrendTooEarly = "Your trend is still too early to judge."
@@ -3612,6 +3645,20 @@ enum FormaProductCopy {
             "\(count) of \(total) days"
         }
 
+        static let dailyReviewsTitle = "Daily reviews"
+
+        static func dailyReviewsValue(_ count: Int, total: Int = 7) -> String {
+            dayCountValue(count, total: total)
+        }
+
+        enum Freshness {
+            static let updatedJustNow = "Updated just now"
+            static let savedToAccount = "Saved to your account"
+            static let syncingChanges = "Some changes are still syncing"
+            static let reviewMayUpdate = "Review may update when your latest logs finish syncing"
+            static let restoringAccount = "Restoring account data…"
+        }
+
         static func weightTrendValue(_ changeKg: Double) -> String {
             let formatted = String(format: "%.1f", abs(changeKg))
             if changeKg < 0 {
@@ -3641,6 +3688,41 @@ enum FormaProductCopy {
                 }
             }
         }
+    }
+
+    // MARK: - Weight spike education
+
+    enum WeightSpikeEducation {
+        static let shortTitle = "Noisy scale week"
+
+        static let shortBody =
+            "One weigh-in can jump without meaning your plan stopped working. "
+            + "Look at your weekly trend before changing calories."
+
+        static let detailBody =
+            "Your latest weigh-in jumped, but one spike does not mean your plan stopped working. "
+            + "Sodium, carbs, soreness, sleep, and hydration can all move the scale. "
+            + "Look at your weekly trend before changing calories."
+
+        static let accessibilityLabel =
+            "Noisy scale week. Your latest weigh-in jumped, but one spike does not mean your plan stopped working. "
+            + "Sodium, carbs, soreness, sleep, and hydration can all move the scale. "
+            + "Look at your weekly trend before changing calories."
+
+        static let waitRecommendationTitle = "Wait before changing calories"
+
+        static let waitRecommendationMessage = shortBody
+
+        static let waitRecommendationReason =
+            "A sudden jump can reflect sodium, carbs, soreness, sleep, or hydration — not a full week of progress."
+
+        static let holdSteadyNote =
+            "Hold steady for now and keep logging. One weigh-in is not enough to change your plan."
+
+        static let confidenceSuffix =
+            " The scale looks noisy this week, so look at the weekly trend before changing calories."
+
+        static let noisyWeekHeadline = shortTitle
     }
 
     // MARK: - Plan Health Intelligence presentation

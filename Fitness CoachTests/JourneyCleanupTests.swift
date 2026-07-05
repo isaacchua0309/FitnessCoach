@@ -19,6 +19,7 @@ final class JourneyCleanupTests: XCTestCase {
         XCTAssertFalse(identifiers.contains("personalRecords"))
         XCTAssertFalse(identifiers.contains("journeyLevel"))
         XCTAssertFalse(identifiers.contains("detailedAnalytics"))
+        XCTAssertTrue(identifiers.contains("weeklyProgress"))
         XCTAssertTrue(identifiers.contains("monthlyRecap"))
         XCTAssertTrue(identifiers.contains("chapters"))
         XCTAssertTrue(identifiers.contains("header"))
@@ -73,9 +74,17 @@ final class JourneyCleanupTests: XCTestCase {
                 "insight",
                 "weeklyHabit",
                 "monthlyRecap",
-                "chapter"
+                "chapter",
+                "weeklyProgressSummary"
             ]
         )
+    }
+
+    func testJourneyDashboardStateIncludesWeeklyProgressSummary() {
+        let dashboard = JourneyPreviewData.strongMomentum
+
+        XCTAssertLessThanOrEqual(dashboard.weeklyProgressSummary.startDate, dashboard.weeklyProgressSummary.endDate)
+        XCTAssertFalse(dashboard.weeklyProgressSummary.headline.isEmpty)
     }
 
     func testLegacySectionAccessorsRemainAvailable() {

@@ -10,9 +10,12 @@ import Foundation
 struct PlanDashboardContext: Equatable, Sendable {
     var profile: UserProfile
     var weekLogs: [DailyLog]
+    /// Up to one year of logs — used for learned maintenance and weekly recommendation.
+    var maturityLogs: [DailyLog]
     var allWeights: [WeightEntry]
     var integrationState: TrainingIntegrationState
     var dataSource: TrainingDataSource
+    var healthWorkoutDayStarts: Set<Date>
     var asOf: Date
     var calendar: Calendar
 
@@ -26,9 +29,11 @@ struct PlanDashboardContext: Equatable, Sendable {
         PlanDashboardContext(
             profile: profile,
             weekLogs: [],
+            maturityLogs: [],
             allWeights: [],
             integrationState: integrationState,
             dataSource: dataSource,
+            healthWorkoutDayStarts: [],
             asOf: referenceDate,
             calendar: calendar
         )

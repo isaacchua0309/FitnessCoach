@@ -23,6 +23,8 @@ struct JourneyDashboardState: Equatable {
     var weeklyHabit: JourneyWeeklyHabitState
     var monthlyRecap: JourneyMonthlyRecapState
     var chapter: JourneyChapterState
+    var weeklyProgressSummary: WeeklyProgressSummary
+    var dailyReviewsThisWeekCount: Int
 }
 
 extension JourneyDashboardState {
@@ -75,6 +77,13 @@ extension JourneyDashboardState {
 
     var showsWeeklyReviewSection: Bool {
         hasMeaningfulJourneyData && weeklyHabit.isVisible
+    }
+
+    var showsWeeklyProgressSection: Bool {
+        guard hasProfile else { return false }
+        if weeklyProgressSummary.foodLoggedDays > 0 { return true }
+        if weeklyHabit.showsHabitRows { return true }
+        return hasMeaningfulJourneyData && weeklyHabit.isVisible
     }
 
     var showsInsightSection: Bool {

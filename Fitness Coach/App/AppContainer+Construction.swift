@@ -30,6 +30,7 @@ extension AppContainer {
         let todayAnalyticsLogger: any TodayAnalyticsLogging
         let planAnalyticsLogger: any PlanAnalyticsLogging
         let journeyAnalyticsLogger: any JourneyAnalyticsLogging
+        let weeklyProgressAnalyticsLogger: any WeeklyProgressAnalyticsLogging
         let publicEntryAnalyticsLogger: any PublicEntryAnalyticsLogging
         let themeAnalyticsLogger: any ThemeAnalyticsLogging
         let settingsAnalyticsLogger: any SettingsAnalyticsLogging
@@ -162,6 +163,7 @@ extension AppContainer {
         todayAnalyticsLogger: (any TodayAnalyticsLogging)?,
         planAnalyticsLogger: (any PlanAnalyticsLogging)?,
         journeyAnalyticsLogger: (any JourneyAnalyticsLogging)?,
+        weeklyProgressAnalyticsLogger: (any WeeklyProgressAnalyticsLogging)?,
         publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)?,
         themeAnalyticsLogger: (any ThemeAnalyticsLogging)?,
         settingsAnalyticsLogger: (any SettingsAnalyticsLogging)?,
@@ -173,6 +175,7 @@ extension AppContainer {
             todayAnalyticsLogger: todayAnalyticsLogger ?? OSLogTodayAnalyticsLogger(),
             planAnalyticsLogger: planAnalyticsLogger ?? OSLogPlanAnalyticsLogger(),
             journeyAnalyticsLogger: journeyAnalyticsLogger ?? OSLogJourneyAnalyticsLogger(),
+            weeklyProgressAnalyticsLogger: weeklyProgressAnalyticsLogger ?? OSLogWeeklyProgressAnalyticsLogger(),
             publicEntryAnalyticsLogger: publicEntryAnalyticsLogger ?? OSLogPublicEntryAnalyticsLogger(),
             themeAnalyticsLogger: themeAnalyticsLogger ?? OSLogThemeAnalyticsLogger(),
             settingsAnalyticsLogger: settingsAnalyticsLogger ?? OSLogSettingsAnalyticsLogger(),
@@ -185,6 +188,7 @@ extension AppContainer {
             todayAnalyticsLogger: todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger(),
             planAnalyticsLogger: planAnalyticsLogger ?? NoOpPlanAnalyticsLogger(),
             journeyAnalyticsLogger: journeyAnalyticsLogger ?? NoOpJourneyAnalyticsLogger(),
+            weeklyProgressAnalyticsLogger: weeklyProgressAnalyticsLogger ?? NoOpWeeklyProgressAnalyticsLogger(),
             publicEntryAnalyticsLogger: publicEntryAnalyticsLogger ?? NoOpPublicEntryAnalyticsLogger(),
             themeAnalyticsLogger: themeAnalyticsLogger ?? NoOpThemeAnalyticsLogger(),
             settingsAnalyticsLogger: settingsAnalyticsLogger ?? NoOpSettingsAnalyticsLogger(),

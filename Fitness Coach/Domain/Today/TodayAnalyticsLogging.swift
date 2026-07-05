@@ -22,6 +22,8 @@ enum TodayAnalyticsEvent: String, Sendable {
     case dailyVictoryViewed = "today_daily_victory_viewed"
     case smartCoachViewed = "today_smart_coach_viewed"
     case endOfDayWrapViewed = "today_end_of_day_wrap_viewed"
+    case yesterdayReviewViewed = "today_yesterday_review_viewed"
+    case yesterdayReviewTapped = "today_yesterday_review_tapped"
     case logMealSaved = "today_log_meal_saved"
     case mealEditSaved = "today_meal_edit_saved"
     case mealDeleted = "today_meal_deleted"

@@ -179,6 +179,7 @@ enum FormaAbTest {
         static var themeAnalyticsTrace: Bool { resolved.themeAnalyticsTrace }
         static var publicEntryAnalyticsTrace: Bool { resolved.publicEntryAnalyticsTrace }
         static var healthIntelligenceAnalyticsTrace: Bool { resolved.healthIntelligenceAnalyticsTrace }
+        static var weeklyProgressAnalyticsTrace: Bool { resolved.weeklyProgressAnalyticsTrace }
         static var healthTrainingTrace: Bool { resolved.healthTrainingTrace }
         static var profileBootstrapTrace: Bool { resolved.profileBootstrapTrace }
         static var authSignInTrace: Bool { resolved.authSignInTrace }
@@ -246,6 +247,7 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
     var themeAnalyticsTrace: Bool
     var publicEntryAnalyticsTrace: Bool
     var healthIntelligenceAnalyticsTrace: Bool
+    var weeklyProgressAnalyticsTrace: Bool
     var healthTrainingTrace: Bool
     var profileBootstrapTrace: Bool
     var authSignInTrace: Bool
@@ -292,6 +294,7 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
         themeAnalyticsTrace: true,
         publicEntryAnalyticsTrace: true,
         healthIntelligenceAnalyticsTrace: true,
+        weeklyProgressAnalyticsTrace: true,
         healthTrainingTrace: true,
         profileBootstrapTrace: true,
         authSignInTrace: true,

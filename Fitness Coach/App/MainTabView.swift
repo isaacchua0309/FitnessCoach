@@ -35,6 +35,8 @@ struct MainTabView: View {
 
     private let container: AppContainer
     private let journeyAnalyticsCoordinator: JourneyAnalyticsCoordinator
+    private let weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator
+    private let planAnalyticsCoordinator: PlanAnalyticsCoordinator
     private let settingsAnalyticsCoordinator: SettingsAnalyticsCoordinator
     private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator
     private let todayActionCoordinator: TodayActionCoordinator
@@ -52,11 +54,16 @@ struct MainTabView: View {
     init(container: AppContainer) {
         self.container = container
         self.journeyAnalyticsCoordinator = container.makeJourneyAnalyticsCoordinator()
+        self.weeklyProgressAnalyticsCoordinator = container.makeWeeklyProgressAnalyticsCoordinator()
+        self.planAnalyticsCoordinator = container.makePlanAnalyticsCoordinator(
+            weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator
+        )
         self.settingsAnalyticsCoordinator = container.makeSettingsAnalyticsCoordinator()
         let healthIntelligenceAnalyticsCoordinator = container.makeHealthIntelligenceAnalyticsCoordinator()
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
         self.todayActionCoordinator = container.makeTodayActionCoordinator(
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator
         )
         _todayModel = StateObject(
             wrappedValue: container.makeTodayModel(
@@ -75,7 +82,8 @@ struct MainTabView: View {
         )
         _planModel = StateObject(
             wrappedValue: container.makePlanModel(
-                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+                planAnalyticsCoordinator: planAnalyticsCoordinator
             )
         )
         _selectedTab = State(initialValue: Self.resolveInitialTab())
@@ -112,12 +120,19 @@ struct MainTabView: View {
             JourneyView(
                 model: journeyModel,
                 analyticsCoordinator: journeyAnalyticsCoordinator,
+                weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator,
                 healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                 onOpenCoach: { prefill in
                     openCoach(with: coachLaunchIntent(fromLegacyPrefill: prefill))
                 },
                 onOpenPlan: {
                     selectedTab = .plan
+                },
+                onOpenPlanForWeeklyReview: {
+                    selectedTab = .plan
+                    planModel.showEditPlanFromWeeklyReview(
+                        entryPoint: .journeyRecommendation
+                    )
                 },
                 onOpenToday: {
                     selectedTab = .today
