@@ -56,6 +56,7 @@ When closing an item, remove the source `TD-*` comment and update this register 
 | TD-HI-003 | Health Intelligence | Dual workout types at query boundary | `HealthWorkoutRecord`, `NormalizedWorkout`, `NormalizedWorkout+HealthWorkoutRecord` | Repository stores `NormalizedWorkout`; app query layer and 30+ callers still use `HealthWorkoutRecord`. Shim maps at `HealthActivityQueryService` repository-routing path only. | Migrate `HealthActivityQueryService` workout APIs + Today/Journey/Coach/Training Insights builders to `NormalizedWorkout`; delete shim when `asHealthWorkoutRecord` has zero production references |
 | TD-COACH-001 | Coach | `CoachModel` god-file split | `CoachModel.swift` (was ~1,600 LOC) | **Partially closed** — v1 coordinators + `CoachDependencies` extracted; image pick flow and legacy test init remain | Remove legacy init; extract `CoachImagePickFlowController` wiring; close when characterization suite green in CI |
 | TD-BACKEND-001 | Backend | Monolithic `functions/src/index.ts` | Firebase Functions | Route modularization deferred | Extract `routes/` per PRDX P1 |
+| TD-TEST-001 | Testing | Fast-Core SPM / host wiring | `Fitness CoachTests`, `Fitness Coach.xcodeproj` | **Mostly closed** — TEST_HOST + BUNDLE_LOADER; no duplicate Firebase SPM link in test target; serial Fast-Core plan | Mac verify: `./Scripts/run_fast_core_tests.sh` → `TEST SUCCEEDED` |
 
 ---
 
@@ -80,6 +81,7 @@ Partial progress (not closed):
 |----|------|--------|
 | TD-HI-002 | `*SectionLoader` / HI presentation duplication | **Mostly closed** — `HealthIntelligenceSectionLoaderCore` + `HealthIntelligencePresentationCore`; tab builders migrated; golden parity gate added; dead `showsLegacyHealthIntelligenceStack` / `showsLegacyNextBestAction` stubs removed from `TodayReadOnlyCompositionPolicy` |
 | TD-HI-003 | `NormalizedWorkout+HealthWorkoutRecord` shim | **Open** — audited 2026-07-05; not safe to delete; 1 production caller (`HealthActivityQueryService`) + 30+ `HealthWorkoutRecord` consumers remain |
+| TD-TEST-001 | Fast-Core SPM / host wiring | **Mostly closed** — `TEST_HOST` + `BUNDLE_LOADER`; Firebase/GoogleSignIn SPM removed from test target; `Scripts/run_fast_core_tests.sh`; Fast-Core serial |
 
 ---
 
@@ -127,6 +129,7 @@ See `Docs/PersistenceCleanupNotes.md` and entity file headers.
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | **Fast-Core / BW-101** — TD-TEST-001 mostly closed; test target uses `TEST_HOST` (no duplicate Firebase SPM link); `Scripts/run_fast_core_tests.sh`; Fast-Core serial |
 | 2026-07-05 | **NormalizedWorkout shim audit** — TD-HI-003 opened; shim deletion blocked pending `HealthWorkoutRecord` → `NormalizedWorkout` query-boundary migration |
 | 2026-07-05 | **Health Intelligence consolidation v2** — TD-HI-002 mostly closed; `HealthIntelligenceSectionLoaderCore`, `TodayHealthIntelligenceSectionLoader`, AppContainer dependency file split |
 | 2026-07-05 | **Coach decomposition v1** — TD-COACH-001 partially closed; architecture docs added |

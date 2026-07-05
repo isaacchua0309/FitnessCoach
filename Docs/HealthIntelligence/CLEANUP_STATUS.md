@@ -17,7 +17,7 @@ This document tracks **removed**, **deprecated**, and **remaining** cleanup item
 | `AppContainer+Construction.swift` | **Reduced** | Domain bundles under `App/Dependencies/`; Construction holds DEBUG utilities only (~68 LOC) |
 | Golden parity gate | **Added** | `HealthIntelligencePresentationParityTests` — fixtures A–E across Today/Plan/Journey |
 | Legacy composition policy files | **Kept (flag-off)** | `TodayReadOnlyCompositionPolicy`, `PlanDashboardCompositionPolicy`, `JourneyDashboardCompositionPolicy` still gate legacy vs HI sections while `healthIntelligenceUIEnabled` can be off |
-| Fast-Core test plan | **Blocked (BW-101)** | `build-for-testing` fails: test target cannot resolve `FirebaseCore` / GoogleSignIn modules on CI host without full Xcode + SPM resolution |
+| Fast-Core test plan | **Unblocked (BW-101 closed)** | `TEST_HOST` + `BUNDLE_LOADER`; Firebase/GoogleSignIn SPM in app only; run `./Scripts/run_fast_core_tests.sh` on Mac/Xcode (serial Fast-Core) |
 
 ---
 

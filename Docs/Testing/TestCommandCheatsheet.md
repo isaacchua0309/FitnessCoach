@@ -8,9 +8,32 @@ Quick reference for focused test runs during development and pre-merge checks.
 export DESTINATION='platform=iOS Simulator,name=iPhone 17'
 ```
 
-> **Note:** iPhone 16 may not be installed on all machines. App builds on iPhone 17 (iOS 26.5). If `xcodebuild test` fails with `Unable to resolve module dependency: 'FirebaseCore'` in `Fitness CoachTests`, see BW-101 in [BuildWarningsRegister.md](../TechnicalDebt/BuildWarningsRegister.md).
+> **Note:** iPhone 16 may not be installed on all machines. App builds on iPhone 17 (iOS 26.5).
 
 Full suite layout and test-plan details: [`Fitness CoachTests/TESTING.md`](../Fitness%20CoachTests/TESTING.md).
+
+---
+
+## Fast-Core (canonical runner)
+
+Resolves SPM packages, builds for testing, then runs Fast-Core **serial** (avoids XCTest restart amplification from duplicate Firebase/GoogleSignIn linkage):
+
+```bash
+./Scripts/run_fast_core_tests.sh
+# optional destination override:
+./Scripts/run_fast_core_tests.sh 'platform=iOS Simulator,name=iPhone 17'
+```
+
+Equivalent manual steps:
+
+```bash
+xcodebuild -resolvePackageDependencies -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach"
+xcodebuild build-for-testing -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach" -destination "$DESTINATION"
+xcodebuild test-without-building -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach" \
+  -destination "$DESTINATION" -testPlan Fast-Core -parallel-testing-enabled NO
+```
+
+`Fitness CoachTests` loads Firebase/GoogleSignIn via the app host (`TEST_HOST` + `BUNDLE_LOADER`); SPM products stay on the app target only. See BW-101 / TD-TEST-001 in [BuildWarningsRegister.md](../TechnicalDebt/BuildWarningsRegister.md) and [TechnicalDebtRegister.md](../TechnicalDebt/TechnicalDebtRegister.md).
 
 ---
 
@@ -18,7 +41,8 @@ Full suite layout and test-plan details: [`Fitness CoachTests/TESTING.md`](../Fi
 
 | Command | When to use |
 |---------|-------------|
-| `xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core` | Everyday local dev (~3–4 min) |
+| `./Scripts/run_fast_core_tests.sh` | **Preferred** — everyday local dev (~3–4 min) |
+| `xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core -parallel-testing-enabled NO` | Fast-Core without the helper script (ensure packages resolved first) |
 | `xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Integration` | SwiftData, cloud, auth handoff |
 | `xcodebuild test -scheme "Fitness Coach CI" -destination "$DESTINATION"` | Pre-merge full regression |
 

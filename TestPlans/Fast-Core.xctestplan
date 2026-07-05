@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "id": "F29C1725-8B5A-4F64-994A-0AAC6526A2F2",
+      "id": "88F2E2F7-6218-45C4-ABF8-667EA29F2BBC",
       "name": "Configuration 1",
       "options": {}
     }
@@ -11,7 +11,7 @@
   },
   "testTargets": [
     {
-      "parallelizable": true,
+      "parallelizable": false,
       "target": {
         "containerPath": "container:Fitness Coach.xcodeproj",
         "identifier": "3A0000062FEE000100000001",
@@ -270,7 +270,6 @@
         "HealthIntelligenceAnalyticsCoordinatorTests",
         "HealthIntelligenceBaselineTests",
         "HealthIntelligenceCompositionTests",
-        "HealthIntelligencePresentationParityTests",
         "HealthIntelligenceContextBuilderTests",
         "HealthIntelligenceEngineTests",
         "HealthIntelligenceFeatureFlagsTests",
@@ -288,6 +287,7 @@
         "HealthIntelligencePhase1618DateTimeTests",
         "HealthIntelligencePhase1618IntegrationTests",
         "HealthIntelligencePipelineIntegrationTests",
+        "HealthIntelligencePresentationParityTests",
         "HealthIntelligencePresentationStateMapperTests",
         "HealthIntelligencePresentationTextSanitizerTests",
         "HealthIntelligenceProductionHardeningTests",
