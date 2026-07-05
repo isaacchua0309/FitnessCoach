@@ -10,10 +10,6 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
-typealias CoachPhotoLibraryImageLoader = @Sendable (
-    PhotosPickerItem
-) async -> Result<CoachImagePipeline.PhotoLibraryLoadedImage, CoachMealPhotoError>
-
 @MainActor
 final class CoachImagePickFlowController: ObservableObject {
 
@@ -39,9 +35,7 @@ final class CoachImagePickFlowController: ObservableObject {
     #endif
 
     init(
-        photoLibraryImageLoader: @escaping CoachPhotoLibraryImageLoader = { item in
-            await CoachImagePipeline.loadImageFromPhotoLibrary(item)
-        }
+        photoLibraryImageLoader: @escaping CoachPhotoLibraryImageLoader = CoachPhotoLibraryImageLoading.live
     ) {
         self.photoLibraryImageLoader = photoLibraryImageLoader
     }

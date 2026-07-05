@@ -171,10 +171,3 @@ final class CoachPhotoLibrarySelectionRaceTests: XCTestCase {
         XCTAssertEqual(flow.state, .idle)
     }
 }
-
-@MainActor
-private extension CoachImagePickFlowController {
-    func setStateForTests(_ newState: CoachImagePickFlowState) {
-        state = newState
-    }
-}
