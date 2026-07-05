@@ -142,7 +142,139 @@ Counts from `wc -l` on branch `cursor/health-intelligence-consolidation-v2-f6aa`
 
 ---
 
-## 7. Existing tests
+## 7. Baseline Parity Matrix
+
+**Purpose:** Pre-refactor inventory of user-visible HI presentation behavior per tab. Use this matrix to prove behavior-neutral extraction — any refactor that changes a cell without an explicit product decision is a regression.
+
+**Inspected sources (2026-07-05):** `TodayHealthIntelligencePresentationBuilder`, `PlanHealthIntelligencePresentationBuilder`, `JourneyHealthIntelligencePresentationBuilder`, `HealthIntelligencePresentationCore`, `HealthIntelligencePresentationPolicy`, `WeeklyReviewPresentationBuilder`, `UnifiedWeeklyReviewPresentationBuilder` (adjacent Journey weekly UX), `HealthIntelligenceFeatureFlags`, `FormaAbTest`, `CLEANUP_STATUS.md`.
+
+**Shared resolution path:** All three tab builders resolve `HealthIntelligenceUIState` via `HealthIntelligenceSectionLoaderCore.resolveUIState` → `HealthIntelligencePresentationCore` → `HealthIntelligenceUIStateMapper`. Surface-specific copy/gating branches live in `HealthIntelligencePresentationPolicy`.
+
+### Per-surface inventory
+
+#### Today
+
+| Dimension | Behavior |
+|-----------|----------|
+| **HI cards that can appear** | Recovery card (always in section); Daily Mission (always); Next Best Action (visible or hidden); Workout card (optional); Adaptive Nutrition card (optional). Loading placeholders for recovery, mission, NBA. |
+| **Required inputs** | `HealthIntelligenceSnapshot?`, `TodayHealthIntelligenceNutritionProgress`, `HealthDataAvailability?`, `isAppleHealthConnected`, `TrainingIntegrationState`, `HealthIntegrationConnectionRecord`, `cachedDayCount`, optional `HealthBaselineContext`, sync metadata (`syncPhase`, `lastSuccessfulLocalSyncAt`, remote sync consent/capability). Loaded via `TodayHealthIntelligenceSectionLoader`. |
+| **Feature flag gates** | `buildSection` returns `nil` when `isUIEnabled` false. Model fetch gated by `shouldTodayModelLoadHealthIntelligence` (= engines ∧ (UI ∨ todayDebugFetch)). Legacy stack hidden by `TodayReadOnlyCompositionPolicy.showsHealthIntelligenceSection`. |
+| **HealthKit gates** | `HealthIntegrationStatusResolver` + `HealthSignalAvailability` from availability, training integration, connection record, snapshot connect-health NBA. Recovery forced to `.unknown` when `uiState.kind == .healthKitUnavailable`. |
+| **Stale-data behavior** | `staleDataLabel` on section + recovery card via `HealthIntelligencePresentationCore.staleDataLabel` → Policy `staleDataCopy(.today)`. Shown for `.staleData` and `.syncFailed` when `canShowInsight`. |
+| **Partial-signal behavior** | Limited recovery wording via Policy (`limitedRecoveryPartialSignals`, `limitedRecoveryMissingSignals`). `missingDataNote` on recovery card from Policy. No section-level `partialSignalsNote` (Journey-only). |
+| **Disconnected behavior** | `unavailableSection` when snapshot nil: placeholder recovery from `uiState`, empty workout card, supplemental NBA from integration status or `uiState.primaryAction` (connect / manage permissions / retry sync / ask coach). |
+| **CTA behavior** | HI snapshot NBA sanitized (connect-health stripped) → `TodayHealthIntegrationNextStepResolver`. Supplemental CTAs: `.connectHealth`, `.askCoach`, `.refreshHealthData`. Tap analytics via `logTodayNextBestActionTapped` (+ permission CTA when connect). |
+| **Analytics events** | Model: `logSnapshotLoaded` / `logSnapshotFailed` (surface `.today`). View: `logTodayRecoveryCardViewed`, `logTodayNextBestActionTapped`, `logHealthPermissionCTATapped`. |
+| **Copy source** | `FormaProductCopy.Today.HealthIntelligence.*` (section titles); `FormaProductCopy.HealthIntelligence.UIState` (fallback banners); Policy for limited recovery; Core for card field sanitization. |
+| **Accessibility labels** | Per-card via `HealthIntelligencePresentationCore.*AccessibilityLabel`; daily mission composed inline; section has no single root a11y label (cards are children). |
+| **Tests** | `TodayHealthIntelligencePresentationBuilderTests`, `TodayHealthIntelligenceSectionLoaderTests`, `TodayHealthIntelligenceCompositionTests`, `TodayModelHealthIntelligenceTests`, `HealthIntelligenceUIStateTests`, `HealthIntelligenceSectionLoaderCoreTests` |
+
+#### Plan
+
+| Dimension | Behavior |
+|-----------|----------|
+| **HI cards that can appear** | Confidence card; Assumptions list; Data Quality panel; Core Signals list; Missing Data Actions (CTA rows). Section-level fallback banner + stale label. Always returns a section state (never `nil` from builder). |
+| **Required inputs** | `PlanHealthIntelligenceBuildInput`: `planConfidence`, `HealthBaselineContext`, `recovery?`, `UserPlanContext`, `PlanHealthConnectionState`, `healthAvailability?`, nutrition/weight logging flags, sync metadata. Loader also needs `UserProfile`, `PlanDashboardContext`. Synthetic snapshot built from baseline when resolving UI state. |
+| **Feature flag gates** | Builder has no `isUIEnabled` guard (always builds). Model fetch: `shouldPlanModelLoadHealthIntelligence`. Dashboard visibility: `PlanDashboardCompositionPolicy.showsHealthIntelligenceSection` vs legacy confidence section. |
+| **HealthKit gates** | `PlanHealthConnectionState` (.disconnected / .partial / .connected) from Apple Health connected ∨ readable signals + permission depth. Degrades confidence, data-quality level, signal statuses, missing-data actions. |
+| **Stale-data behavior** | Section `staleDataLabel` via Core → Policy `staleDataCopy(.plan)`. No per-card stale labels. |
+| **Partial-signal behavior** | `.partial` connection → partial-permissions action, limited signal statuses, degraded confidence. Signal rows show `.limited` / `.missing` with detail strings from `FormaProductCopy.PlanHealthIntelligencePresentation`. |
+| **Disconnected behavior** | `healthConnection == .disconnected` → data quality `.limited`, connect-health missing-data action, synthetic snapshot NBA `connectHealth`, confidence degraded to unknown/low. |
+| **CTA behavior** | Missing-data actions: connect health, partial permissions, enable sleep, enable HRV, log weight, log nutrition. IDs deduplicated (`connect-health`, `partial-permissions`). No tap analytics on individual actions in coordinator (view-layer only). |
+| **Analytics events** | Model: `logSnapshotLoaded` / `logSnapshotFailed` (surface `.plan`). View: `logPlanHealthConfidenceViewed` (once per session, with confidence bucket). |
+| **Copy source** | `FormaProductCopy.PlanHealthIntelligencePresentation` (primary); `FormaProductCopy.HealthIntelligence.UIState` via fallback; Policy for plan fallback messages. |
+| **Accessibility labels** | Section root `accessibilityLabel` composes confidence + assumptions + data quality + actions. Per-card labels on confidence, data quality, assumptions, signals, actions. |
+| **Tests** | `PlanHealthIntelligencePresentationBuilderTests`, `PlanHealthIntelligenceSectionLoaderTests`, `PlanDashboardHealthIntelligenceTests`, `PlanModelHealthIntelligenceTests`, `HealthIntelligenceUIStateTests` |
+
+#### Journey
+
+| Dimension | Behavior |
+|-----------|----------|
+| **HI cards that can appear** | Weekly Review card (+ detail sheet state); Recovery Timeline (7–14 days); Workout History (30-day window); Milestones; Progress; Connect Health CTA (section-level). Alternate shells: loading, connect-only, sync-error, empty-data (all sub-cards empty with copy). |
+| **Required inputs** | `JourneyHealthIntelligenceBuildInput`: `todaySnapshot?`, `recoveryDays[]`, `workoutRecords[]`, `weeklyReview?`, `planProgress?`, `JourneyHealthConnectionState`, `availability?`, `baseline?`, timeline day count, sync metadata. Weekly review from `WeeklyReviewService` when `healthIntelligenceWeeklyReviewEnabled`. |
+| **Feature flag gates** | `buildSection` returns `nil` when `isUIEnabled` false. Model fetch: `shouldJourneyModelLoadHealthIntelligence`. Weekly review load skipped when `weeklyReviewEnabled` false. `JourneyDashboardCompositionPolicy` hides legacy insights / duplicate weekly review when HI section visible. **Adjacent:** `UnifiedWeeklyReviewPresentationBuilder` powers unified This Week card; `showsHealthIntelligenceWeeklyReviewCard` false when unified card shown. |
+| **HealthKit gates** | `JourneyHealthConnectionState` via loader core (connect-health NBA → `.notConnected`; else connected if integration ∨ readable signals). Connect-only section when `noHealthPermission` / `healthKitUnavailable` without insight. |
+| **Stale-data behavior** | Section `staleDataLabel` via Core → Policy `staleDataCopy(.journey)`. Recovery timeline may include `limitedTimelineNote`. |
+| **Partial-signal behavior** | Section `partialSignalsNote` via Policy (Journey-only): generic `FormaProductCopy.Journey.Sync.healthDataSyncing` when partial permission or missing insight kinds (excludes remote sync). Timeline limited-estimate labels per day. |
+| **Disconnected behavior** | `connectHealthSection` or `emptyDataSection`: sub-cards empty with UI-state copy; `connectHealthCTA` from Core `connectCTACopy`. `workoutHistory` empty kind `.noHealthData` vs `.connectedNoWorkouts`. |
+| **CTA behavior** | `connectHealthCTA` from `HealthIntelligencePresentationCore.connectCTACopy` + `normalizeUIStateCTACopy`. Weekly review detail opened from card tap (`logWeeklyReviewDetailOpened`). Permission CTA analytics shared with Today. |
+| **Analytics events** | Model: `logSnapshotLoaded` / `logSnapshotFailed` (surface `.journey`). View: `logJourneyRecoveryTimelineViewed`, `logJourneyWorkoutHistoryViewed`, `logWeeklyReviewCardViewed`, `logWeeklyReviewDetailOpened`. |
+| **Copy source** | `FormaProductCopy.Journey.HealthIntelligence.*`; `FormaProductCopy.WeeklyReviewPresentation` (via `WeeklyReviewPresentationBuilder`); `FormaProductCopy.HealthIntelligence.UIState`; Policy journey recovery + partial note. |
+| **Accessibility labels** | Per sub-card (timeline, workouts, milestones, progress, weekly review, connect CTA). Building weekly review uses Core `buildWeeklyReviewBuildingContent`. |
+| **Tests** | `JourneyHealthIntelligencePresentationBuilderTests`, `JourneyHealthIntelligenceSectionLoaderTests`, `JourneyHealthIntelligenceCompositionTests`, `JourneyModelHealthIntelligenceTests`, `WeeklyReviewPresentationBuilderTests`, `UnifiedWeeklyReviewPresentationBuilderTests`, `JourneyDashboardHealthIntelligenceTests` |
+
+### Cross-surface behavior matrix
+
+| Behavior | Today | Plan | Journey | Shared Candidate? | Must Stay Surface-Specific? |
+|----------|-------|------|---------|-------------------|-----------------------------|
+| **Section nil when HI UI off** | Returns `nil` | Builder always returns state; dashboard policy hides | Returns `nil` | Policy helper | **Yes** — Plan dashboard always prepares state for loading transitions |
+| **Recovery card** | Single-day card with training/nutrition guidance | Uses `recovery` in synthetic snapshot / confidence reasons only | Per-day timeline rows + scores | **Core** (`buildRecoveryCardContent`, `recoveryPhase`, `recoverySubtitle`) | **Partial** — Today card layout vs Journey timeline rows |
+| **Workout card / history** | Optional workout card (completed / empty) | Workout signal row in data quality | 30-day grouped history list | **Core** (`buildWorkoutCardContent`) for Today empty/complete | **Yes** — Journey list layout, grouping, milestones |
+| **Adaptive nutrition** | Optional card + daily-mission overlap rules | — | — | **Core** (`buildAdaptiveNutritionContent`, overlap helpers) | **Yes** — Today-only surface |
+| **Daily mission** | Composite headline + detail lines from recovery/workout/nutrition | — | — | — | **Yes** — Today-only |
+| **Next best action** | Integration resolver + supplemental UI-state CTAs | Synthetic snapshot NBA for disconnected only | — | **Core** (`isVisibleHealthAction`, `normalizeUIStateCTACopy`) | **Yes** — Today has unique integration resolver chain |
+| **Plan confidence** | — | Primary card with score %, reasons, disclaimer | — | — | **Yes** — Plan-only |
+| **Assumptions / data quality** | — | Assumptions list + quality level + signal grid | — | — | **Yes** — Plan-only |
+| **Missing-data actions** | Via NBA / integration resolver | Explicit action rows (connect, permissions, sleep, HRV, weight, nutrition) | Connect CTA + empty states | **Core** (`connectCTACopy`) for connect messaging | **Yes** — Plan has richest action set |
+| **Weekly review card** | — | — | Card + detail via `WeeklyReviewPresentationBuilder`; building state via Core | **Core** (building content) + `WeeklyReviewPresentationBuilder` | **Partial** — Journey hosts HI weekly review; unified weekly UX is separate builder |
+| **Recovery timeline** | — | — | 7–14 day span, limited notes | **Core** (phase, subtitle, labels, color tokens) | **Yes** — Journey layout / day iteration |
+| **Milestones** | — | — | Workout streak, recovery streak, review-driven items | — | **Yes** — Journey-only |
+| **Progress metrics** | — | — | Weekly review + plan progress stats | — | **Yes** — Journey-only |
+| **UI state resolution** | `HealthIntelligenceSectionLoaderCore.resolveUIState` | Same (synthetic snapshot) | Same | **Shared** — already extracted | No — keep in loader core |
+| **Fallback message** | Policy `todayFallbackMessage` | Policy `planFallbackMessage` | Policy `journeyFallbackMessage` | **Policy** (surface switch) | **Partial** — copy differs per surface |
+| **Stale data label** | Policy `staleDataCopy(.today)` | Policy `staleDataCopy(.plan)` | Policy `staleDataCopy(.journey)` | **Policy** | **Partial** — strings differ |
+| **Partial signals note** | — | — | Policy `partialSignalsNote` (Journey only) | **Policy** | **Yes** — Journey-only today |
+| **Sync failure section message** | Via `uiState.message` in unavailable paths | Fallback only | `HealthIntelligencePresentationPolicy.syncFailureSectionMessage` | **Policy** | **Partial** |
+| **Connect-only section** | Unavailable section + placeholder recovery | Missing-data actions | Dedicated `connectHealthSection` (all sub-cards empty) | **Core** `shouldShowConnectOnlySection` | **Yes** — Journey has unique empty sub-card shell |
+| **Loading section** | Per-card `.loading` states | Single loading section (confidence-led) | All sub-cards `.loading` | — | **Yes** — different skeleton shapes |
+| **HealthKit / permission gating** | Integration status + signal availability | `PlanHealthConnectionState.resolve` | `journeyHealthConnection` in loader core | **Core** connection helpers | **Partial** — Plan uses 3-state model |
+| **Feature flag: UI enabled** | `isUIEnabled` guard | Composition policy only | `isUIEnabled` guard | Central flag | **Yes** — different enforcement points |
+| **Feature flag: weekly review** | — | — | Loader skips `weeklyReview` when off | — | **Yes** — Journey load path |
+| **Feature flag: model load** | `shouldTodayModelLoadHealthIntelligence` | `shouldPlanModelLoadHealthIntelligence` | `shouldJourneyModelLoadHealthIntelligence` | `FormaAbTest.HealthIntelligence.should*Load` | **Shared** pattern |
+| **Remote sync / consent in UI state** | Passed into resolution input | Passed into resolution input | Passed into resolution input | **Shared** resolution input | No |
+| **Analytics: snapshot lifecycle** | `logSnapshotLoaded/Failed` | Same | Same | **Coordinator** | No |
+| **Analytics: section viewed** | Recovery card viewed | Confidence viewed | Timeline / workout history / weekly review viewed | **Coordinator** `logSectionOnce` | **Partial** — different events per surface |
+| **Analytics: CTA tapped** | NBA tapped + permission CTA | — (no coordinator CTA events) | Permission CTA via shared helper | **Coordinator** | **Partial** |
+| **User-facing copy SSOT** | `FormaProductCopy.Today.HealthIntelligence` | `FormaProductCopy.PlanHealthIntelligencePresentation` | `FormaProductCopy.Journey.HealthIntelligence` + `WeeklyReviewPresentation` | `FormaProductCopy.HealthIntelligence.UIState` for banners | **Yes** — tab copy namespaces must remain |
+| **Accessibility labels** | Core helpers + Today section titles | Composed section + per-card labels | Per sub-component labels | **Core** `*AccessibilityLabel` helpers | **Partial** — composition differs |
+| **Legacy composition policy** | `TodayReadOnlyCompositionPolicy` hides legacy stack | `PlanDashboardCompositionPolicy` toggles HI vs legacy confidence | `JourneyDashboardCompositionPolicy` hides legacy insights / duplicate weekly | — | **Yes** — per-dashboard; deprecated until flag permanent-on |
+| **Text sanitization** | Core `sanitizedGuidance` / `sanitizedText` | — | — | **Core** | No |
+| **Coach-safe field gating** | — | — | `coachSafeRecoveryScore`, `coachSafeCaloriesLabel` on timeline/history | **Core** | No |
+
+### Flag reference (runtime vs production intent)
+
+| Flag | `FormaAbTestSnapshot.allEnabled` | `FormaAbTestSnapshot.production` | Effect on presentation |
+|------|----------------------------------|----------------------------------|------------------------|
+| `foundationEnabled` | `true` | `true` | Master HI gate |
+| `enginesEnabled` | `true` | `true` | Snapshot/review composition |
+| `uiEnabled` | `true` | **`false`** | Today/Journey `nil` section; Plan composition policy |
+| `weeklyReviewEnabled` | `true` | **`false`** | Journey weekly review load |
+| `coachContextEnabled` | `true` | `true` | Coach only (not tab presentation) |
+| `syncEnabled` / `remoteSummarySyncEnabled` | `true` / `true` | `true` / **`false`** | UI state kinds for sync/stale/remote |
+| `should*ModelLoad` | UI ∨ debugFetch | **false** (no debug fetch in prod) | Whether models fetch HI at all |
+
+Source: `HealthIntelligenceFeatureFlags.swift`, `FormaAbTest.swift`, `FormaAbTestProductionCriticalFlagsTests`.
+
+### Deprecated paths affecting parity (from CLEANUP_STATUS)
+
+Do not remove until matrix row tests pass:
+
+1. Legacy `*CompositionPolicy` — duplicate section visibility when HI UI off/on  
+2. `HealthActivityQueryService` reader fallback — affects loader inputs  
+3. Workout calorie `max(manual, HealthKit)` — affects Today nutrition/training display adjacent to HI  
+4. Journey `workoutReader` fallback — affects workout history inputs  
+5. `normalizedSamples(for:)` — repository compatibility  
+6. Training Insights direct HK reads — parallel health surface  
+7. FITPILOT env keys — flag resolution only  
+8. `NormalizedWorkout` shim — loader record mapping  
+
+### Parity freeze rule
+
+Before merging any builder refactor PR, diff characterization test fixtures for all three `*PresentationBuilderTests` + composition tests. **Zero intentional changes** to `*SectionState` equatable outputs unless this matrix is updated in the same PR.
+
+---
+
+## 8. Existing tests
 
 ### Fast-Core HI presentation / loader (run first)
 
@@ -217,7 +349,7 @@ xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fa
 
 ---
 
-## 8. Characterization strategy
+## 9. Characterization strategy
 
 ### Principles
 
@@ -243,7 +375,7 @@ xcodebuild test -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fa
 
 ---
 
-## 9. PR / commit boundaries
+## 10. PR / commit boundaries
 
 Keep commits small and reviewable. Suggested sequence:
 
@@ -263,13 +395,13 @@ Do not mix engine changes, flag changes, or legacy deletions in the same commit 
 
 ---
 
-## 10. Rollback plan
+## 11. Rollback plan
 
 ### Per-PR rollback
 
 1. Revert the merge commit on `main` (or close PR without merge).
 2. No feature flags to flip — refactors are compile-time only.
-3. Run Fast-Core HI subset (§7) on a Mac with Xcode to confirm green.
+3. Run Fast-Core HI subset (§8) on a Mac with Xcode to confirm green.
 
 ### Partial rollback (single file)
 
@@ -287,7 +419,7 @@ Do not mix engine changes, flag changes, or legacy deletions in the same commit 
 
 ---
 
-## 11. Final success metrics
+## 12. Final success metrics
 
 | Metric | Baseline | Current (Phase 1) | Target | Status |
 |--------|----------|-------------------|--------|--------|
@@ -323,4 +455,5 @@ The sprint is **complete** when:
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Added §7 Baseline Parity Matrix (Today / Plan / Journey behavior inventory) |
 | 2026-07-05 | Initial execution map; Phase 1 metrics from PR #178 |
