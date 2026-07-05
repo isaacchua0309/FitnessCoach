@@ -42,9 +42,9 @@ final class AuthGateCoordinator: ObservableObject {
 
     private var loggedAuthGatePhase: AuthGateLoggedPhase?
     private var cancellables = Set<AnyCancellable>()
-    private var onboardingModelCancellable: AnyCancellable?
     private var accountRestoreRouteTask: Task<Void, Never>?
     private let publicEntryFlowCoordinator: PublicEntryFlowCoordinator
+    private let onboardingShellCoordinator: AuthOnboardingShellCoordinator
     #if DEBUG
     private var testingSignedInUID: String?
     #endif
@@ -57,8 +57,13 @@ final class AuthGateCoordinator: ObservableObject {
             container: container,
             authManager: container.authManager
         )
+        self.onboardingShellCoordinator = AuthOnboardingShellCoordinator(
+            container: container,
+            authManager: container.authManager
+        )
 
         publicEntryFlowCoordinator.configure(delegate: self)
+        onboardingShellCoordinator.configure(delegate: self)
 
         rootModel.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
@@ -67,11 +72,6 @@ final class AuthGateCoordinator: ObservableObject {
         authManager.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
-    }
-
-    func bindOnboardingModelChanges() {
-        onboardingModelCancellable = onboardingModel?.objectWillChange
-            .sink { [weak self] _ in self?.objectWillChange.send() }
     }
 
     // MARK: - Routing
@@ -137,13 +137,7 @@ final class AuthGateCoordinator: ObservableObject {
     // MARK: - Pre-auth onboarding
 
     func preparePreAuthOnboardingIfNeeded() {
-        guard !AppRouteResolver.isSignedIn(authManager.authState) else { return }
-        rootModel.resolveLocalProfile()
-        if publicEntryDestination == WelcomeOnboardingHandoffPolicy.createPlanDestination {
-            ensurePreAuthOnboardingModel()
-        } else {
-            ensureOnboardingModel()
-        }
+        onboardingShellCoordinator.preparePreAuthOnboardingIfNeeded()
     }
 
     // MARK: - Signed-in flow
@@ -165,7 +159,7 @@ final class AuthGateCoordinator: ObservableObject {
                 scheduleRouteToMainWithAccountRestore(uid: uid, reason: .accountSwitch)
             case .missingCloudProfile:
                 isResolvingAccountMismatch = false
-                onboardingModel = nil
+                onboardingShellCoordinator.clearOnboardingModel()
                 rootModel.presentMissingCloudProfile()
             case .cloudFetchFailed:
                 isResolvingAccountMismatch = false
@@ -259,9 +253,8 @@ final class AuthGateCoordinator: ObservableObject {
         container.accountRestoreSessionState.clearForSignOut()
         clearAuthenticatedSessionPresentationState()
         signedInSessionID = UUID()
-        onboardingModel = nil
+        onboardingShellCoordinator.resetOnboardingForAuthenticatedSignOut()
         publicEntryFlowCoordinator.resetPublicEntryFlagsForAccountDeletion()
-        pendingSignInForOnboardingCompletion = false
         awaitingCloudSync = false
         publicEntryFlowCoordinator.applyPublicEntryDestinationAfterSignOut()
         rootModel.resetForSignedOutSession()
@@ -307,136 +300,49 @@ final class AuthGateCoordinator: ObservableObject {
     // MARK: - Onboarding model lifecycle
 
     /// Ensures the onboarding model exists whenever routing targets an initializing onboarding shell.
-    /// Without this, `.onboardingInitializing` shows only
-    /// `LaunchLoadingView` and never reach the views whose `onAppear` used to create the model.
     func bootstrapOnboardingIfNeeded() {
-        let signedIn = AppRouteResolver.isSignedIn(authManager.authState)
-
-        // After explicit sign-out, stay on welcome until the user chooses Create My Plan.
-        if !signedIn,
-           container.publicEntrySessionStore.suppressAutomaticPublicEntryResume,
-           publicEntryDestination == .welcome {
-            return
-        }
-
-        let hasLocalProfile = container.profileBootstrapService.hasLocalProfile()
-        let awaitingSignInHandoff = container.profileBootstrapService.localProfileAwaitingSignIn()
-        let shouldBootstrapPreAuth = !signedIn && (
-            publicEntryDestination == WelcomeOnboardingHandoffPolicy.createPlanDestination
-                || WelcomeOnboardingHandoffPolicy.shouldBypassWelcome(
-                    PublicEntryRouteResolver.Input(
-                        destination: publicEntryDestination,
-                        isOnboardingModelReady: onboardingModel != nil,
-                        localProfileAwaitingSignIn: awaitingSignInHandoff,
-                        hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
-                        hasLocalProfile: hasLocalProfile,
-                        pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
-                        signedOutWithProfilePolicy: .requireSignIn,
-                        suppressAutomaticPublicEntryResume:
-                            container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
-                    )
-                )
-        )
-
-        let needsSignedInOnboarding = signedIn && rootModel.state == .onboarding
-
-        if shouldBootstrapPreAuth {
-            rootModel.resolveLocalProfile()
-            if publicEntryDestination == WelcomeOnboardingHandoffPolicy.createPlanDestination {
-                ensurePreAuthOnboardingModel()
-            } else {
-                ensureOnboardingModel()
-            }
-        }
-
-        if needsSignedInOnboarding {
-            ensureOnboardingModel()
-        }
+        onboardingShellCoordinator.bootstrapOnboardingIfNeeded()
     }
 
     func ensurePreAuthOnboardingModel() {
-        guard onboardingModel == nil else { return }
-        onboardingModel = container.makeOnboardingModel(
-            entry: WelcomeOnboardingHandoffPolicy.preAuthEntry,
-            onCompletion: { [weak self] in self?.handleOnboardingCompletionRequest() }
-        )
-        bindOnboardingModelChanges()
+        onboardingShellCoordinator.ensurePreAuthOnboardingModel()
     }
 
     func ensureOnboardingModel() {
-        guard onboardingModel == nil else { return }
-        let entry = NoExistingProfileFoundPolicy.onboardingEntry(
-            isSignedIn: AppRouteResolver.isSignedIn(authManager.authState)
-        )
-        onboardingModel = container.makeOnboardingModel(entry: entry) { [weak self] in
-            self?.handleOnboardingCompletionRequest()
-        }
-        bindOnboardingModelChanges()
+        onboardingShellCoordinator.ensureOnboardingModel()
     }
 
     func handleOnboardingCompletionRequest() {
-        if AppRouteResolver.isSignedIn(authManager.authState) {
-            guard let uid = authManager.currentUID else {
-                finishOnboardingLocally()
-                return
-            }
-            Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
-            return
-        }
-
-        pendingSignInForOnboardingCompletion = true
-        onboardingModel?.logSavePlanSignInStarted()
-        Task {
-            let outcome = await authManager.signInWithGoogle()
-            applyOnboardingGoogleSignInOutcome(outcome)
-        }
+        onboardingShellCoordinator.handleOnboardingCompletionRequest()
     }
 
     func applyOnboardingGoogleSignInOutcome(_ outcome: GoogleSignInAttemptOutcome) {
-        switch outcome {
-        case .success:
-            return
-        case .cancelled:
-            guard pendingSignInForOnboardingCompletion else { return }
-            pendingSignInForOnboardingCompletion = false
-            conflictCloudDocument = nil
-            isResolvingProfileConflict = false
-            onboardingModel?.handleGoogleSignInCancelled()
-            authManager.clearTransientAuthState()
-        case .failed:
-            guard pendingSignInForOnboardingCompletion else { return }
-            pendingSignInForOnboardingCompletion = false
-            conflictCloudDocument = nil
-            isResolvingProfileConflict = false
-            onboardingModel?.handleGoogleSignInFailed()
-            authManager.clearTransientAuthState()
-        }
-    }
-
-    func applyExistingUserGoogleSignInOutcome(_ outcome: GoogleSignInAttemptOutcome) {
-        publicEntryFlowCoordinator.applyExistingUserGoogleSignInOutcome(outcome)
+        onboardingShellCoordinator.applyOnboardingGoogleSignInOutcome(outcome)
     }
 
     /// Signed-in onboarding completion: probe cloud, then sync or show conflict UI.
     func resolveOnboardingCompletionAfterSignIn(uid: String) async {
-        await container.prepareSignedInAccountNamespace(uid: uid)
-        guard isUIDStillCurrent(uid) else { return }
-        rootModel.beginOnboardingCompletionCloudCheck()
+        await onboardingShellCoordinator.resolveOnboardingCompletionAfterSignIn(uid: uid)
+    }
 
-        let outcome = await container.profileBootstrapCoordinatorService.resolveOnboardingCompletion(uid: uid)
+    func finishOnboardingCompletionAfterSuccessfulSync() {
+        onboardingShellCoordinator.finishOnboardingCompletionAfterSuccessfulSync()
+    }
 
-        switch outcome {
-        case .uploadedToCloud:
-            finishOnboardingCompletionAfterSuccessfulSync()
-        case .cloudProfileConflict(let document):
-            conflictCloudDocument = document
-            profileConflictContext = .onboardingCompletion
-            rootModel.presentProfilePlanConflict()
-        case .cloudCheckFailed:
-            rootModel.presentOnboardingCloudCheckFailed()
-        case .cloudSyncFailed:
-            presentCloudProfileUploadFailure(context: .onboardingCompletion)
-        }
+    func clearOnboardingCompletionState() {
+        onboardingShellCoordinator.clearOnboardingCompletionState()
+    }
+
+    func retryOnboardingCompletionCloudCheck() {
+        onboardingShellCoordinator.retryOnboardingCompletionCloudCheck()
+    }
+
+    func finishOnboardingLocally() {
+        onboardingShellCoordinator.finishOnboardingLocally()
+    }
+
+    func applyExistingUserGoogleSignInOutcome(_ outcome: GoogleSignInAttemptOutcome) {
+        publicEntryFlowCoordinator.applyExistingUserGoogleSignInOutcome(outcome)
     }
 
     func presentCloudProfileUploadFailure(context: CloudProfileUploadFailureContext) {
@@ -447,31 +353,10 @@ final class AuthGateCoordinator: ObservableObject {
         rootModel.presentCloudProfileUploadFailed()
     }
 
-    func finishOnboardingCompletionAfterSuccessfulSync() {
-        onboardingModel?.markSignInSucceededForHandoff()
-
-        Task { @MainActor in
-            guard let uid = authManager.currentUID else { return }
-            let handoffDelayNanoseconds: UInt64 = UIAccessibility.isReduceMotionEnabled
-                ? 280_000_000
-                : 720_000_000
-            try? await Task.sleep(nanoseconds: handoffDelayNanoseconds)
-            clearOnboardingCompletionState()
-            awaitingCloudSync = false
-            scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
-        }
-    }
-
     func clearProfileConflictState() {
         conflictCloudDocument = nil
         isResolvingProfileConflict = false
         profileConflictContext = .accountOrOwnershipReconcile
-    }
-
-    func clearOnboardingCompletionState() {
-        pendingSignInForOnboardingCompletion = false
-        clearProfileConflictState()
-        onboardingModel = nil
     }
 
     func restoreExistingPlanAfterConflict() {
@@ -513,7 +398,7 @@ final class AuthGateCoordinator: ObservableObject {
         Task { @MainActor in
             do {
                 if profileConflictContext == .onboardingCompletion {
-                    onboardingModel?.commitLocalProfileForSavePlan()
+                    onboardingShellCoordinator.commitLocalProfileForSavePlan()
                 }
                 try await container.profileBootstrapCoordinatorService.uploadDevicePlanAfterConflict(uid: uid)
                 isResolvingProfileConflict = false
@@ -533,8 +418,7 @@ final class AuthGateCoordinator: ObservableObject {
     func finishProfileConflictAfterRestore() {
         switch profileConflictContext {
         case .onboardingCompletion:
-            onboardingModel?.finalizeAfterRestoredExistingPlan()
-            clearOnboardingCompletionState()
+            onboardingShellCoordinator.finalizeAfterRestoredExistingPlanAndClearCompletionState()
         case .accountOrOwnershipReconcile:
             clearProfileConflictState()
             clearStaleOnboardingDraftIfSafe()
@@ -549,26 +433,12 @@ final class AuthGateCoordinator: ObservableObject {
         try? container.actionCenter.syncTodayTargetsFromProfile()
         switch profileConflictContext {
         case .onboardingCompletion:
-            onboardingModel?.finalizeAfterSuccessfulSignIn()
-            clearOnboardingCompletionState()
+            onboardingShellCoordinator.finalizeAfterSuccessfulSignInAndClearCompletionState()
         case .accountOrOwnershipReconcile:
             clearProfileConflictState()
             clearStaleOnboardingDraftIfSafe()
             publicEntryFlowCoordinator.completeExistingUserSignInSuccessIfNeeded()
         }
-        awaitingCloudSync = false
-        guard let uid = authManager.currentUID else { return }
-        scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
-    }
-
-    func retryOnboardingCompletionCloudCheck() {
-        guard let uid = authManager.currentUID else { return }
-        Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
-    }
-
-    func finishOnboardingLocally() {
-        onboardingModel?.finalizeAfterSuccessfulSignIn()
-        onboardingModel = nil
         awaitingCloudSync = false
         guard let uid = authManager.currentUID else { return }
         scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
@@ -654,8 +524,7 @@ final class AuthGateCoordinator: ObservableObject {
 
         switch context {
         case .onboardingCompletion:
-            onboardingModel?.finalizeAfterSuccessfulSignIn()
-            clearOnboardingCompletionState()
+            onboardingShellCoordinator.finalizeAfterSuccessfulSignInAndClearCompletionState()
         case .reconcileUpload, .conflictReplace:
             clearProfileConflictState()
         case .profileEdit, .none:
@@ -699,23 +568,10 @@ final class AuthGateCoordinator: ObservableObject {
     ) {
         publicEntryFlowCoordinator.handleExistingUserSignInAttemptIfNeeded(from: previous, to: state)
 
-        if pendingSignInForOnboardingCompletion, didSignInAttemptFail(from: previous, to: state) {
-            let wasCancelled: Bool
-            if case .signedOut = state {
-                wasCancelled = true
-            } else {
-                wasCancelled = false
-            }
-            if wasCancelled {
-                onboardingModel?.handleGoogleSignInCancelled()
-            } else {
-                onboardingModel?.handleGoogleSignInFailed()
-            }
-            pendingSignInForOnboardingCompletion = false
-            conflictCloudDocument = nil
-            isResolvingProfileConflict = false
-            authManager.clearTransientAuthState()
-        }
+        onboardingShellCoordinator.handleOnboardingSignInAttemptFailedIfNeeded(
+            from: previous,
+            to: state
+        )
 
         if wasSignedIn {
             #if DEBUG
@@ -724,10 +580,9 @@ final class AuthGateCoordinator: ObservableObject {
             container.accountSyncCoordinator.cancelPendingWork()
             container.accountRestoreSessionState.clearForSignOut()
             clearAuthenticatedSessionPresentationState()
-            onboardingModel = nil
+            onboardingShellCoordinator.resetOnboardingForSignedOutTransition()
             pendingExistingUserSignIn = false
             existingUserSignInSessionActive = false
-            pendingSignInForOnboardingCompletion = false
             conflictCloudDocument = nil
             isResolvingProfileConflict = false
             pendingUploadFailureContext = nil
@@ -762,14 +617,7 @@ final class AuthGateCoordinator: ObservableObject {
             rootModel.resetForSignedOutSession()
         }
 
-        if AppRouteResolver.shouldClearOnboardingModel(
-            wasSignedIn: wasSignedIn,
-            isSignedIn: false,
-            hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
-            hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft
-        ) {
-            onboardingModel = nil
-        }
+        onboardingShellCoordinator.clearOnboardingModelIfPolicyRequires(wasSignedIn: wasSignedIn)
     }
 
     func prepareAuthenticatedSignOut(source: String) {
@@ -778,9 +626,8 @@ final class AuthGateCoordinator: ObservableObject {
         container.accountRestoreSessionState.clearForSignOut()
         clearAuthenticatedSessionPresentationState()
         signedInSessionID = UUID()
-        onboardingModel = nil
+        onboardingShellCoordinator.resetOnboardingForAuthenticatedSignOut()
         publicEntryFlowCoordinator.resetPublicEntryFlagsForAccountDeletion()
-        pendingSignInForOnboardingCompletion = false
         awaitingCloudSync = false
         publicEntryFlowCoordinator.applyPublicEntryDestinationAfterSignOut()
         rootModel.resetForSignedOutSession()
@@ -912,10 +759,10 @@ final class AuthGateCoordinator: ObservableObject {
         switch result {
         case .profileFound:
             clearStaleOnboardingDraftIfSafe()
-            onboardingModel = nil
+            onboardingShellCoordinator.clearOnboardingModel()
             scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
         case .noProfileFound:
-            onboardingModel = nil
+            onboardingShellCoordinator.clearOnboardingModel()
             awaitingCloudSync = false
             publicEntryFlowCoordinator.completeExistingUserSignInNoProfileIfNeeded()
             pendingExistingUserSignIn = false
@@ -975,7 +822,7 @@ final class AuthGateCoordinator: ObservableObject {
             syncUnsyncedLocalProfile(uid: uid)
         case .loadCloudProfile(let uid):
             if rootModel.state == .onboarding {
-                onboardingModel = nil
+                onboardingShellCoordinator.clearOnboardingModel()
             }
             awaitingCloudSync = false
             Task {
@@ -1004,7 +851,7 @@ final class AuthGateCoordinator: ObservableObject {
         case .showCloudFetchFailed:
             rootModel.presentOnboardingCloudCheckFailed()
         case .presentMissingCloudProfile:
-            onboardingModel = nil
+            onboardingShellCoordinator.clearOnboardingModel()
             awaitingCloudSync = false
             publicEntryFlowCoordinator.completeExistingUserSignInNoProfileIfNeeded()
             pendingExistingUserSignIn = false
@@ -1064,12 +911,12 @@ final class AuthGateCoordinator: ObservableObject {
         }
 
         if state == .missingCloudProfile {
-            onboardingModel = nil
+            onboardingShellCoordinator.clearOnboardingModel()
             publicEntryFlowCoordinator.clearExistingUserSessionForMissingCloudProfile()
         }
 
         if state == .accountProfileMismatch {
-            onboardingModel = nil
+            onboardingShellCoordinator.clearOnboardingModel()
         }
 
         if state == .onboarding {
@@ -1158,15 +1005,6 @@ final class AuthGateCoordinator: ObservableObject {
 
     func completeExistingUserSignInFailure(_ kind: ExistingUserSignInFailureKind) {
         publicEntryFlowCoordinator.completeExistingUserSignInFailure(kind)
-    }
-
-    private func didSignInAttemptFail(from previous: AuthState, to state: AuthState) -> Bool {
-        switch (previous, state) {
-        case (.signingIn, .signedOut), (.signingIn, .failed):
-            return true
-        default:
-            return false
-        }
     }
 
     func retryProfileLoad() {
