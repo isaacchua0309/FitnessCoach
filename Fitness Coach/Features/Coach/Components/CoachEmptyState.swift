@@ -98,21 +98,24 @@ struct CoachEmptyState: View {
 #Preview {
     MainTabPageScaffold(
         title: FormaProductCopy.Coach.screenTitle,
-        subtitle: FormaProductCopy.Coach.headerSubtitle,
-        scrollMode: .embedded
+        scrollMode: .embedded,
+        showsPageHeader: false
     ) {
         ScrollView {
-            CoachEmptyState(
-                todayContext: CoachTodayContextState(
-                    caloriesLine: "0 eaten · 2,249 target",
-                    proteinLine: "Protein 0 / 180 g",
-                    waterLine: "Water 0 / 3150 ml",
-                    activityLines: ["0 steps"],
-                    activityHintLine: nil,
-                    suggestedFocus: FormaProductCopy.Today.focusProteinLow
-                ),
-                isDisabled: false
-            ) { _ in }
+            VStack(alignment: .leading, spacing: 0) {
+                CoachPageHeader(mode: .dashboard)
+                CoachEmptyState(
+                    todayContext: CoachTodayContextState(
+                        caloriesLine: "0 eaten · 2,249 target",
+                        proteinLine: "Protein 0 / 180 g",
+                        waterLine: "Water 0 / 3150 ml",
+                        activityLines: ["0 steps"],
+                        activityHintLine: nil,
+                        suggestedFocus: FormaProductCopy.Today.focusProteinLow
+                    ),
+                    isDisabled: false
+                ) { _ in }
+            }
         }
     }
     .formaThemePreview()

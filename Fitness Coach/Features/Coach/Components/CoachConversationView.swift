@@ -29,6 +29,10 @@ struct CoachConversationView<BottomAccessory: View>: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    CoachPageHeader(
+                        mode: messages.isEmpty ? .dashboard : .conversation
+                    )
+
                     if messages.isEmpty {
                         CoachEmptyState(
                             todayContext: todayContext,
@@ -133,7 +137,7 @@ struct CoachConversationView<BottomAccessory: View>: View {
                 .id(CoachConversationScrollAnchor.bottom)
         }
         .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
-        .padding(.top, CoachDesignTokens.Spacing.xs)
+        .padding(.top, CoachDesignTokens.Spacing.sm)
         .padding(.bottom, CoachDesignTokens.Spacing.md)
     }
 
@@ -169,19 +173,31 @@ struct CoachConversationView<BottomAccessory: View>: View {
 }
 
 #Preview("Empty") {
-    CoachConversationView(messages: [], isSending: false) {
-        Color.clear.frame(height: 56)
+    MainTabPageScaffold(
+        title: FormaProductCopy.Coach.screenTitle,
+        scrollMode: .embedded,
+        showsPageHeader: false
+    ) {
+        CoachConversationView(messages: [], isSending: false) {
+            Color.clear.frame(height: 56)
+        }
     }
     .background(CoachDesignTokens.Color.background)
     .formaThemePreview()
 }
 
 #Preview("Conversation") {
-    CoachConversationView(
-        messages: CoachPreviewData.messages + [CoachPreviewData.confirmationMessage],
-        isSending: false
+    MainTabPageScaffold(
+        title: FormaProductCopy.Coach.screenTitle,
+        scrollMode: .embedded,
+        showsPageHeader: false
     ) {
-        Color.clear.frame(height: 56)
+        CoachConversationView(
+            messages: CoachPreviewData.messages + [CoachPreviewData.confirmationMessage],
+            isSending: false
+        ) {
+            Color.clear.frame(height: 56)
+        }
     }
     .background(CoachDesignTokens.Color.background)
     .formaThemePreview()

@@ -24,8 +24,8 @@ enum CoachLayoutGuard {
     static let requiredPatterns: [(fileSuffix: String, pattern: String, reason: String)] = [
         (
             "CoachConversationView.swift",
-            "safeAreaInset(edge: .bottom",
-            "Coach transcript must reserve layout space for the bottom accessory."
+            "CoachPageHeader",
+            "Coach transcript must show the shared in-scroll page header."
         ),
         (
             "CoachBottomAccessoryStack.swift",

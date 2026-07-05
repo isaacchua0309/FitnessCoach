@@ -33,6 +33,10 @@ final class FormaProductCopyEquivalenceTests: XCTestCase {
             FormaProductCopy.Coach.headerSubtitle,
             "Log food, water, weight, or training — or ask what to do next."
         )
+        XCTAssertEqual(
+            FormaProductCopy.Coach.chatHeaderSubtitle,
+            "Ask, log, or review your day."
+        )
         XCTAssertEqual(FormaProductCopy.Coach.composerPlaceholder, "Message Coach…")
         XCTAssertEqual(
             FormaProductCopy.Coach.mealPhotoPreparationFailed,

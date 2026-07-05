@@ -31,6 +31,7 @@ struct MainTabPageScaffold<
     var scrollMode: MainTabPageScaffoldScrollMode
     var sectionSpacing: CGFloat
     var showsCrossDeviceRefreshBanner: Bool
+    var showsPageHeader: Bool
     var scrollTarget: MainTabScrollTarget?
 
     @ViewBuilder var trailingAction: () -> TrailingAction
@@ -48,6 +49,7 @@ struct MainTabPageScaffold<
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
         showsCrossDeviceRefreshBanner: Bool = false,
+        showsPageHeader: Bool = true,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder trailingAction: @escaping () -> TrailingAction,
         @ViewBuilder bottomAccessory: @escaping () -> BottomAccessory,
@@ -58,6 +60,7 @@ struct MainTabPageScaffold<
         self.scrollMode = scrollMode
         self.sectionSpacing = sectionSpacing
         self.showsCrossDeviceRefreshBanner = showsCrossDeviceRefreshBanner
+        self.showsPageHeader = showsPageHeader
         self.scrollTarget = scrollTarget
         self.trailingAction = trailingAction
         self.bottomAccessory = bottomAccessory
@@ -68,10 +71,12 @@ struct MainTabPageScaffold<
         let _ = themeManager.themeRevision
 
         VStack(spacing: 0) {
-            PageHeader(title: title, subtitle: subtitle, trailingAction: trailingAction)
-                .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
-                .padding(.top, FormaMainTabLayout.headerTopPadding)
-                .padding(.bottom, FormaMainTabLayout.headerBottomPadding)
+            if showsPageHeader {
+                PageHeader(title: title, subtitle: subtitle, trailingAction: trailingAction)
+                    .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
+                    .padding(.top, FormaMainTabLayout.headerTopPadding)
+                    .padding(.bottom, FormaMainTabLayout.headerBottomPadding)
+            }
 
             scrollBody
         }

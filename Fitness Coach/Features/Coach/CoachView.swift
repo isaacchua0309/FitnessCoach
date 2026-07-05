@@ -34,8 +34,8 @@ struct CoachView: View {
         NavigationStack {
             MainTabPageScaffold(
                 title: FormaProductCopy.Coach.screenTitle,
-                subtitle: FormaProductCopy.Coach.headerSubtitle,
-                scrollMode: .embedded
+                scrollMode: .embedded,
+                showsPageHeader: false
             ) {
                 CoachConversationView(
                     messages: model.messages,
