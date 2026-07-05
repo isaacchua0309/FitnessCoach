@@ -1196,8 +1196,8 @@ final class AuthGateCoordinator: ObservableObject {
         let inputs = routeInputs
         let base = AuthGateRoutingCoordinator.baseRoute(inputs: inputs, container: container)
         AppShellRoutingLogger.logDecision(
-            authState: authManager.authState,
-            rootState: rootModel.state,
+            authState: inputs.authState,
+            rootState: inputs.rootState,
             hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
             localProfileAwaitingSignIn: container.profileBootstrapService.localProfileAwaitingSignIn(),
             hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
