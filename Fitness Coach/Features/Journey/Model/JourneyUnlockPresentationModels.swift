@@ -20,6 +20,11 @@ struct JourneyUnlockChecklistItem: Equatable, Identifiable, Sendable {
     let title: String
     let status: JourneyUnlockChecklistItemStatus
     let accessibilityLabel: String
+
+    var isCompleted: Bool {
+        if case .completed = status { return true }
+        return false
+    }
 }
 
 struct JourneyUnlockChecklistState: Equatable, Sendable {

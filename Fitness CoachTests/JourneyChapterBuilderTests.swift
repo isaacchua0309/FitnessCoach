@@ -18,7 +18,7 @@ final class JourneyChapterBuilderTests: XCTestCase {
     private let asOf = Date(timeIntervalSince1970: 1_700_044_800)
 
     func testNewUserStartsChapterOne() {
-        let state = build(maturityLogs: [], allWeights: [])
+        let state = build(maturityLogs: [], allWeights: [], hasProfile: true)
 
         XCTAssertEqual(state.chapterNumber, 1)
         XCTAssertEqual(state.chapterTitle, FormaProductCopy.Journey.Chapters.title(for: 1))
@@ -29,7 +29,9 @@ final class JourneyChapterBuilderTests: XCTestCase {
             )
         )
         XCTAssertEqual(state.totalXP, 0)
-        XCTAssertEqual(state.progressPercent, 0)
+        XCTAssertEqual(state.progressItems.count, 6)
+        XCTAssertTrue(state.progressItems.first(where: { $0.id == "started-forma" })?.isCompleted == true)
+        XCTAssertEqual(state.progressPercent, JourneyChapterBuilder.actionProgressPercent(from: state.progressItems))
     }
 
     func testLogsIncreaseProgress() {
@@ -130,7 +132,10 @@ final class JourneyChapterBuilderTests: XCTestCase {
         allWeights: [WeightEntry] = [],
         healthWorkoutDayStarts: Set<Date> = [],
         isAppleHealthConnected: Bool = false,
-        unlockedMilestoneCount: Int = 0
+        unlockedMilestoneCount: Int = 0,
+        hasProfile: Bool = false,
+        checkInStreakDays: Int = 0,
+        weeklyReviewUnlocked: Bool = false
     ) -> JourneyChapterState {
         JourneyChapterBuilder.build(
             buildInput(
@@ -138,7 +143,10 @@ final class JourneyChapterBuilderTests: XCTestCase {
                 allWeights: allWeights,
                 healthWorkoutDayStarts: healthWorkoutDayStarts,
                 isAppleHealthConnected: isAppleHealthConnected,
-                unlockedMilestoneCount: unlockedMilestoneCount
+                unlockedMilestoneCount: unlockedMilestoneCount,
+                hasProfile: hasProfile,
+                checkInStreakDays: checkInStreakDays,
+                weeklyReviewUnlocked: weeklyReviewUnlocked
             )
         )
     }
@@ -148,14 +156,20 @@ final class JourneyChapterBuilderTests: XCTestCase {
         allWeights: [WeightEntry] = [],
         healthWorkoutDayStarts: Set<Date> = [],
         isAppleHealthConnected: Bool = false,
-        unlockedMilestoneCount: Int = 0
+        unlockedMilestoneCount: Int = 0,
+        hasProfile: Bool = false,
+        checkInStreakDays: Int = 0,
+        weeklyReviewUnlocked: Bool = false
     ) -> JourneyChapterBuilder.Input {
         JourneyChapterBuilder.Input(
+            profile: hasProfile ? ProfileTestFixtures.sampleProfile : nil,
             maturityLogs: maturityLogs,
             allWeights: allWeights,
             healthWorkoutDayStarts: healthWorkoutDayStarts,
             isAppleHealthConnected: isAppleHealthConnected,
             unlockedMilestoneCount: unlockedMilestoneCount,
+            checkInStreakDays: checkInStreakDays,
+            weeklyReviewUnlocked: weeklyReviewUnlocked,
             calendar: calendar
         )
     }

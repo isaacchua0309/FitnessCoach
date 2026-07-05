@@ -266,12 +266,3 @@ enum JourneyUnlockChecklistBuilder {
         }
     }
 }
-
-// MARK: - Checklist helpers
-
-private extension JourneyUnlockChecklistItem {
-    var isCompleted: Bool {
-        if case .completed = status { return true }
-        return false
-    }
-}

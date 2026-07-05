@@ -246,11 +246,14 @@ final class JourneyDataConsistencyTests: XCTestCase {
         let summary = JourneyDashboardBuilder.weeklyProgressSummary(context: context)
         let chapter = JourneyChapterBuilder.build(
             JourneyChapterBuilder.Input(
+                profile: ProfileTestFixtures.sampleProfile,
                 maturityLogs: maturityLogs,
                 allWeights: [],
                 healthWorkoutDayStarts: [],
                 isAppleHealthConnected: false,
                 unlockedMilestoneCount: 0,
+                checkInStreakDays: 0,
+                weeklyReviewUnlocked: false,
                 calendar: calendar
             )
         )

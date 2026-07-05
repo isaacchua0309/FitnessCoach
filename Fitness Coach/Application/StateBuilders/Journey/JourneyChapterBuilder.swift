@@ -10,11 +10,14 @@ import Foundation
 enum JourneyChapterBuilder {
 
     struct Input: Equatable {
+        var profile: UserProfile?
         var maturityLogs: [DailyLog]
         var allWeights: [WeightEntry]
         var healthWorkoutDayStarts: Set<Date>
         var isAppleHealthConnected: Bool
         var unlockedMilestoneCount: Int
+        var checkInStreakDays: Int
+        var weeklyReviewUnlocked: Bool
         var calendar: Calendar
     }
 
@@ -41,19 +44,32 @@ enum JourneyChapterBuilder {
             ? copy.title(for: progress.chapter + 1)
             : nil
 
-        let progressPercent = progress.xpRequired > 0
-            ? min(max(Double(progress.xpInChapter) / Double(progress.xpRequired) * 100, 0), 100)
-            : 0
+        let progressItems = chapterOneProgressItems(input: input, copy: copy)
+        let actionProgressPercent = actionProgressPercent(from: progressItems)
+
+        let progressPercent: Double
+        if progress.chapter == 1, !progressItems.isEmpty {
+            progressPercent = actionProgressPercent
+        } else {
+            progressPercent = progress.xpRequired > 0
+                ? min(max(Double(progress.xpInChapter) / Double(progress.xpRequired) * 100, 0), 100)
+                : 0
+        }
 
         let chapterTitle = copy.title(for: progress.chapter)
         let nextUnlock = nextTitle.map { copy.nextUnlock($0) }
+        let itemSummary = progressItems
+            .map(\.accessibilityLabel)
+            .joined(separator: ". ")
         let accessibilitySummary = [
             copy.sectionTitle,
             copy.chapterLabel(progress.chapter),
             chapterTitle,
-            nextUnlock
+            nextUnlock,
+            itemSummary
         ]
             .compactMap { $0 }
+            .filter { !$0.isEmpty }
             .joined(separator: ". ")
 
         return JourneyChapterState(
@@ -63,9 +79,122 @@ enum JourneyChapterBuilder {
             chapterTitle: chapterTitle,
             nextUnlockLabel: nextUnlock,
             progressPercent: progressPercent,
-            emptyMessage: totalXP == 0 ? copy.emptyBody : nil,
+            emptyMessage: totalXP == 0 && progressItems.allSatisfy { !$0.isCompleted } ? copy.emptyBody : nil,
             totalXP: totalXP,
+            progressItems: progress.chapter == 1 ? progressItems : [],
             accessibilitySummary: accessibilitySummary
+        )
+    }
+
+    // MARK: - Chapter 1 action progress
+
+    static func chapterOneProgressItems(
+        input: Input,
+        copy: FormaProductCopy.Journey.Chapters.Type
+    ) -> [JourneyUnlockChecklistItem] {
+        let requiredCheckInDays = JourneyThresholds.chapterCheckInStreakDays
+        let requiredReviewDays = JourneyThresholds.requiredCalendarSpanDays
+        let hasStartedForma = input.profile != nil
+        let hasWeighIn = input.allWeights.contains { $0.weightKg > 0 }
+        let hasWorkout = hasCompletedWorkout(input: input)
+        let hasMeal = input.maturityLogs.contains { $0.totals.calories > 0 }
+
+        return [
+            progressItem(
+                id: "started-forma",
+                title: copy.startedForma,
+                isComplete: hasStartedForma
+            ),
+            progressItem(
+                id: "first-weigh-in",
+                title: copy.firstWeighIn,
+                isComplete: hasWeighIn
+            ),
+            progressItem(
+                id: "first-workout",
+                title: copy.firstWorkout,
+                isComplete: hasWorkout
+            ),
+            progressItem(
+                id: "first-meal",
+                title: copy.firstMeal,
+                isComplete: hasMeal
+            ),
+            streakProgressItem(
+                id: "check-in-streak",
+                title: copy.checkInStreak(days: requiredCheckInDays),
+                current: input.checkInStreakDays,
+                required: requiredCheckInDays
+            ),
+            streakProgressItem(
+                id: "weekly-review",
+                title: copy.weeklyReviewUnlocked(days: requiredReviewDays),
+                current: input.weeklyReviewUnlocked ? requiredReviewDays : 0,
+                required: requiredReviewDays
+            )
+        ]
+    }
+
+    static func actionProgressPercent(from items: [JourneyUnlockChecklistItem]) -> Double {
+        guard !items.isEmpty else { return 0 }
+        let completed = items.filter(\.isCompleted).count
+        return min(max(Double(completed) / Double(items.count) * 100, 0), 100)
+    }
+
+    private static func hasCompletedWorkout(input: Input) -> Bool {
+        if !input.healthWorkoutDayStarts.isEmpty {
+            return true
+        }
+        return input.maturityLogs.contains { $0.workoutCaloriesBurned > 0 }
+    }
+
+    private static func progressItem(
+        id: String,
+        title: String,
+        isComplete: Bool
+    ) -> JourneyUnlockChecklistItem {
+        let status: JourneyUnlockChecklistItemStatus = isComplete ? .completed : .pending
+        let accessibility = isComplete
+            ? "\(title). Completed."
+            : "\(title). Not yet completed."
+        return JourneyUnlockChecklistItem(
+            id: id,
+            title: title,
+            status: status,
+            accessibilityLabel: accessibility
+        )
+    }
+
+    private static func streakProgressItem(
+        id: String,
+        title: String,
+        current: Int,
+        required: Int
+    ) -> JourneyUnlockChecklistItem {
+        let status: JourneyUnlockChecklistItemStatus
+        if current >= required {
+            status = .completed
+        } else if current > 0 {
+            status = .inProgress(current: current, total: required)
+        } else {
+            status = .pending
+        }
+
+        let accessibility: String
+        switch status {
+        case .completed:
+            accessibility = "\(title). Completed."
+        case .inProgress(let current, let total):
+            accessibility = "\(title). \(current) of \(total)."
+        case .pending:
+            accessibility = "\(title). Not yet completed."
+        }
+
+        return JourneyUnlockChecklistItem(
+            id: id,
+            title: title,
+            status: status,
+            accessibilityLabel: accessibility
         )
     }
 

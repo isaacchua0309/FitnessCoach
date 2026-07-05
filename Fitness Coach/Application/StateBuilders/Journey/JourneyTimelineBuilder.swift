@@ -509,6 +509,7 @@ enum JourneyTimelineBuilder {
             }
             let xp = JourneyChapterBuilder.computeTotalXP(
                 input: JourneyChapterBuilder.Input(
+                    profile: input.profile,
                     maturityLogs: logsThroughDay,
                     allWeights: input.allWeights.filter {
                         input.calendar.startOfDay(for: $0.date) <= day
@@ -516,6 +517,8 @@ enum JourneyTimelineBuilder {
                     healthWorkoutDayStarts: input.healthWorkoutDayStarts.filter { $0 <= day },
                     isAppleHealthConnected: input.isAppleHealthConnected,
                     unlockedMilestoneCount: 0,
+                    checkInStreakDays: 0,
+                    weeklyReviewUnlocked: false,
                     calendar: input.calendar
                 )
             )

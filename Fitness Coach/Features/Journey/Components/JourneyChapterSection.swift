@@ -20,6 +20,14 @@ struct JourneyChapterSection: View {
                         .accessibilityLabel(state.chapterTitle)
                         .accessibilityValue("\(Int(state.progressPercent.rounded())) percent")
 
+                    if !state.progressItems.isEmpty {
+                        VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
+                            ForEach(state.progressItems) { item in
+                                JourneyChecklistRow(item: item)
+                            }
+                        }
+                    }
+
                     if let nextUnlock = state.nextUnlockLabel {
                         Text(nextUnlock)
                             .font(JourneyTypography.cardSupporting)

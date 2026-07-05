@@ -10,7 +10,7 @@ struct JourneyStoryTimelineSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
-            JourneySectionLabel(title: FormaProductCopy.Journey.Timeline.sectionTitle)
+            JourneySectionLabel(title: FormaProductCopy.Journey.Dashboard.Story.sectionTitle)
 
             JourneyCard(elevation: .quiet) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {

@@ -363,18 +363,24 @@ final class JourneyManualQAChecklistTests: XCTestCase {
 
     func testManualQA_LeanLayoutMountsOnlyRevampSections() {
         let order = JourneyProductLayout.sectionOrder.map(\.rawValue)
-        XCTAssertEqual(order.first, "header")
-        XCTAssertTrue(order.contains("transformation"))
-        XCTAssertTrue(order.contains("goalProjection"))
-        XCTAssertTrue(order.contains("weeklyProgress"))
-        XCTAssertTrue(order.contains("healthIntelligence"))
-        XCTAssertTrue(order.contains("weeklyReview"))
-        XCTAssertTrue(order.contains("insights"))
-        XCTAssertTrue(order.contains("milestones"))
-        XCTAssertTrue(order.contains("storyTimeline"))
-        XCTAssertTrue(order.contains("monthlyRecap"))
-        XCTAssertTrue(order.contains("chapters"))
-        XCTAssertEqual(order.last, "startingEmptyState")
+        XCTAssertEqual(order, [
+            "hero",
+            "nextAction",
+            "weeklyProgress",
+            "progress",
+            "highlights",
+            "storyTimeline",
+            "chapters"
+        ])
+        XCTAssertFalse(order.contains("header"))
+        XCTAssertFalse(order.contains("transformation"))
+        XCTAssertFalse(order.contains("goalProjection"))
+        XCTAssertFalse(order.contains("healthIntelligence"))
+        XCTAssertFalse(order.contains("weeklyReview"))
+        XCTAssertFalse(order.contains("insights"))
+        XCTAssertFalse(order.contains("milestones"))
+        XCTAssertFalse(order.contains("monthlyRecap"))
+        XCTAssertFalse(order.contains("startingEmptyState"))
         XCTAssertFalse(order.contains("detailedAnalytics"))
         XCTAssertFalse(order.contains("consistencyCalendar"))
         XCTAssertFalse(order.contains("beforeToday"))

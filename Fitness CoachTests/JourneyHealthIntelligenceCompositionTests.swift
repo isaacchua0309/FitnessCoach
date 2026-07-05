@@ -11,120 +11,65 @@ final class JourneyHealthIntelligenceCompositionTests: XCTestCase {
     private let section = JourneyHealthIntelligencePreviewData.strongWeek
     private let dashboard = JourneyPreviewData.strongMomentum
 
-    func testFlagOffPreservesLegacyInsightsSection() {
-        XCTAssertTrue(
-            JourneyDashboardCompositionPolicy.showsLegacyInsightsSection(
-                isUIEnabled: false,
-                sectionState: section,
-                dashboardShowsInsights: dashboard.showsInsightSection
-            )
-        )
+    func testHealthIntelligenceDiagnosticsSectionIsNotMountedOnDashboard() {
         XCTAssertFalse(
             JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
-                isUIEnabled: false,
-                sectionState: section
-            )
-        )
-        XCTAssertFalse(
-            JourneyDashboardCompositionPolicy.hidesTrainingHabitRow(
-                isUIEnabled: false,
-                sectionState: section
-            )
-        )
-        XCTAssertFalse(
-            JourneyDashboardCompositionPolicy.hidesWorkoutMetrics(
-                isUIEnabled: false,
-                sectionState: section
-            )
-        )
-    }
-
-    func testFlagOnWithSectionHidesLegacyInsightsAndTrainingDuplicates() {
-        XCTAssertTrue(
-            JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
-                isUIEnabled: true,
-                sectionState: section
-            )
-        )
-        XCTAssertFalse(
-            JourneyDashboardCompositionPolicy.showsLegacyInsightsSection(
-                isUIEnabled: true,
-                sectionState: section,
-                dashboardShowsInsights: dashboard.showsInsightSection
-            )
-        )
-        XCTAssertTrue(
-            JourneyDashboardCompositionPolicy.hidesTrainingHabitRow(
-                isUIEnabled: true,
-                sectionState: section
-            )
-        )
-        XCTAssertTrue(
-            JourneyDashboardCompositionPolicy.hidesWorkoutMetrics(
                 isUIEnabled: true,
                 sectionState: section
             )
         )
     }
 
-    func testFlagOnWithoutSectionFallsBackToLegacyInsights() {
-        XCTAssertFalse(
-            JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
-                isUIEnabled: true,
-                sectionState: nil
-            )
-        )
+    func testHighlightsVisibleWhenMilestonesLoaded() {
         XCTAssertTrue(
-            JourneyDashboardCompositionPolicy.showsLegacyInsightsSection(
+            JourneyDashboardCompositionPolicy.showsHighlightsSection(
                 isUIEnabled: true,
-                sectionState: nil,
-                dashboardShowsInsights: dashboard.showsInsightSection
-            )
-        )
-        XCTAssertFalse(
-            JourneyDashboardCompositionPolicy.hidesTrainingHabitRow(
-                isUIEnabled: true,
-                sectionState: nil
+                sectionState: section
             )
         )
     }
 
-    func testVisibleSectionsExcludeInsightsWhenHealthIntelligenceEnabled() {
-        let sections = visibleSections(
+    func testHighlightsHiddenWhenMilestonesEmpty() {
+        XCTAssertFalse(
+            JourneyDashboardCompositionPolicy.showsHighlightsSection(
+                isUIEnabled: true,
+                sectionState: JourneyHealthIntelligencePreviewData.unavailable
+            )
+        )
+    }
+
+    func testVisibleSectionsIncludeHighlightsNotLegacyHealthIntelligence() {
+        let sections = JourneyDashboardSectionSupport.visibleSections(
             for: dashboard,
             healthIntelligenceUIEnabled: true,
             healthIntelligenceSectionState: section
         )
 
-        XCTAssertTrue(sections.contains(.healthIntelligence))
-        XCTAssertFalse(sections.contains(.insights))
+        XCTAssertTrue(sections.contains(.highlights))
+        XCTAssertTrue(sections.contains(.hero))
+        XCTAssertFalse(
+            JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
+                isUIEnabled: true,
+                sectionState: section
+            )
+        )
     }
 
-    func testVisibleSectionsIncludeInsightsWhenHealthIntelligenceDisabled() {
-        let sections = visibleSections(
+    func testWeeklyProgressAppearsBeforeHighlights() {
+        let sections = JourneyDashboardSectionSupport.visibleSections(
             for: dashboard,
-            healthIntelligenceUIEnabled: false,
+            healthIntelligenceUIEnabled: true,
             healthIntelligenceSectionState: section
         )
 
-        XCTAssertFalse(sections.contains(.healthIntelligence))
-        XCTAssertTrue(sections.contains(.insights))
+        guard let weeklyIndex = sections.firstIndex(of: .weeklyProgress),
+              let highlightsIndex = sections.firstIndex(of: .highlights) else {
+            return XCTFail("Expected weekly progress and highlights sections")
+        }
+        XCTAssertLessThan(weeklyIndex, highlightsIndex)
     }
 
-    func testHealthIntelligenceWeeklyReviewHiddenWhenThisWeekVisible() {
-        XCTAssertFalse(
-            JourneyDashboardCompositionPolicy.showsHealthIntelligenceWeeklyReviewCard(
-                showsUnifiedThisWeekCard: true
-            )
-        )
-    }
-
-    func testWeeklyProgressHeroCollapsesLegacyHabitRowsWhenVisible() {
-        XCTAssertTrue(
-            JourneyDashboardCompositionPolicy.collapsesLegacyWeeklyHabitRows(
-                showsWeeklyProgressHero: true
-            )
-        )
+    func testLegacyWeeklyReviewAndInsightsSectionsAreSuppressed() {
         XCTAssertFalse(
             JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
                 dashboard: dashboard,
@@ -133,66 +78,12 @@ final class JourneyHealthIntelligenceCompositionTests: XCTestCase {
                 healthIntelligenceSectionState: section
             )
         )
-    }
-
-    func testVisibleSectionsIncludeWeeklyProgressForStrongMomentum() {
-        let sections = visibleSections(
-            for: dashboard,
-            healthIntelligenceUIEnabled: true,
-            healthIntelligenceSectionState: section
+        XCTAssertFalse(
+            JourneyDashboardCompositionPolicy.showsLegacyInsightsSection(
+                isUIEnabled: true,
+                sectionState: section,
+                dashboardShowsInsights: dashboard.showsInsightSection
+            )
         )
-
-        XCTAssertTrue(sections.contains(.weeklyProgress))
-        XCTAssertLessThan(
-            sections.firstIndex(of: .weeklyProgress)!,
-            sections.firstIndex(of: .healthIntelligence)!
-        )
-    }
-
-    // MARK: - Helpers
-
-    private func visibleSections(
-        for state: JourneyDashboardState,
-        healthIntelligenceUIEnabled: Bool,
-        healthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
-    ) -> [JourneyProductSection] {
-        JourneyProductLayout.sectionOrder.filter { section in
-            switch section {
-            case .header, .transformation:
-                return true
-            case .goalProjection:
-                return state.showsGoalProjectionSection
-            case .weeklyProgress:
-                return state.showsWeeklyProgressSection
-            case .healthIntelligence:
-                return JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
-                    isUIEnabled: healthIntelligenceUIEnabled,
-                    sectionState: healthIntelligenceSectionState
-                )
-            case .milestones:
-                return state.showsMilestonesSection
-            case .weeklyReview:
-                return JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
-                    dashboard: state,
-                    showsWeeklyProgressHero: state.showsWeeklyProgressSection,
-                    isHealthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
-                    healthIntelligenceSectionState: healthIntelligenceSectionState
-                )
-            case .storyTimeline:
-                return state.showsStoryTimelineSection
-            case .insights:
-                return JourneyDashboardCompositionPolicy.showsLegacyInsightsSection(
-                    isUIEnabled: healthIntelligenceUIEnabled,
-                    sectionState: healthIntelligenceSectionState,
-                    dashboardShowsInsights: state.showsInsightSection
-                )
-            case .monthlyRecap:
-                return state.showsMonthlyRecapSection
-            case .chapters:
-                return state.showsChapterSection
-            case .startingEmptyState:
-                return state.showsStartingEmptyState
-            }
-        }
     }
 }

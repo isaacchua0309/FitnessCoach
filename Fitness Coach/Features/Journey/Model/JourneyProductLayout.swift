@@ -8,33 +8,23 @@
 import Foundation
 
 enum JourneyProductSection: String, CaseIterable, Equatable {
-    case header
-    case transformation
-    case goalProjection
+    case hero
+    case nextAction
     case weeklyProgress
-    case healthIntelligence
-    case milestones
-    case weeklyReview
+    case progress
+    case highlights
     case storyTimeline
-    case insights
-    case monthlyRecap
     case chapters
-    case startingEmptyState
 }
 
 enum JourneyProductLayout {
     static let sectionOrder: [JourneyProductSection] = [
-        .header,
-        .transformation,
-        .goalProjection,
+        .hero,
+        .nextAction,
         .weeklyProgress,
-        .healthIntelligence,
-        .milestones,
-        .weeklyReview,
+        .progress,
+        .highlights,
         .storyTimeline,
-        .insights,
-        .monthlyRecap,
-        .chapters,
-        .startingEmptyState
+        .chapters
     ]
 }

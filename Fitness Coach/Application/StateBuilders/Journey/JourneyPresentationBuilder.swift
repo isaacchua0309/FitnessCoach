@@ -79,11 +79,15 @@ enum JourneyPresentationBuilder {
 
         let chapter = JourneyChapterBuilder.build(
             JourneyChapterBuilder.Input(
+                profile: context.profile,
                 maturityLogs: context.maturityLogs,
                 allWeights: context.allWeights,
                 healthWorkoutDayStarts: context.healthWorkoutDayStarts,
                 isAppleHealthConnected: context.weeklyTraining.isConnected,
                 unlockedMilestoneCount: milestoneResult.unlockedCount,
+                checkInStreakDays: streakSummary.checkInStreak,
+                weeklyReviewUnlocked: weeklyProgressSummary.foodLoggedDays > 0
+                    && weeklyProgressSummary.totalDays >= JourneyThresholds.requiredCalendarSpanDays,
                 calendar: context.calendar
             )
         )
@@ -120,6 +124,21 @@ enum JourneyPresentationBuilder {
                 screenPresentation: screenPresentation
             )
         )
+        let dashboardHero = JourneyDashboardHeroBuilder.build(
+            JourneyDashboardHeroBuilder.Input(
+                screenPresentation: screenPresentation,
+                weeklySummary: weeklyProgressSummary,
+                hasProfile: hasProfile
+            )
+        )
+        let progressSection = JourneyProgressSectionBuilder.build(
+            JourneyProgressSectionBuilder.Input(
+                screenPresentation: screenPresentation,
+                unifiedWeeklyReview: unifiedWeeklyReview,
+                goalProjection: projectionState,
+                connectHealthCTA: nil
+            )
+        )
 
         return JourneyDashboardState(
             hasProfile: hasProfile,
@@ -127,6 +146,8 @@ enum JourneyPresentationBuilder {
             streaks: context.journeyStreaks,
             screenPresentation: screenPresentation,
             unifiedWeeklyReview: unifiedWeeklyReview,
+            dashboardHero: dashboardHero,
+            progressSection: progressSection,
             header: header(momentum: momentumState, transformation: transformationState),
             momentum: momentumState,
             transformation: transformationState,
@@ -200,11 +221,19 @@ enum JourneyPresentationBuilder {
                 weeklyProgressSummary: JourneyDashboardBuilder.weeklyProgressSummary(context: context),
                 chapter: JourneyChapterBuilder.build(
                     JourneyChapterBuilder.Input(
+                        profile: context.profile,
                         maturityLogs: context.maturityLogs,
                         allWeights: context.allWeights,
                         healthWorkoutDayStarts: context.healthWorkoutDayStarts,
                         isAppleHealthConnected: context.weeklyTraining.isConnected,
                         unlockedMilestoneCount: 0,
+                        checkInStreakDays: StreakCalculator.calculate(
+                            logs: context.maturityLogs,
+                            workoutDates: context.healthWorkoutDayStarts,
+                            asOf: context.asOf,
+                            calendar: context.calendar
+                        ).checkInStreak,
+                        weeklyReviewUnlocked: false,
                         calendar: context.calendar
                     )
                 ),

@@ -51,6 +51,24 @@ extension JourneyDashboardState {
             )
         )
 
+        updated.dashboardHero = JourneyDashboardHeroBuilder.build(
+            JourneyDashboardHeroBuilder.Input(
+                screenPresentation: updated.screenPresentation,
+                weeklySummary: weeklyProgressSummary,
+                hasProfile: hasProfile
+            )
+        )
+        updated.progressSection = JourneyProgressSectionBuilder.build(
+            JourneyProgressSectionBuilder.Input(
+                screenPresentation: updated.screenPresentation,
+                unifiedWeeklyReview: updated.unifiedWeeklyReview,
+                goalProjection: goalProjection,
+                connectHealthCTA: JourneyDashboardCompositionPolicy.connectHealthCTA(
+                    from: healthIntelligence
+                )
+            )
+        )
+
         return updated
     }
 

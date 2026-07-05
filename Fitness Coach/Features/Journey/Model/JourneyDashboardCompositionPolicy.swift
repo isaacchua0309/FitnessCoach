@@ -2,56 +2,69 @@
 //  JourneyDashboardCompositionPolicy.swift
 //  Fitness Coach
 //
-//  Forma — Section visibility rules when Health Intelligence UI is enabled.
+//  Forma — Section visibility rules for the consolidated Journey dashboard IA.
 //
 
 import Foundation
 
 enum JourneyDashboardCompositionPolicy {
 
+    static func showsHighlightsSection(
+        isUIEnabled: Bool,
+        sectionState: JourneyHealthIntelligenceSectionState?
+    ) -> Bool {
+        guard isUIEnabled, let sectionState else { return false }
+        guard sectionState.milestones.phase == .loaded else { return false }
+        return !sectionState.milestones.items.isEmpty
+    }
+
+    static func connectHealthCTA(
+        from sectionState: JourneyHealthIntelligenceSectionState?
+    ) -> JourneyHealthConnectCTAState? {
+        sectionState?.connectHealthCTA
+    }
+
+    // MARK: - Legacy (retained for tests referencing old composition helpers)
+
     static func showsHealthIntelligenceSection(
         isUIEnabled: Bool,
         sectionState: JourneyHealthIntelligenceSectionState?
     ) -> Bool {
-        isUIEnabled && sectionState != nil
+        false
     }
 
-    /// Legacy training insights duplicate recovery timeline and workout history cards.
     static func showsLegacyInsightsSection(
         isUIEnabled: Bool,
         sectionState: JourneyHealthIntelligenceSectionState?,
         dashboardShowsInsights: Bool
     ) -> Bool {
-        guard dashboardShowsInsights else { return false }
-        return !showsHealthIntelligenceSection(isUIEnabled: isUIEnabled, sectionState: sectionState)
+        false
     }
 
     static func hidesTrainingHabitRow(
         isUIEnabled: Bool,
         sectionState: JourneyHealthIntelligenceSectionState?
     ) -> Bool {
-        showsHealthIntelligenceSection(isUIEnabled: isUIEnabled, sectionState: sectionState)
+        true
     }
 
     static func hidesWorkoutMetrics(
         isUIEnabled: Bool,
         sectionState: JourneyHealthIntelligenceSectionState?
     ) -> Bool {
-        showsHealthIntelligenceSection(isUIEnabled: isUIEnabled, sectionState: sectionState)
+        true
     }
 
-    /// Hides duplicate habit rows in the legacy weekly section when the unified hero is visible.
     static func collapsesLegacyWeeklyHabitRows(showsWeeklyProgressHero: Bool) -> Bool {
-        showsWeeklyProgressHero
+        true
     }
 
-    /// Hides duplicate weekly review and progress cards when the unified This Week section is visible.
     static func showsHealthIntelligenceWeeklyReviewCard(showsUnifiedThisWeekCard: Bool) -> Bool {
-        !showsUnifiedThisWeekCard
+        false
     }
 
     static func showsHealthIntelligenceProgressCard(showsUnifiedThisWeekCard: Bool) -> Bool {
-        !showsUnifiedThisWeekCard
+        false
     }
 
     static func showsLegacyWeeklyReviewSection(
@@ -60,15 +73,6 @@ enum JourneyDashboardCompositionPolicy {
         isHealthIntelligenceUIEnabled: Bool,
         healthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
     ) -> Bool {
-        guard dashboard.showsWeeklyReviewSection else { return false }
-        guard !showsWeeklyProgressHero else { return false }
-
-        let hidesTrainingRow = hidesTrainingHabitRow(
-            isUIEnabled: isHealthIntelligenceUIEnabled,
-            sectionState: healthIntelligenceSectionState
-        )
-        guard !hidesTrainingRow else { return false }
-
-        return JourneyCTARouter.weeklyTrainingCTA(training: dashboard.weeklyHabit.training) != nil
+        false
     }
 }

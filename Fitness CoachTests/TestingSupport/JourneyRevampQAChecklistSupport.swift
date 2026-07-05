@@ -52,39 +52,7 @@ enum JourneyRevampQAChecklistSupport {
 
     /// Mirrors `JourneyDashboardContent.visibleSections` for deterministic QA.
     static func visibleSections(for state: JourneyDashboardState) -> [JourneyProductSection] {
-        JourneyProductLayout.sectionOrder.filter { section in
-            switch section {
-            case .header:
-                return true
-            case .transformation:
-                return true
-            case .goalProjection:
-                return state.showsGoalProjectionSection
-            case .weeklyProgress:
-                return state.showsWeeklyProgressSection
-            case .healthIntelligence:
-                return false
-            case .milestones:
-                return state.showsMilestonesSection
-            case .weeklyReview:
-                return JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
-                    dashboard: state,
-                    showsWeeklyProgressHero: state.showsWeeklyProgressSection,
-                    isHealthIntelligenceUIEnabled: false,
-                    healthIntelligenceSectionState: nil
-                )
-            case .storyTimeline:
-                return state.showsStoryTimelineSection
-            case .insights:
-                return state.showsInsightSection
-            case .monthlyRecap:
-                return state.showsMonthlyRecapSection
-            case .chapters:
-                return state.showsChapterSection
-            case .startingEmptyState:
-                return state.showsStartingEmptyState
-            }
-        }
+        JourneyDashboardSectionSupport.visibleSections(for: state)
     }
 
     static func assertNoRemovedClutter(file: StaticString = #filePath, line: UInt = #line) {
@@ -200,6 +168,8 @@ enum JourneyRevampQAChecklistSupport {
         line: UInt = #line
     ) {
         XCTAssertFalse(dashboard.transformation.accessibilitySummary.isEmpty, file: file, line: line)
+        XCTAssertFalse(dashboard.dashboardHero.accessibilitySummary.isEmpty, file: file, line: line)
+        XCTAssertFalse(dashboard.progressSection.accessibilitySummary.isEmpty, file: file, line: line)
         XCTAssertFalse(dashboard.milestone.accessibilitySummary.isEmpty, file: file, line: line)
         XCTAssertFalse(dashboard.insight.accessibilitySummary.isEmpty, file: file, line: line)
         XCTAssertFalse(dashboard.monthlyRecap.accessibilitySummary.isEmpty, file: file, line: line)
@@ -262,6 +232,12 @@ enum JourneyRevampQAChecklistSupport {
         [
             dashboard.header.title,
             dashboard.header.subtitle,
+            dashboard.dashboardHero.weekLabel,
+            dashboard.dashboardHero.chapterTitle,
+            dashboard.dashboardHero.encouragingSentence,
+            dashboard.dashboardHero.compactStats.map(\.label).joined(separator: " "),
+            dashboard.progressSection.sectionTitle,
+            dashboard.progressSection.rows.map { "\($0.title) \($0.value)" }.joined(separator: " "),
             dashboard.transformation.title,
             dashboard.transformation.primaryMessage,
             dashboard.transformation.body,
@@ -279,6 +255,9 @@ enum JourneyRevampQAChecklistSupport {
             dashboard.chapter.chapterTitle,
             dashboard.chapter.nextUnlockLabel ?? "",
             dashboard.chapter.emptyMessage ?? "",
+            dashboard.chapter.progressItems.map(\.title).joined(separator: " "),
+            dashboard.screenPresentation.unlockDashboard.nextActionCard?.title ?? "",
+            dashboard.screenPresentation.unlockDashboard.nextActionCard?.detail ?? "",
         ]
         .joined(separator: " ")
         + " "

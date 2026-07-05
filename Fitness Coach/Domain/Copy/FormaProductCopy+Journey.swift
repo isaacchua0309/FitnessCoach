@@ -527,9 +527,109 @@ extension FormaProductCopy {
             static let title = "Your journey"
         }
 
+        enum Dashboard {
+            enum Hero {
+                static let defaultEncouragingSentence =
+                    "Every log helps Forma learn your rhythm."
+
+                static func weekLabel(_ week: Int) -> String {
+                    "Week \(week)"
+                }
+
+                static func encouragingSentence(phrases: [String]) -> String {
+                    guard let first = phrases.first else { return defaultEncouragingSentence }
+                    if phrases.count == 1 {
+                        return "You've \(first)."
+                    }
+                    if phrases.count == 2 {
+                        return "You've \(first) and \(phrases[1])."
+                    }
+                    let leading = phrases.dropLast().joined(separator: ", ")
+                    return "You've \(leading), and \(phrases.last!)."
+                }
+
+                static func checkInStreak(_ days: Int) -> String {
+                    days == 1 ? "1-day check-in streak" : "\(days)-day check-in streak"
+                }
+
+                static func mealStreak(_ days: Int) -> String {
+                    days == 1 ? "1-day meal streak" : "\(days)-day meal streak"
+                }
+
+                static func workouts(_ count: Int) -> String {
+                    count == 1 ? "1 workout" : "\(count) workouts"
+                }
+
+                static func weighIns(_ count: Int) -> String {
+                    count == 1 ? "1 weigh-in" : "\(count) weigh-ins"
+                }
+
+                static func mealDays(_ count: Int) -> String {
+                    count == 1 ? "1 meal day" : "\(count) meal days"
+                }
+
+                static func averageSteps(_ count: Int) -> String {
+                    "\(count.formatted()) avg steps"
+                }
+            }
+
+            enum Progress {
+                static let sectionTitle = "Progress"
+
+                static let nutritionTitle = "Nutrition"
+                static let weightTrendTitle = "Weight trend"
+                static let trainingTitle = "Training"
+                static let recoveryTitle = "Recovery"
+                static let stepsTitle = "Steps"
+                static let goalProjectionTitle = "Goal pace"
+
+                static let notStarted = "Not started"
+                static let building = "Building"
+                static let ready = "Ready"
+                static let limitedData = "Limited data"
+
+                static func sessions(_ count: Int) -> String {
+                    count == 1 ? "1 session" : "\(count) sessions"
+                }
+
+                static func averageSteps(_ count: Int) -> String {
+                    "\(count.formatted()) avg"
+                }
+
+                static func buildingProgress(current: Int, total: Int) -> String {
+                    "Building · \(current)/\(total) days"
+                }
+
+                static func rowAccessibility(title: String, value: String) -> String {
+                    "\(title). \(value)"
+                }
+            }
+
+            enum Highlights {
+                static let sectionTitle = "Highlights"
+            }
+
+            enum Story {
+                static let sectionTitle = "Story"
+                static let recentFirstHint = "Most recent first"
+            }
+        }
+
         enum Chapters {
-            static let sectionTitle = "Your chapter"
+            static let sectionTitle = "Chapter"
             static let emptyBody = "Log your first meal to begin Chapter 1."
+            static let startedForma = Timeline.startedForma
+            static let firstWeighIn = Unlock.firstWeighInLogged
+            static let firstWorkout = Unlock.firstWorkoutCompleted
+            static let firstMeal = Unlock.firstMealLogged
+
+            static func checkInStreak(days: Int) -> String {
+                "\(days)-day check-in streak"
+            }
+
+            static func weeklyReviewUnlocked(days: Int) -> String {
+                "\(days)-day review unlocked"
+            }
 
             static func chapterLabel(_ number: Int) -> String {
                 "Chapter \(number)"

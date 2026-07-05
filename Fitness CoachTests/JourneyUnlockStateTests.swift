@@ -221,11 +221,14 @@ final class JourneyUnlockStateTests: XCTestCase {
                 weeklyProgressSummary: summary,
                 chapter: JourneyChapterBuilder.build(
                     JourneyChapterBuilder.Input(
+                        profile: ProfileTestFixtures.sampleProfile,
                         maturityLogs: maturityLogs,
                         allWeights: weights,
                         healthWorkoutDayStarts: healthWorkoutDayStarts,
                         isAppleHealthConnected: !healthWorkoutDayStarts.isEmpty,
                         unlockedMilestoneCount: 0,
+                        checkInStreakDays: 0,
+                        weeklyReviewUnlocked: false,
                         calendar: calendar
                     )
                 ),

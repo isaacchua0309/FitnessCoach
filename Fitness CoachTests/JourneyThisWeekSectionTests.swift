@@ -21,7 +21,7 @@ final class JourneyThisWeekSectionTests: XCTestCase {
         )
 
         XCTAssertEqual(sections.filter { $0 == .weeklyProgress }.count, 1)
-        XCTAssertFalse(sections.contains(.weeklyReview))
+        XCTAssertFalse(sections.contains(.highlights))
     }
 
     func testHealthIntelligenceWeeklyReviewHiddenWhenUnifiedCardVisible() {
@@ -116,43 +116,10 @@ final class JourneyThisWeekSectionTests: XCTestCase {
         healthIntelligenceUIEnabled: Bool,
         healthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
     ) -> [JourneyProductSection] {
-        JourneyProductLayout.sectionOrder.filter { section in
-            switch section {
-            case .header, .transformation:
-                return true
-            case .goalProjection:
-                return state.showsGoalProjectionSection
-            case .weeklyProgress:
-                return state.showsWeeklyProgressSection
-            case .healthIntelligence:
-                return JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
-                    isUIEnabled: healthIntelligenceUIEnabled,
-                    sectionState: healthIntelligenceSectionState
-                )
-            case .milestones:
-                return state.showsMilestonesSection
-            case .weeklyReview:
-                return JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
-                    dashboard: state,
-                    showsWeeklyProgressHero: state.showsWeeklyProgressSection,
-                    isHealthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
-                    healthIntelligenceSectionState: healthIntelligenceSectionState
-                )
-            case .storyTimeline:
-                return state.showsStoryTimelineSection
-            case .insights:
-                return JourneyDashboardCompositionPolicy.showsLegacyInsightsSection(
-                    isUIEnabled: healthIntelligenceUIEnabled,
-                    sectionState: healthIntelligenceSectionState,
-                    dashboardShowsInsights: state.showsInsightSection
-                )
-            case .monthlyRecap:
-                return state.showsMonthlyRecapSection
-            case .chapters:
-                return state.showsChapterSection
-            case .startingEmptyState:
-                return state.showsStartingEmptyState
-            }
-        }
+        JourneyDashboardSectionSupport.visibleSections(
+            for: state,
+            healthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
+            healthIntelligenceSectionState: healthIntelligenceSectionState
+        )
     }
 }

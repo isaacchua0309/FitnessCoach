@@ -32,6 +32,9 @@ enum JourneyThresholds {
     /// Logging streak days that qualify as “meaningful” journey data for section unlock.
     static let meaningfulCheckInStreakDays = 2
 
+    /// Check-in streak days shown as a Chapter 1 progress milestone.
+    static let chapterCheckInStreakDays = 3
+
     /// Chapter XP awarded per chapter advancement (must match `JourneyChapterBuilder`).
     static let chapterXPPerLevel = 200
 
