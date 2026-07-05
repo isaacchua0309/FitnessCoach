@@ -157,6 +157,7 @@
         "CoachImagePickFlowQATests",
         "CoachImagePickFlowRetryTests",
         "CoachImagePickFlowTests",
+        "CoachPhotoLibrarySelectionRaceTests",
         "CoachImagePipelineCameraTests",
         "CoachImagePipelineTests",
         "CoachImageProcessingLoggerTests",

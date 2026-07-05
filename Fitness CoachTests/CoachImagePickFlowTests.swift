@@ -158,56 +158,6 @@ final class CoachImagePickFlowTests: XCTestCase {
         XCTAssertEqual(flow.state, .pickerPresented(.library))
     }
 
-    func testLibraryDismissBeforeSelectionHandlingRecoversFromIdle() throws {
-        let flow = CoachImagePickFlowController()
-        flow.setStateForTests(.pickerPresented(.library))
-        flow.isPhotoPickerPresented = true
-
-        flow.handlePhotoLibraryPickerDismissed()
-        XCTAssertEqual(flow.state, .idle)
-
-        flow.markLibrarySelectionReceived()
-        XCTAssertTrue(flow.beginPhotoLibrarySelectionHandling())
-        XCTAssertEqual(flow.state, .processingImage(.library))
-        XCTAssertFalse(flow.isPhotoPickerPresented)
-    }
-
-    func testLibraryDismissWhileProcessingDoesNotResetState() throws {
-        let flow = CoachImagePickFlowController()
-        flow.setStateForTests(.processingImage(.library))
-
-        flow.handlePhotoLibraryPickerDismissed()
-
-        XCTAssertEqual(flow.state, .processingImage(.library))
-    }
-
-    func testBeginPhotoLibrarySelectionHandlingTransitionsBeforeAsyncWork() throws {
-        let flow = CoachImagePickFlowController()
-        flow.setStateForTests(.pickerPresented(.library))
-        flow.isPhotoPickerPresented = true
-
-        flow.markLibrarySelectionReceived()
-        XCTAssertTrue(flow.beginPhotoLibrarySelectionHandling())
-
-        XCTAssertEqual(flow.state, .processingImage(.library))
-        XCTAssertFalse(flow.isPhotoPickerPresented)
-    }
-
-    func testLibrarySelectionGuardFailsWhenProcessingNotStarted() async throws {
-        let container = try AppContainer(inMemory: true)
-        let model = makeModel(container: container)
-        let flow = CoachImagePickFlowController()
-
-        flow.setStateForTests(.pickerPresented(.library))
-        flow.handlePhotoLibraryPickerDismissed()
-        XCTAssertEqual(flow.state, .idle)
-
-        // Without beginPhotoLibrarySelectionHandling, async handler should no-op.
-        // PhotosPickerItem cannot be constructed in unit tests; verify guard via state only.
-        XCTAssertFalse(flow.state.isProcessingImage)
-        XCTAssertNil(model.inputState.pendingImage)
-    }
-
     private func makeModel(container: AppContainer) -> CoachModel {
         CoachModel(
             actionCenter: container.actionCenter,

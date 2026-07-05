@@ -10,6 +10,10 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
+typealias CoachPhotoLibraryImageLoader = @Sendable (
+    PhotosPickerItem
+) async -> Result<CoachImagePipeline.PhotoLibraryLoadedImage, CoachMealPhotoError>
+
 @MainActor
 final class CoachImagePickFlowController: ObservableObject {
 
@@ -21,6 +25,21 @@ final class CoachImagePickFlowController: ObservableObject {
     private var cameraDeliveredResult = false
     /// Set when `PhotosPicker` hands off an item before the dismiss callback runs.
     private var librarySelectionReceived = false
+
+    private let photoLibraryImageLoader: CoachPhotoLibraryImageLoader
+
+    #if DEBUG
+    /// Test-only hook invoked after clearing `librarySelectionReceived` and before the picker-state guard.
+    var debugPhotoLibrarySelectionEntryHook: (@MainActor () async -> Void)?
+    #endif
+
+    init(
+        photoLibraryImageLoader: @escaping CoachPhotoLibraryImageLoader = { item in
+            await CoachImagePipeline.loadImageFromPhotoLibrary(item)
+        }
+    ) {
+        self.photoLibraryImageLoader = photoLibraryImageLoader
+    }
 
     var allowsAttachmentPick: Bool {
         !state.isBusy
@@ -52,41 +71,6 @@ final class CoachImagePickFlowController: ObservableObject {
         librarySelectionReceived
     }
     #endif
-
-    /// Synchronously claims the library selection before async loading (mirrors camera `cameraDeliveredResult`).
-    @discardableResult
-    func beginPhotoLibrarySelectionHandling() -> Bool {
-        switch state {
-        case .pickerPresented(.library), .idle:
-            break
-        default:
-            #if DEBUG
-            CoachPhotoLibraryPickDebugLogger.log(
-                event: "begin_photo_library_selection_handling_rejected",
-                flowState: state,
-                isPhotoPickerPresented: isPhotoPickerPresented,
-                librarySelectionReceived: librarySelectionReceived,
-                guardPassed: false
-            )
-            #endif
-            return false
-        }
-
-        librarySelectionReceived = false
-        isPhotoPickerPresented = false
-        state = .processingImage(.library)
-
-        #if DEBUG
-        CoachPhotoLibraryPickDebugLogger.log(
-            event: "begin_photo_library_selection_handling",
-            flowState: state,
-            isPhotoPickerPresented: isPhotoPickerPresented,
-            librarySelectionReceived: false,
-            guardPassed: true
-        )
-        #endif
-        return true
-    }
 
     @discardableResult
     func beginPhotoLibraryPick(model: CoachModel) -> Bool {
@@ -149,20 +133,7 @@ final class CoachImagePickFlowController: ObservableObject {
     }
 
     func handlePhotoLibraryPickerDismissed() {
-        if case .processingImage(.library) = state {
-            #if DEBUG
-            CoachPhotoLibraryPickDebugLogger.log(
-                event: "handle_photo_library_picker_dismissed_skipped_processing",
-                flowState: state,
-                isPhotoPickerPresented: isPhotoPickerPresented,
-                librarySelectionReceived: librarySelectionReceived
-            )
-            #endif
-            return
-        }
-
         guard case .pickerPresented(.library) = state else { return }
-
         if librarySelectionReceived {
             librarySelectionReceived = false
             #if DEBUG
@@ -202,7 +173,13 @@ final class CoachImagePickFlowController: ObservableObject {
         )
         #endif
 
-        guard case .processingImage(.library) = state else {
+        librarySelectionReceived = false
+        #if DEBUG
+        if let debugPhotoLibrarySelectionEntryHook {
+            await debugPhotoLibrarySelectionEntryHook()
+        }
+        #endif
+        guard case .pickerPresented(.library) = state else {
             #if DEBUG
             CoachPhotoLibraryPickDebugLogger.log(
                 event: "handle_photo_library_selection_guard_failed",
@@ -216,6 +193,8 @@ final class CoachImagePickFlowController: ObservableObject {
             return
         }
 
+        isPhotoPickerPresented = false
+        state = .processingImage(.library)
         let beganPendingProcessing = model.beginPendingImageProcessing(source: .library)
         #if DEBUG
         CoachPhotoLibraryPickDebugLogger.log(
@@ -230,7 +209,7 @@ final class CoachImagePickFlowController: ObservableObject {
         )
         #endif
 
-        switch await CoachImagePipeline.loadImageFromPhotoLibrary(item) {
+        switch await photoLibraryImageLoader(item) {
         case .failure(let error):
             CoachImageProcessingLogger.logSelectionFailure(source: .library, originalSize: nil, error: error)
             await handleFailure(error, model: model)

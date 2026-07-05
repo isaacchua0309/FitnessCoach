@@ -151,7 +151,6 @@ struct CoachView: View {
                 guard let item else { return }
                 photoPickerItem = nil
                 imagePickFlow.markLibrarySelectionReceived()
-                guard imagePickFlow.beginPhotoLibrarySelectionHandling() else { return }
                 Task {
                     await imagePickFlow.handlePhotoLibrarySelection(item, model: model)
                 }
