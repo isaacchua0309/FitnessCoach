@@ -42,6 +42,8 @@ struct MainTabView: View {
     private let todayActionCoordinator: TodayActionCoordinator
 
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.theme) private var theme
 
     @StateObject private var todayModel: TodayModel
@@ -158,6 +160,19 @@ struct MainTabView: View {
         }
         .tint(theme.tabBarSelectedIcon)
         .formaThemeReactive()
+        .formaUIKitAppearance()
+        .onAppear {
+            applyNativeTabBarAppearance()
+        }
+        .onChange(of: themeManager.selectedTheme) { _, _ in
+            applyNativeTabBarAppearance()
+        }
+        .onChange(of: themeManager.themeRevision) { _, _ in
+            applyNativeTabBarAppearance()
+        }
+        .onChange(of: systemColorScheme) { _, _ in
+            applyNativeTabBarAppearance()
+        }
         .environmentObject(container.refreshCenter)
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)
@@ -274,6 +289,12 @@ struct MainTabView: View {
             UserDefaults.standard.set(AppTab.plan.rawValue, forKey: selectedTabStorageKey)
         }
         return AppTab.fromPersistedSelection(destination.rawValue)
+    }
+
+    private func applyNativeTabBarAppearance() {
+        FormaUIKitAppearance.applyTabBarAppearance(
+            from: themeManager.tokens(systemColorScheme: systemColorScheme)
+        )
     }
 }
 

@@ -22,6 +22,7 @@ struct FormaRootThemeModifier: ViewModifier {
             .environment(\.formaThemePalette, state.legacyPalette)
             .environment(\.theme, theme)
             .tint(theme.tabBarSelectedIcon)
+            .formaUIKitAppearance()
             .formaThemeReactive()
     }
 }
