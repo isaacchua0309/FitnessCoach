@@ -14,18 +14,24 @@ struct FormaInlineEmptyState: View {
     var action: (() -> Void)?
     var actionAccessibilityHint: String?
 
+    @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
+        let _ = themeManager.themeRevision
+        let _ = theme.accent
+
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
             if let title {
                 Text(title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .foregroundStyle(theme.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             Text(message)
                 .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(title == nil ? FormaTokens.Color.textPrimary : FormaTokens.Color.textSecondary)
+                .foregroundStyle(title == nil ? theme.primaryText : theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let actionTitle, let action {
@@ -40,6 +46,7 @@ struct FormaInlineEmptyState: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, FormaTokens.Spacing.xs)
         .accessibilityElement(children: .contain)
+        .formaThemeReactive()
     }
 }
 
@@ -53,26 +60,50 @@ enum FormaQuickActionChipStyle {
 struct FormaQuickActionChip: View {
     let title: String
     let action: () -> Void
+    var systemImage: String?
     var style: FormaQuickActionChipStyle = .secondary
     var accessibilityHint: String?
 
     @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
 
     var body: some View {
+        let _ = themeManager.themeRevision
+        let _ = theme.accent
+
         Group {
             switch style {
             case .secondary:
-                Button(title, action: action)
-                    .buttonStyle(FormaThemedChipButtonStyle())
+                Button(action: action) {
+                    chipLabel
+                }
+                .buttonStyle(FormaThemedChipButtonStyle())
             case .primary:
-                Button(title, action: action)
-                    .buttonStyle(.borderedProminent)
-                    .tint(theme.buttonBackground)
+                Button(action: action) {
+                    chipLabel
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(theme.buttonBackground)
             }
         }
-        .font(FormaTokens.Typography.caption.weight(.semibold))
+        .accessibilityLabel(title)
         .accessibilityHint(accessibilityHint ?? "")
         .formaThemeReactive()
+    }
+
+    private var chipLabel: some View {
+        HStack(spacing: FormaTokens.Spacing.xs) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 13, weight: .medium))
+            }
+
+            Text(title)
+        }
+        .font(FormaTokens.Typography.caption.weight(.semibold))
+        .lineLimit(2)
+        .minimumScaleFactor(MainTabResponsiveLayout.headerMinimumScaleFloor)
+        .multilineTextAlignment(.leading)
     }
 }
 
@@ -80,9 +111,13 @@ private struct FormaThemedChipButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.theme) private var theme
+    @EnvironmentObject private var themeManager: ThemeManager
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let _ = themeManager.themeRevision
+        let _ = theme.accent
+
+        return configuration.label
             .font(FormaTokens.Typography.caption.weight(.semibold))
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.xs)

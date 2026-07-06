@@ -16,98 +16,77 @@ enum JourneyPreviewScreens {
     palette: AppThemePalette = .oceanBlue,
     healthIntelligenceSectionState: JourneyHealthIntelligenceSectionState? = nil
   ) -> some View {
-    ScrollView {
+    let state = JourneyPreviewData.dashboard(scenario)
+
+    MainTabPageScaffold(
+      title: FormaProductCopy.Journey.Header.title,
+      subtitle: FormaProductCopy.Journey.Header.subtitle,
+      sectionSpacing: JourneyLayout.sectionSpacing
+    ) {
       JourneyDashboardContent(
-        state: JourneyPreviewData.dashboard(scenario),
+        state: state,
         healthIntelligenceUIEnabled: healthIntelligenceSectionState != nil,
         healthIntelligenceSectionState: healthIntelligenceSectionState,
         onGoToToday: {},
         onConnectHealth: {}
       )
     }
-    .formaMainTabScrollInsets()
-    .background(FormaTokens.Color.canvas)
     .formaThemePreview(palette: palette)
-    .navigationTitle(FormaProductCopy.Journey.Header.title)
   }
 }
 
 #Preview("New user") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.brandNewUser)
-  }
+  JourneyPreviewScreens.dashboard(.brandNewUser)
 }
 
 #Preview("Week 1 user") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.weekOne)
-  }
+  JourneyPreviewScreens.dashboard(.weekOne)
 }
 
 #Preview("Weight loss user") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.strongMomentum)
-  }
+  JourneyPreviewScreens.dashboard(.strongMomentum)
 }
 
 #Preview("Highly consistent user") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.highlyConsistent)
-  }
+  JourneyPreviewScreens.dashboard(.highlyConsistent)
 }
 
 #Preview("Insufficient data user") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.sparseData)
-  }
+  JourneyPreviewScreens.dashboard(.sparseData)
 }
 
 #Preview("New user — dark mode") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.brandNewUser)
-      .preferredColorScheme(.dark)
-  }
+  JourneyPreviewScreens.dashboard(.brandNewUser)
+    .preferredColorScheme(.dark)
 }
 
 #Preview("Data-rich — dark mode") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.highlyConsistent)
-      .preferredColorScheme(.dark)
-  }
+  JourneyPreviewScreens.dashboard(.highlyConsistent)
+    .preferredColorScheme(.dark)
 }
 
 #Preview("New user — large text") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.brandNewUser)
-      .dynamicTypeSize(.accessibility2)
-  }
+  JourneyPreviewScreens.dashboard(.brandNewUser)
+    .dynamicTypeSize(.accessibility2)
 }
 
 #Preview("Data-rich — large text") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.strongMomentum)
-      .dynamicTypeSize(.accessibility2)
-  }
+  JourneyPreviewScreens.dashboard(.strongMomentum)
+    .dynamicTypeSize(.accessibility2)
 }
 
 #Preview("Journey — Blossom Pink") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.strongMomentum, palette: .blossomPink)
-  }
+  JourneyPreviewScreens.dashboard(.strongMomentum, palette: .blossomPink)
 }
 
 #Preview("Journey — Emerald Green") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.highlyConsistent, palette: .emeraldGreen)
-  }
+  JourneyPreviewScreens.dashboard(.highlyConsistent, palette: .emeraldGreen)
 }
 
 #Preview("Health Intelligence enabled") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(
-      .strongMomentum,
-      healthIntelligenceSectionState: JourneyHealthIntelligencePreviewData.strongWeek
-    )
-  }
+  JourneyPreviewScreens.dashboard(
+    .strongMomentum,
+    healthIntelligenceSectionState: JourneyHealthIntelligencePreviewData.strongWeek
+  )
 }
 #endif

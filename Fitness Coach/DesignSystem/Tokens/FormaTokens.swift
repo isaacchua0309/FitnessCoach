@@ -161,16 +161,16 @@ enum FormaTokens {
 
         // MARK: Main tab bar (floating)
 
-        /// Approximate visual height of the system floating tab bar.
-        static let floatingTabBarHeight: CGFloat = 56
+        /// Approximate visual height of the system floating tab bar capsule.
+        static let floatingTabBarHeight: CGFloat = 60
         /// Gap between the last scroll content and the floating tab bar.
-        static let floatingTabBarBreathingRoom: CGFloat = Spacing.sm
-        /// `safeAreaInset` clearance for tab-root scroll views (bar + breathing room).
+        static let floatingTabBarBreathingRoom: CGFloat = Spacing.md
+        /// Minimum `safeAreaInset` clearance for tab-root scroll views (bar + breathing room).
         static var mainTabScrollBottomInset: CGFloat {
             floatingTabBarHeight + floatingTabBarBreathingRoom
         }
         /// Padding below the last content block inside tab-root scroll views.
-        static let mainTabScrollContentPadding: CGFloat = Spacing.xs
+        static let mainTabScrollContentPadding: CGFloat = Spacing.sm
 
         /// Standard list-row insets for grouped settings screens.
         static var settingsRowInsets: EdgeInsets {

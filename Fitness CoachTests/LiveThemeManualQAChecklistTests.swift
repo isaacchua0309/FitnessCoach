@@ -27,6 +27,7 @@ final class LiveThemeManualQAChecklistTests: XCTestCase {
     ]
 
     private let scenario2CoachSurfaces = [
+        "Fitness Coach/Features/Coach/Components/CoachPageHeader.swift",
         "Fitness Coach/Features/Coach/Components/CoachComposer.swift",
         "Fitness Coach/Features/Coach/Components/CoachMessageView.swift",
         "Fitness Coach/Features/Coach/Components/CoachConfirmationBar.swift",
@@ -35,7 +36,14 @@ final class LiveThemeManualQAChecklistTests: XCTestCase {
 
     private let scenario3OtherTabs = [
         "Fitness Coach/Features/Journey/JourneyView.swift",
-        "Fitness Coach/Features/Plan/PlanView.swift"
+        "Fitness Coach/Features/Plan/PlanView.swift",
+        "Fitness Coach/DesignSystem/Layout/MainTabPageScaffold.swift",
+        "Fitness Coach/DesignSystem/Components/PageHeader.swift",
+        "Fitness Coach/DesignSystem/Components/SectionLabel.swift",
+        "Fitness Coach/DesignSystem/Components/MainTabCard.swift",
+        "Fitness Coach/DesignSystem/Components/PageActionPill.swift",
+        "Fitness Coach/DesignSystem/Components/MainTabHeroText.swift",
+        "Fitness Coach/DesignSystem/Components/FormaInlineEmptyState.swift"
     ]
 
     func testScenario1TodaySurfacesObserveLiveTheme() throws {
@@ -55,7 +63,7 @@ final class LiveThemeManualQAChecklistTests: XCTestCase {
     func testScenario3JourneyAndPlanObserveLiveTheme() throws {
         try assertLiveThemeWiring(
             in: scenario3OtherTabs,
-            scenario: "Scenario 3 — Journey and Plan"
+            scenario: "Scenario 3 — Journey, Plan, and shared main-tab layout"
         )
     }
 
@@ -173,7 +181,7 @@ enum LiveThemeManualQAChecklist {
             title: "Coach mounted",
             steps: [
                 "Open Coach.",
-                "Switch theme in Settings (Plan → gear → Theme).",
+                "Switch theme in Settings (Plan → Settings → Theme).",
                 "Return to Coach."
             ],
             expected: [

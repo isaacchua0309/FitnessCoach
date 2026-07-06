@@ -16,7 +16,7 @@ struct TodaySmartCoachBanner: View {
 
     var body: some View {
         if smartCoach.isVisible {
-            FormaPlanCard {
+            MainTabCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     Text(smartCoach.message)
                         .font(FormaTokens.Typography.caption)

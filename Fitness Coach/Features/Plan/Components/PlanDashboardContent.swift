@@ -17,6 +17,7 @@ struct PlanDashboardContent: View {
     var onGoToToday: (() -> Void)? = nil
     var onAdjustActivity: () -> Void = {}
     var onAdjustPlan: () -> Void = {}
+    var onOpenSettings: (() -> Void)? = nil
     var onReviewWeeklyRecommendation: (() -> Void)? = nil
     var onCalculationDetailsOpened: () -> Void = {}
     var onAppleHealthTap: (() -> Void)? = nil
@@ -38,13 +39,12 @@ struct PlanDashboardContent: View {
 
             VStack(alignment: .leading, spacing: PlanLayout.compactSectionSpacing) {
                 secondarySections
+
+                if let onOpenSettings {
+                    PlanSettingsAccessRow(onOpenSettings: onOpenSettings)
+                }
             }
         }
-        .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, PlanLayout.horizontalPadding)
-        .padding(.top, FormaTokens.Spacing.xs)
-        .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
         .accessibilityIdentifier("plan-dashboard")
         .formaThemeReactive()
     }
@@ -67,7 +67,7 @@ struct PlanDashboardContent: View {
     private func sectionView(for section: PlanProductSection) -> some View {
         switch section {
         case .header:
-            PlanHeaderSection(state: state.header)
+            EmptyView()
 
         case .goalProgress:
             PlanMissionControlHeroSection(strategy: state.strategy)

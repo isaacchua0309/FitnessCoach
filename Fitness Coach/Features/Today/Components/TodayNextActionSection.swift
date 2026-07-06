@@ -23,7 +23,7 @@ struct TodayNextActionSection: View {
     var body: some View {
         let _ = themeManager.themeRevision
         return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: display.sectionTitle)
+            SectionLabel(title: display.sectionTitle)
 
             TodayActionCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {

@@ -8,6 +8,7 @@
 import Foundation
 
 enum CoachAccessibilityIdentifier {
+    static let pageHeader = "coach.page.header"
     static let chatScroll = "coach.chat.scroll"
     static let inputTextField = "coach.input.textfield"
 

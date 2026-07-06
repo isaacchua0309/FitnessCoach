@@ -18,7 +18,7 @@ enum TodayLayout {
     /// Tighter stack inside a zone.
     static let planBlockSpacing = loggedZoneSpacing
     /// Label to card within a section.
-    static let headerToCardSpacing = FormaTokens.Spacing.xs
+    static let headerToCardSpacing = FormaMainTabLayout.sectionContentSpacing
     /// Tight label-to-content gap in the status zone.
     static let compactSpacing: CGFloat = 4
     /// Gap between hero value and supporting metrics.
@@ -32,8 +32,6 @@ enum TodayLayout {
     static let metricsProgressHeightPrimary: CGFloat = 6
     /// Vertical padding inside meal and list rows.
     static let cardRowVerticalPadding = FormaTokens.Spacing.sm
-    /// Scroll padding below the last Today section (see `FormaMainTabLayout`).
-    static let bottomScrollPadding = FormaFeatureLayout.scrollBottomPadding
     /// Tighter spacing for reinforcement sections at the bottom of Today.
     static let reinforcementSpacing = FormaTokens.Spacing.sm
 }
@@ -60,48 +58,16 @@ extension View {
     }
 }
 
-struct TodaySectionLabel: View {
-    let title: String
-
-    var body: some View {
-        FormaSectionLabel(title: title)
-            .accessibilityAddTraits(.isHeader)
-    }
-}
-
-/// Softer section label for measurement rows (Targets).
-struct TodayMutedSectionLabel: View {
-    let title: String
-
-    @Environment(\.theme) private var theme
-
-    var body: some View {
-        Text(title)
-            .font(FormaTokens.Typography.caption.weight(.medium))
-            .foregroundStyle(theme.tertiaryText)
-            .textCase(.uppercase)
-            .tracking(0.4)
-            .accessibilityAddTraits(.isHeader)
-    }
-}
-
 // MARK: - Next Actions
 
 struct TodayActionCard<Content: View>: View {
     @ViewBuilder var content: Content
 
-    @EnvironmentObject private var themeManager: ThemeManager
-
     var body: some View {
-        let _ = themeManager.themeRevision
-        return content
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.sm)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                FormaCardChrome.background(.accentLeading)
-            }
-            .todayLiveTheme()
+        MainTabCard(style: .accentLeading, compact: true) {
+            content
+        }
+        .todayLiveTheme()
     }
 }
 
@@ -110,18 +76,11 @@ struct TodayActionCard<Content: View>: View {
 struct TodayMetricsCard<Content: View>: View {
     @ViewBuilder var content: Content
 
-    @EnvironmentObject private var themeManager: ThemeManager
-
     var body: some View {
-        let _ = themeManager.themeRevision
-        return content
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.xs)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                FormaCardChrome.background(.surfaceSubtle)
-            }
-            .todayLiveTheme()
+        MainTabCard(style: .surfaceSubtle, compact: true) {
+            content
+        }
+        .todayLiveTheme()
     }
 }
 
