@@ -13,7 +13,7 @@ Cross-cutting repo health: documentation layout, command defaults, test plans, t
 | Xcode available | Yes (`/Applications/Xcode.app`) |
 | iPhone 16 simulator | **Missing** — machine has iPhone 17 (iOS 26.5) |
 | App builds | Pass |
-| Unit tests (`Fast-Core`) | **Blocked** — test target SPM resolution (BW-101) |
+| Unit tests (`Fast-Core`) | **Fix applied** — `TEST_HOST` wiring + serial plan; Mac verify: `./Scripts/run_fast_core_tests.sh` |
 | `functions` build / lint / test | Pass |
 | Swift `TODO`/`FIXME` in `Fitness Coach/` | **0** |
 | TypeScript `TODO` in `functions/src/` | **0** |
@@ -125,8 +125,8 @@ Full register: [TechnicalDebtRegister.md](./TechnicalDebtRegister.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Canonical fixtures | `Fitness CoachTests/TestingSupport/` | `TestFixtureFactory`, `ProfileFixtures`, etc. |
-| Legacy aliases | `ProfileTestFixtures`, `CoachFoodFixtures` | Kept for gradual migration (~90 files still on aliases) |
+| Canonical fixtures | `Fitness CoachTests/TestingSupport/` | `TestFixtureFactory`, `ProfileFixtures`, `FoodLogFixtures`, `DailyLogFixtures`, etc. |
+| Legacy aliases | `ProfileTestFixtures` only | `CoachFoodFixtures` → `FoodLogFixtures` and `DailyNutritionSummaryTestFixtures` → `DailyLogFixtures` fully migrated (2026-07-05); ~31 test files still import `ProfileTestFixtures` for onboarding/profile-heavy suites |
 | Async polling | `AsyncTestSupport` | Account deletion/sync tests migrated off `Task.sleep` |
 | AI test stubs | `CoachContextPacketV2` | `AIContext` removed (TD-AI-001 closed) |
 
@@ -136,7 +136,8 @@ Full register: [TechnicalDebtRegister.md](./TechnicalDebtRegister.md).
 
 | Script | Purpose | Default |
 |--------|---------|---------|
-| `Scripts/capture_build_warnings.sh` | Log `xcodebuild` warnings | iPhone 17 simulator |
+| `Scripts/run_fast_core_tests.sh` | Resolve SPM → build-for-testing → serial Fast-Core | iPhone 17 simulator |
+| `Scripts/capture_build_warnings.sh` | Log `xcodebuild` warnings (+ test build) | iPhone 17 simulator |
 
 ---
 
@@ -144,11 +145,18 @@ Full register: [TechnicalDebtRegister.md](./TechnicalDebtRegister.md).
 
 | ID | Priority | Item | Unblock |
 |----|----------|------|---------|
-| PH-001 | P0 | Fix `Fitness CoachTests` SPM module resolution (BW-101) | Design compile-time vs runtime Firebase linking |
 | PH-002 | P1 | Update CI / docs still referencing iPhone 16 | Grep `iPhone 16`; align to available simulators |
 | PH-003 | P2 | Concurrency warning burn-down (BW-102) | Subsystem-by-subsystem Swift 6 isolation pass |
-| PH-004 | P2 | Complete test fixture migration to `TestingSupport/` | Replace `ProfileTestFixtures` alias usages |
+| PH-004 | P2 | Complete test fixture migration to `TestingSupport/` | **In progress** — `FoodLogFixtures` / `DailyLogFixtures` canonical; ~70 files migrated off `ProfileTestFixtures`; remaining: onboarding, profile bootstrap, auth-route suites |
 | PH-005 | P3 | Close TD-COPY-001 | **Done 2026-07-05** — equivalence tests added |
+
+---
+
+## Closed hygiene items
+
+| ID | Item | Resolution |
+|----|------|------------|
+| PH-001 | `Fitness CoachTests` SPM module resolution (BW-101) | **Closed 2026-07-05** — `TEST_HOST` + `BUNDLE_LOADER`; Firebase/GoogleSignIn SPM in app target only; `Scripts/run_fast_core_tests.sh`; Fast-Core serial. Mac verify pending on standard Xcode host. |
 
 ---
 
@@ -156,5 +164,7 @@ Full register: [TechnicalDebtRegister.md](./TechnicalDebtRegister.md).
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | **PH-004 fixture migration (batch 1)** — `CoachFoodFixtures` / `DailyNutritionSummaryTestFixtures` fully migrated; ~70 test/support files now use `ProfileFixtures` |
+| 2026-07-05 | **PH-001 closed** — Fast-Core SPM/host wiring (BW-101); added `run_fast_core_tests.sh` |
 | 2026-07-05 | Initial register; 2026-07-05 build capture; BW-106–108 fixes; iPhone 17 simulator default |
 | 2026-07-04 | Build warnings register created (predecessor doc) |

@@ -20,18 +20,36 @@ final class TrainingInsightsModel: ObservableObject {
 
     @Published private(set) var viewState: TrainingInsightsViewState = .loading
 
-    private let workoutReader: HealthKitWorkoutReading
+    private let healthActivityQuery: HealthActivityQueryService
     private let dateProvider: DateProviding
     private let calendar: Calendar
 
+    init(
+        healthActivityQuery: HealthActivityQueryService,
+        dateProvider: DateProviding? = nil,
+        calendar: Calendar = .current
+    ) {
+        self.healthActivityQuery = healthActivityQuery
+        self.dateProvider = dateProvider ?? SystemDateProvider()
+        self.calendar = calendar
+    }
+
+    /// Test and preview convenience — routes through `HealthActivityQueryService` with legacy reader fallback.
     init(
         workoutReader: HealthKitWorkoutReading,
         dateProvider: DateProviding? = nil,
         calendar: Calendar = .current
     ) {
-        self.workoutReader = workoutReader
-        self.dateProvider = dateProvider ?? SystemDateProvider()
-        self.calendar = calendar
+        self.init(
+            healthActivityQuery: HealthActivityQueryService(
+                workoutReader: workoutReader,
+                stepReader: MockHealthKitStepReader(stepCount: 0),
+                healthDataRepository: nil,
+                repositoryReadRoutingEnabled: false
+            ),
+            dateProvider: dateProvider,
+            calendar: calendar
+        )
     }
 
     func loadInsights() async {
@@ -41,24 +59,26 @@ final class TrainingInsightsModel: ObservableObject {
 
     func refresh() async {
         HealthTrainingDebugLogger.event("TrainingInsightsModel.refresh started")
-        do {
-            let now = dateProvider.now
-            let start = TrainingInsightsAggregator.lookbackStart(asOf: now, calendar: calendar)
-            // Deprecated: direct HealthKit reader bypasses HealthDataRepository cache.
-            // Migrate to HealthActivityQueryService (repository routing) before removing.
-            let workouts = try await workoutReader.fetchWorkouts(from: start, to: now)
+        let now = dateProvider.now
+        let start = TrainingInsightsAggregator.lookbackStart(asOf: now, calendar: calendar)
+        let result = await healthActivityQuery.readWorkouts(from: start, to: now)
 
-            guard !workouts.isEmpty else {
+        switch result.availability {
+        case .available:
+            guard !result.workouts.isEmpty else {
                 HealthTrainingDebugLogger.event(
                     "TrainingInsightsModel.refresh: no workouts in lookback window",
-                    fields: ["lookbackStart": ISO8601DateFormatter().string(from: start)]
+                    fields: [
+                        "lookbackStart": ISO8601DateFormatter().string(from: start),
+                        "source": result.source
+                    ]
                 )
                 viewState = .empty
                 return
             }
 
             let summary = TrainingInsightsAggregator.summary(
-                workouts: workouts,
+                workouts: result.workouts,
                 asOf: now,
                 calendar: calendar
             )
@@ -67,13 +87,17 @@ final class TrainingInsightsModel: ObservableObject {
                 "TrainingInsightsModel.refresh loaded summary",
                 fields: [
                     "weeklyWorkoutCount": String(summary.weekly.workoutCount),
-                    "weeklyWorkoutDays": String(summary.weekly.workoutDays)
+                    "weeklyWorkoutDays": String(summary.weekly.workoutDays),
+                    "source": result.source
                 ]
             )
-        } catch {
+        case .accessDenied, .unavailable:
             HealthTrainingDebugLogger.error(
                 "TrainingInsightsModel.refresh failed",
-                underlying: error
+                fields: [
+                    "availability": String(describing: result.availability),
+                    "source": result.source
+                ]
             )
             viewState = .error(FormaProductCopy.Error.loadTraining)
         }

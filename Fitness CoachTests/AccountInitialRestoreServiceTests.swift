@@ -13,7 +13,7 @@ import SwiftData
 final class AccountInitialRestoreServiceTests: XCTestCase {
 
     private let ownerUID = "user-a"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
     private var calendar: Calendar!
     private var localDate: String!
 
@@ -642,8 +642,8 @@ private final class RestoreServiceHarness {
 
     @discardableResult
     func seedLocalProfile(ownerUID: String) throws -> UserProfile {
-        var draft = ProfileTestFixtures.sampleDraft
-        draft.targets = ProfileTestFixtures.sampleTargets
+        var draft = ProfileFixtures.sampleDraft
+        draft.targets = ProfileFixtures.sampleTargets
         return try profileService.createProfile(draft, ownerUID: ownerUID)
     }
 

@@ -136,7 +136,7 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
     }
 
     private func makeModel(container: AppContainer) -> CoachModel {
-        CoachModel(
+        CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService

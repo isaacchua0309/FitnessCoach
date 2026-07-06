@@ -15,10 +15,6 @@
 		2BHEALTH012FEE414C008A8666 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2BHEALTH022FEE414C008A8666 /* HealthKit.framework */; };
 		5CF927B65664223A23A021D8 /* SwiftHorizontalRuler in Frameworks */ = {isa = PBXBuildFile; productRef = 5BA7C20FB689E2E375B3EEDD /* SwiftHorizontalRuler */; };
 		A8A81B9E5B3728580EF61D19 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C029C846955106DBDB3889A0 /* GoogleSignIn */; };
-		3A00000C2FEE000100000001 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F142FEE414C008A8666 /* FirebaseAuth */; };
-		3A00000D2FEE000100000001 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F162FEE414C008A8666 /* FirebaseCore */; };
-		3A00000E2FEE000100000001 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C029C846955106DBDB3889A0 /* GoogleSignIn */; };
-		3A00000F2FEE000100000001 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F182FEE414C008A8666 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,10 +66,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3A00000C2FEE000100000001 /* FirebaseAuth in Frameworks */,
-				3A00000D2FEE000100000001 /* FirebaseCore in Frameworks */,
-				3A00000F2FEE000100000001 /* FirebaseFirestore in Frameworks */,
-				3A00000E2FEE000100000001 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -157,10 +149,6 @@
 			);
 			name = "Fitness CoachTests";
 			packageProductDependencies = (
-				2B045F142FEE414C008A8666 /* FirebaseAuth */,
-				2B045F162FEE414C008A8666 /* FirebaseCore */,
-				2B045F182FEE414C008A8666 /* FirebaseFirestore */,
-				C029C846955106DBDB3889A0 /* GoogleSignIn */,
 			);
 			productName = "Fitness CoachTests";
 			productReference = 3A0000012FEE000100000001 /* Fitness CoachTests.xctest */;
@@ -467,6 +455,7 @@
 		3A00000A2FEE000100000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = C3PWC866NM;
@@ -476,20 +465,21 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
-					"\"$(BUILT_PRODUCTS_DIR)/Fitness Coach.app\"",
 				);
 				MARKETING_VERSION = 1.0;
-				OTHER_LDFLAGS = "\"$(BUILT_PRODUCTS_DIR)/Fitness Coach.app/Fitness Coach.debug.dylib\"";
 				PRODUCT_BUNDLE_IDENTIFIER = "TutorTrack.Fitness-CoachTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fitness Coach.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fitness Coach";
 			};
 			name = Debug;
 		};
 		3A00000B2FEE000100000001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = C3PWC866NM;
@@ -499,14 +489,14 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
-					"\"$(BUILT_PRODUCTS_DIR)/Fitness Coach.app\"",
 				);
 				MARKETING_VERSION = 1.0;
-				OTHER_LDFLAGS = "\"$(BUILT_PRODUCTS_DIR)/Fitness Coach.app/Fitness Coach.debug.dylib\"";
 				PRODUCT_BUNDLE_IDENTIFIER = "TutorTrack.Fitness-CoachTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fitness Coach.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fitness Coach";
 			};
 			name = Release;
 		};

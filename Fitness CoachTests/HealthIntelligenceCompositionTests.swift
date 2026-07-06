@@ -226,6 +226,95 @@ final class HealthIntelligenceCompositionTests: XCTestCase {
         XCTAssertEqual(engine.composeCallCount, 1)
         XCTAssertEqual(snapshot?.activity.steps, 9_000)
     }
+
+    // MARK: - Presentation characterization (fixtures A–E)
+
+    func testCharacterizationFixtureA_FullyReady_ResolvesReadyUIStateAcrossSurfaces() {
+        let now = Date()
+        for surface in [HealthIntelligenceSurface.today, .plan, .journey] {
+            let uiState = HealthIntelligencePresentationCharacterizationFixtures.resolvedUIState(
+                for: .fullyReady,
+                surface: surface,
+                now: now
+            )
+            XCTAssertEqual(uiState.kind, .ready, "Expected ready for \(surface.rawValue)")
+            XCTAssertTrue(uiState.canShowInsight)
+        }
+    }
+
+    func testCharacterizationFixtureB_HealthKitDisconnected_BlocksInsightAcrossSurfaces() {
+        let now = Date()
+        for surface in [HealthIntelligenceSurface.today, .plan, .journey] {
+            let uiState = HealthIntelligencePresentationCharacterizationFixtures.resolvedUIState(
+                for: .healthKitDisconnected,
+                surface: surface,
+                now: now
+            )
+            XCTAssertFalse(uiState.canShowInsight, "Expected blocked insight for \(surface.rawValue)")
+        }
+    }
+
+    func testCharacterizationFixtureC_StaleData_UsesSurfaceSpecificStaleLabels() {
+        let now = Date()
+        let today = HealthIntelligencePresentationCharacterizationFixtures.buildTodaySection(for: .staleData, now: now)!
+        let plan = HealthIntelligencePresentationCharacterizationFixtures.buildPlanSection(for: .staleData, now: now)
+        let journey = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(for: .staleData, now: now)!
+
+        XCTAssertEqual(today.staleDataLabel, FormaProductCopy.Today.HealthIntelligence.staleDataLabel)
+        XCTAssertEqual(plan.staleDataLabel, FormaProductCopy.Today.HealthIntelligence.staleDataLabel)
+        XCTAssertEqual(journey.staleDataLabel, FormaProductCopy.Journey.HealthIntelligence.staleDataLabel)
+        XCTAssertEqual(today.uiState?.kind, .staleData)
+        XCTAssertEqual(plan.uiState?.kind, .staleData)
+        XCTAssertEqual(journey.uiState?.kind, .staleData)
+    }
+
+    func testCharacterizationFixtureD_PartialSignals_ResolvesPartialPermissionAcrossSurfaces() {
+        let now = Date()
+        for surface in [HealthIntelligenceSurface.today, .plan, .journey] {
+            let uiState = HealthIntelligencePresentationCharacterizationFixtures.resolvedUIState(
+                for: .partialSignals,
+                surface: surface,
+                now: now
+            )
+            XCTAssertEqual(uiState.kind, .partialPermission, "Expected partial for \(surface.rawValue)")
+            XCTAssertEqual(uiState.confidenceLabel, FormaProductCopy.HealthIntelligence.partialDataLabel)
+        }
+    }
+
+    func testCharacterizationFixtureE_WeeklyReviewUnavailable_JourneyShowsBuildingCardWhileTodayAndPlanStayReady() {
+        let now = Date()
+        let today = HealthIntelligencePresentationCharacterizationFixtures.buildTodaySection(for: .weeklyReviewUnavailable, now: now)!
+        let plan = HealthIntelligencePresentationCharacterizationFixtures.buildPlanSection(for: .weeklyReviewUnavailable, now: now)
+        let journey = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(for: .weeklyReviewUnavailable, now: now)!
+
+        XCTAssertEqual(today.uiState?.kind, .ready)
+        XCTAssertEqual(plan.uiState?.kind, .ready)
+        XCTAssertEqual(journey.weeklyReviewCard?.phase, .empty)
+        XCTAssertEqual(
+            journey.weeklyReviewCard?.title,
+            FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+        )
+        XCTAssertEqual(journey.recoveryTimeline.phase, .loaded)
+    }
+
+    func testCharacterizationBuildersEmitExpectedAnalyticsSurfaceMetadata() {
+        let now = Date()
+        let surfaces: [(HealthIntelligenceSurface, String)] = [
+            (.today, "today"),
+            (.plan, "plan"),
+            (.journey, "journey")
+        ]
+
+        for (surface, expectedRawValue) in surfaces {
+            let uiState = HealthIntelligencePresentationCharacterizationFixtures.resolvedUIState(
+                for: .fullyReady,
+                surface: surface,
+                now: now
+            )
+            XCTAssertEqual(surface.rawValue, expectedRawValue)
+            XCTAssertEqual(uiState.kind, .ready)
+        }
+    }
 }
 
 // MARK: - Mocks

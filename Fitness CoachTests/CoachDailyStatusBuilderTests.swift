@@ -231,7 +231,7 @@ final class CoachDailyStatusBuilderTests: XCTestCase {
             id: UUID(),
             date: referenceDate,
             weightKg: nil,
-            targets: ProfileTestFixtures.sampleTargets,
+            targets: ProfileFixtures.sampleTargets,
             totals: totals,
             waterConsumedMl: waterConsumedMl,
             steps: nil,

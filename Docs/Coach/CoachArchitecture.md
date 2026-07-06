@@ -25,7 +25,7 @@
 CoachModel(services: CoachServices, dependencies: CoachDependencies? = nil)
 ```
 
-A legacy convenience initializer (`CoachModel+LegacyInitialization.swift`) preserves the pre-decomposition parameter list for tests.
+Tests that need the retired long-parameter list use `CoachModelTestFactory.makeModel(...)` in `Fitness CoachTests/TestingSupport/` (behavior-equivalent assembly, not production API).
 
 **Line counts (approx., 2026-07-05):**
 
@@ -255,7 +255,7 @@ Any field on `CoachDependencies` can be overridden for tests (e.g. `aiService`, 
 |---------|----------|---------|
 | `CoachRoutingIntegrationTestSupport` | `Fitness CoachTests/TestingSupport/` | `makeCoachServices()` + `makeCoachDependencies()` + `CoachModel(services:dependencies:)` |
 | `CoachModelCharacterizationTestSupport` | same | Full fakes: timeline, transcript, correction memory, analytics |
-| Legacy direct init | `CoachModel+LegacyInitialization.swift` | Long parameter list → builds `CoachServices` + `CoachDependencies` |
+| `CoachModelTestFactory` | same | Retired long-parameter assembly for photo/pick-flow tests |
 
 No globals: all injection is constructor-based.
 
@@ -324,7 +324,7 @@ See [TestCommandCheatsheet.md](../Testing/TestCommandCheatsheet.md).
 
 ## 12. Remaining debt
 
-See [TechnicalDebtRegister.md](../TechnicalDebt/TechnicalDebtRegister.md) — TD-COACH-001 updated to **partially closed**.
+See [TechnicalDebtRegister.md](../TechnicalDebt/TechnicalDebtRegister.md) — TD-COACH-001 updated to **mostly closed** (v1 tail cleanup 2026-07-05).
 
 Outstanding Coach items:
 

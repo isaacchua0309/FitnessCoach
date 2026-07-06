@@ -72,7 +72,7 @@ final class OnboardingFlowSelectionTests: XCTestCase {
 
     func testExistingCompleteProfileSkipsOnboardingShell() async throws {
         let cloudStore = MockCloudUserProfileStore()
-        cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
+        cloudStore.storedDocument = ProfileFixtures.cloudDocument()
 
         let harness = try DailyLogServiceTestSupport.makeHarness()
         let service = ProfileBootstrapService(

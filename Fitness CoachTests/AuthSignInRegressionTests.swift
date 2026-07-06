@@ -130,7 +130,7 @@ final class AuthSignInRegressionTests: XCTestCase {
     @MainActor
     func testResolveLocalProfileNeverMapsSignedOutUserToMain() throws {
         let harness = try ProfileBootstrapTestSupport.makeHarness()
-        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileFixtures.sampleDraft)
         let bootstrap = ProfileBootstrapService(
             userProfileService: harness.profileService,
             cloudStore: MockCloudUserProfileStore()

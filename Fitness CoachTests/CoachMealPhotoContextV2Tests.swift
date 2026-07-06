@@ -425,7 +425,7 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
             dateProvider: fitness.base.dateProvider,
             calendar: fitness.base.dateProvider.calendar
         )
-        return CoachModel(
+        return CoachModelTestFactory.makeModel(
             actionCenter: fitness.actionCenter,
             dailyLogReader: fitness.dailyLogService,
             healthActivityQuery: fitness.healthActivityQuery,

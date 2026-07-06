@@ -11,15 +11,45 @@ Tracked compile warnings, test-infra failures, and backend lint items. Update wh
 
 | Field | Value |
 |-------|-------|
-| **Host** | macOS, Xcode at `/Applications/Xcode.app` |
-| **Requested simulator** | `platform=iOS Simulator,name=iPhone 16` — **not available** on this machine |
-| **Simulator used** | `platform=iOS Simulator,name=iPhone 17` (iOS 26.5) |
-| **App build** | `xcodebuild build -scheme "Fitness Coach" -destination 'platform=iOS Simulator,name=iPhone 17' -showBuildTimingSummary` → **BUILD SUCCEEDED** (~103 s incremental) |
-| **Test build** | `xcodebuild build-for-testing -scheme "Fitness Coach" -destination 'platform=iOS Simulator,name=iPhone 17'` → **TEST BUILD FAILED** |
-| **Test run** | `xcodebuild test -scheme "Fitness Coach" -destination '…' -testPlan Fast-Core` — **not run** (blocked by test build failure) |
-| **Backend build** | `npm --prefix functions run build` → pass |
-| **Backend lint** | `npm --prefix functions run lint` → pass (0 ESLint issues) |
-| **Backend test** | `npm --prefix functions test` → pass (24 suites, 679 passed, 2 skipped, 14 snapshots) |
+| **Host** | macOS with Xcode required (`xcodebuild` not available on Linux cloud agents) |
+| **Simulator** | `platform=iOS Simulator,name=iPhone 17` (iOS 26.5) |
+| **Package resolution** | Run `xcodebuild -resolvePackageDependencies` before test builds |
+| **Test host** | `Fitness CoachTests` uses `TEST_HOST` + `BUNDLE_LOADER` (app executable); Firebase/GoogleSignIn SPM linked in app only |
+| **Fast-Core runner** | `./Scripts/run_fast_core_tests.sh` (resolve → build-for-testing → serial test) |
+| **Backend** | `npm --prefix functions run build/lint/test` → pass |
+
+### BW-101 resolution (2026-07-05)
+
+| Root cause | Fix |
+|------------|-----|
+| BW-002 removed Firebase SPM from `Fitness CoachTests` while keeping `Fitness Coach.debug.dylib` link | Duplicate ObjC classes at runtime **or** compile failure when SPM absent from test target |
+| Test target lacked stable host wiring | Switched to `TEST_HOST` / `BUNDLE_LOADER`; removed test-target Firebase/GoogleSignIn SPM products |
+| Missing `resolvePackageDependencies` step | Documented in `Scripts/run_fast_core_tests.sh` and `capture_build_warnings.sh` |
+| Parallel Fast-Core amplified XCTest restarts | `Fast-Core.xctestplan` now `parallelizable: false` (serial) |
+
+**Verify on Mac:**
+
+```bash
+./Scripts/run_fast_core_tests.sh
+# or
+export DESTINATION='platform=iOS Simulator,name=iPhone 17'
+xcodebuild -resolvePackageDependencies -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach"
+xcodebuild test -project "Fitness Coach.xcodeproj" -scheme "Fitness Coach" -destination "$DESTINATION" -testPlan Fast-Core -parallel-testing-enabled NO
+```
+
+Expected: `TEST BUILD SUCCEEDED` then `TEST SUCCEEDED`.
+
+**Sprint context (PR #178):** HI consolidation v2 + PH-004 fixture batch 1 + TD-COACH-001 tail landed on branch; Mac verification is the acceptance gate for TD-TEST-001.
+
+---
+
+## Prior capture (2026-07-05, pre-fix)
+
+| Field | Value |
+|-------|-------|
+| **App build** | `xcodebuild build` → **BUILD SUCCEEDED** |
+| **Test build** | `build-for-testing` → **FAILED** (`Unable to resolve module dependency: 'FirebaseCore'`) when test target had no SPM + debug.dylib |
+| **Test run** | Fast-Core not run (blocked by test build failure) |
 
 ### Warning counts
 
@@ -101,7 +131,7 @@ npm --prefix functions run test:firestore-rules   # requires Firestore emulator
 | ID | Area | Issue | Resolution |
 |----|------|-------|------------|
 | BW-001 | `functions` ESLint | Unused `field` params in `coachContextPacketV2.ts` validators | Renamed to `_field` |
-| BW-002 | `Fitness CoachTests` target | Duplicate Firebase/GoogleSignIn SPM products linked in test bundle **and** app `debug.dylib` | Removed SPM framework deps from test target (see BW-101 regression) |
+| BW-002 | `Fitness CoachTests` target | Duplicate Firebase/GoogleSignIn SPM products linked in test bundle **and** app `debug.dylib` | **Resolved** — test target no longer links Firebase SPM; uses `TEST_HOST` instead of debug.dylib |
 | BW-003 | `functions` Jest | `npm test` failed without Firestore emulator | Default `npm test` runs unit suite; `test:all` + `test:firestore-rules` for rules integration |
 | BW-106 | Xcode project | Duplicate `GoogleService-Info.plist` in Copy Bundle Resources (folder-sync + explicit Resources phase) | Removed explicit `PBXBuildFile` / Resources entry; folder-sync group retains file |
 | BW-107 | SwiftUI previews | `previewInterfaceOrientation` / `previewDevice` ignored inside `#Preview` macro | Landscape previews use `traits: .landscapeLeft`; removed ignored `previewDevice` modifiers |
@@ -116,7 +146,7 @@ npm --prefix functions run test:firestore-rules   # requires Firestore emulator
 
 | ID | Category | Symptom | Count (approx.) | Notes / safe fix path |
 |----|----------|---------|-----------------|------------------------|
-| BW-101 | Test compile | `Fitness CoachTests` cannot resolve Firebase/GoogleSignIn SPM modules | 12 errors | BW-002 removed test-target SPM links to avoid runtime duplicate ObjC classes; `@testable import Fitness_Coach` still needs transitive modules at compile time. **Needs design:** link SPM for compile only, or `-enable-testing` module map strategy. Verify with serial `xcodebuild test -parallel-testing-enabled NO` after fix. |
+| BW-101 | Test compile | ~~`Fitness CoachTests` cannot resolve Firebase/GoogleSignIn SPM modules~~ | — | **Closed 2026-07-05** — `TEST_HOST` + `BUNDLE_LOADER`; Firebase SPM in app target only; run `xcodebuild -resolvePackageDependencies` before test builds. See TD-TEST-001. |
 | BW-102 | Concurrency | `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` project-wide | ~500+ | Per-site `@MainActor` / `nonisolated` / `await MainActor.run` — audit by subsystem; do **not** blanket-suppress. Top buckets: `init()` in nonisolated context, static config flags, `HealthKitManager.mapQueryError`, `resumed` capture in async tests. |
 | BW-104 | Previews | Canvas compile failures on individual screens | — | Triage per-preview; prefer `StubTrainingIntegrationProvider` |
 | BW-105 | Packages | SPM resolution / missing package | — | Run `xcodebuild -resolvePackageDependencies`; commit `Package.resolved` |
@@ -148,15 +178,15 @@ npm --prefix functions run test:firestore-rules   # requires Firestore emulator
 - **App + tests** use `PBXFileSystemSynchronizedRootGroup`. New files under `Fitness Coach/` or `Fitness CoachTests/` are included automatically.
 - **`GoogleService-Info.plist`** is included via folder-sync only (BW-106). Do not re-add to explicit Resources phase.
 - **`Fitness Coach/TestingSupport/StubTrainingIntegrationProvider.swift`** ships in the app target intentionally (previews + test doubles).
-- **Do not** blindly re-add Firebase/GoogleSignIn SPM products to `Fitness CoachTests` — caused duplicate ObjC class crashes (BW-002). Coordinate with BW-101 fix.
+- **`Fitness CoachTests`** uses `TEST_HOST` / `BUNDLE_LOADER` against the app executable. Firebase/GoogleSignIn SPM products are linked in the **app target only** — do not re-add to the test target (BW-002 duplicate ObjC classes).
 
 ---
 
 ## Acceptance checklist (pre-merge)
 
 - [x] `xcodebuild build -scheme "Fitness Coach" -destination 'platform=iOS Simulator,name=iPhone 17'` → **BUILD SUCCEEDED**
-- [ ] `xcodebuild build-for-testing` → **TEST BUILD SUCCEEDED** (blocked: BW-101)
-- [ ] `xcodebuild test … -testPlan Fast-Core` → pass (blocked: BW-101)
+- [ ] `xcodebuild build-for-testing` → **TEST BUILD SUCCEEDED** (verify on Mac: `./Scripts/run_fast_core_tests.sh`)
+- [ ] `xcodebuild test … -testPlan Fast-Core` → pass (verify on Mac; serial by default)
 - [x] `npm --prefix functions run build` → success
 - [x] `npm --prefix functions run lint` → 0 issues
 - [x] `npm --prefix functions test` → 679 unit tests pass

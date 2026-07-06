@@ -12,7 +12,7 @@ final class AccountRestoreStateStoreTests: XCTestCase {
 
     private let uidA = "user-a"
     private let uidB = "user-b"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
     private let appVersion = "9.9.9"
     private let schemaVersion = 42
 

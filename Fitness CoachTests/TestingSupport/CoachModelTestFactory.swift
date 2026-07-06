@@ -1,15 +1,18 @@
 //
-//  CoachModel+LegacyInitialization.swift
-//  Fitness Coach
+//  CoachModelTestFactory.swift
+//  Fitness CoachTests
 //
-//  Forma — Backward-compatible CoachModel initializer for tests and direct construction.
+//  Test-only CoachModel assembly mirroring the retired production legacy initializer.
+//  Prefer `CoachRoutingIntegrationTestSupport.makeCoach` for routing harnesses.
 //
 
 import Foundation
+@testable import Fitness_Coach
 
-extension CoachModel {
+@MainActor
+enum CoachModelTestFactory {
 
-    convenience init(
+    static func makeModel(
         localCommandParser: LocalCommandParser? = nil,
         actionCenter: FitnessActionCenter,
         dailyLogReader: any DailyLogReading,
@@ -35,7 +38,7 @@ extension CoachModel {
         timelineRecorder: (any CoachTimelineRecording)? = nil,
         timelineStore: (any CoachTimelineStoring)? = nil,
         foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)? = nil
-    ) {
+    ) -> CoachModel {
         _ = localCommandParser ?? LocalCommandParser.standard
 
         let services = CoachServices(
@@ -53,7 +56,7 @@ extension CoachModel {
             userProfileReader: userProfileReader,
             trainingInsightsStore: trainingInsightsStore
         )
-        var dependencies = CoachDependencies(
+        let dependencies = CoachDependencies(
             aiService: aiService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
             coachModelConfig: coachModelConfig ?? .default,
@@ -67,6 +70,6 @@ extension CoachModel {
             healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
         )
 
-        self.init(services: services, dependencies: dependencies)
+        return CoachModel(services: services, dependencies: dependencies)
     }
 }

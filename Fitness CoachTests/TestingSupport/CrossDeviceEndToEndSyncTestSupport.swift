@@ -58,7 +58,7 @@ final class CrossDeviceEndToEndSimulation {
     static func make(
         uid: String = "shared-user",
         otherUID: String = "other-user",
-        referenceDate: Date = ProfileTestFixtures.referenceDate
+        referenceDate: Date = ProfileFixtures.referenceDate
     ) throws -> CrossDeviceEndToEndSimulation {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
@@ -361,8 +361,8 @@ final class SimulatedCrossDevice {
     }
 
     func seedProfile() throws {
-        var draft = ProfileTestFixtures.sampleDraft
-        draft.targets = ProfileTestFixtures.sampleTargets
+        var draft = ProfileFixtures.sampleDraft
+        draft.targets = ProfileFixtures.sampleTargets
         _ = try profileService.createProfile(draft)
         _ = try profileService.assignOwnerUID(uid)
         profileCloudSyncStore.markSynced(uid: uid, updatedAt: clock.now)

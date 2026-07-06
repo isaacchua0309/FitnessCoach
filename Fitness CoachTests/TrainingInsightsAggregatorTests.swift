@@ -143,6 +143,43 @@ final class TrainingInsightsAggregatorTests: XCTestCase {
         }
     }
 
+    func testInsightsModelRoutesThroughRepositoryWhenEnabled() async {
+        let workout = makeWorkout(daysAgo: 1, minutes: 45, calories: 320, name: "Strength training")
+        let normalized = NormalizedWorkout(
+            id: workout.id,
+            category: .strength,
+            activityLabel: workout.activityName,
+            startDate: workout.startDate,
+            endDate: workout.endDate,
+            durationMinutes: workout.durationMinutes,
+            activeEnergyKcal: Double(workout.activeCalories ?? 0),
+            sourceName: "Apple Watch"
+        )
+        let repository = TrainingInsightsRoutingMockRepository(workouts: [normalized])
+        let query = HealthActivityQueryService(
+            workoutReader: FailingTrainingInsightsWorkoutReader(),
+            stepReader: MockHealthKitStepReader(stepCount: 0),
+            healthDataRepository: repository,
+            repositoryReadRoutingEnabled: true
+        )
+        let model = await MainActor.run {
+            TrainingInsightsModel(
+                healthActivityQuery: query,
+                dateProvider: FakeClock(now: referenceNow),
+                calendar: calendar
+            )
+        }
+
+        await model.refresh()
+
+        let state = await MainActor.run { model.viewState }
+        guard case .loaded(let summary) = state else {
+            return XCTFail("Expected loaded summary, got \(state)")
+        }
+        XCTAssertEqual(summary.weekly.workoutCount, 1)
+        XCTAssertEqual(repository.workoutsCallCount, 1)
+    }
+
     // MARK: - Helpers
 
     private func makeWorkout(
@@ -161,5 +198,88 @@ final class TrainingInsightsAggregatorTests: XCTestCase {
             durationMinutes: minutes,
             activeCalories: calories
         )
+    }
+}
+
+// MARK: - Routing mocks
+
+private final class TrainingInsightsRoutingMockRepository: HealthDataRepositorying, @unchecked Sendable {
+    let workouts: [NormalizedWorkout]
+    private(set) var workoutsCallCount = 0
+
+    init(workouts: [NormalizedWorkout]) {
+        self.workouts = workouts
+    }
+
+    func normalizedSamples(for date: Date, calendar: Calendar) async throws -> [HealthNormalizedSample] {
+        []
+    }
+
+    func getDailyMetrics(for date: Date, calendar: Calendar) async -> DailyHealthMetrics {
+        .zero
+    }
+
+    func getDailyMetrics(
+        from startDate: Date,
+        to endDate: Date,
+        calendar: Calendar
+    ) async -> [DailyHealthMetrics] {
+        []
+    }
+
+    func getRecentWorkouts(days: Int, calendar: Calendar) async -> [NormalizedWorkout] {
+        workouts
+    }
+
+    func getWorkouts(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedWorkout] {
+        workoutsCallCount += 1
+        return workouts.filter { $0.startDate >= startDate && $0.startDate <= endDate }
+    }
+
+    func getRecentSleep(days: Int, calendar: Calendar) async -> [NormalizedSleepRecord] {
+        []
+    }
+
+    func getSleepRecords(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedSleepRecord] {
+        []
+    }
+
+    func getRecentHeartMetrics(days: Int, calendar: Calendar) async -> [NormalizedHeartMetric] {
+        []
+    }
+
+    func getHeartMetrics(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedHeartMetric] {
+        []
+    }
+
+    func getBodyMassHistory(days: Int, calendar: Calendar) async -> [NormalizedBodyMass] {
+        []
+    }
+
+    func getHealthDataAvailability() async -> HealthDataAvailability {
+        HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: HealthPermissionStatus.uniform(
+                .available,
+                isHealthDataAvailable: true,
+                signals: [.workout, .stepCount]
+            ),
+            cachedDayCount: 7
+        )
+    }
+
+    func refreshHealthData(
+        days: Int,
+        endingOn date: Date,
+        calendar: Calendar
+    ) async -> HealthRefreshResult {
+        HealthRefreshResult(daysRefreshed: 0, refreshedAt: Date())
+    }
+}
+
+private struct FailingTrainingInsightsWorkoutReader: HealthKitWorkoutReading {
+    func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [HealthWorkoutRecord] {
+        XCTFail("Training Insights should route through repository when enabled")
+        return []
     }
 }

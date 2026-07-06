@@ -16,7 +16,7 @@ final class JourneyTimelineBuilderTests: XCTestCase {
         return calendar
     }()
 
-    private let asOf = ProfileTestFixtures.referenceDate
+    private let asOf = ProfileFixtures.referenceDate
 
     func testTimelineCreatesStartedFormaForNewUser() {
         let state = build(foodLogDays: 0)
@@ -225,7 +225,7 @@ final class JourneyTimelineBuilderTests: XCTestCase {
 
         return JourneyTimelineBuilder.build(
             JourneyTimelineBuilder.Input(
-                profile: ProfileTestFixtures.sampleProfile,
+                profile: ProfileFixtures.sampleProfile,
                 baseline: baseline,
                 maturityLogs: logs,
                 allWeights: allWeights,
@@ -266,7 +266,7 @@ final class JourneyTimelineBuilderTests: XCTestCase {
             id: UUID(),
             date: date,
             weightKg: nil,
-            targets: ProfileTestFixtures.sampleTargets,
+            targets: ProfileFixtures.sampleTargets,
             totals: MacroTotals(
                 calories: calories,
                 protein: protein,

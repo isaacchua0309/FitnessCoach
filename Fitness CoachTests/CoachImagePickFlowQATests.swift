@@ -266,7 +266,7 @@ final class CoachImagePickFlowQATests: XCTestCase {
     // MARK: - Helpers
 
     private func makeModel(container: AppContainer) -> CoachModel {
-        CoachModel(
+        CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService

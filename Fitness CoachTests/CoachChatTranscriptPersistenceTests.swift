@@ -288,7 +288,7 @@ private final class Harness {
 
     func makeCoachModel(transcriptStore: CoachChatTranscriptStore) throws -> CoachModel {
         let actionHarness = try FitnessActionCenterTestSupport.makeHarness(referenceNow: now)
-        return CoachModel(
+        return CoachModelTestFactory.makeModel(
             actionCenter: actionHarness.actionCenter,
             dailyLogReader: actionHarness.dailyLogService,
             healthActivityQuery: actionHarness.healthActivityQuery,

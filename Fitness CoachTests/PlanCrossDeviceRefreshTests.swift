@@ -44,7 +44,7 @@ final class PlanCrossDeviceRefreshTests: XCTestCase {
         XCTAssertEqual(initial.profile.targets.calorieTarget, 1_800)
 
         _ = try harness.actionCenter.updatePlan(
-            UserProfileUpdate(targets: ProfileTestFixtures.sampleTargets.withCalories(2_100))
+            UserProfileUpdate(targets: ProfileFixtures.sampleTargets.withCalories(2_100))
         )
 
         try await publishRefresh(domains: [.profile])
@@ -64,7 +64,7 @@ final class PlanCrossDeviceRefreshTests: XCTestCase {
         }
 
         _ = try harness.actionCenter.updatePlan(
-            UserProfileUpdate(targets: ProfileTestFixtures.sampleTargets.withCalories(2_100))
+            UserProfileUpdate(targets: ProfileFixtures.sampleTargets.withCalories(2_100))
         )
 
         try await publishRefresh(domains: [.profile], uid: otherUID)
@@ -85,7 +85,7 @@ final class PlanCrossDeviceRefreshTests: XCTestCase {
         XCTAssertEqual(initial.profile.targets.calorieTarget, 1_800)
 
         _ = try harness.actionCenter.updatePlan(
-            UserProfileUpdate(targets: ProfileTestFixtures.sampleTargets.withCalories(2_200))
+            UserProfileUpdate(targets: ProfileFixtures.sampleTargets.withCalories(2_200))
         )
 
         try await publishRefresh(domains: [.profile])

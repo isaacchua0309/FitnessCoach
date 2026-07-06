@@ -5,7 +5,8 @@
 //  Application-layer queries for Apple Health workouts and steps.
 //
 //  Primary path routes through HealthDataRepository when repositoryReadRoutingEnabled
-//  (default). Direct HealthKit reader fallback remains for flag-off rollback only.
+//  (default). Direct HealthKit reader fallback remains for flag-off rollback only;
+//  Training Insights, Today, Journey, and Coach all use this service.
 //
 
 import Foundation

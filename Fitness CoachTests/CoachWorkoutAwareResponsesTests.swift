@@ -148,7 +148,7 @@ final class CoachWorkoutAwareResponsesTests: XCTestCase {
 
     func testDailyBriefIncludesConciseHealthInsight() {
         let nutrition = DailyNutritionSummaryBuilder.build(
-            from: DailyNutritionSummaryTestFixtures.baselineLog
+            from: DailyLogFixtures.baselineLog
         )
 
         let brief = DailyBriefBuilder.todayBrief(

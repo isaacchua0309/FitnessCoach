@@ -93,7 +93,7 @@ final class PublicWelcomeThemeTests: XCTestCase {
             store.setPalette(.blossomPink)
 
             let syncStore = ProfileCloudSyncStore(userDefaults: defaults)
-            syncStore.markSynced(uid: "user", updatedAt: ProfileTestFixtures.referenceDate)
+            syncStore.markSynced(uid: "user", updatedAt: ProfileFixtures.referenceDate)
             let sessionStore = PublicEntrySessionStore(userDefaults: defaults)
 
             AuthLogoutPolicy.clearTransientSessionMetadata(cloudSyncStore: syncStore)

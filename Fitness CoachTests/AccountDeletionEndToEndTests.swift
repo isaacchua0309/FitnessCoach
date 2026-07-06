@@ -15,7 +15,7 @@ import XCTest
 @MainActor
 final class AccountDeletionEndToEndTests: XCTestCase {
 
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     // MARK: - 1. Full success
 
@@ -456,7 +456,7 @@ private final class AccountDeletionEndToEndHarness {
 
     func seedFullLocalAccount(for uid: String) throws {
         if try profileFor(ownerUID: uid) == nil {
-            _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: uid)
+            _ = try profileService.createProfile(ProfileFixtures.sampleDraft, ownerUID: uid)
         }
         if try ownedFoodCount(for: uid) == 0 {
             let previousSession = sessionUID
