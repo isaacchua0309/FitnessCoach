@@ -10,7 +10,7 @@ struct JourneyChapterSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
-            JourneySectionLabel(title: state.sectionTitle)
+            SectionLabel(title: state.sectionTitle)
 
             JourneyCard(elevation: .quiet) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {

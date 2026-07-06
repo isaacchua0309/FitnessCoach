@@ -585,6 +585,7 @@ extension FormaProductCopy {
 
     enum PlanMissionControl {
         static let adjustPlan = "Adjust Plan"
+        static let adjustPlanPill = "Adjust"
         static let adjustPlanCTAHeading = "Need to change direction?"
         static let adjustPlanCTABody =
             "Update your goal, target weight, activity, or calories. "

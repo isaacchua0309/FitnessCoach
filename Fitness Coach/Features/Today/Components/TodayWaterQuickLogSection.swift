@@ -47,7 +47,7 @@ struct TodayWaterQuickLogSection: View {
     var body: some View {
         let _ = themeManager.themeRevision
         return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: FormaProductCopy.Today.Water.sectionTitle)
+            SectionLabel(title: FormaProductCopy.Today.Water.sectionTitle)
 
             TodayActionCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
@@ -97,6 +97,10 @@ struct TodayWaterQuickLogSection: View {
             .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
             .foregroundStyle(theme.primaryText)
             .monospacedDigit()
+            .multilineTextAlignment(.trailing)
+            .lineLimit(2)
+            .minimumScaleFactor(MainTabResponsiveLayout.headerMinimumScaleFloor)
+            .layoutPriority(1)
             .modifier(WaterValueTransitionModifier(reduceMotion: reduceMotion))
             .animation(valueAnimation, value: displayedWater.consumedMl)
         }
@@ -115,7 +119,11 @@ struct TodayWaterQuickLogSection: View {
     }
 
     private var quickAddButtons: some View {
-        HStack(spacing: FormaTokens.Spacing.sm) {
+        LazyVGrid(
+            columns: MainTabResponsiveLayout.waterQuickAddGridColumns(),
+            alignment: .leading,
+            spacing: FormaTokens.Spacing.sm
+        ) {
             ForEach(presetAmountsMl, id: \.self) { amountMl in
                 Button {
                     logWater(amountMl: amountMl)
@@ -186,6 +194,9 @@ private struct TodayWaterQuickAddButtonLabel: View {
         Text(FormaProductCopy.Today.Water.quickAddLabel(amountMl))
             .font(FormaTokens.Typography.caption.weight(.semibold))
             .foregroundStyle(foregroundColor)
+            .lineLimit(1)
+            .minimumScaleFactor(MainTabResponsiveLayout.headerMinimumScaleFloor)
+            .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .padding(.vertical, FormaTokens.Spacing.sm)
             .background(
@@ -236,6 +247,18 @@ private struct WaterValueTransitionModifier: ViewModifier {
         onAddWater: { _ in true }
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Small phone") {
+    TodayWaterQuickLogSection(
+        water: WaterSummary(consumedMl: 1_200, targetMl: 3_500, remainingMl: 2_300, progress: 0.34),
+        presetAmountsMl: [250, 500, 750, 1_000],
+        onAddWater: { _ in true }
+    )
+    .padding(.horizontal, TodayLayout.horizontalPadding)
+    .frame(width: MainTabResponsiveLayout.compactPhoneWidth)
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }

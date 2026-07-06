@@ -54,7 +54,7 @@ struct JourneyView: View {
         let _ = themeManager.themeRevision
         return NavigationStack {
             content
-                .navigationTitle(FormaProductCopy.Journey.Header.title)
+                .toolbar(.hidden, for: .navigationBar)
                 .task {
                     await model.loadProgress()
                 }
@@ -69,7 +69,6 @@ struct JourneyView: View {
                 .refreshable {
                     await performPullToRefresh()
                 }
-                .background(theme.appBackground)
                 .formaThemeReactive()
                 .sheet(item: $presentedWeeklyReviewDetail) { presentation in
                     NavigationStack {
@@ -113,25 +112,49 @@ struct JourneyView: View {
     private var content: some View {
         switch model.viewState {
         case .loading:
-            FormaScreenLoadingView(message: FormaProductCopy.Loading.journey)
+            MainTabPageScaffold(
+                title: FormaProductCopy.Journey.Header.title,
+                subtitle: FormaProductCopy.Journey.Header.subtitle,
+                scrollMode: .embedded
+            ) {
+                FormaScreenLoadingView(message: FormaProductCopy.Loading.journey)
+            }
         case .empty:
-            JourneyEmptyStateView {
-                analyticsCoordinator.logGoToTodayTapped()
-                onOpenToday?()
+            MainTabPageScaffold(
+                title: FormaProductCopy.Journey.Header.title,
+                subtitle: FormaProductCopy.Journey.Header.subtitle,
+                scrollMode: .embedded
+            ) {
+                JourneyEmptyStateView {
+                    analyticsCoordinator.logGoToTodayTapped()
+                    onOpenToday?()
+                }
             }
             .onAppear {
                 syncAnalyticsContextForEmpty()
                 analyticsCoordinator.logViewed()
             }
         case .error(let message):
-            FormaScreenErrorView(message: message, onRetry: {
-                Task { await model.refresh() }
-            }, style: .tabRoot)
+            MainTabPageScaffold(
+                title: FormaProductCopy.Journey.Header.title,
+                subtitle: FormaProductCopy.Journey.Header.subtitle,
+                scrollMode: .embedded
+            ) {
+                FormaScreenErrorView(message: message, onRetry: {
+                    Task { await model.refresh() }
+                }, style: .tabRoot)
+            }
         case .pendingAccountRestore(let message):
-            AccountRestorePendingStateView(message: message)
-                .onAppear {
-                    weeklyProgressAnalyticsCoordinator?.logRestorePending()
-                }
+            MainTabPageScaffold(
+                title: FormaProductCopy.Journey.Header.title,
+                subtitle: FormaProductCopy.Journey.Header.subtitle,
+                scrollMode: .embedded
+            ) {
+                AccountRestorePendingStateView(message: message)
+            }
+            .onAppear {
+                weeklyProgressAnalyticsCoordinator?.logRestorePending()
+            }
         case .loaded(let state):
             let resolved = resolvedDashboardState(state)
             dashboard(
@@ -153,7 +176,12 @@ struct JourneyView: View {
         _ state: JourneyDashboardState,
         healthIntelligence: JourneyHealthIntelligenceSectionState? = nil
     ) -> some View {
-        ScrollView {
+        MainTabPageScaffold(
+            title: FormaProductCopy.Journey.Header.title,
+            subtitle: FormaProductCopy.Journey.Header.subtitle,
+            sectionSpacing: JourneyLayout.sectionSpacing,
+            showsCrossDeviceRefreshBanner: model.isCrossDeviceRefreshing
+        ) {
             JourneyDashboardContent(
                 state: state,
                 healthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
@@ -179,19 +207,6 @@ struct JourneyView: View {
                 },
                 weeklyProgressFreshnessInput: model.weeklyProgressFreshnessInput
             )
-        }
-        .formaMainTabScrollInsets()
-        .overlay(alignment: .top) {
-            if model.isCrossDeviceRefreshing {
-                ProgressView()
-                    .controlSize(.small)
-                    .padding(.horizontal, FormaTokens.Spacing.md)
-                    .padding(.vertical, FormaTokens.Spacing.sm)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-                    .padding(.top, FormaTokens.Spacing.sm)
-                    .accessibilityLabel("Syncing latest updates")
-            }
         }
         .accessibilityIdentifier("journey-scroll")
         .onAppear {

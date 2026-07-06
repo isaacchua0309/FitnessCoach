@@ -17,7 +17,7 @@ struct ThisWeekSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
-            JourneySectionLabel(title: state.weekTitle)
+            SectionLabel(title: state.weekTitle)
 
             ThisWeekCard(
                 state: state,

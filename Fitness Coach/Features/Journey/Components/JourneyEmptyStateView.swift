@@ -12,8 +12,6 @@ struct JourneyEmptyStateView: View {
 
     var body: some View {
         VStack(spacing: FormaTokens.Spacing.md) {
-            JourneyEyebrowLabel(title: FormaProductCopy.Journey.Header.title)
-
             Text(FormaProductCopy.Journey.StartingEmptyState.title)
                 .font(JourneyTypography.cardHeadline)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
@@ -33,9 +31,6 @@ struct JourneyEmptyStateView: View {
         }
         .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, JourneyLayout.horizontalPadding)
-        .padding(.bottom, FormaMainTabLayout.scrollBottomInset)
-        .background(FormaTokens.Color.canvas)
         .accessibilityIdentifier("journey-empty-state")
     }
 }

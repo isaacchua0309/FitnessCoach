@@ -17,9 +17,9 @@ struct TodayEndOfDayWrapUpSection: View {
     var body: some View {
         if wrapUp.isVisible {
             VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-                TodaySectionLabel(title: wrapUp.sectionTitle)
+                SectionLabel(title: wrapUp.sectionTitle)
 
-                FormaPlanCard {
+                MainTabCard {
                     VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                         if let noLogsMessage = wrapUp.noLogsMessage {
                             Text(noLogsMessage)

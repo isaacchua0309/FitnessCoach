@@ -93,7 +93,7 @@ final class JourneyThisWeekSectionTests: XCTestCase {
             unified.weekTitle,
             FormaProductCopy.Journey.WeeklyReview.sectionTitle
         )
-        XCTAssertEqual(unified.weekTitle, "This Week")
+        XCTAssertEqual(unified.weekTitle, "Weekly review")
     }
 
     func testPrimaryCTALogFirstMealForBrandNewUser() {

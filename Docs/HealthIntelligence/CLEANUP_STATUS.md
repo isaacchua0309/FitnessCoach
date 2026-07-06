@@ -73,13 +73,13 @@ Under `Fitness Coach/App/Dependencies/`:
 | `PersistenceDependencies.swift` | SwiftData, account sync core, log services |
 | `HealthDependencies.swift` | HealthKit, sync, training insights, `HealthActivityQueryService` |
 | `HealthIntelligenceDependencies.swift` | HI engine, snapshot, weekly review |
-| `CoachDependencies.swift` | Coach timeline stores, backfill, correction memory |
+| `CoachPlatformDependencies.swift` | Coach timeline stores, backfill, correction memory |
 | `AIDependencies.swift` | LLM client, `AIService` |
 | `SyncDependencies.swift` | Restore, cross-device, deletion, export |
 | `SettingsDependencies.swift` | `ThemeStore` |
 | `TodayDependencies.swift` | `ReviewService`, `FitnessActionCenter` |
 
-`AppContainer+Construction.swift` retains DEBUG-only wiring. Feature factories: `AppContainer+FeatureFactories.swift`.
+`AppContainer+Construction.swift` holds thin `build*Dependencies()` delegates (**145 LOC**). Feature factories: `AppContainer+FeatureFactories.swift`.
 
 ### Fast-Core status
 

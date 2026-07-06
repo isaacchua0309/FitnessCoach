@@ -17,7 +17,7 @@ struct TodayAdaptiveNutritionCard: View {
     var body: some View {
         let _ = themeManager.themeRevision
         return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodayMutedSectionLabel(title: state.sectionTitle)
+            SectionLabel(title: state.sectionTitle, style: .muted)
 
             TodayHealthIntelligenceLoadingCard(isLoading: isLoading) {
                 TodayMetricsCard {

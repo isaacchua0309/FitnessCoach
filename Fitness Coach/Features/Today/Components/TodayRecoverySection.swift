@@ -30,9 +30,9 @@ struct TodayRecoverySection: View {
 
     private var compactRecoveryCard: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: FormaProductCopy.Today.Recovery.sectionTitle)
+            SectionLabel(title: FormaProductCopy.Today.Recovery.sectionTitle)
 
-            FormaPlanCard {
+            MainTabCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                     Text(TodayRecoverySectionFormatting.compactTitle(for: state))
                         .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))

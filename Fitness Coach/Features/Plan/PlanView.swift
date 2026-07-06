@@ -24,6 +24,7 @@ struct PlanView: View {
     @EnvironmentObject private var consentStore: HealthSummarySyncConsentStore
 
     @State private var isShowingTrainingInsights = false
+    @State private var weeklyRecommendationScrollTrigger = 0
 
     private var settingsBodyDetailsInput: BodyDetailsSettingsPresentationInput? {
         guard let formState = model.editFormState else { return nil }
@@ -40,32 +41,7 @@ struct PlanView: View {
         let _ = themeManager.themeRevision
         return NavigationStack {
             content
-                .navigationTitle(FormaProductCopy.PlanHeader.title)
-                .toolbar {
-                    if case .loaded = model.viewState {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            HStack(spacing: FormaTokens.Spacing.sm) {
-                                Button {
-                                    model.showEditPlan()
-                                } label: {
-                                    Text(FormaProductCopy.PlanMissionControl.adjustPlan)
-                                        .font(FormaTokens.Typography.body.weight(.semibold))
-                                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                                }
-                                .accessibilityHint(FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint)
-
-                                Button {
-                                    model.showSettings()
-                                } label: {
-                                    Image(systemName: "gearshape")
-                                        .font(FormaTokens.Typography.body.weight(.medium))
-                                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                                }
-                                .accessibilityLabel("Settings")
-                            }
-                        }
-                    }
-                }
+                .toolbar(.hidden, for: .navigationBar)
                 .task {
                     await trainingInsightsStore.refresh()
                     await model.loadProfile()
@@ -170,7 +146,6 @@ struct PlanView: View {
                         )
                     }
                 }
-                .background(theme.appBackground)
                 .formaThemeReactive()
         }
     }
@@ -181,23 +156,53 @@ struct PlanView: View {
         await model.refresh()
     }
 
+    /// Header Adjust pill — same wizard as the legacy top-right Adjust Plan control.
+    private func openAdjustPlanFromHeader(healthConnected: Bool) {
+        model.logPlanAdjustCTATapped(healthConnected: healthConnected)
+        model.showEditPlan(entryPoint: .planTab)
+    }
+
+    /// Bottom dashboard Adjust Plan CTA — preserves the dedicated bottom entry analytics.
+    private func openAdjustPlanFromBottomCTA(healthConnected: Bool) {
+        model.logPlanAdjustCTATapped(healthConnected: healthConnected)
+        model.showEditPlan(entryPoint: .adjustPlanCTA)
+    }
+
     @ViewBuilder
     private var content: some View {
         switch model.viewState {
         case .loading:
-            FormaScreenLoadingView(message: FormaProductCopy.Loading.plan)
+            MainTabPageScaffold(
+                title: FormaProductCopy.PlanHeader.title,
+                subtitle: FormaProductCopy.PlanHeader.subtitle,
+                scrollMode: .embedded
+            ) {
+                FormaScreenLoadingView(message: FormaProductCopy.Loading.plan)
+            }
         case .empty:
-            PlanEmptyStateView {
-                Task {
-                    await model.createDefaultProfile()
+            MainTabPageScaffold(
+                title: FormaProductCopy.PlanHeader.title,
+                subtitle: FormaProductCopy.PlanHeader.subtitle,
+                scrollMode: .embedded
+            ) {
+                PlanEmptyStateView {
+                    Task {
+                        await model.createDefaultProfile()
+                    }
                 }
             }
         case .error(let message):
-            FormaScreenErrorView(message: message, onRetry: {
-                Task {
-                    await model.refresh()
-                }
-            }, style: .detailScreen)
+            MainTabPageScaffold(
+                title: FormaProductCopy.PlanHeader.title,
+                subtitle: FormaProductCopy.PlanHeader.subtitle,
+                scrollMode: .embedded
+            ) {
+                FormaScreenErrorView(message: message, onRetry: {
+                    Task {
+                        await model.refresh()
+                    }
+                }, style: .detailScreen)
+            }
         case .loaded(let state):
             strategyContent(state)
         }
@@ -208,91 +213,91 @@ struct PlanView: View {
         let healthConnected = trainingInsightsStore.integrationState.isConnected
         let healthIntelligenceUIEnabled = HealthIntelligenceFeatureFlags.isUIEnabled
 
-        ScrollViewReader { scrollProxy in
-            ScrollView {
-                PlanDashboardContent(
-                    state: state,
-                    healthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
-                    planHealthIntelligenceSectionState: healthIntelligenceUIEnabled
-                        ? model.planHealthIntelligenceSectionState
-                        : nil,
-                    highlightWeeklyRecommendation: model.shouldHighlightWeeklyRecommendation,
-                    onGoToToday: onGoToToday.map { handler in
-                        {
-                            model.logPlanTodayTapped(healthConnected: healthConnected)
-                            handler()
-                        }
-                    },
-                    onAdjustActivity: {
-                        model.showEditPlanActivity()
-                    },
-                    onAdjustPlan: {
-                        model.logPlanAdjustCTATapped(healthConnected: healthConnected)
-                        model.showEditPlan(entryPoint: .adjustPlanCTA)
-                    },
-                    onReviewWeeklyRecommendation: {
-                        model.logWeeklyRecommendationTapped(healthConnected: healthConnected)
-                        model.showEditPlanFromWeeklyReview(entryPoint: .weeklyReview)
-                    },
-                    onCalculationDetailsOpened: {
-                        model.logPlanCalculationTapped(healthConnected: healthConnected)
-                    },
-                    onAppleHealthTap: state.confidence.showsAppleHealthAction
-                        ? {
-                            model.logPlanHealthConnectTapped(
-                                entryPoint: .planConfidence,
-                                healthConnected: healthConnected
-                            )
-                            isShowingTrainingInsights = true
-                        }
-                        : nil,
-                    onConnectHealth: healthIntelligenceUIEnabled
-                        ? {
-                            model.logPlanHealthConnectTapped(
-                                entryPoint: .planConfidence,
-                                healthConnected: healthConnected
-                            )
-                            healthIntelligenceAnalyticsCoordinator?.logHealthPermissionCTATapped(surface: .plan)
-                            isShowingTrainingInsights = true
-                        }
-                        : nil,
-                    onPlanHealthMissingDataAction: healthIntelligenceUIEnabled
-                        ? { action in
-                            handlePlanHealthMissingDataAction(
-                                action,
-                                healthConnected: healthConnected
-                            )
-                        }
-                        : nil,
-                    healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-                    onSectionAppear: { section in
-                        logSectionImpression(section, healthConnected: healthConnected)
-                    }
-                )
-            }
-            .onChange(of: model.shouldHighlightWeeklyRecommendation) { _, shouldHighlight in
-                guard shouldHighlight else { return }
-                withAnimation {
-                    scrollProxy.scrollTo(
-                        PlanDashboardContent.weeklyRecommendationScrollID,
-                        anchor: .center
-                    )
+        MainTabPageScaffold(
+            title: FormaProductCopy.PlanHeader.title,
+            subtitle: FormaProductCopy.PlanHeader.subtitle,
+            sectionSpacing: PlanLayout.sectionSpacing,
+            showsCrossDeviceRefreshBanner: model.isCrossDeviceRefreshing,
+            scrollTarget: MainTabScrollTarget(
+                id: PlanDashboardContent.weeklyRecommendationScrollID,
+                anchor: .center,
+                trigger: weeklyRecommendationScrollTrigger
+            ),
+            trailingAction: {
+                PageActionPill(
+                    title: FormaProductCopy.PlanMissionControl.adjustPlanPill,
+                    accessibilityHint: FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint
+                ) {
+                    openAdjustPlanFromHeader(healthConnected: healthConnected)
                 }
-                model.clearWeeklyRecommendationHighlight()
             }
+        ) {
+            PlanDashboardContent(
+                state: state,
+                healthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
+                planHealthIntelligenceSectionState: healthIntelligenceUIEnabled
+                    ? model.planHealthIntelligenceSectionState
+                    : nil,
+                highlightWeeklyRecommendation: model.shouldHighlightWeeklyRecommendation,
+                onGoToToday: onGoToToday.map { handler in
+                    {
+                        model.logPlanTodayTapped(healthConnected: healthConnected)
+                        handler()
+                    }
+                },
+                onAdjustActivity: {
+                    model.showEditPlanActivity()
+                },
+                onAdjustPlan: {
+                    openAdjustPlanFromBottomCTA(healthConnected: healthConnected)
+                },
+                onOpenSettings: {
+                    model.showSettings()
+                },
+                onReviewWeeklyRecommendation: {
+                    model.logWeeklyRecommendationTapped(healthConnected: healthConnected)
+                    model.showEditPlanFromWeeklyReview(entryPoint: .weeklyReview)
+                },
+                onCalculationDetailsOpened: {
+                    model.logPlanCalculationTapped(healthConnected: healthConnected)
+                },
+                onAppleHealthTap: state.confidence.showsAppleHealthAction
+                    ? {
+                        model.logPlanHealthConnectTapped(
+                            entryPoint: .planConfidence,
+                            healthConnected: healthConnected
+                        )
+                        isShowingTrainingInsights = true
+                    }
+                    : nil,
+                onConnectHealth: healthIntelligenceUIEnabled
+                    ? {
+                        model.logPlanHealthConnectTapped(
+                            entryPoint: .planConfidence,
+                            healthConnected: healthConnected
+                        )
+                        healthIntelligenceAnalyticsCoordinator?.logHealthPermissionCTATapped(surface: .plan)
+                        isShowingTrainingInsights = true
+                    }
+                    : nil,
+                onPlanHealthMissingDataAction: healthIntelligenceUIEnabled
+                    ? { action in
+                        handlePlanHealthMissingDataAction(
+                            action,
+                            healthConnected: healthConnected
+                        )
+                    }
+                    : nil,
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+                onSectionAppear: { section in
+                    logSectionImpression(section, healthConnected: healthConnected)
+                }
+            )
         }
-        .formaMainTabScrollInsets()
-        .overlay(alignment: .top) {
-            if model.isCrossDeviceRefreshing {
-                ProgressView()
-                    .controlSize(.small)
-                    .padding(.horizontal, FormaTokens.Spacing.md)
-                    .padding(.vertical, FormaTokens.Spacing.sm)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-                    .padding(.top, FormaTokens.Spacing.sm)
-                    .accessibilityLabel("Syncing latest updates")
-            }
+        .onChange(of: model.shouldHighlightWeeklyRecommendation) { _, shouldHighlight in
+            guard shouldHighlight else { return }
+            weeklyRecommendationScrollTrigger += 1
+            model.clearWeeklyRecommendationHighlight()
         }
         .onAppear {
             model.logPlanViewed(healthConnected: healthConnected)
@@ -347,8 +352,5 @@ struct PlanView: View {
 }
 
 #Preview("Loaded Plan") {
-    NavigationStack {
-        PlanPreviewScreens.content(.aggressiveCut)
-            .navigationTitle(FormaProductCopy.PlanHeader.title)
-    }
+    PlanPreviewScreens.screen(.aggressiveCut)
 }
