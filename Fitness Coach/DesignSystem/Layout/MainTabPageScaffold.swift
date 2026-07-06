@@ -165,6 +165,7 @@ extension MainTabPageScaffold where TrailingAction == EmptyView, BottomAccessory
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
         showsCrossDeviceRefreshBanner: Bool = false,
+        showsPageHeader: Bool = true,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
@@ -174,6 +175,7 @@ extension MainTabPageScaffold where TrailingAction == EmptyView, BottomAccessory
             scrollMode: scrollMode,
             sectionSpacing: sectionSpacing,
             showsCrossDeviceRefreshBanner: showsCrossDeviceRefreshBanner,
+            showsPageHeader: showsPageHeader,
             scrollTarget: scrollTarget,
             trailingAction: { EmptyView() },
             bottomAccessory: { EmptyView() },
@@ -189,6 +191,7 @@ extension MainTabPageScaffold where BottomAccessory == EmptyView {
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
         showsCrossDeviceRefreshBanner: Bool = false,
+        showsPageHeader: Bool = true,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder trailingAction: @escaping () -> TrailingAction,
         @ViewBuilder content: @escaping () -> Content
@@ -199,6 +202,7 @@ extension MainTabPageScaffold where BottomAccessory == EmptyView {
             scrollMode: scrollMode,
             sectionSpacing: sectionSpacing,
             showsCrossDeviceRefreshBanner: showsCrossDeviceRefreshBanner,
+            showsPageHeader: showsPageHeader,
             scrollTarget: scrollTarget,
             trailingAction: trailingAction,
             bottomAccessory: { EmptyView() },
@@ -214,6 +218,7 @@ extension MainTabPageScaffold where TrailingAction == EmptyView {
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
         showsCrossDeviceRefreshBanner: Bool = false,
+        showsPageHeader: Bool = true,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder bottomAccessory: @escaping () -> BottomAccessory,
         @ViewBuilder content: @escaping () -> Content
@@ -224,6 +229,7 @@ extension MainTabPageScaffold where TrailingAction == EmptyView {
             scrollMode: scrollMode,
             sectionSpacing: sectionSpacing,
             showsCrossDeviceRefreshBanner: showsCrossDeviceRefreshBanner,
+            showsPageHeader: showsPageHeader,
             scrollTarget: scrollTarget,
             trailingAction: { EmptyView() },
             bottomAccessory: bottomAccessory,
