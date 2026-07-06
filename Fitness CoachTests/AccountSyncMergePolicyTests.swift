@@ -11,7 +11,7 @@ import XCTest
 final class AccountSyncMergePolicyTests: XCTestCase {
 
     private let uid = "userA"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     func testInsertsWhenLocalMissingAndRemoteActive() {
         let decision = AccountSyncMergePolicy.decide(

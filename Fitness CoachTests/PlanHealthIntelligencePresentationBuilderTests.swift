@@ -262,6 +262,61 @@ final class PlanHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
     }
 
+    func testBuildSectionUsesSectionLoaderCoreClassificationForStaleLabel() {
+        let now = Date()
+        let planInput = PlanHealthIntelligenceBuildInput(
+            planConfidence: PlanHealthConfidence(score: 0.62, label: "Moderate"),
+            baselineContext: HealthIntelligencePresentationCharacterizationFixtures.strongPlanBaseline(),
+            recovery: HealthIntelligencePresentationCharacterizationFixtures.planRecovery(),
+            userPlan: HealthIntelligencePresentationCharacterizationFixtures.connectedPlan(),
+            healthConnection: .connected,
+            healthAvailability: HealthIntelligencePresentationCharacterizationFixtures.connectedAvailability,
+            hasNutritionLogging: true,
+            hasRecentWeightLog: true,
+            cachedDayCount: 10,
+            lastSuccessfulLocalSyncAt: HealthIntelligencePresentationCharacterizationFixtures.staleLastSyncAt(from: now)
+        )
+        let section = PlanHealthIntelligencePresentationBuilder.buildSection(
+            input: planInput,
+            calendar: calendar
+        )
+
+        guard let uiState = section.uiState else {
+            XCTFail("Expected uiState")
+            return
+        }
+
+        XCTAssertEqual(section.uiState?.kind, .staleData)
+        XCTAssertEqual(
+            section.staleDataLabel,
+            HealthIntelligencePresentationCore.staleDataLabel(for: uiState, surface: .plan)
+        )
+    }
+
+    func testMissingDataActionAccessibilityUsesSharedJoinedLabel() {
+        let action = PlanHealthIntelligencePresentationBuilder.missingDataActions(
+            from: PlanHealthIntelligenceBuildInput(
+                planConfidence: .unknown,
+                baselineContext: .empty(for: referenceDay),
+                recovery: .unknown,
+                userPlan: connectedPlan(),
+                healthConnection: .disconnected,
+                hasNutritionLogging: false,
+                hasRecentWeightLog: false
+            )
+        ).first { $0.id == "connect-health" }
+
+        XCTAssertEqual(
+            action?.accessibilityLabel,
+            HealthIntelligencePresentationAccessibility.joinedLabel(
+                parts: [
+                    FormaProductCopy.PlanHealthIntelligencePresentation.actionConnectHealthTitle,
+                    FormaProductCopy.PlanHealthIntelligencePresentation.actionConnectHealthMessage
+                ]
+            )
+        )
+    }
+
     // MARK: - Fixtures
 
     private func makeStrongInput() -> PlanHealthIntelligenceBuildInput {
@@ -401,5 +456,94 @@ final class PlanHealthIntelligencePresentationBuilderTests: XCTestCase {
 
     private func combinedSignalValues(_ section: PlanHealthIntelligenceSectionState) -> String {
         section.dataQuality.signals.map(\.value).joined(separator: " ").lowercased()
+    }
+
+    // MARK: - Characterization fixtures A–E
+
+    func testCharacterizationFixtureA_FullyReady_ShowsHighConfidenceAndStrongDataQuality() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildPlanSection(for: .fullyReady)
+
+        XCTAssertFalse(section.isLoading)
+        XCTAssertEqual(section.confidenceCard.phase, .loaded)
+        XCTAssertEqual(
+            section.confidenceCard.confidenceLabel,
+            FormaProductCopy.PlanHealthIntelligencePresentation.confidenceHigh
+        )
+        XCTAssertEqual(section.confidenceCard.scorePercent, 82)
+        XCTAssertEqual(section.dataQuality.qualityLevel, .strong)
+        XCTAssertEqual(
+            section.dataQuality.qualityLabel,
+            FormaProductCopy.PlanHealthIntelligencePresentation.dataQualityStrongLabel
+        )
+        XCTAssertTrue(section.missingDataActions.isEmpty)
+        XCTAssertNil(section.fallbackMessage)
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertFalse(section.accessibilityLabel.isEmpty)
+        XCTAssertEqual(section.uiState?.kind, .ready)
+    }
+
+    func testCharacterizationFixtureB_HealthKitDisconnected_ShowsConnectHealthActionAndUnknownConfidence() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildPlanSection(for: .healthKitDisconnected)
+
+        XCTAssertEqual(section.confidenceCard.phase, .loaded)
+        XCTAssertEqual(
+            section.confidenceCard.confidenceLabel,
+            FormaProductCopy.PlanHealthIntelligencePresentation.confidenceUnknown
+        )
+        XCTAssertEqual(section.dataQuality.qualityLevel, .limited)
+        XCTAssertTrue(section.missingDataActions.contains { $0.id == "connect-health" })
+        XCTAssertEqual(
+            section.missingDataActions.first(where: { $0.id == "connect-health" })?.title,
+            FormaProductCopy.PlanHealthIntelligencePresentation.actionConnectHealthTitle
+        )
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertFalse(section.accessibilityLabel.isEmpty)
+    }
+
+    func testCharacterizationFixtureC_StaleData_ShowsStaleLabelWithModerateConfidence() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildPlanSection(for: .staleData)
+
+        XCTAssertEqual(section.uiState?.kind, .staleData)
+        XCTAssertEqual(
+            section.staleDataLabel,
+            FormaProductCopy.Today.HealthIntelligence.staleDataLabel
+        )
+        XCTAssertEqual(
+            section.confidenceCard.confidenceLabel,
+            FormaProductCopy.PlanHealthIntelligencePresentation.confidenceModerate
+        )
+        XCTAssertEqual(section.dataQuality.qualityLevel, .strong)
+        XCTAssertNil(section.fallbackMessage)
+        XCTAssertFalse(section.accessibilityLabel.isEmpty)
+    }
+
+    func testCharacterizationFixtureD_PartialSignals_ShowsPartialPermissionsActionAndSummary() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildPlanSection(for: .partialSignals)
+
+        XCTAssertEqual(
+            section.confidenceCard.confidenceLabel,
+            FormaProductCopy.PlanHealthIntelligencePresentation.confidenceModerate
+        )
+        XCTAssertEqual(section.dataQuality.qualityLevel, .limited)
+        XCTAssertEqual(
+            section.dataQuality.explanation,
+            FormaProductCopy.PlanHealthIntelligencePresentation.dataQualitySummaryPartial
+        )
+        XCTAssertTrue(section.missingDataActions.contains { $0.id == "partial-permissions" })
+        XCTAssertFalse(section.missingDataActions.contains { $0.id == "sleep" })
+        XCTAssertFalse(section.missingDataActions.contains { $0.id == "heart-metrics" })
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertFalse(section.accessibilityLabel.isEmpty)
+    }
+
+    func testCharacterizationFixtureE_WeeklyReviewUnavailable_KeepsPlanSectionStable() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildPlanSection(for: .weeklyReviewUnavailable)
+
+        XCTAssertEqual(section.confidenceCard.phase, .loaded)
+        XCTAssertEqual(section.dataQuality.qualityLevel, .strong)
+        XCTAssertNil(section.fallbackMessage)
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertEqual(section.uiState?.kind, .ready)
+        XCTAssertFalse(section.accessibilityLabel.isEmpty)
     }
 }

@@ -9,7 +9,7 @@ import XCTest
 final class NutritionEstimateContextBuilderTests: XCTestCase {
 
     func testTodayContextCalculation() {
-        let log = DailyNutritionSummaryTestFixtures.dailyLog(
+        let log = DailyLogFixtures.dailyLog(
             targets: UserTargets(
                 calorieTarget: 2_086,
                 proteinTarget: 198,

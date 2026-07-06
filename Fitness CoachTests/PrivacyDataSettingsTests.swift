@@ -49,8 +49,8 @@ final class PrivacyDataSettingsTests: XCTestCase {
     func testPrivacyStatusSnapshotExcludesSensitivePayloads() {
         let snapshot = SettingsPrivacyDataStatusSnapshot(
             accountConnection: .signedIn(provider: .google),
-            lastSuccessfulSyncAt: ProfileTestFixtures.referenceDate,
-            lastSuccessfulRestoreAt: ProfileTestFixtures.referenceDate,
+            lastSuccessfulSyncAt: ProfileFixtures.referenceDate,
+            lastSuccessfulRestoreAt: ProfileFixtures.referenceDate,
             pendingUploadCount: 2,
             isBlockingRestoreActive: false
         )

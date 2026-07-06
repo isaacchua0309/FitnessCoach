@@ -12,7 +12,7 @@ import XCTest
 final class AccountSyncDiagnosticsTests: XCTestCase {
 
     private let ownerUID = "userA"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     func testRecordsLastSnapshot() {
         let diagnostics = AccountSyncDiagnostics()

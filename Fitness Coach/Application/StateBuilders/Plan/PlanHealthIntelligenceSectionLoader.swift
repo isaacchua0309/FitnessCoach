@@ -27,19 +27,20 @@ enum PlanHealthIntelligenceSectionLoader {
     ) async -> PlanHealthIntelligenceLoadResult {
         let referenceDate = context.asOf
 
-        async let snapshotTask = snapshotProvider.loadTodaySnapshot(
-            for: referenceDate,
-            calendar: calendar
-        )
         async let baselineTask = baselineService.buildContext(
             for: referenceDate,
             calendar: calendar
         )
-        async let availabilityTask = healthDataRepository.getHealthDataAvailability()
+        let snapshotAvailability = await HealthIntelligenceSectionLoaderCore.loadTodaySnapshotAndAvailability(
+            referenceDate: referenceDate,
+            snapshotProvider: snapshotProvider,
+            healthDataRepository: healthDataRepository,
+            calendar: calendar
+        )
 
-        let snapshot = await snapshotTask
+        let snapshot = snapshotAvailability.snapshot
         let baselineContext = await baselineTask
-        let availability = await availabilityTask
+        let availability = snapshotAvailability.availability
 
         let userPlan = UserPlanContext.from(
             profile: profile,

@@ -3,7 +3,7 @@
 //  Fitness Coach
 //
 //  Feature model and coordinator factories for AppContainer.
-//  Grouped by tab/domain; construction lives in AppContainer+Construction.swift.
+//  Grouped by tab/domain; domain bundles live under App/Dependencies/.
 //
 
 import Foundation

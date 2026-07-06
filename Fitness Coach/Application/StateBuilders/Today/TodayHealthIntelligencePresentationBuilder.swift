@@ -37,42 +37,38 @@ enum TodayHealthIntelligencePresentationBuilder {
         isRemoteSyncCapabilityEnabled: Bool = false,
         remoteSyncConsentDecision: HealthSummarySyncConsentDecision = .notDetermined
     ) -> TodayHealthIntelligenceSectionState? {
-        guard isUIEnabled else { return nil }
-
-        if isLoading {
-            return loadingSection()
-        }
-
-        let presentationContext = HealthIntelligencePresentationCore.presentationContext(
+        let input = sectionLoadingInput(
             snapshot: snapshot,
-            isLoading: false,
+            isLoading: isLoading,
+            isUIEnabled: isUIEnabled,
             availability: availability,
             isAppleHealthConnected: isAppleHealthConnected,
+            trainingIntegrationState: trainingIntegrationState,
+            connectionRecord: connectionRecord,
             cachedDayCount: cachedDayCount,
             errorMessage: errorMessage,
             syncPhase: syncPhase,
-            trainingIntegrationState: trainingIntegrationState,
-            connectionRecord: connectionRecord,
-            baseline: baseline
+            lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAt,
+            baseline: baseline,
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: remoteSyncConsentDecision
         )
 
-        let uiState = HealthIntelligencePresentationCore.resolveUIState(
-            from: HealthIntelligenceUIResolutionInput(
-                presentationContext: presentationContext,
-                baseline: baseline,
-                lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAt,
-                isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled,
-                remoteSyncConsentDecision: remoteSyncConsentDecision,
-                surface: surface
-            )
-        )
+        guard input.isUIEnabled else { return nil }
 
-        if uiState.kind == .loading {
-            return loadingSection(uiState: uiState)
+        let classification = HealthIntelligenceSectionLoaderCore.classifySectionLoading(from: input)
+        if classification.availability == .loading {
+            if input.isLoading || input.syncPhase == .syncing {
+                return loadingSection()
+            }
+            return loadingSection(uiState: HealthIntelligenceSectionLoaderCore.resolveUIState(from: input))
         }
 
+        let uiState = HealthIntelligenceSectionLoaderCore.resolveUIState(from: input)
+        let fallbackMessage = HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: surface)
+
         guard let snapshot else {
-            let statusInput = integrationStatusInput(
+            let statusInput = HealthIntelligenceSectionLoaderCore.integrationStatusInput(
                 availability: availability,
                 trainingIntegrationState: trainingIntegrationState,
                 connectionRecord: connectionRecord,
@@ -84,11 +80,12 @@ enum TodayHealthIntelligencePresentationBuilder {
                 uiState: uiState,
                 nutritionProgress: nutritionProgress,
                 integrationStatus: HealthIntegrationStatusResolver.resolve(statusInput),
-                statusInput: statusInput
+                statusInput: statusInput,
+                fallbackMessage: fallbackMessage
             )
         }
 
-        let statusInput = integrationStatusInput(
+        let statusInput = HealthIntelligenceSectionLoaderCore.integrationStatusInput(
             availability: availability,
             trainingIntegrationState: trainingIntegrationState,
             connectionRecord: connectionRecord,
@@ -96,70 +93,16 @@ enum TodayHealthIntelligencePresentationBuilder {
             baseline: baseline,
             cachedDayCount: cachedDayCount
         )
-        let integrationStatus = HealthIntegrationStatusResolver.resolve(statusInput)
-        let signalAvailability = HealthIntegrationStatusResolver.resolveSignalAvailability(from: statusInput)
 
         return loadedSection(
             snapshot: snapshot,
             nutritionProgress: nutritionProgress,
             uiState: uiState,
-            integrationStatus: integrationStatus,
-            signalAvailability: signalAvailability,
+            classification: classification,
+            fallbackMessage: fallbackMessage,
+            integrationStatus: HealthIntegrationStatusResolver.resolve(statusInput),
+            signalAvailability: HealthIntegrationStatusResolver.resolveSignalAvailability(from: statusInput),
             statusInput: statusInput
-        )
-    }
-
-    // MARK: - Section assembly
-
-    private static func loadedSection(
-        snapshot: HealthIntelligenceSnapshot,
-        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
-        uiState: HealthIntelligenceUIState,
-        integrationStatus: HealthIntegrationStatus,
-        signalAvailability: HealthSignalAvailability,
-        statusInput: HealthIntegrationStatusInput
-    ) -> TodayHealthIntelligenceSectionState {
-        let staleLabel = HealthIntelligencePresentationCore.staleDataLabel(for: uiState, surface: surface)
-        let recoveryForCards = uiState.kind == .healthKitUnavailable ? RecoverySummary.unknown : snapshot.recovery
-        let recoveryCard = recoveryCard(
-            from: recoveryForCards,
-            uiState: uiState,
-            staleDataLabel: staleLabel
-        )
-        let adaptiveNutritionCard = adaptiveNutritionCard(
-            from: snapshot.nutritionAdjustment,
-            nutritionProgress: nutritionProgress
-        )
-        let dailyMission = dailyMission(
-            recovery: recoveryForCards,
-            workout: snapshot.workout,
-            nutritionProgress: nutritionProgress,
-            nutritionAdjustment: snapshot.nutritionAdjustment,
-            hasVisibleAdaptiveNutritionCard: adaptiveNutritionCard?.isVisible == true
-        )
-        let mappedNextBestAction = resolvedNextBestAction(
-            snapshot: snapshot,
-            integrationStatus: integrationStatus,
-            signalAvailability: signalAvailability,
-            statusInput: statusInput
-        )
-        let workoutCard = workoutCard(from: snapshot.workout, uiState: uiState)
-
-        return TodayHealthIntelligenceSectionState(
-            recoveryCard: recoveryCard,
-            dailyMission: dailyMission,
-            nextBestAction: supplementalActionIfNeeded(
-                healthAction: mappedNextBestAction,
-                uiState: uiState,
-                integrationStatus: integrationStatus,
-                statusInput: statusInput
-            ),
-            workoutCard: workoutCard,
-            adaptiveNutritionCard: adaptiveNutritionCard,
-            isLoading: false,
-            fallbackMessage: HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: surface),
-            uiState: uiState,
-            staleDataLabel: staleLabel
         )
     }
 
@@ -170,22 +113,14 @@ enum TodayHealthIntelligencePresentationBuilder {
         uiState: HealthIntelligenceUIState? = nil,
         staleDataLabel: String? = nil
     ) -> TodayRecoveryCardState {
-        if let uiState, uiState.kind == .healthKitUnavailable {
-            return mapRecoveryCard(
-                from: HealthIntelligencePresentationCore.unavailableRecoveryContent(
-                    uiState: uiState,
-                    surface: surface
-                )
-            )
-        }
-
-        return mapRecoveryCard(
+        mapRecoveryCard(
             from: HealthIntelligencePresentationCore.buildRecoveryCardContent(
                 from: recovery,
                 uiState: uiState,
                 staleDataLabel: staleDataLabel,
                 surface: surface
-            )
+            ),
+            uiState: uiState
         )
     }
 
@@ -296,7 +231,57 @@ enum TodayHealthIntelligencePresentationBuilder {
         )
     }
 
-    // MARK: - Private helpers
+    // MARK: - Section assembly
+
+    private static func loadedSection(
+        snapshot: HealthIntelligenceSnapshot,
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
+        uiState: HealthIntelligenceUIState,
+        classification: HealthIntelligenceSectionLoadingResult,
+        fallbackMessage: String?,
+        integrationStatus: HealthIntegrationStatus,
+        signalAvailability: HealthSignalAvailability,
+        statusInput: HealthIntegrationStatusInput
+    ) -> TodayHealthIntelligenceSectionState {
+        let staleLabel = classification.staleDataLabel
+        let recoveryForCards = uiState.kind == .healthKitUnavailable ? RecoverySummary.unknown : snapshot.recovery
+        let adaptiveNutritionCard = adaptiveNutritionCard(
+            from: snapshot.nutritionAdjustment,
+            nutritionProgress: nutritionProgress
+        )
+
+        return TodayHealthIntelligenceSectionState(
+            recoveryCard: recoveryCard(
+                from: recoveryForCards,
+                uiState: uiState,
+                staleDataLabel: staleLabel
+            ),
+            dailyMission: dailyMission(
+                recovery: recoveryForCards,
+                workout: snapshot.workout,
+                nutritionProgress: nutritionProgress,
+                nutritionAdjustment: snapshot.nutritionAdjustment,
+                hasVisibleAdaptiveNutritionCard: adaptiveNutritionCard?.isVisible == true
+            ),
+            nextBestAction: supplementalActionIfNeeded(
+                healthAction: resolvedNextBestAction(
+                    snapshot: snapshot,
+                    integrationStatus: integrationStatus,
+                    signalAvailability: signalAvailability,
+                    statusInput: statusInput
+                ),
+                uiState: uiState,
+                integrationStatus: integrationStatus,
+                statusInput: statusInput
+            ),
+            workoutCard: workoutCard(from: snapshot.workout, uiState: uiState),
+            adaptiveNutritionCard: adaptiveNutritionCard,
+            isLoading: false,
+            fallbackMessage: fallbackMessage,
+            uiState: uiState,
+            staleDataLabel: staleLabel
+        )
+    }
 
     private static func loadingSection(
         uiState: HealthIntelligenceUIState? = nil
@@ -318,18 +303,16 @@ enum TodayHealthIntelligencePresentationBuilder {
         uiState: HealthIntelligenceUIState,
         nutritionProgress: TodayHealthIntelligenceNutritionProgress,
         integrationStatus: HealthIntegrationStatus,
-        statusInput: HealthIntegrationStatusInput
+        statusInput: HealthIntegrationStatusInput,
+        fallbackMessage: String?
     ) -> TodayHealthIntelligenceSectionState {
-        let recoveryCard = placeholderRecoveryCard(for: uiState)
-        let dailyMission = dailyMission(
-            recovery: .unknown,
-            workout: nil,
-            nutritionProgress: nutritionProgress
-        )
-
-        return TodayHealthIntelligenceSectionState(
-            recoveryCard: recoveryCard,
-            dailyMission: dailyMission,
+        TodayHealthIntelligenceSectionState(
+            recoveryCard: placeholderRecoveryCard(for: uiState),
+            dailyMission: dailyMission(
+                recovery: .unknown,
+                workout: nil,
+                nutritionProgress: nutritionProgress
+            ),
             nextBestAction: supplementalActionIfNeeded(
                 healthAction: .hidden,
                 uiState: uiState,
@@ -339,11 +322,50 @@ enum TodayHealthIntelligencePresentationBuilder {
             workoutCard: workoutCard(from: nil, uiState: uiState),
             adaptiveNutritionCard: nil,
             isLoading: false,
-            fallbackMessage: HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: surface),
+            fallbackMessage: fallbackMessage,
             uiState: uiState,
             staleDataLabel: nil
         )
     }
+
+    // MARK: - Section loading input
+
+    private static func sectionLoadingInput(
+        snapshot: HealthIntelligenceSnapshot?,
+        isLoading: Bool,
+        isUIEnabled: Bool,
+        availability: HealthDataAvailability?,
+        isAppleHealthConnected: Bool,
+        trainingIntegrationState: TrainingIntegrationState,
+        connectionRecord: HealthIntegrationConnectionRecord,
+        cachedDayCount: Int,
+        errorMessage: String?,
+        syncPhase: HealthSyncPhase?,
+        lastSuccessfulLocalSyncAt: Date?,
+        baseline: HealthBaselineContext?,
+        isRemoteSyncCapabilityEnabled: Bool,
+        remoteSyncConsentDecision: HealthSummarySyncConsentDecision
+    ) -> HealthIntelligenceSectionLoadingInput {
+        HealthIntelligenceSectionLoadingInput(
+            isUIEnabled: isUIEnabled,
+            isLoading: isLoading,
+            snapshot: snapshot,
+            availability: availability,
+            isAppleHealthConnected: isAppleHealthConnected,
+            cachedDayCount: cachedDayCount > 0 ? cachedDayCount : (availability?.cachedDayCount ?? 0),
+            errorMessage: errorMessage,
+            syncPhase: syncPhase,
+            lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAt,
+            baseline: baseline,
+            surface: surface,
+            trainingIntegrationState: trainingIntegrationState,
+            connectionRecord: connectionRecord,
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: remoteSyncConsentDecision
+        )
+    }
+
+    // MARK: - Next best action
 
     private static func supplementalActionIfNeeded(
         healthAction: TodayHealthNextBestActionState,
@@ -417,45 +439,6 @@ enum TodayHealthIntelligencePresentationBuilder {
         return action
     }
 
-    private static func integrationStatusInput(
-        availability: HealthDataAvailability?,
-        trainingIntegrationState: TrainingIntegrationState,
-        connectionRecord: HealthIntegrationConnectionRecord,
-        snapshot: HealthIntelligenceSnapshot?,
-        baseline: HealthBaselineContext?,
-        cachedDayCount: Int
-    ) -> HealthIntegrationStatusInput {
-        HealthIntegrationStatusInput(
-            isHealthDataAvailable: availability?.isHealthDataAvailable ?? true,
-            permissionStatus: availability?.permissionStatus,
-            trainingIntegrationState: trainingIntegrationState,
-            connectionRecord: connectionRecord,
-            snapshot: snapshot,
-            baseline: baseline,
-            cachedDayCount: cachedDayCount
-        )
-    }
-
-    private static func integrationStatus(
-        availability: HealthDataAvailability?,
-        trainingIntegrationState: TrainingIntegrationState,
-        connectionRecord: HealthIntegrationConnectionRecord,
-        snapshot: HealthIntelligenceSnapshot?,
-        baseline: HealthBaselineContext?,
-        cachedDayCount: Int
-    ) -> HealthIntegrationStatus {
-        HealthIntegrationStatusResolver.resolve(
-            integrationStatusInput(
-                availability: availability,
-                trainingIntegrationState: trainingIntegrationState,
-                connectionRecord: connectionRecord,
-                snapshot: snapshot,
-                baseline: baseline,
-                cachedDayCount: cachedDayCount
-            )
-        )
-    }
-
     private static func supplementalActionState(
         title: String,
         message: String,
@@ -478,55 +461,23 @@ enum TodayHealthIntelligencePresentationBuilder {
         )
     }
 
-    // MARK: - Recovery
+    // MARK: - Shared card mapping
 
     private static func placeholderRecoveryCard(
         for uiState: HealthIntelligenceUIState
     ) -> TodayRecoveryCardState {
-        switch uiState.kind {
-        case .healthKitUnavailable:
-            return mapRecoveryCard(
-                from: HealthIntelligencePresentationCore.unavailableRecoveryContent(
-                    uiState: uiState,
-                    surface: surface
-                )
-            )
-        case .noHealthPermission:
-            return TodayRecoveryCardState(
-                phase: .unknown,
-                sectionTitle: recoverySectionTitle,
-                title: uiState.title,
-                subtitle: uiState.message,
-                trainingGuidance: nil,
-                nutritionGuidance: nil,
-                confidenceNote: nil,
-                missingDataNote: nil,
-                staleDataLabel: nil,
-                accessibilityLabel: "\(recoverySectionTitle). \(uiState.title). \(uiState.message)"
-            )
-        case .unknown, .notEnoughBaseline, .remoteSyncDisabled:
-            let title = uiState.title.isEmpty
-                ? FormaProductCopy.Today.HealthIntelligence.DailyMission.unknownHeadline
-                : uiState.title
-            return TodayRecoveryCardState(
-                phase: .unknown,
-                sectionTitle: recoverySectionTitle,
-                title: title,
-                subtitle: uiState.message,
-                trainingGuidance: nil,
-                nutritionGuidance: nil,
-                confidenceNote: uiState.confidenceLabel,
-                missingDataNote: nil,
-                staleDataLabel: nil,
-                accessibilityLabel: "\(recoverySectionTitle). \(uiState.title). \(uiState.message)"
-            )
-        default:
+        guard let content = HealthIntelligencePresentationCore.placeholderRecoveryContent(
+            for: uiState,
+            surface: surface
+        ) else {
             return .loading
         }
+        return mapRecoveryCard(from: content, uiState: uiState)
     }
 
     private static func mapRecoveryCard(
-        from content: HealthIntelligenceRecoveryCardContent
+        from content: HealthIntelligenceRecoveryCardContent,
+        uiState: HealthIntelligenceUIState? = nil
     ) -> TodayRecoveryCardState {
         TodayRecoveryCardState(
             phase: todayPhase(from: content.phase),
@@ -538,10 +489,24 @@ enum TodayHealthIntelligencePresentationBuilder {
             confidenceNote: content.confidenceNote,
             missingDataNote: content.missingDataNote,
             staleDataLabel: content.staleDataLabel,
-            accessibilityLabel: HealthIntelligencePresentationCore.recoveryAccessibilityLabel(
-                sectionTitle: recoverySectionTitle,
-                content: content
-            )
+            accessibilityLabel: recoveryAccessibilityLabel(from: content, uiState: uiState)
+        )
+    }
+
+    private static func recoveryAccessibilityLabel(
+        from content: HealthIntelligenceRecoveryCardContent,
+        uiState: HealthIntelligenceUIState?
+    ) -> String {
+        if let uiState,
+           uiState.kind == .unknown
+            || uiState.kind == .notEnoughBaseline
+            || uiState.kind == .remoteSyncDisabled {
+            return "\(recoverySectionTitle). \(uiState.title). \(uiState.message)"
+        }
+
+        return HealthIntelligencePresentationCore.recoveryAccessibilityLabel(
+            sectionTitle: recoverySectionTitle,
+            content: content
         )
     }
 
@@ -620,6 +585,8 @@ enum TodayHealthIntelligencePresentationBuilder {
         case .none: return .none
         }
     }
+
+    // MARK: - Daily mission
 
     private static func dailyMissionHeadline(for status: RecoveryStatus) -> String {
         switch status {

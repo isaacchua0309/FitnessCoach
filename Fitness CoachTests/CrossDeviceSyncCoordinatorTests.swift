@@ -14,7 +14,7 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
 
     private let ownerUID = "user-a"
     private let otherUID = "user-b"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     private var syncCoordinator: TrackingAccountSyncCoordinator!
     private var incrementalPuller: TrackingAccountIncrementalPuller!

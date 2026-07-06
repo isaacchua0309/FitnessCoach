@@ -59,7 +59,7 @@ final class TestInfrastructureTests: XCTestCase {
         XCTAssertEqual(calendar.startOfDay(for: lastLog.date), calendar.startOfDay(for: WeeklyProgressFixtures.asOf))
     }
 
-    func testCoachFoodFixturesChickenEntryHasMacros() {
+    func testFoodLogFixturesChickenEntryHasMacros() {
         let entry = FoodLogFixtures.chickenFoodEntry
         XCTAssertGreaterThan(entry.protein, 0)
         XCTAssertGreaterThan(entry.calories, 0)

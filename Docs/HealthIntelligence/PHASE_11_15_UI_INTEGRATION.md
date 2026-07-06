@@ -201,7 +201,6 @@ Returns **`nil` when UI flag is off** so existing Today output is unchanged.
 | Method | Behavior |
 |--------|----------|
 | `showsHealthIntelligenceSection` | `uiEnabled && sectionState != nil` |
-| `showsLegacyNextBestAction` | Hidden when HI section visible |
 | `showsActivitySection` | Hidden when HI shows workout card or mission includes workout-complete detail |
 
 ### UI section

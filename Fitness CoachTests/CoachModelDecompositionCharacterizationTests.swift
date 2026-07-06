@@ -230,7 +230,7 @@ final class CoachModelDecompositionCharacterizationTests: XCTestCase {
     func testPhotoAttachmentPreviewState_stagesWithoutSending() async throws {
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -256,7 +256,7 @@ final class CoachModelDecompositionCharacterizationTests: XCTestCase {
     func testTextOnlySendClearsStagedMealPhoto() async throws {
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -286,7 +286,7 @@ final class CoachModelDecompositionCharacterizationTests: XCTestCase {
         let aiService = CoachModelCharacterizationTestSupport.CharacterizationPhotoAIService()
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -311,7 +311,7 @@ final class CoachModelDecompositionCharacterizationTests: XCTestCase {
         aiService.injectedAnalyzeError = AIServiceError.networkUnavailable
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -342,7 +342,7 @@ final class CoachModelDecompositionCharacterizationTests: XCTestCase {
         aiService.clarifyingQuestion = "Was this rice or barley?"
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,

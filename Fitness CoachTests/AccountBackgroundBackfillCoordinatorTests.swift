@@ -39,7 +39,7 @@ final class AccountBackgroundBackfillCoordinatorTests: XCTestCase {
 private final class BackgroundBackfillCoordinatorHarness {
 
     let ownerUID = "user-a"
-    let referenceDate = ProfileTestFixtures.referenceDate
+    let referenceDate = ProfileFixtures.referenceDate
     let stateStore: AccountRestoreStateStore
     let coordinator: AccountRestoreCoordinator
     private let counter: BackfillCounter
@@ -51,7 +51,7 @@ private final class BackgroundBackfillCoordinatorHarness {
 
     static func make() throws -> BackgroundBackfillCoordinatorHarness {
         let defaults = UserDefaults(suiteName: "AccountBackgroundBackfillCoordinatorTests.\(UUID().uuidString)")!
-        let dateProvider = FixedDailyLogTestDateProvider(now: ProfileTestFixtures.referenceDate)
+        let dateProvider = FixedDailyLogTestDateProvider(now: ProfileFixtures.referenceDate)
         let container = try FormaModelContainer.makeContainer(inMemory: true)
         let store = SwiftDataStore(container: container)
         let profileService = UserProfileService(store: store, dateProvider: dateProvider)
@@ -65,7 +65,7 @@ private final class BackgroundBackfillCoordinatorHarness {
         let remoteInspector = BackgroundStubRemoteInspector()
         let currentUIDBox = CurrentUIDBox(uid: "user-a")
         let counter = BackfillCounter()
-        let initialRestore = RecordingBackgroundBackfillService(referenceDate: ProfileTestFixtures.referenceDate)
+        let initialRestore = RecordingBackgroundBackfillService(referenceDate: ProfileFixtures.referenceDate)
         let coordinator = AccountRestoreCoordinator(
             namespaceService: AccountDataNamespaceService(
                 store: store,

@@ -63,7 +63,7 @@ final class CloudAccountDataDocumentTests: XCTestCase {
                 id: UUID(),
                 date: referenceDate,
                 weightKg: nil,
-                targets: ProfileTestFixtures.sampleTargets,
+                targets: ProfileFixtures.sampleTargets,
                 totals: MacroTotals(calories: 0, protein: 0, carbs: 0, fat: 0, fiber: nil, sodium: nil),
                 waterConsumedMl: 0,
                 steps: nil,

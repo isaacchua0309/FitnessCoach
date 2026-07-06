@@ -35,9 +35,9 @@ enum HealthIntelligencePresentationPolicy {
     ) -> String? {
         switch uiState.kind {
         case .staleData:
-            return staleDataCopy(for: surface).stale
+            return HealthIntelligencePresentationCopy.staleDataLabel(for: surface)
         case .syncFailed where uiState.canShowInsight:
-            return staleDataCopy(for: surface).syncFailedWithCache
+            return HealthIntelligencePresentationCopy.syncFailedWithCacheLabel(for: surface)
         default:
             return nil
         }
@@ -60,7 +60,7 @@ enum HealthIntelligencePresentationPolicy {
         guard !labels.isEmpty else {
             return nil
         }
-        return FormaProductCopy.Journey.Sync.healthDataSyncing
+        return HealthIntelligencePresentationCopy.Journey.healthDataSyncing
     }
 
     static func syncFailureSectionMessage(for uiState: HealthIntelligenceUIState) -> String? {
@@ -90,28 +90,28 @@ enum HealthIntelligencePresentationPolicy {
         switch surface {
         case .today:
             if hasMissingHeartOrSleepSignals(recovery.missingSignals, surface: .today) {
-                return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryMissingSignals
+                return HealthIntelligencePresentationCopy.Today.limitedRecoveryMissingSignals
             }
             if recovery.status == .unknown {
-                return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryUnavailable
+                return HealthIntelligencePresentationCopy.Today.limitedRecoveryUnavailable
             }
-            return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryPartialSignals
+            return HealthIntelligencePresentationCopy.Today.limitedRecoveryPartialSignals
         case .journey:
             if hasMissingHeartOrSleepSignals(recovery.missingSignals, surface: .journey) {
-                return "Limited estimate because key recovery signals are missing."
+                return HealthIntelligencePresentationCopy.Journey.Recovery.limitedMissingSignals
             }
             if recovery.status == .unknown {
-                return "Not enough recovery signals yet."
+                return HealthIntelligencePresentationCopy.Journey.Recovery.unavailableSignals
             }
-            return "Limited estimate from partial recovery signals."
+            return HealthIntelligencePresentationCopy.Journey.Recovery.partialSignals
         case .plan, .coach:
             if hasMissingHeartOrSleepSignals(recovery.missingSignals, surface: .today) {
-                return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryMissingSignals
+                return HealthIntelligencePresentationCopy.Today.limitedRecoveryMissingSignals
             }
             if recovery.status == .unknown {
-                return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryUnavailable
+                return HealthIntelligencePresentationCopy.Today.limitedRecoveryUnavailable
             }
-            return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryPartialSignals
+            return HealthIntelligencePresentationCopy.Today.limitedRecoveryPartialSignals
         }
     }
 
@@ -122,13 +122,13 @@ enum HealthIntelligencePresentationPolicy {
         guard surface == .today || surface == .plan || surface == .coach else { return nil }
         switch recovery.status {
         case .ready:
-            return FormaProductCopy.Today.HealthIntelligence.Recovery.readyExplanation
+            return HealthIntelligencePresentationCopy.Today.Recovery.readyExplanation
         case .moderate:
-            return FormaProductCopy.Today.HealthIntelligence.Recovery.moderateExplanation
+            return HealthIntelligencePresentationCopy.Today.Recovery.moderateExplanation
         case .low:
-            return FormaProductCopy.Today.HealthIntelligence.Recovery.lowExplanation
+            return HealthIntelligencePresentationCopy.Today.Recovery.lowExplanation
         case .unknown:
-            return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryUnavailable
+            return HealthIntelligencePresentationCopy.Today.limitedRecoveryUnavailable
         }
     }
 
@@ -160,7 +160,7 @@ enum HealthIntelligencePresentationPolicy {
         }
 
         guard !labels.isEmpty else { return nil }
-        return FormaProductCopy.Today.HealthIntelligence.missingRecoverySignals(labels)
+        return HealthIntelligencePresentationCopy.Shared.missingRecoverySignals(labels)
     }
 
     static func mergedConfidenceNote(
@@ -182,7 +182,7 @@ enum HealthIntelligencePresentationPolicy {
     static func confidenceNote(for confidence: RecoveryConfidence) -> String? {
         switch confidence {
         case .low, .unknown:
-            return FormaProductCopy.HealthIntelligence.limitedEstimateLabel
+            return HealthIntelligencePresentationCopy.Shared.limitedEstimateLabel
         case .moderate, .high:
             return nil
         }
@@ -190,7 +190,7 @@ enum HealthIntelligencePresentationPolicy {
 
     static func adaptiveNutritionConfidenceNote(for confidence: AdaptiveNutritionConfidence) -> String? {
         confidence == .low
-            ? FormaProductCopy.Today.HealthIntelligence.limitedEstimate
+            ? HealthIntelligencePresentationCopy.Today.limitedEstimate
             : nil
     }
 
@@ -211,42 +211,21 @@ enum HealthIntelligencePresentationPolicy {
         surface: HealthIntelligenceSurface
     ) -> String {
         guard surface == .journey else {
-            return FormaProductCopy.Today.HealthIntelligence.Workout.emptyMessage
+            return HealthIntelligencePresentationCopy.Today.Workout.emptyMessage
         }
         if isHealthConnected {
             if uiState?.kind == .noWorkoutHistory {
-                return FormaProductCopy.HealthIntelligence.UIState.message(
+                return HealthIntelligencePresentationCopy.uiStateMessage(
                     for: .noWorkoutHistory,
-                    surface: .journey,
-                    explicitErrorMessage: nil
+                    surface: .journey
                 ).message
             }
-            return FormaProductCopy.Journey.HealthIntelligence.connectedNoWorkoutsMessage
+            return HealthIntelligencePresentationCopy.Journey.connectedNoWorkoutsMessage
         }
-        return FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.emptyMessage
+        return HealthIntelligencePresentationCopy.Journey.WorkoutHistory.emptyMessage
     }
 
     // MARK: - Private
-
-    private struct StaleDataCopy {
-        let stale: String
-        let syncFailedWithCache: String
-    }
-
-    private static func staleDataCopy(for surface: HealthIntelligenceSurface) -> StaleDataCopy {
-        switch surface {
-        case .journey:
-            return StaleDataCopy(
-                stale: FormaProductCopy.Journey.HealthIntelligence.staleDataLabel,
-                syncFailedWithCache: FormaProductCopy.Journey.HealthIntelligence.syncFailedWithCacheLabel
-            )
-        case .today, .plan, .coach:
-            return StaleDataCopy(
-                stale: FormaProductCopy.Today.HealthIntelligence.staleDataLabel,
-                syncFailedWithCache: FormaProductCopy.Today.HealthIntelligence.syncFailedWithCacheLabel
-            )
-        }
-    }
 
     private static func todayFallbackMessage(for uiState: HealthIntelligenceUIState) -> String? {
         switch uiState.kind {

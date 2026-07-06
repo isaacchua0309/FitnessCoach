@@ -17,7 +17,7 @@ final class AccountSyncPayloadBuilderTests: XCTestCase {
     private var calendar: Calendar!
     private let ownerUID = "userA"
     private let otherOwnerUID = "userB"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
     private var localDate: String!
 
     override func setUp() async throws {

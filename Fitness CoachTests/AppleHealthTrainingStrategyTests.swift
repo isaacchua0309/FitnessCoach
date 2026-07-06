@@ -220,7 +220,7 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
         let service = StrategyStubClassifierAIService(
             classifyResult: TrainingStrategyTestSupport.stubCoachIntent(.logWorkout)
         )
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -292,7 +292,7 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
         classifyResult: CoachIntentResult
     ) async -> String {
         let service = StrategyStubClassifierAIService(classifyResult: classifyResult)
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,

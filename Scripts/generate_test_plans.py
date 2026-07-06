@@ -138,7 +138,7 @@ def main() -> None:
     OUT_DIR.mkdir(exist_ok=True)
 
     plans = {
-        "Fast-Core.xctestplan": make_plan(fast_selected, parallel=True),
+        "Fast-Core.xctestplan": make_plan(fast_selected, parallel=False),
         "Integration.xctestplan": make_plan(integration_selected, parallel=False),
         "Full.xctestplan": make_plan(None, parallel=True),
     }

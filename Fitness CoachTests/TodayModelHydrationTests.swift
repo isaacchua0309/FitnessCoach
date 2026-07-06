@@ -48,7 +48,7 @@ final class TodayModelHydrationTests: XCTestCase {
             return XCTFail("Expected loaded state, got \(model.viewState)")
         }
         XCTAssertTrue(state.meals.isEmpty)
-        XCTAssertEqual(state.mission.calorieSummary.target, ProfileTestFixtures.sampleTargets.calorieTarget)
+        XCTAssertEqual(state.mission.calorieSummary.target, ProfileFixtures.sampleTargets.calorieTarget)
     }
 
     func testRefreshWhileNotLoadedDoesNotSurfaceRefreshError() async throws {
@@ -116,7 +116,7 @@ final class TodayModelHydrationTests: XCTestCase {
         guard case .loaded(let state) = model.viewState else {
             return XCTFail("Expected loaded state, got \(model.viewState)")
         }
-        XCTAssertEqual(state.mission.calorieSummary.target, ProfileTestFixtures.sampleTargets.calorieTarget)
+        XCTAssertEqual(state.mission.calorieSummary.target, ProfileFixtures.sampleTargets.calorieTarget)
         XCTAssertFalse(state.activity.legacyWorkoutSummary.hasWorkout)
     }
 

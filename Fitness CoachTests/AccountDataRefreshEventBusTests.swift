@@ -14,7 +14,7 @@ final class AccountDataRefreshEventBusTests: XCTestCase {
 
     private let ownerUID = "user-a"
     private let otherUID = "user-b"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     func testPublishCoalescesDomainsForSameUID() async {
         let bus = AccountDataRefreshEventBus(
