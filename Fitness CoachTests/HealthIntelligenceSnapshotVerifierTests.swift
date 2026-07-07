@@ -111,6 +111,7 @@ final class HealthIntelligenceSnapshotVerifierTests: XCTestCase {
     }
 
     #if DEBUG
+    @MainActor
     func testAppContainerVerifyTodaySnapshotProducesReport() async throws {
         let container = try AppContainer(inMemory: true)
         let report = await container.verifyTodayHealthIntelligenceSnapshot()
