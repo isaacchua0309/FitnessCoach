@@ -552,6 +552,10 @@ final class FakeCoachTimelineStore: CoachTimelineStoring {
         }
         return events[count - 1]
     }
+
+    func seedEventsForTests(_ newEvents: [CoachTimelineEvent]) {
+        events = newEvents
+    }
 }
 
 // MARK: - Fixtures

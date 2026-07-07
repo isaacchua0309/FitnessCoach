@@ -104,7 +104,7 @@ final class CoachContextPacketV2BuilderTests: XCTestCase {
         XCTAssertEqual(packet.commonFoods.first?.typicalProteinGrams, 11)
     }
 
-    func testStructuredRecentMealsIncludeMacrosAndLocalDate() async {
+    func testStructuredRecentMealsIncludeMacrosAndLocalDate() async throws {
         _ = try? harness.foodLogService.addFoodEntry(
             DailyLogServiceTestSupport.foodDraft(
                 name: "Greek yogurt",

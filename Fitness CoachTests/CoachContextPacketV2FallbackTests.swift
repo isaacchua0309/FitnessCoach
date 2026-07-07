@@ -103,7 +103,7 @@ final class CoachContextPacketV2FallbackTests: XCTestCase {
             occurredAt: harness.today,
             calendar: harness.dateProvider.calendar
         )
-        timelineStore.events = [corrupt]
+        timelineStore.seedEventsForTests([corrupt])
         healthQuery.stepsByDay[harness.dateProvider.startOfDay(for: harness.today)] = 3_000
 
         let packet = await makeBuilder(includeBackfill: false).makeContext(

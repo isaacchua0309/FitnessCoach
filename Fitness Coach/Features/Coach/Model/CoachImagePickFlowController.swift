@@ -554,3 +554,11 @@ final class CoachImagePickFlowController: ObservableObject {
         state = .idle
     }
 }
+
+#if DEBUG
+extension CoachImagePickFlowController {
+    func setStateForTests(_ newState: CoachImagePickFlowState) {
+        state = newState
+    }
+}
+#endif

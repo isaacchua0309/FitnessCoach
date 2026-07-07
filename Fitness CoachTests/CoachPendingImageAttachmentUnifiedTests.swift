@@ -299,10 +299,3 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         }
     }
 }
-
-@MainActor
-private extension CoachImagePickFlowController {
-    func setStateForTests(_ newState: CoachImagePickFlowState) {
-        state = newState
-    }
-}

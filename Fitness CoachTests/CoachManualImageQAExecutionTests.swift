@@ -152,10 +152,3 @@ private extension WorkflowCapturingPhotoAIService {
         injectedError = nil
     }
 }
-
-@MainActor
-private extension CoachImagePickFlowController {
-    func setStateForTests(_ newState: CoachImagePickFlowState) {
-        state = newState
-    }
-}

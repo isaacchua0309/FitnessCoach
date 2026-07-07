@@ -139,13 +139,5 @@ final class FakeCoachPhotoLibraryImageLoader: @unchecked Sendable {
         lock.unlock()
     }
 }
-
-@MainActor
-extension CoachImagePickFlowController {
-    func setStateForTests(_ newState: CoachImagePickFlowState) {
-        state = newState
-    }
-}
-
 // Backward-compatible alias for existing race regression tests.
 typealias CoachPhotoLibrarySelectionRaceTestSupport = CoachPhotoLibrarySelectionTestSupport
