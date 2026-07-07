@@ -225,7 +225,7 @@ final class WeeklyReviewServiceTests: XCTestCase {
 
 // MARK: - Test support
 
-private enum WeeklyReviewServiceTestSupport {
+enum WeeklyReviewServiceTestSupport {
 
     static func makeCalendar() -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -265,7 +265,7 @@ private enum WeeklyReviewServiceTestSupport {
     }
 }
 
-private final class WeeklyReviewServiceTestHarness {
+final class WeeklyReviewServiceTestHarness {
 
     let calendar: Calendar
     let repository: PipelineMockRepository
@@ -381,7 +381,7 @@ private final class WeeklyReviewServiceTestHarness {
     }
 }
 
-private final class CountingWeeklyReviewEngine: WeeklyReviewProviding, @unchecked Sendable {
+final class CountingWeeklyReviewEngine: WeeklyReviewProviding, @unchecked Sendable {
     private let engine = WeeklyReviewEngine()
     var evaluateCount = 0
 

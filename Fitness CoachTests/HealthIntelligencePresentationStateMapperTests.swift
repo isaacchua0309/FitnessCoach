@@ -95,25 +95,25 @@ final class HealthIntelligencePresentationStateMapperTests: XCTestCase {
                     ),
                     cachedDayCount: 3
                 ),
-                isAppleHealthConnected: true,
-                snapshot: sparseSnapshot
+                snapshot: sparseSnapshot,
+                isAppleHealthConnected: true
             )
         )
 
-        XCTAssertEqual(lifecycle, .partialHealthPermission)
+        XCTAssertEqual(lifecycle, HealthIntelligencePresentationLifecycle.partialHealthPermission)
     }
 
     func testNoHealthDataYetWhenConnectedWithoutCachedDaysOrSignals() {
         let lifecycle = HealthIntelligencePresentationStateMapper.resolve(
             HealthIntelligencePresentationContext(
                 availability: readableAvailability,
+                snapshot: emptySnapshot,
                 isAppleHealthConnected: true,
-                cachedDayCount: 0,
-                snapshot: emptySnapshot
+                cachedDayCount: 0
             )
         )
 
-        XCTAssertEqual(lifecycle, .noHealthDataYet)
+        XCTAssertEqual(lifecycle, HealthIntelligencePresentationLifecycle.noHealthDataYet)
     }
 
     func testLimitedEstimateWhenRecoveryConfidenceIsLowButSignalsExist() {
@@ -284,7 +284,7 @@ final class HealthIntelligencePresentationStateMapperTests: XCTestCase {
                 ctaTitle: "",
                 destination: .none,
                 priority: 0,
-                reason: .none,
+                reason: .stayOnPlan,
                 createdAt: Date(),
                 expiresAt: nil
             )
@@ -317,7 +317,7 @@ final class HealthIntelligencePresentationStateMapperTests: XCTestCase {
                 ctaTitle: "Log",
                 destination: .logMeal,
                 priority: 2,
-                reason: .nutritionGap,
+                reason: .noMealLogged,
                 createdAt: Date(),
                 expiresAt: nil
             )
@@ -350,7 +350,7 @@ final class HealthIntelligencePresentationStateMapperTests: XCTestCase {
                 ctaTitle: "Add",
                 destination: .addWater,
                 priority: 2,
-                reason: .hydrationGap,
+                reason: .hydration,
                 createdAt: Date(),
                 expiresAt: nil
             )

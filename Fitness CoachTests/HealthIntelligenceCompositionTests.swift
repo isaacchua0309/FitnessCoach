@@ -8,6 +8,7 @@ import XCTest
 
 final class HealthIntelligenceCompositionTests: XCTestCase {
 
+    @MainActor
     func testAppContainerRegistersHealthIntelligenceEngines() throws {
         let container = try AppContainer(inMemory: true)
 

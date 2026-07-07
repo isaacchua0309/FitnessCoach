@@ -100,7 +100,7 @@ final class HealthIntelligenceEngineTests: XCTestCase {
             activeEnergyKcal: 500,
             exerciseMinutes: 40
         )
-        repository.workouts = [makeWorkout(on: day, duration: 30)]
+        repository.workouts = [makeWorkout(on: day, duration: 30, label: "Strength training", category: .strength)]
 
         let snapshot = await engine.composeSnapshot(for: day, calendar: calendar)
 

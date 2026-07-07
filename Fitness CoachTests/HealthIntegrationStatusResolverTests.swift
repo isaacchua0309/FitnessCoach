@@ -11,7 +11,7 @@ final class HealthIntegrationStatusResolverTests: XCTestCase {
     private var referenceDay: Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        return calendar.startOfDay(for: DateComponents(year: 2026, month: 7, day: 3).date(in: calendar)!)
+        return calendar.startOfDay(for: calendar.date(from: DateComponents(year: 2026, month: 7, day: 3))!)
     }
 
     func testConnectedWithMissingRecoveryDataIsConnectedNoData() {
