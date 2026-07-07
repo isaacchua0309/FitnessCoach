@@ -14,17 +14,17 @@ final class MockLLMClient: LLMClient {
     func classifyCoachIntent(
         request: AICoachIntentClassificationRequest
     ) async throws -> AICoachIntentClassificationResponse {
-        logMockHit(operation: "classifyCoachIntent")
+        await logMockHit(operation: "classifyCoachIntent")
         throw LLMClientError.backendUnavailable
     }
 
     func parseCommand(request: AIParseCommandRequest) async throws -> AIParseCommandResponse {
-        logMockHit(operation: "parseCommand")
+        await logMockHit(operation: "parseCommand")
         throw LLMClientError.backendUnavailable
     }
 
     func estimateFood(request: AIFoodEstimateRequest) async throws -> AIFoodEstimateResponse {
-        logMockHit(operation: "estimateFood")
+        await logMockHit(operation: "estimateFood")
         let isPhoto = request.imageJPEGBase64?.isEmpty == false
         return AIFoodEstimateResponse(
             foodLogDrafts: [
@@ -53,7 +53,7 @@ final class MockLLMClient: LLMClient {
     }
 
     func generateMealAdvice(request: AIMealAdviceRequest) async throws -> AIMealAdviceResponse {
-        logMockHit(operation: "generateMealAdvice")
+        await logMockHit(operation: "generateMealAdvice")
         return AIMealAdviceResponse(
             response: AICoachResponse(
                 message: "Test meal advice response.",
@@ -65,7 +65,7 @@ final class MockLLMClient: LLMClient {
     func generateNutritionEstimate(
         request: AINutritionEstimateRequest
     ) async throws -> AINutritionEstimateResponse {
-        logMockHit(operation: "generateNutritionEstimate")
+        await logMockHit(operation: "generateNutritionEstimate")
         return AINutritionEstimateResponse(
             estimate: NutritionEstimateResponse(
                 foodName: request.question,
@@ -90,7 +90,7 @@ final class MockLLMClient: LLMClient {
     func generateNutritionComparison(
         request: AINutritionComparisonRequest
     ) async throws -> AINutritionComparisonResponse {
-        logMockHit(operation: "generateNutritionComparison")
+        await logMockHit(operation: "generateNutritionComparison")
         return AINutritionComparisonResponse(
             comparison: NutritionComparisonResponse(
                 leftItem: NutritionComparisonItem(foodName: "Option A", caloriesKcal: 550, proteinGrams: 25, fatGrams: 30),
@@ -101,7 +101,7 @@ final class MockLLMClient: LLMClient {
     }
 
     func generateDailyReview(request: AIDailyReviewRequest) async throws -> AIDailyReviewResponse {
-        logMockHit(operation: "generateDailyReview")
+        await logMockHit(operation: "generateDailyReview")
         return AIDailyReviewResponse(
             review: DailyReviewAIResponse(
                 statusSummary: "You are still within today's calorie target.",
@@ -113,7 +113,7 @@ final class MockLLMClient: LLMClient {
     }
 
     func parseWorkout(request: AIWorkoutParseRequest) async throws -> AIWorkoutParseResponse {
-        logMockHit(operation: "parseWorkout")
+        await logMockHit(operation: "parseWorkout")
         return AIWorkoutParseResponse(
             workoutDraft: WorkoutDraft(
                 name: "Test workout",
@@ -130,7 +130,7 @@ final class MockLLMClient: LLMClient {
     }
 
     func parseEditOrDelete(request: AIEditDeleteParseRequest) async throws -> AIEditDeleteParseResponse {
-        logMockHit(operation: "parseEditOrDelete")
+        await logMockHit(operation: "parseEditOrDelete")
         let command = AIParsedCommand(
             originalText: request.text,
             intent: .editEntry,
@@ -145,7 +145,7 @@ final class MockLLMClient: LLMClient {
     }
 
     func parseMultiAction(request: AIMultiActionParseRequest) async throws -> AIMultiActionParseResponse {
-        logMockHit(operation: "parseMultiAction")
+        await logMockHit(operation: "parseMultiAction")
         let command = AIParsedCommand(
             originalText: request.text,
             intent: .multiAction,
@@ -158,7 +158,7 @@ final class MockLLMClient: LLMClient {
     }
 
     func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
-        logMockHit(operation: "analyzeMealImage")
+        await logMockHit(operation: "analyzeMealImage")
         return AIMealImageAnalysisResponse(
             summary: request.message ?? "Photo meal",
             items: [
@@ -184,6 +184,7 @@ final class MockLLMClient: LLMClient {
         )
     }
 
+    @MainActor
     private func logMockHit(operation: String) {
         FormaPipelineTracer.event(
             stage: .mockLLM,
