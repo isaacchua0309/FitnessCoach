@@ -28,7 +28,7 @@ final class FormaSchemaV7MigrationTests: XCTestCase {
     }
 
     func testActiveSchemaIsV9() {
-        XCTAssertEqual(FormaModelContainer.schema.versionIdentifier, FormaSchemaV9.versionIdentifier)
+        XCTAssertEqual(FormaSchemaV9.versionIdentifier, Schema.Version(9, 0, 0))
     }
 
     func testV7SchemaRegistersSyncMetadataEntities() {
