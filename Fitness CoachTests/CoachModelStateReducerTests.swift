@@ -106,21 +106,30 @@ final class CoachModelStateReducerTests: XCTestCase {
         let draft = AIFoodConfirmationDraft(
             originalText: "log chicken",
             assistantMessage: nil,
-            mealDraft: FoodLogDraft(displayName: "Chicken"),
-            confidence: .medium
+            mealDraft: FoodLogDraft(
+                displayName: "Chicken",
+                components: [
+                    FoodComponent(name: "Chicken", calories: 200, protein: 30, carbs: 0, fat: 5)
+                ]
+            ),
+            confidence: .medium,
+            requiresConfirmation: true
         )
         var ui = CoachPendingConfirmationUIState.empty
         ui.foodEditErrorMessage = "stale"
         ui.isShowingFoodEditSheet = true
 
-        let set = CoachModelStateReducer.setPendingConfirmationUI(ui, confirmation: .food(draft))
+        let set = CoachModelStateReducer.setPendingConfirmationUI(
+            ui,
+            confirmation: CoachPendingConfirmation.food(draft)
+        )
 
-        XCTAssertEqual(set.pendingConfirmation, .food(draft))
+        XCTAssertEqual(set.pendingConfirmation, CoachPendingConfirmation.food(draft))
         XCTAssertNil(set.foodEditErrorMessage)
         XCTAssertFalse(set.isShowingFoodEditSheet)
 
         let cleared = CoachModelStateReducer.clearPendingConfirmationUI(set)
-        XCTAssertEqual(cleared, .empty)
+        XCTAssertEqual(cleared, CoachPendingConfirmationUIState.empty)
     }
 
     func testConfirmingPendingGuardTransitions() {
@@ -135,13 +144,22 @@ final class CoachModelStateReducerTests: XCTestCase {
         let draft = AIFoodConfirmationDraft(
             originalText: "log oats",
             assistantMessage: nil,
-            mealDraft: FoodLogDraft(displayName: "Oats"),
-            confidence: .low
+            mealDraft: FoodLogDraft(
+                displayName: "Oats",
+                components: [
+                    FoodComponent(name: "Oats", calories: 150, protein: 5, carbs: 27, fat: 3)
+                ]
+            ),
+            confidence: .low,
+            requiresConfirmation: true
         )
-        let base = CoachModelStateReducer.setPendingConfirmationUI(.empty, confirmation: .food(draft))
+        let base = CoachModelStateReducer.setPendingConfirmationUI(
+            .empty,
+            confirmation: CoachPendingConfirmation.food(draft)
+        )
 
         XCTAssertNotNil(CoachModelStateReducer.openFoodEditSheetUI(base))
-        XCTAssertNil(CoachModelStateReducer.openFoodEditSheetUI(.empty))
+        XCTAssertNil(CoachModelStateReducer.openFoodEditSheetUI(CoachPendingConfirmationUIState.empty))
 
         let opened = try XCTUnwrap(CoachModelStateReducer.openFoodEditSheetUI(base))
         XCTAssertTrue(opened.isShowingFoodEditSheet)
@@ -150,9 +168,14 @@ final class CoachModelStateReducerTests: XCTestCase {
         XCTAssertFalse(dismissed.isShowingFoodEditSheet)
 
         var updatedDraft = draft
-        updatedDraft.mealDraft = FoodLogDraft(displayName: "Oats bowl")
+        updatedDraft.mealDraft = FoodLogDraft(
+            displayName: "Oats bowl",
+            components: [
+                FoodComponent(name: "Oats bowl", calories: 250, protein: 8, carbs: 40, fat: 5)
+            ]
+        )
         let saved = CoachModelStateReducer.saveFoodEditSucceededUI(opened, draft: updatedDraft)
-        XCTAssertEqual(saved.pendingConfirmation, .food(updatedDraft))
+        XCTAssertEqual(saved.pendingConfirmation, CoachPendingConfirmation.food(updatedDraft))
         XCTAssertFalse(saved.isShowingFoodEditSheet)
 
         let failed = CoachModelStateReducer.saveFoodEditFailedUI(opened, message: "Invalid")

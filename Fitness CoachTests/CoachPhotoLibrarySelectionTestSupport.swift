@@ -7,6 +7,7 @@
 //
 
 import PhotosUI
+import SwiftUI
 import UIKit
 import XCTest
 @testable import Fitness_Coach
@@ -111,6 +112,7 @@ final class FakeCoachPhotoLibraryImageLoader: @unchecked Sendable {
         }
     }
 
+    @MainActor
     func makeFlow() -> CoachImagePickFlowController {
         CoachImagePickFlowController(photoLibraryImageLoader: loader)
     }
