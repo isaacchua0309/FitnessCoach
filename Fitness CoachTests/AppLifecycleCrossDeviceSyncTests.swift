@@ -57,6 +57,7 @@ final class AppLifecycleCrossDeviceSyncTests: XCTestCase {
         cursorStore = nil
         defaults.removePersistentDomain(forName: suiteName)
         defaults = nil
+        suiteName = nil
         incrementalPuller = nil
         syncCoordinator = nil
         try await super.tearDown()

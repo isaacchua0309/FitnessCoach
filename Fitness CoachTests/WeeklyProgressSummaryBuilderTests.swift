@@ -22,7 +22,7 @@ final class WeeklyProgressSummaryBuilderTests: XCTestCase {
     }
 
     private var builder: WeeklyProgressSummaryBuilder {
-        WeeklyProgressSummaryBuilder(calendar: calendar, now: { referenceDate })
+        WeeklyProgressSummaryBuilder(calendar: calendar, now: { [self] in self.referenceDate })
     }
 
     private var profile: UserProfile {
