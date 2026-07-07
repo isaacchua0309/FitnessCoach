@@ -245,6 +245,7 @@ enum MainTabLayoutPreviewScreens {
 
     // MARK: - Snapshot routing
 
+    @ViewBuilder
     static func snapshotView(
         for fixture: MainTabLayoutSnapshotFixture,
         palette: AppThemePalette = .oceanBlue,
