@@ -27,7 +27,7 @@ struct TodayMealsPreview: View {
         let _ = themeManager.themeRevision
 
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: FormaProductCopy.Today.Meals.sectionTitle)
+            SectionLabel(title: FormaProductCopy.Today.Meals.sectionTitle)
 
             if section.isFullyEmpty {
                 emptyDayCard
@@ -39,7 +39,7 @@ struct TodayMealsPreview: View {
     }
 
     private var emptyDayCard: some View {
-        FormaPlanCard {
+        MainTabCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 Text(FormaProductCopy.Today.Meals.emptyDayMessage)
                     .font(FormaTokens.Typography.caption)
@@ -60,7 +60,7 @@ struct TodayMealsPreview: View {
     }
 
     private var loggedMealsCard: some View {
-        FormaPlanCard {
+        MainTabCard {
             VStack(spacing: 0) {
                 ForEach(section.groups) { group in
                     if group.isLogged {

@@ -21,7 +21,7 @@
 | `CoachModel.swift` | ~1,627 LOC | ~350 LOC |
 | Coordinator files | 0 | 11 under `Features/Coach/Model/` |
 | Primary init parameters | 20+ individual deps | `CoachServices` + `CoachDependencies` |
-| Test injection | Long `CoachModel(...)` | `CoachDependencies` overrides or legacy init |
+| Test injection | Long `CoachModel(...)` | `CoachDependencies` overrides or `CoachModelTestFactory` (tests) |
 
 ---
 
@@ -53,7 +53,6 @@ Extractions were done incrementally with characterization tests as a behavior fr
 |------|------|
 | `CoachModel.swift` | `@Published` state, public API, coordinator wiring |
 | `CoachModel+CoordinatorDelegates.swift` | Bridges for launch chrome, pending UI, transcript |
-| `CoachModel+LegacyInitialization.swift` | Convenience init for tests |
 | `CoachDependencies.swift` | `CoachServices`, `CoachDependencies`, `CoachAssembledPipeline` |
 
 ### Coordinators (`Features/Coach/Model/`)
@@ -222,13 +221,13 @@ Verified intent (characterization + manual build):
 
 | Item | Notes |
 |------|-------|
-| Image pick flow | `CoachImagePickFlowController` still coordinates UI + model callbacks |
-| Legacy init | `CoachModel+LegacyInitialization.swift` — remove when tests migrate |
+| Image pick UI | `CoachImagePickFlowController` still coordinates PhotosPicker + model callbacks (future cleanup; out of v1 tail scope) |
 | Transcript dual memory | `messages` array + SwiftData — see SourceOfTruthMap |
-| Test target CI | Unrelated `AccountSync*` / deletion test compile failures block full suite |
 | `CoachContextPacketV2Builder` size | Separate debt; not part of CoachModel split |
 
-TD-COACH-001 status: **partially closed** — primary god-file split done; see TechnicalDebtRegister.
+**Tail closed 2026-07-05:** production `CoachModel+LegacyInitialization.swift` removed; tests use `CoachModelTestFactory`; `CoachPhotoFlowCoordinator` runtime wired in `CoachModel.init`.
+
+TD-COACH-001 status: **mostly closed** — primary god-file split + v1 tail done; see TechnicalDebtRegister.
 
 ---
 
@@ -244,4 +243,5 @@ TD-COACH-001 status: **partially closed** — primary god-file split done; see T
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Tail cleanup — legacy init removed; `CoachModelTestFactory`; photo-flow coordinator wiring confirmed |
 | 2026-07-05 | v1 decomposition complete — doc created |

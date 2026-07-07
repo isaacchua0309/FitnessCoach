@@ -25,7 +25,8 @@ enum JourneyHealthIntelligencePresentationBuilder {
     ) -> JourneyHealthIntelligenceSectionState? {
         guard isUIEnabled else { return nil }
 
-        let uiState = resolveUIState(from: input)
+        let loadingInput = sectionLoadingInput(from: input)
+        let uiState = HealthIntelligenceSectionLoaderCore.resolveUIState(from: loadingInput)
 
         if input.isLoading || uiState.kind == .loading {
             return loadingSection(uiState: uiState)
@@ -56,7 +57,7 @@ enum JourneyHealthIntelligencePresentationBuilder {
             return emptyDataSection(connection: connection, uiState: uiState)
         }
 
-        let staleLabel = HealthIntelligencePresentationCore.staleDataLabel(for: uiState, surface: surface)
+        let classification = HealthIntelligenceSectionLoaderCore.classifySectionLoading(from: loadingInput)
         let weeklyPresentation = weeklyReviewPresentation(
             from: input.weeklyReview,
             isLoading: false,
@@ -98,8 +99,8 @@ enum JourneyHealthIntelligencePresentationBuilder {
             isLoading: false,
             errorMessage: HealthIntelligencePresentationPolicy.syncFailureSectionMessage(for: uiState),
             fallbackMessage: HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: surface),
-            staleDataLabel: staleLabel,
-            partialSignalsNote: HealthIntelligencePresentationCore.partialSignalsNote(for: uiState, surface: surface),
+            staleDataLabel: classification.staleDataLabel,
+            partialSignalsNote: classification.partialSignalsLabel,
             uiState: uiState
         )
     }
@@ -182,10 +183,12 @@ enum JourneyHealthIntelligencePresentationBuilder {
                 emptyMessage: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.emptyMessage,
                 limitedTimelineNote: limitedNote,
                 errorMessage: nil,
-                accessibilityLabel: [
-                    FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.emptyMessage,
-                    limitedNote
-                ].compactMap { $0 }.joined(separator: ". ")
+                accessibilityLabel: HealthIntelligencePresentationAccessibility.joinedLabel(
+                    parts: [
+                        FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.emptyMessage,
+                        limitedNote
+                    ]
+                )
             )
         }
 
@@ -589,47 +592,51 @@ enum JourneyHealthIntelligencePresentationBuilder {
         )
     }
 
-    private static func resolveUIState(from input: JourneyHealthIntelligenceBuildInput) -> HealthIntelligenceUIState {
-        let presentationContext = HealthIntelligencePresentationCore.presentationContext(
-            snapshot: input.todaySnapshot,
+    // MARK: - Section loading input
+
+    private static func sectionLoadingInput(
+        from input: JourneyHealthIntelligenceBuildInput
+    ) -> HealthIntelligenceSectionLoadingInput {
+        HealthIntelligenceSectionLoadingInput(
+            isUIEnabled: true,
             isLoading: input.isLoading,
+            weeklyReview: input.weeklyReview,
+            snapshot: input.todaySnapshot,
             availability: input.availability,
             isAppleHealthConnected: input.healthConnection == .connected,
-            cachedDayCount: input.cachedDayCount,
+            cachedDayCount: input.cachedDayCount > 0
+                ? input.cachedDayCount
+                : (input.availability?.cachedDayCount ?? 0),
             errorMessage: input.errorMessage,
-            syncPhase: input.syncPhase
+            syncPhase: input.syncPhase,
+            lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
+            baseline: input.baseline,
+            surface: surface,
+            isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: input.remoteSyncConsentDecision
         )
+    }
 
-        return HealthIntelligencePresentationCore.resolveUIState(
-            from: HealthIntelligenceUIResolutionInput(
-                presentationContext: presentationContext,
-                baseline: input.baseline,
-                lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
-                isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
-                remoteSyncConsentDecision: input.remoteSyncConsentDecision,
-                surface: surface
-            )
+    private static func uiStateCopy(
+        for uiState: HealthIntelligenceUIState,
+        explicitErrorMessage: String? = nil
+    ) -> HealthIntelligenceUIStateCTACopy {
+        HealthIntelligencePresentationCore.normalizeUIStateCTACopy(
+            for: uiState,
+            surface: surface,
+            explicitErrorMessage: explicitErrorMessage
         )
     }
 
     private static func shouldShowConnectOnlySection(uiState: HealthIntelligenceUIState) -> Bool {
-        switch uiState.kind {
-        case .noHealthPermission, .healthKitUnavailable:
-            return !uiState.canShowInsight
-        default:
-            return false
-        }
+        HealthIntelligenceSectionLoaderCore.shouldShowConnectOnlySection(uiState: uiState)
     }
 
     private static func emptyDataSection(
         connection: JourneyHealthConnectionState,
         uiState: HealthIntelligenceUIState
     ) -> JourneyHealthIntelligenceSectionState {
-        let copy = FormaProductCopy.HealthIntelligence.UIState.message(
-            for: uiState.kind,
-            surface: .journey,
-            explicitErrorMessage: nil
-        )
+        let copy = uiStateCopy(for: uiState)
         let cta = connectHealthCTA(from: uiState)
 
         return JourneyHealthIntelligenceSectionState(
@@ -700,17 +707,15 @@ enum JourneyHealthIntelligencePresentationBuilder {
     private static func connectHealthSection(
         from uiState: HealthIntelligenceUIState
     ) -> JourneyHealthIntelligenceSectionState {
-        let copy = FormaProductCopy.HealthIntelligence.UIState.message(
-            for: uiState.kind,
-            surface: .journey,
-            explicitErrorMessage: nil
-        )
+        let copy = uiStateCopy(for: uiState)
         let cta = connectHealthCTA(from: uiState)
             ?? JourneyHealthConnectCTAState(
                 title: copy.title,
                 message: copy.message,
                 ctaTitle: copy.primaryActionTitle ?? FormaProductCopy.Journey.HealthIntelligence.connectHealthCTA,
-                accessibilityLabel: "\(copy.title). \(copy.message)"
+                accessibilityLabel: HealthIntelligencePresentationAccessibility.joinedLabel(
+                    parts: [copy.title, copy.message]
+                )
             )
 
         return JourneyHealthIntelligenceSectionState(
@@ -771,11 +776,7 @@ enum JourneyHealthIntelligencePresentationBuilder {
         from uiState: HealthIntelligenceUIState,
         message: String?
     ) -> JourneyHealthIntelligenceSectionState {
-        let copy = FormaProductCopy.HealthIntelligence.UIState.message(
-            for: .syncFailed,
-            surface: .journey,
-            explicitErrorMessage: message
-        )
+        let copy = uiStateCopy(for: uiState, explicitErrorMessage: message)
         let resolvedMessage = message ?? copy.message
 
         return JourneyHealthIntelligenceSectionState(
@@ -874,10 +875,9 @@ enum JourneyHealthIntelligencePresentationBuilder {
     ) -> String {
         if healthConnection == .connected {
             if uiState?.kind == .noWorkoutHistory {
-                return FormaProductCopy.HealthIntelligence.UIState.message(
+                return HealthIntelligencePresentationCopy.uiStateMessage(
                     for: .noWorkoutHistory,
-                    surface: .journey,
-                    explicitErrorMessage: nil
+                    surface: surface
                 ).message
             }
             return FormaProductCopy.Journey.HealthIntelligence.connectedNoWorkoutsMessage
@@ -1034,33 +1034,6 @@ enum JourneyHealthIntelligencePresentationBuilder {
         )
     }
 
-    private static func weekRangeLabel(start: Date, end: Date, calendar: Calendar) -> String {
-        JourneyFormatter.timelineDateRangeLabel(start: start, end: end, calendar: calendar)
-    }
-
-    // MARK: - Accessibility
-
-    private static func weeklyReviewAccessibilityLabel(
-        weekRangeLabel: String,
-        title: String,
-        summary: String,
-        winLines: [String],
-        focusLines: [String],
-        confidenceNote: String?
-    ) -> String {
-        var parts = ["Weekly health review", weekRangeLabel, title, summary]
-        if !winLines.isEmpty {
-            parts.append("Wins: \(winLines.joined(separator: ", "))")
-        }
-        if !focusLines.isEmpty {
-            parts.append("Focus: \(focusLines.joined(separator: ", "))")
-        }
-        if let confidenceNote {
-            parts.append(confidenceNote)
-        }
-        return parts.joined(separator: ". ")
-    }
-
     private static func recoveryTimelineAccessibilityLabel(
         days: [JourneyRecoveryDayState],
         limitedNote: String? = nil
@@ -1081,21 +1054,24 @@ enum JourneyHealthIntelligencePresentationBuilder {
         explanation: String?,
         limited: Bool
     ) -> String {
-        var parts = ["\(weekdayLabel) \(dateLabel)", statusLabel]
-        if let score {
-            parts.append(FormaProductCopy.Journey.HealthIntelligence.recoveryScoreLabel(score))
-        }
-        if let explanation {
-            parts.append(explanation)
-        }
-        if limited {
-            parts.append(FormaProductCopy.Journey.HealthIntelligence.limitedEstimate)
-        }
-        return parts.joined(separator: ". ")
+        HealthIntelligencePresentationAccessibility.joinedLabel(
+            parts: [
+                "\(weekdayLabel) \(dateLabel)",
+                statusLabel,
+                score.map { FormaProductCopy.Journey.HealthIntelligence.recoveryScoreLabel($0) },
+                explanation,
+                limited ? FormaProductCopy.Journey.HealthIntelligence.limitedEstimate : nil
+            ]
+        )
     }
 
     private static func workoutHistoryAccessibilityLabel(items: [JourneyWorkoutHistoryItemState]) -> String {
-        "Recent workouts. \(items.map(\.accessibilityLabel).joined(separator: ". "))"
+        HealthIntelligencePresentationAccessibility.joinedLabel(
+            parts: [
+                "Recent workouts.",
+                items.map(\.accessibilityLabel).joined(separator: ". ")
+            ]
+        )
     }
 
     private static func workoutItemAccessibilityLabel(
@@ -1105,18 +1081,18 @@ enum JourneyHealthIntelligencePresentationBuilder {
         caloriesLabel: String?,
         demandLabel: String?
     ) -> String {
-        var parts = ["\(dateLabel)", title, durationLabel]
-        if let caloriesLabel {
-            parts.append(caloriesLabel)
-        }
-        if let demandLabel {
-            parts.append(demandLabel)
-        }
-        return parts.joined(separator: ". ")
+        HealthIntelligencePresentationAccessibility.joinedLabel(
+            parts: [dateLabel, title, durationLabel, caloriesLabel, demandLabel]
+        )
     }
 
     private static func milestonesAccessibilityLabel(items: [JourneyHealthMilestoneState]) -> String {
-        "Health milestones. \(items.map(\.accessibilityLabel).joined(separator: ". "))"
+        HealthIntelligencePresentationAccessibility.joinedLabel(
+            parts: [
+                "Health milestones.",
+                items.map(\.accessibilityLabel).joined(separator: ". ")
+            ]
+        )
     }
 
     private static func progressAccessibilityLabel(
@@ -1124,11 +1100,11 @@ enum JourneyHealthIntelligencePresentationBuilder {
         detailLines: [String],
         metrics: [JourneyHealthProgressMetricRow]
     ) -> String {
-        var parts = ["Health progress", headline]
-        parts.append(contentsOf: detailLines)
-        for metric in metrics {
-            parts.append("\(metric.title): \(metric.value)")
-        }
-        return parts.joined(separator: ". ")
+        HealthIntelligencePresentationAccessibility.joinedLabel(
+            parts: [
+                "Health progress",
+                headline
+            ] + detailLines + metrics.map { "\($0.title): \($0.value)" }
+        )
     }
 }

@@ -20,7 +20,7 @@ final class AccountSyncPullerTests: XCTestCase {
 
     private let ownerUID = "userA"
     private let otherUID = "userB"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     override func setUp() async throws {
         try await super.setUp()

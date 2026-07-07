@@ -147,7 +147,7 @@ final class JourneyPersonalizedInsightsBuilderTests: XCTestCase {
     ) -> JourneyInsightState {
         JourneyPersonalizedInsightsBuilder.build(
             JourneyPersonalizedInsightsBuilder.Input(
-                profile: ProfileTestFixtures.sampleProfile,
+                profile: ProfileFixtures.sampleProfile,
                 baseline: baseline ?? makeBaseline(direction: .lose),
                 weekLogs: weekLogs,
                 allWeights: allWeights,

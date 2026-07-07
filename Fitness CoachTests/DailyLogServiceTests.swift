@@ -54,11 +54,11 @@ final class DailyLogServiceTests: XCTestCase {
 
         let afterEntity = try XCTUnwrap(try harness.dailyLogService.dailyLogEntity(for: harness.today))
         XCTAssertEqual(afterEntity.updatedAt, beforeUpdatedAt)
-        XCTAssertEqual(afterEntity.toModel().targets, ProfileTestFixtures.sampleTargets)
+        XCTAssertEqual(afterEntity.toModel().targets, ProfileFixtures.sampleTargets)
     }
 
     func testSyncTodayTargetsFromProfileUpdatesAllTargetFields() async throws {
-        try harness.seedProfile(targets: ProfileTestFixtures.sampleTargets)
+        try harness.seedProfile(targets: ProfileFixtures.sampleTargets)
         _ = try harness.dailyLogService.getOrCreateLogEntity(for: harness.today)
 
         let updatedTargets = DailyLogServiceTestSupport.alternateTargets
@@ -76,7 +76,7 @@ final class DailyLogServiceTests: XCTestCase {
     }
 
     func testSyncTodayTargetsFromProfileDoesNotChangePastDayLogs() async throws {
-        let originalTargets = ProfileTestFixtures.sampleTargets
+        let originalTargets = ProfileFixtures.sampleTargets
         try harness.seedProfile(targets: originalTargets)
 
         let yesterday = harness.day(offset: -1)

@@ -87,19 +87,11 @@ private struct LiveThemeDebugShell<Content: View>: View {
 
 #Preview("Today — live theme toggle") {
   LiveThemeDebugHarness.shell(title: "Today") { _ in
-    ScrollView {
-      TodayReadOnlyView(
-        state: TodayPreviewData.state,
-        actionCoordinator: TodayReadOnlyPreviewSupport.coordinator(),
-        healthIntelligenceSection: TodayHealthIntelligencePreviewData.workoutDay,
-        isHealthIntelligenceUIEnabled: true,
-        onHealthNextBestAction: { _ in }
-      )
-      .padding(.horizontal, TodayLayout.horizontalPadding)
-      .padding(.vertical, FormaTokens.Spacing.md)
-    }
-    .formaMainTabScrollInsets()
-    .background(FormaTokens.Color.canvas)
+    TodayReadOnlyPreviewSupport.screen(
+      TodayPreviewData.state,
+      healthIntelligenceSection: TodayHealthIntelligencePreviewData.workoutDay,
+      isHealthIntelligenceUIEnabled: true
+    )
   }
 }
 

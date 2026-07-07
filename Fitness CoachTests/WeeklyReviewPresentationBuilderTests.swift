@@ -153,6 +153,81 @@ final class WeeklyReviewPresentationBuilderTests: XCTestCase {
         XCTAssertTrue(detail?.accessibilityLabel.contains("Updated") == true)
     }
 
+    // MARK: - Journey Health Intelligence weekly card integration
+
+    func testJourneyWeeklyReviewPresentationMapsLoadedCardFromStrongReview() {
+        let review = makeStrongReview()
+        let presentation = JourneyHealthIntelligencePresentationBuilder.weeklyReviewPresentation(
+            from: review,
+            isLoading: false,
+            showBuildingWhenMissing: false,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(presentation.card?.phase, .loaded)
+        XCTAssertEqual(presentation.card?.title, "Solid training week")
+        XCTAssertEqual(
+            presentation.card?.confidenceLabel,
+            FormaProductCopy.WeeklyReviewPresentation.confidenceModerate
+        )
+        XCTAssertEqual(presentation.detail?.title, "Solid training week")
+        XCTAssertFalse(presentation.card?.accessibilityLabel.isEmpty ?? true)
+    }
+
+    func testJourneyWeeklyReviewPresentationShowsBuildingCardWhenReviewUnavailable() {
+        let uiState = HealthIntelligencePresentationCharacterizationFixtures.resolvedUIState(
+            for: .weeklyReviewUnavailable,
+            surface: .journey
+        )
+        let presentation = JourneyHealthIntelligencePresentationBuilder.weeklyReviewPresentation(
+            from: nil,
+            isLoading: false,
+            showBuildingWhenMissing: true,
+            uiState: uiState,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(presentation.card?.phase, .empty)
+        XCTAssertEqual(
+            presentation.card?.title,
+            FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+        )
+        XCTAssertNil(presentation.detail)
+        XCTAssertFalse(presentation.card?.accessibilityLabel.isEmpty ?? true)
+    }
+
+    func testJourneyWeeklyReviewPresentationOmitsCardWhenBuildingDisabled() {
+        let presentation = JourneyHealthIntelligencePresentationBuilder.weeklyReviewPresentation(
+            from: nil,
+            isLoading: false,
+            showBuildingWhenMissing: false,
+            calendar: calendar
+        )
+
+        XCTAssertNil(presentation.card)
+        XCTAssertNil(presentation.detail)
+    }
+
+    func testJourneyFixtureE_SectionWeeklyReviewCardMatchesWeeklyReviewPresentationBuilder() {
+        let section = HealthIntelligencePresentationCharacterizationFixtures.buildJourneySection(for: .weeklyReviewUnavailable)!
+        let uiState = HealthIntelligencePresentationCharacterizationFixtures.resolvedUIState(
+            for: .weeklyReviewUnavailable,
+            surface: .journey
+        )
+        let presentation = JourneyHealthIntelligencePresentationBuilder.weeklyReviewPresentation(
+            from: nil,
+            isLoading: false,
+            showBuildingWhenMissing: true,
+            uiState: uiState,
+            calendar: HealthIntelligencePresentationCharacterizationFixtures.calendar
+        )
+
+        XCTAssertEqual(section.weeklyReviewCard?.title, presentation.card?.title)
+        XCTAssertEqual(section.weeklyReviewCard?.summary, presentation.card?.summary)
+        XCTAssertEqual(section.weeklyReviewCard?.confidenceLabel, presentation.card?.confidenceLabel)
+        XCTAssertEqual(section.weeklyReviewCard?.accessibilityLabel, presentation.card?.accessibilityLabel)
+    }
+
     // MARK: - Fixtures
 
     private func makeStrongReview() -> WeeklyHealthReview {

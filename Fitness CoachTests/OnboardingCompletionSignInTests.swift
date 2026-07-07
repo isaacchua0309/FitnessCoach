@@ -118,7 +118,7 @@ final class OnboardingCompletionSignInIntegrationTests: XCTestCase {
 
     func testOnboardingCompletionUploadsProfileToCloud() async throws {
         let harness = try ProfileBootstrapTestSupport.makeHarness()
-        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileFixtures.sampleDraft)
 
         let outcome = await harness.makeCoordinator().resolveOnboardingCompletion(uid: "device-a-user")
 
@@ -131,8 +131,8 @@ final class OnboardingCompletionSignInIntegrationTests: XCTestCase {
 
     func testOnboardingCompletionDoesNotUploadWhenCloudProfileExists() async throws {
         let harness = try ProfileBootstrapTestSupport.makeHarness()
-        harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
-        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
+        harness.cloudStore.storedDocument = ProfileFixtures.cloudDocument()
+        _ = try harness.profileService.createProfile(ProfileFixtures.sampleDraft)
 
         let outcome = await harness.makeCoordinator().resolveOnboardingCompletion(uid: "device-a-user")
 

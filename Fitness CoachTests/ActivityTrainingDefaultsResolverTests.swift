@@ -43,7 +43,7 @@ final class ActivityTrainingDefaultsResolverTests: XCTestCase {
     }
 
     func testProfileResolvedTrainingRhythmFallsBackWhenBothFieldsUnset() {
-        var profile = ProfileTestFixtures.sampleProfile
+        var profile = ProfileFixtures.sampleProfile
         profile.activityLevel = .moderatelyActive
         profile.trainingFrequencyPerWeek = 0
         profile.averageSteps = 0
@@ -54,7 +54,7 @@ final class ActivityTrainingDefaultsResolverTests: XCTestCase {
     }
 
     func testProfileResolvedTrainingRhythmPreservesExplicitValues() {
-        var profile = ProfileTestFixtures.sampleProfile
+        var profile = ProfileFixtures.sampleProfile
         profile.trainingFrequencyPerWeek = 2
         profile.averageSteps = 4200
 

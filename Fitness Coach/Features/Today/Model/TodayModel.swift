@@ -333,138 +333,49 @@ final class TodayModel: ObservableObject {
             return
         }
 
-        let nutritionProgress = TodayHealthIntelligenceNutritionProgress.from(
-            calorieSummary: calorieSummary,
-            macroSummary: macroSummary,
-            waterSummary: waterSummary
+        let loadRequest = TodayHealthIntelligenceSectionLoader.LoadRequest(
+            referenceDate: date,
+            nutritionProgress: TodayHealthIntelligenceNutritionProgress.from(
+                calorieSummary: calorieSummary,
+                macroSummary: macroSummary,
+                waterSummary: waterSummary
+            ),
+            isAppleHealthConnected: activityContext.trainingIntegration.isConnected,
+            trainingIntegrationState: activityContext.trainingIntegration,
+            connectionRecord: connectionRecordProvider(),
+            uiEnabled: healthIntelligenceUIEnabled(),
+            syncPhase: healthSyncPhaseProvider(),
+            lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAtProvider(),
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled(),
+            remoteSyncConsentDecision: remoteSyncConsentDecisionProvider(),
+            calendar: .current
         )
-        let uiEnabled = healthIntelligenceUIEnabled()
-        let isAppleHealthConnected = activityContext.trainingIntegration.isConnected
-        let connectionRecord = connectionRecordProvider()
 
         do {
-            try Task.checkCancellation()
-            async let snapshotTask = healthIntelligenceSnapshotProvider.loadTodaySnapshot(
-                for: date,
-                calendar: .current
+            let loadResult = try await TodayHealthIntelligenceSectionLoader.loadSection(
+                request: loadRequest,
+                snapshotProvider: healthIntelligenceSnapshotProvider,
+                healthDataRepository: healthDataRepository
             )
-            async let availabilityTask: HealthDataAvailability? = {
-                guard let healthDataRepository else { return nil }
-                return await healthDataRepository.getHealthDataAvailability()
-            }()
-
-            let snapshot = await snapshotTask
-            let availability = await availabilityTask
-            try Task.checkCancellation()
-
-            healthIntelligenceSectionState = buildHealthIntelligenceSection(
-                snapshot: snapshot,
-                nutritionProgress: nutritionProgress,
-                uiEnabled: uiEnabled,
-                availability: availability,
-                isAppleHealthConnected: isAppleHealthConnected,
-                trainingIntegrationState: activityContext.trainingIntegration,
-                connectionRecord: connectionRecord,
-                cachedDayCount: availability?.cachedDayCount ?? 0
-            ) ?? fallbackHealthIntelligenceSection(
-                nutritionProgress: nutritionProgress,
-                uiEnabled: uiEnabled,
-                availability: availability,
-                isAppleHealthConnected: isAppleHealthConnected,
-                trainingIntegrationState: activityContext.trainingIntegration,
-                connectionRecord: connectionRecord
-            )
-
-            let analyticsContext = HealthIntelligencePresentationContext(
-                availability: availability,
-                snapshot: snapshot,
-                isAppleHealthConnected: isAppleHealthConnected,
-                cachedDayCount: availability?.cachedDayCount ?? 0,
-                trainingIntegrationState: activityContext.trainingIntegration,
-                connectionRecord: connectionRecord
-            )
+            healthIntelligenceSectionState = loadResult.sectionState
             healthIntelligenceAnalyticsCoordinator?.logSnapshotLoaded(
                 surface: .today,
-                context: analyticsContext
+                context: loadResult.analyticsContext
             )
         } catch is CancellationError {
             return
         } catch {
-            healthIntelligenceSectionState = fallbackHealthIntelligenceSection(
-                nutritionProgress: nutritionProgress,
-                uiEnabled: uiEnabled,
-                availability: nil,
-                isAppleHealthConnected: isAppleHealthConnected,
-                trainingIntegrationState: activityContext.trainingIntegration,
-                connectionRecord: connectionRecord,
+            let fallback = TodayHealthIntelligenceSectionLoader.fallbackSection(
+                request: loadRequest,
                 errorMessage: "load_failed"
             )
-
-            let analyticsContext = HealthIntelligencePresentationContext(
-                explicitErrorMessage: "load_failed",
-                snapshot: nil,
-                isAppleHealthConnected: isAppleHealthConnected,
-                trainingIntegrationState: activityContext.trainingIntegration,
-                connectionRecord: connectionRecord
-            )
+            healthIntelligenceSectionState = fallback.sectionState
             healthIntelligenceAnalyticsCoordinator?.logSnapshotFailed(
                 surface: .today,
-                context: analyticsContext,
+                context: fallback.analyticsContext,
                 error: error
             )
         }
-    }
-
-    private func buildHealthIntelligenceSection(
-        snapshot: HealthIntelligenceSnapshot?,
-        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
-        uiEnabled: Bool,
-        availability: HealthDataAvailability?,
-        isAppleHealthConnected: Bool,
-        trainingIntegrationState: TrainingIntegrationState,
-        connectionRecord: HealthIntegrationConnectionRecord,
-        cachedDayCount: Int = 0,
-        errorMessage: String? = nil
-    ) -> TodayHealthIntelligenceSectionState? {
-        guard uiEnabled else { return nil }
-
-        return TodayHealthIntelligencePresentationBuilder.buildSection(
-            snapshot: snapshot,
-            nutritionProgress: nutritionProgress,
-            isUIEnabled: true,
-            availability: availability,
-            isAppleHealthConnected: isAppleHealthConnected,
-            trainingIntegrationState: trainingIntegrationState,
-            connectionRecord: connectionRecord,
-            cachedDayCount: cachedDayCount > 0 ? cachedDayCount : (availability?.cachedDayCount ?? 0),
-            errorMessage: errorMessage,
-            syncPhase: healthSyncPhaseProvider(),
-            lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAtProvider(),
-            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled(),
-            remoteSyncConsentDecision: remoteSyncConsentDecisionProvider()
-        )
-    }
-
-    private func fallbackHealthIntelligenceSection(
-        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
-        uiEnabled: Bool,
-        availability: HealthDataAvailability?,
-        isAppleHealthConnected: Bool,
-        trainingIntegrationState: TrainingIntegrationState,
-        connectionRecord: HealthIntegrationConnectionRecord,
-        errorMessage: String? = nil
-    ) -> TodayHealthIntelligenceSectionState? {
-        buildHealthIntelligenceSection(
-            snapshot: nil,
-            nutritionProgress: nutritionProgress,
-            uiEnabled: uiEnabled,
-            availability: availability,
-            isAppleHealthConnected: isAppleHealthConnected,
-            trainingIntegrationState: trainingIntegrationState,
-            connectionRecord: connectionRecord,
-            cachedDayCount: availability?.cachedDayCount ?? 0,
-            errorMessage: errorMessage
-        )
     }
 
     private func makeDashboardState(

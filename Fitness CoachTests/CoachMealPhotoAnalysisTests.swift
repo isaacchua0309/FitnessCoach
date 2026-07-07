@@ -87,7 +87,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
 
         let imageData = Self.makeTestJPEGData()
         let aiService = PhotoCapturingAIService()
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -120,7 +120,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         let aiService = PhotoCapturingAIService()
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -149,7 +149,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         let aiService = PhotoCapturingAIService()
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -203,7 +203,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
 
         let aiService = PhotoCapturingAIService()
         aiService.estimateFoodError = AIServiceError.networkUnavailable
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -240,7 +240,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         let aiService = ClarifyingPhotoAIService()
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -274,7 +274,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         let aiService = GenericFallbackPhotoAIService()
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -299,7 +299,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         let aiService = RetryImprovingPhotoAIService()
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -337,7 +337,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         let aiService = PhotoCapturingAIService()
-        let model = CoachModel(
+        let model = CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -372,7 +372,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
     }
 
     private func makeModel(container: AppContainer) -> CoachModel {
-        CoachModel(
+        CoachModelTestFactory.makeModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,

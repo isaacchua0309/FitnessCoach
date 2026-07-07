@@ -10,7 +10,7 @@ import XCTest
 
 final class JourneyFormatterTests: XCTestCase {
 
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     func testNilValuesUseDashPlaceholders() {
         XCTAssertEqual(JourneyFormatter.compactKg(nil), "—")

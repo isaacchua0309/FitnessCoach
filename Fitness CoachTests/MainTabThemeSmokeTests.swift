@@ -18,6 +18,7 @@ final class MainTabThemeSmokeTests: XCTestCase {
         "Fitness Coach/Features/Coach/",
         "Fitness Coach/Features/TrainingInsights/",
         "Fitness Coach/DesignSystem/Components/",
+        "Fitness Coach/DesignSystem/Layout/",
         "Fitness Coach/DesignSystem/Legacy/",
         "Fitness Coach/App/MainTabView.swift"
     ]

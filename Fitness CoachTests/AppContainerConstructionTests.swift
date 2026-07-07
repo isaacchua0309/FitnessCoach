@@ -197,4 +197,62 @@ final class AppContainerConstructionTests: XCTestCase {
         XCTAssertNotNil(container.foodCorrectionMemoryStore)
         XCTAssertNotNil(container.makeCoachModel())
     }
+
+    func testBuildPersistenceDependenciesDelegatesToPersistenceBundle() throws {
+        let auth = AuthDependencies.build(inMemory: true)
+
+        let bundle = try AppContainer.buildPersistenceDependencies(
+            session: auth,
+            inMemory: true,
+            accountDataRemoteStore: nil
+        )
+
+        XCTAssertNotNil(bundle.modelContainer)
+        XCTAssertNotNil(bundle.store)
+        XCTAssertNotNil(bundle.accountSyncCoordinator)
+        XCTAssertNotNil(bundle.dailyLogService)
+        XCTAssertTrue(bundle.accountDataRemoteStore is InMemoryAccountDataRemoteStore)
+    }
+
+    func testBuildHealthIntelligenceDependenciesDelegatesToBundle() throws {
+        let auth = AuthDependencies.build(inMemory: true)
+        let health = HealthDependencies.build(session: auth, inMemory: true)
+        let persistence = try PersistenceDependencies.build(session: auth, inMemory: true)
+
+        let bundle = AppContainer.buildHealthIntelligenceDependencies(
+            health: health,
+            persistence: persistence
+        )
+
+        XCTAssertNotNil(bundle.healthIntelligenceEngine)
+        XCTAssertNotNil(bundle.healthIntelligenceSnapshotService)
+        XCTAssertNotNil(bundle.weeklyReviewService)
+    }
+
+    func testBuildAIDependenciesUsesMockClientInMemory() {
+        let auth = AuthDependencies.build(inMemory: true)
+
+        let bundle = AppContainer.buildAI(session: auth, inMemory: true)
+
+        XCTAssertTrue(bundle.llmClient is MockLLMClient)
+        XCTAssertNotNil(bundle.aiService)
+    }
+
+    func testBuildTodayDependenciesDelegatesToBundle() throws {
+        let auth = AuthDependencies.build(inMemory: true)
+        let health = HealthDependencies.build(session: auth, inMemory: true)
+        let persistence = try PersistenceDependencies.build(session: auth, inMemory: true)
+        let ai = AIDependencies.build(session: auth, inMemory: true)
+
+        let bundle = AppContainer.buildTodayDependencies(
+            auth: auth,
+            persistence: persistence,
+            health: health,
+            ai: ai,
+            refreshCenter: auth.refreshCenter
+        )
+
+        XCTAssertNotNil(bundle.reviewService)
+        XCTAssertNotNil(bundle.actionCenter)
+    }
 }

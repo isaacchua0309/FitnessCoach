@@ -67,5 +67,19 @@ final class PlanLayoutCompositionTests: XCTestCase {
             FormaMainTabLayout.scrollBottomInset,
             FormaMainTabLayout.scrollContentBottomPadding
         )
+        XCTAssertGreaterThan(
+            FormaMainTabLayout.bottomContentInset(safeAreaBottom: FormaMainTabLayout.defaultBottomSafeAreaFallback),
+            FormaMainTabLayout.tabBarReservedHeight + FormaMainTabLayout.tabBarBreathingRoom
+        )
+    }
+
+    func testPlanSectionSpacingMatchesMainTabLayout() {
+        XCTAssertEqual(PlanLayout.sectionSpacing, FormaMainTabLayout.sectionSpacing)
+        XCTAssertEqual(PlanLayout.headerToCardSpacing, FormaMainTabLayout.sectionContentSpacing)
+    }
+
+    func testPlanHeaderAdjustUsesDashboardEntryPoint() {
+        XCTAssertEqual(PlanAdjustPlanEntryPoint.dashboard, .planTab)
+        XCTAssertEqual(PlanAdjustPlanEntryPoint.adjustPlanCTA.rawValue, "plan_adjust_cta")
     }
 }

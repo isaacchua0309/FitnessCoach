@@ -17,7 +17,7 @@ struct TodayReadOnlyProgressSection: View {
     var body: some View {
         let _ = themeManager.themeRevision
         return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodayMutedSectionLabel(title: FormaProductCopy.Today.MacroBalance.sectionTitle)
+            SectionLabel(title: FormaProductCopy.Today.MacroBalance.sectionTitle, style: .muted)
 
             TodayNutritionProgressCard(
                 macros: macros,

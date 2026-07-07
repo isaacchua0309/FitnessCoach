@@ -13,7 +13,7 @@ struct JourneyNextActionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
-            JourneySectionLabel(title: state.sectionTitle)
+            SectionLabel(title: state.sectionTitle)
 
             JourneyCard(elevation: .featured) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {

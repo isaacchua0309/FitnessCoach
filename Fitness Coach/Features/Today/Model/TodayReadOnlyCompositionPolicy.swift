@@ -16,22 +16,6 @@ enum TodayReadOnlyCompositionPolicy {
         isUIEnabled && sectionState != nil
     }
 
-    /// Full Health Intelligence stack at the top — retired in favor of split sections.
-    static func showsLegacyHealthIntelligenceStack(
-        isUIEnabled: Bool,
-        sectionState: TodayHealthIntelligenceSectionState?
-    ) -> Bool {
-        false
-    }
-
-    /// Legacy next best action card — folded into mission hero.
-    static func showsLegacyNextBestAction(
-        isUIEnabled: Bool,
-        sectionState: TodayHealthIntelligenceSectionState?
-    ) -> Bool {
-        false
-    }
-
     static func showsRecoverySection(
         isUIEnabled: Bool,
         sectionState: TodayHealthIntelligenceSectionState?

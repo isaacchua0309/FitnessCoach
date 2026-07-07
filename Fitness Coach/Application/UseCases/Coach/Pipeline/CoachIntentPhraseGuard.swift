@@ -167,15 +167,19 @@ enum CoachIntentPhraseGuard {
         text: String
     ) {
         guard originalIntent != correctedIntent else { return }
-        FormaPipelineTracer.event(
-            stage: .classify,
-            level: .debug,
-            message: "Coach intent phrase guard corrected classification",
-            fields: [
-                "fromIntent": originalIntent.rawValue,
-                "toIntent": correctedIntent.rawValue,
-                "textLength": String(text.count)
-            ]
-        )
+        #if DEBUG
+        Task { @MainActor in
+            FormaPipelineTracer.event(
+                stage: .classify,
+                level: .debug,
+                message: "Coach intent phrase guard corrected classification",
+                fields: [
+                    "fromIntent": originalIntent.rawValue,
+                    "toIntent": correctedIntent.rawValue,
+                    "textLength": String(text.count)
+                ]
+            )
+        }
+        #endif
     }
 }

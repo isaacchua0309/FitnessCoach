@@ -13,7 +13,7 @@ import XCTest
 @MainActor
 final class CrossDeviceEndToEndSyncTests: XCTestCase {
 
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     func testDeviceALogsFoodDeviceBReceivesIt() async throws {
         let simulation = try CrossDeviceEndToEndSimulation.make(referenceDate: referenceDate)
@@ -146,7 +146,7 @@ final class CrossDeviceEndToEndSyncTests: XCTestCase {
         _ = try simulation.deviceA.actionCenter.updatePlan(
             UserProfileUpdate(
                 goalWeightKg: 58,
-                targets: ProfileTestFixtures.sampleTargets.withCalories(2_150)
+                targets: ProfileFixtures.sampleTargets.withCalories(2_150)
             )
         )
         try await simulation.pushProfileToCloud(from: simulation.deviceA)

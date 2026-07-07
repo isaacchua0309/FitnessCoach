@@ -10,7 +10,7 @@ import XCTest
 
 final class FirestoreNutritionSyncClientTests: XCTestCase {
 
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     func testNoOpClientAcceptsCallsWithoutSideEffects() async throws {
         let client = NoOpNutritionRemoteSyncClient()

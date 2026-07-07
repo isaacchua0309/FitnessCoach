@@ -13,15 +13,15 @@ final class TodayDashboardNutritionMapperTests: XCTestCase {
     private let accuracy = 0.000_1
 
     func testBaselineLogMatchesCharacterizedRuntimeOutputs() {
-        assertParity(for: DailyNutritionSummaryTestFixtures.baselineLog)
+        assertParity(for: DailyLogFixtures.baselineLog)
     }
 
     func testOverCaloriesLogMatchesCharacterizedRuntimeOutputs() {
-        assertParity(for: DailyNutritionSummaryTestFixtures.caloriesOverTargetLog)
+        assertParity(for: DailyLogFixtures.caloriesOverTargetLog)
     }
 
     func testWaterExactlyAtTargetMatchesCharacterizedRuntimeOutputs() {
-        assertParity(for: DailyNutritionSummaryTestFixtures.waterExactlyAtTargetLog)
+        assertParity(for: DailyLogFixtures.waterExactlyAtTargetLog)
     }
 
     private func assertParity(for log: DailyLog) {

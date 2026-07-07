@@ -62,12 +62,6 @@ final class HealthIntelligencePhase11FlagOffIntegrationTests: XCTestCase {
                 sectionState: TodayHealthIntelligencePreviewData.readyDay
             )
         )
-        XCTAssertTrue(
-            TodayReadOnlyCompositionPolicy.showsLegacyNextBestAction(
-                isUIEnabled: flags.uiEnabled,
-                sectionState: nil
-            )
-        )
         XCTAssertTrue(model.viewState.isLoaded)
     }
 

@@ -169,7 +169,9 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
         }
 
         XCTAssertGreaterThan(
-            FormaMainTabLayout.scrollBottomInset,
+            FormaMainTabLayout.bottomContentInset(
+                safeAreaBottom: FormaMainTabLayout.defaultBottomSafeAreaFallback
+            ),
             FormaTokens.Layout.floatingTabBarHeight
         )
     }

@@ -156,12 +156,12 @@ final class PublicEntryEdgeCaseRoutingTests: XCTestCase {
 final class PublicEntryEdgeCaseResolutionTests: XCTestCase {
 
     private let uid = "remote-user"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     // 3. Sign In, cloud profile exists → restore and enter app
     func testScenario03_ExistingSignInRestoresCloudProfile() async throws {
         let harness = try AuthProfileRouteSafetyTestSupport.makeServiceHarness()
-        harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
+        harness.cloudStore.storedDocument = ProfileFixtures.cloudDocument()
 
         let outcome = await harness.coordinator.resolveExistingUserSignIn(
             uid: uid,

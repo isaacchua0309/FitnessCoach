@@ -97,7 +97,7 @@ final class TodayCrossDeviceRefreshTests: XCTestCase {
         XCTAssertEqual(initial.mission.calorieSummary.target, 1_800)
 
         _ = try harness.actionCenter.updatePlan(
-            UserProfileUpdate(targets: ProfileTestFixtures.sampleTargets.withCalories(2_100))
+            UserProfileUpdate(targets: ProfileFixtures.sampleTargets.withCalories(2_100))
         )
 
         try await publishRefresh(domains: [.plan])

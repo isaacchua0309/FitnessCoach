@@ -13,9 +13,9 @@ struct TodayAppleHealthSetupCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: FormaProductCopy.Today.AppleHealthSetup.sectionTitle)
+            SectionLabel(title: FormaProductCopy.Today.AppleHealthSetup.sectionTitle)
 
-            FormaPlanCard {
+            MainTabCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     Text(FormaProductCopy.Today.AppleHealthSetup.body)
                         .font(FormaTokens.Typography.caption)

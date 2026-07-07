@@ -12,13 +12,13 @@ import XCTest
 final class ProfileResolutionAfterSignInTests: XCTestCase {
 
     private let uid = "remote-user"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     // MARK: - Existing profile → main
 
     func testSignInWithExistingCloudProfileEntersApp() async throws {
         let harness = try AuthProfileRouteSafetyTestSupport.makeServiceHarness()
-        harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
+        harness.cloudStore.storedDocument = ProfileFixtures.cloudDocument()
 
         let outcome = await harness.coordinator.resolveExistingUserSignIn(
             uid: uid,
@@ -40,7 +40,7 @@ final class ProfileResolutionAfterSignInTests: XCTestCase {
 
     func testSignInWithOwnedLocalProfileEntersAppWithoutCloudFetch() async throws {
         let harness = try AuthProfileRouteSafetyTestSupport.makeServiceHarness()
-        try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
+        try harness.profileService.createProfile(ProfileFixtures.sampleDraft)
         _ = try harness.profileService.assignOwnerUID(uid)
 
         let outcome = await harness.coordinator.resolveExistingUserSignIn(

@@ -12,7 +12,7 @@ struct PlanConfidenceSection: View {
     var onAppleHealthTap: (() -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
+        VStack(alignment: .leading, spacing: PlanLayout.headerToCardSpacing) {
             FormaSectionLabel(title: state.sectionTitle)
 
             FormaPlanCard {

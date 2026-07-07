@@ -11,7 +11,7 @@ import XCTest
 final class CrossDeviceSyncLoggerTests: XCTestCase {
 
     private let sampleUID = "firebase-user-abc123xyz789"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     func testCompletionFieldsUseHashedUIDOnly() {
         let summary = CrossDeviceSyncSummary(

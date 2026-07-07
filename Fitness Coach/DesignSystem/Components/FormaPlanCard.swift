@@ -11,18 +11,10 @@ struct FormaPlanCard<Content: View>: View {
     var compact: Bool = false
     @ViewBuilder var content: Content
 
-    @EnvironmentObject private var themeManager: ThemeManager
-
     var body: some View {
-        let _ = themeManager.themeRevision
-        return content
-            .padding(.horizontal, compact ? FormaTokens.Spacing.sm : FormaTokens.Spacing.md)
-            .padding(.vertical, compact ? FormaTokens.Spacing.xs : FormaTokens.Spacing.sm)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                FormaCardChrome.background(.surface)
-            }
-            .todayLiveTheme()
+        MainTabCard(compact: compact) {
+            content
+        }
     }
 }
 
@@ -32,42 +24,60 @@ struct FormaPlanDisplayRow: View {
     var multilineValue = false
 
     @Environment(\.theme) private var theme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         Group {
-            if multilineValue {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(label)
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(theme.secondaryText)
-                    Text(value)
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(theme.primaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                }
+            if usesStackedLayout {
+                stackedLayout
+            } else if multilineValue {
+                stackedLayout
             } else {
-                HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
-                    Text(label)
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(theme.secondaryText)
-                        .frame(
-                            width: SettingsChromeAccessibility.detailLabelColumnWidth,
-                            alignment: .leading
-                        )
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.9)
-                    Text(value)
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(theme.primaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .multilineTextAlignment(.leading)
-                }
+                inlineLayout
             }
         }
         .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
         .padding(.vertical, 2)
+    }
+
+    private var usesStackedLayout: Bool {
+        dynamicTypeSize >= .accessibility1
+    }
+
+    private var stackedLayout: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(theme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(value)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(theme.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
+                .textSelection(.enabled)
+        }
+    }
+
+    private var inlineLayout: some View {
+        HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
+            Text(label)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(theme.secondaryText)
+                .frame(maxWidth: 96, alignment: .leading)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .layoutPriority(1)
+            Text(value)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(theme.primaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(3)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(2)
+                .textSelection(.enabled)
+        }
     }
 }
 

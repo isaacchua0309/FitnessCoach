@@ -14,7 +14,7 @@ struct PlanAssumptionsSection: View {
     @State private var isExpanded = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
+        VStack(alignment: .leading, spacing: PlanLayout.headerToCardSpacing) {
             FormaPlanCard {
                 DisclosureGroup(isExpanded: $isExpanded) {
                     VStack(alignment: .leading, spacing: 0) {

@@ -82,7 +82,7 @@ struct TodayHealthIntelligenceSection: View {
 
     @ViewBuilder
     private func fallbackBanner(message: String) -> some View {
-        FormaPlanCard {
+        MainTabCard {
             Text(message)
                 .font(TodayHealthIntelligenceCardTypography.detail)
                 .foregroundStyle(fallbackForegroundColor)

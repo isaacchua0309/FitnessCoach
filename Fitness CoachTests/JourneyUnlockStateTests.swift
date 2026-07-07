@@ -180,7 +180,7 @@ final class JourneyUnlockStateTests: XCTestCase {
         )
 
         let context = JourneyDashboardBuilder.Context(
-            profile: ProfileTestFixtures.sampleProfile,
+            profile: ProfileFixtures.sampleProfile,
             baseline: baseline,
             maturityLogs: maturityLogs,
             monthLogs: maturityLogs,

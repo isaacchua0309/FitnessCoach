@@ -27,7 +27,7 @@ final class AccountSyncRemoteIntegrationTests: XCTestCase {
 
     private let userA = "userA"
     private let userB = "userB"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
     private var localDate: String!
 
     override func setUp() async throws {
@@ -320,7 +320,7 @@ private struct RemoteSyncHarness {
     let localDate: String
 
     static func make(
-        referenceDate: Date = ProfileTestFixtures.referenceDate,
+        referenceDate: Date = ProfileFixtures.referenceDate,
         remoteStore: InMemoryAccountDataRemoteStore? = nil
     ) throws -> RemoteSyncHarness {
         var calendar = Calendar(identifier: .gregorian)
