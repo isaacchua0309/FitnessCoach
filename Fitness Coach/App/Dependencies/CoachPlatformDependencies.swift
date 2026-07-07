@@ -1,5 +1,5 @@
 //
-//  CoachDependencies.swift
+//  CoachPlatformDependencies.swift
 //  Fitness Coach
 //
 //  Coach platform persistence construction for AppContainer.
