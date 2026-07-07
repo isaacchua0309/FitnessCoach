@@ -10,6 +10,7 @@ import SwiftUI
 
 #if DEBUG
 
+@MainActor
 enum MainTabLayoutPreviewScreens {
 
     enum Metrics {
