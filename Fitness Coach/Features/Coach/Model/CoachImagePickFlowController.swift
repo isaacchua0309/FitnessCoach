@@ -35,7 +35,7 @@ final class CoachImagePickFlowController: ObservableObject {
     #endif
 
     init(
-        photoLibraryImageLoader: CoachPhotoLibraryImageLoader = CoachPhotoLibraryImageLoading.live
+        photoLibraryImageLoader: @escaping CoachPhotoLibraryImageLoader = CoachPhotoLibraryImageLoading.live
     ) {
         self.photoLibraryImageLoader = photoLibraryImageLoader
     }
