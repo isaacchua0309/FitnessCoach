@@ -196,7 +196,7 @@ final class HealthBaselineServiceTests: XCTestCase {
         XCTAssertEqual(value, expected, accuracy: accuracy, file: file, line: line)
     }
 
-    // MARK: - Helpers (dates)
+    // MARK: - Date helpers
 
     private func makeDate(_ year: Int, _ month: Int, _ day: Int) -> Date {
         calendar.date(from: DateComponents(year: year, month: month, day: day))!
