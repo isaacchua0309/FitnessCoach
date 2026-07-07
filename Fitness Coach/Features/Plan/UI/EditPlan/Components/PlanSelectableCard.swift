@@ -67,6 +67,7 @@ enum PlanSelectableCardAccessory {
 
     static let selectionCheckmarkColumnWidth: CGFloat = 28
 
+    @MainActor
     static func selectionCheckmark(isSelected: Bool) -> some View {
         Image(systemName: "checkmark.circle.fill")
             .font(.title3.weight(.semibold))
