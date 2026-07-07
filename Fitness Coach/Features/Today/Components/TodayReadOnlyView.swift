@@ -276,6 +276,7 @@ struct TodayReadOnlyView: View {
 }
 
 #if DEBUG
+@MainActor
 enum TodayReadOnlyPreviewSupport {
     static func coordinator() -> TodayActionCoordinator {
         TodayActionCoordinator(
