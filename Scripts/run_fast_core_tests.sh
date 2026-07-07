@@ -22,9 +22,11 @@ fi
 print_build_errors() {
   if [[ -f "$BUILD_LOG" ]]; then
     echo "--- Swift compile errors (last 80) ---"
-    rg '\.swift:[0-9]+:[0-9]+: error:' "$BUILD_LOG" | tail -80 || true
+    grep -E '\.swift:[0-9]+:[0-9]+: error:' "$BUILD_LOG" | tail -80 || true
     echo "--- Build summary ---"
-    rg 'TEST BUILD FAILED|TEST BUILD SUCCEEDED|TEST SUCCEEDED|BUILD FAILED|BUILD SUCCEEDED|Failed frontend command' "$BUILD_LOG" | tail -20 || true
+    grep -E 'TEST BUILD FAILED|TEST BUILD SUCCEEDED|TEST SUCCEEDED|BUILD FAILED|BUILD SUCCEEDED|Failed frontend command|Testing failed' "$BUILD_LOG" | tail -20 || true
+    echo "--- Last 60 lines of build log ---"
+    tail -60 "$BUILD_LOG" || true
   fi
 }
 
@@ -40,7 +42,7 @@ run_xcodebuild() {
     print_build_errors
     exit $status
   fi
-  rg 'TEST BUILD SUCCEEDED|BUILD SUCCEEDED' "$BUILD_LOG" | tail -3 || true
+  grep -E 'TEST BUILD SUCCEEDED|BUILD SUCCEEDED' "$BUILD_LOG" | tail -3 || true
 }
 
 echo "Resolving Swift package dependencies…"
