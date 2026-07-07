@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+@MainActor
 enum PlanHealthIntelligenceCardSupport {
     static let headerToCardSpacing = PlanLayout.headerToCardSpacing
     static let contentSpacing = FormaTokens.Spacing.sm
@@ -29,6 +30,7 @@ struct PlanHealthIntelligenceLoadingContainer<Content: View>: View {
 
 // MARK: - Typography
 
+@MainActor
 enum PlanHealthIntelligenceTypography {
     static let cardHeadline = FormaTokens.Typography.sectionTitle.weight(.bold)
     static let cardBody = FormaTokens.Typography.sectionSubtitle
@@ -39,6 +41,7 @@ enum PlanHealthIntelligenceTypography {
 
 // MARK: - Visual support
 
+@MainActor
 enum PlanHealthIntelligenceVisualSupport {
 
     static func confidenceAccentColor(for label: String) -> Color {

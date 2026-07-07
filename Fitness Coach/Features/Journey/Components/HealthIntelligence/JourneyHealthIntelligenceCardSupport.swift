@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+@MainActor
 enum JourneyHealthIntelligenceCardSupport {
     static let cardContentSpacing = FormaTokens.Spacing.sm
     static let rowSpacing = FormaTokens.Spacing.xs
@@ -27,6 +28,7 @@ struct JourneyHealthIntelligenceLoadingCard<Content: View>: View {
 
 // MARK: - Recovery colors
 
+@MainActor
 enum JourneyHealthIntelligenceVisualSupport {
 
     static func recoveryColor(for kind: JourneyRecoveryDayStatusKind) -> Color {
