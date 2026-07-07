@@ -8,6 +8,7 @@
 import SwiftUI
 
 #if DEBUG
+@MainActor
 enum PublicEntryPreviewScreens {
 
     private static let analytics = NoOpPublicEntryAnalyticsLogger()
