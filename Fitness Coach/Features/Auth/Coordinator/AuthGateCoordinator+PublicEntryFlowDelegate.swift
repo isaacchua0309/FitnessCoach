@@ -10,7 +10,7 @@ import Foundation
 extension AuthGateCoordinator: PublicEntryFlowCoordinatorDelegate {
 
     func clearOnboardingModel() {
-        onboardingModel = nil
+        onboardingShellCoordinator.clearOnboardingModel()
     }
 
     func clearOnboardingDraft() {
@@ -22,11 +22,11 @@ extension AuthGateCoordinator: PublicEntryFlowCoordinatorDelegate {
     }
 
     func startPreAuthOnboardingModel() {
-        ensurePreAuthOnboardingModel()
+        onboardingShellCoordinator.ensurePreAuthOnboardingModel()
     }
 
     func bootstrapOnboardingModel() {
-        ensureOnboardingModel()
+        onboardingShellCoordinator.ensureOnboardingModel()
     }
 
     func continueFromMissingCloudProfile() {
