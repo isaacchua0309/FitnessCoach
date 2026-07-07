@@ -319,7 +319,7 @@ final class AccountSyncPullerTests: XCTestCase {
         try await remoteStore.saveDailyLog(remoteDailyLog, uid: ownerUID)
         try await remoteStore.saveFoodEntry(remoteFood, uid: ownerUID)
 
-        let summary = await puller.mergeFetchedDocuments(
+        let summary = try puller.mergeFetchedDocuments(
             for: ownerUID,
             dailyLogs: [remoteDailyLog],
             foodEntries: [remoteFood],
@@ -398,7 +398,7 @@ final class AccountSyncPullerTests: XCTestCase {
     private func makeDailyLogDocument(
         userId: String = "userA",
         caloriesConsumed: Int = 520,
-        proteinConsumed: Int = 35
+        proteinConsumed: Double = 35
     ) -> CloudDailyLogDocument {
         FirestoreAccountDataRemoteStoreTestFixtures.dailyLog(
             userId: userId,

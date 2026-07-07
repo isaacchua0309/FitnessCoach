@@ -84,9 +84,8 @@ final class AccountSyncUploaderTests: XCTestCase {
             mutationGroupId: nil
         )
 
-        let mutationID = try XCTUnwrap(
-            try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate).first?.id
-        )
+        let dueMutations = try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate)
+        let mutationID = try XCTUnwrap(dueMutations.first?.id)
 
         _ = await uploader.uploadDueMutations(for: ownerUID, limit: 10)
 
@@ -134,9 +133,8 @@ final class AccountSyncUploaderTests: XCTestCase {
             mutationGroupId: nil
         )
 
-        let mutationID = try XCTUnwrap(
-            try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate).first?.id
-        )
+        let dueMutations = try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate)
+        let mutationID = try XCTUnwrap(dueMutations.first?.id)
 
         let summary = await uploader.uploadDueMutations(for: ownerUID, limit: 10)
 
@@ -187,8 +185,10 @@ final class AccountSyncUploaderTests: XCTestCase {
         let summary = await uploader.uploadDueMutations(for: ownerUID, limit: 10)
 
         XCTAssertEqual(summary.succeeded, 1)
-        XCTAssertEqual(try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).count, 1)
-        XCTAssertEqual(try await remoteStore.fetchFoodEntries(uid: otherUID, localDate: otherLocalDate).count, 0)
+        let ownerFoodCount = try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).count
+        let otherFoodCount = try await remoteStore.fetchFoodEntries(uid: otherUID, localDate: otherLocalDate).count
+        XCTAssertEqual(ownerFoodCount, 1)
+        XCTAssertEqual(otherFoodCount, 0)
     }
 
     func testUploaderContinuesAfterOneFailure() async throws {
@@ -220,8 +220,9 @@ final class AccountSyncUploaderTests: XCTestCase {
         XCTAssertEqual(summary.attempted, 2)
         XCTAssertEqual(summary.succeeded, 1)
         XCTAssertEqual(summary.failed, 1)
-        XCTAssertEqual(try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).count, 1)
-        XCTAssertEqual(try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).first?.name, "Good")
+        let uploadedFoodEntries = try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate)
+        XCTAssertEqual(uploadedFoodEntries.count, 1)
+        XCTAssertEqual(uploadedFoodEntries.first?.name, "Good")
     }
 
     func testUploaderDeletesRemoteFoodEntryForPendingDelete() async throws {
@@ -252,7 +253,8 @@ final class AccountSyncUploaderTests: XCTestCase {
 
         XCTAssertEqual(summary.succeeded, 1)
         XCTAssertNil(try fetchFoodEntity(id: foodID))
-        XCTAssertEqual(try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).count, 0)
+        let deletedRemoteFoodCount = try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).count
+        XCTAssertEqual(deletedRemoteFoodCount, 0)
     }
 
     func testMissingUpsertEntityCancelsMutation() async throws {
@@ -307,7 +309,8 @@ final class AccountSyncUploaderTests: XCTestCase {
 
         XCTAssertEqual(first.succeeded, 1)
         XCTAssertEqual(second.attempted, 0)
-        XCTAssertEqual(try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).count, 1)
+        let idempotentRemoteFoodCount = try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).count
+        XCTAssertEqual(idempotentRemoteFoodCount, 1)
     }
 
     func testRejectsUnownedDocumentDuringUpload() async throws {
@@ -340,7 +343,8 @@ final class AccountSyncUploaderTests: XCTestCase {
 
         XCTAssertEqual(summary.failed, 1)
         XCTAssertEqual(food.syncStatus, .failed)
-        XCTAssertEqual(try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).count, 0)
+        let tamperedRemoteFoodCount = try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).count
+        XCTAssertEqual(tamperedRemoteFoodCount, 0)
     }
 
     // MARK: - Helpers
