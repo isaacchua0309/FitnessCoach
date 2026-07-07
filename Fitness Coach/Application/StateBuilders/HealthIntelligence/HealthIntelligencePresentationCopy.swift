@@ -73,7 +73,7 @@ enum HealthIntelligencePresentationCopy {
                 FormaProductCopy.Today.HealthIntelligence.AdaptiveNutrition.extraWater(ml)
             }
 
-            static func proteinRemaining(_ grams: Double) -> String {
+            static func proteinRemaining(_ grams: Int) -> String {
                 FormaProductCopy.Today.HealthIntelligence.AdaptiveNutrition.proteinRemaining(grams)
             }
         }
