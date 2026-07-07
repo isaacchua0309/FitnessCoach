@@ -34,6 +34,32 @@ export type AccountDeletionResponse =
 
 export interface DeleteAccountDataRequest {
   confirmation: string;
+  dryRun?: boolean;
+}
+
+export const ACCOUNT_DELETION_WOULD_DELETE_GROUPS = {
+  profile: "profile",
+  syncMetadata: "syncMetadata",
+  dailyLogs: "dailyLogs",
+  weightEntries: "weightEntries",
+  dailyReviews: "dailyReviews",
+  healthDaily: "healthDaily",
+  healthWorkouts: "healthWorkouts",
+  healthRecovery: "healthRecovery",
+  healthWeeklyReviews: "healthWeeklyReviews",
+  healthSyncMetadata: "healthSyncMetadata",
+} as const;
+
+export type AccountDeletionWouldDeleteGroup =
+  typeof ACCOUNT_DELETION_WOULD_DELETE_GROUPS[keyof typeof ACCOUNT_DELETION_WOULD_DELETE_GROUPS];
+
+export interface AccountDeletionDryRunResponse {
+  ok: true;
+  dryRun: true;
+  uidScoped: true;
+  wouldDeleteGroups: AccountDeletionWouldDeleteGroup[];
+  serverTime: string;
+  function: "accountDataDeletion";
 }
 
 export interface DeletionRunOptions {

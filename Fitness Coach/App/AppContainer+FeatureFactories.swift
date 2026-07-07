@@ -403,5 +403,16 @@ extension AppContainer {
             }
         )
     }
+
+    func makeAccountDeletionDebugActions() -> AccountDeletionDebugActions {
+        AccountDeletionDebugActions(
+            verifyDeleteEndpointDryRun: { [accountDeletionRemoteClient] in
+                guard let client = accountDeletionRemoteClient as? AccountDeletionRemoteClient else {
+                    throw AccountDeletionRemoteError.unknown("client_unavailable")
+                }
+                return try await client.verifyDeleteEndpointDryRun()
+            }
+        )
+    }
 }
 #endif

@@ -21,12 +21,24 @@ export function privacySafeUidHash(uid: string): string {
   return createHash("sha256").update(uid).digest("hex").slice(0, 12);
 }
 
+export function isDryRunRequest(body: Record<string, unknown>): boolean {
+  return body.dryRun === true;
+}
+
 export function validateDeleteDataRequest(body: Record<string, unknown>): void {
   const confirmation = body.confirmation;
   if (typeof confirmation !== "string" || confirmation !== ACCOUNT_DELETION_CONFIRMATION_PHRASE) {
     throw new GatewayError(
       400,
       `Confirmation phrase must be exactly "${ACCOUNT_DELETION_CONFIRMATION_PHRASE}".`,
+      "validation"
+    );
+  }
+
+  if (body.dryRun !== undefined && body.dryRun !== true) {
+    throw new GatewayError(
+      400,
+      "dryRun must be true when provided.",
       "validation"
     );
   }

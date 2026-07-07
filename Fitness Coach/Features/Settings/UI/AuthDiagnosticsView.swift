@@ -22,6 +22,17 @@ struct AuthDiagnosticsView: View {
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
             }
+
+            Section {
+                AccountDeletionDryRunDiagnosticsView()
+                    .formaSettingsRowChrome()
+            } header: {
+                FormaSettingsSectionHeader(title: "Account deletion backend")
+            } footer: {
+                Text("Debug only. Sends a non-destructive dry-run probe to the account deletion Cloud Function. No Firestore data is deleted.")
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+            }
         }
         .formaGroupedList()
         .navigationTitle("Auth diagnostics")

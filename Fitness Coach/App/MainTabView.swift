@@ -193,6 +193,7 @@ struct MainTabView: View {
         }
         .environment(\.accountSyncDebugActions, container.makeAccountSyncDebugActions())
         .environment(\.accountRestoreDebugActions, container.makeAccountRestoreDebugActions())
+        .environment(\.accountDeletionDebugActions, container.makeAccountDeletionDebugActions())
         .environment(\.coachContextDebugActions, container.makeCoachContextDebugActions())
         #endif
         .onChange(of: scenePhase) { _, phase in

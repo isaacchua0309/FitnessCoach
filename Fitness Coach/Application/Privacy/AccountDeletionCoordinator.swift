@@ -764,6 +764,10 @@ final class AccountDeletionCoordinator: AccountDeletionCoordinating, LocalAccoun
             category = .permissionDenied
             status = .failed
             message = "You do not have permission to delete this account data."
+        case .endpointNotFound:
+            category = .remoteDataDeleteFailed
+            status = .failed
+            message = "Cloud account data could not be deleted. Try again."
         case .serverUnavailable, .timeout:
             category = .remoteDataDeleteFailed
             status = .failed

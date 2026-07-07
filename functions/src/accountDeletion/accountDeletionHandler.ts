@@ -4,13 +4,18 @@ import {onRequest} from "firebase-functions/v2/https";
 import {GatewayError, gatewayErrorCategory} from "../gatewayGuardrails";
 import {
   enforceAccountDeletionQuota,
+  isDryRunRequest,
   privacySafeUidHash,
   validateDeleteDataRequest,
   verifyAccountDeletionAuth,
 } from "./accountDeletionGuardrails";
+import {inspectAccountFirestoreData} from "./accountDeletionInspectService";
 import {ACCOUNT_DELETE_DATA_PATH} from "./accountDeletionPaths";
 import {deleteAccountFirestoreData} from "./accountDeletionService";
-import type {AccountDeletionResponse} from "./accountDeletionTypes";
+import type {
+  AccountDeletionDryRunResponse,
+  AccountDeletionResponse,
+} from "./accountDeletionTypes";
 
 function normalizedPath(path: string): string {
   const withoutQuery = path.split("?")[0] || "/";
@@ -54,9 +59,39 @@ export async function handleAccountDeletionRequest(
     }
 
     const uid = await verifyAccountDeletionAuth(request);
-    enforceAccountDeletionQuota(uid);
     const body = readRequestBody(request);
     validateDeleteDataRequest(body);
+    const dryRun = isDryRunRequest(body);
+
+    if (!dryRun) {
+      enforceAccountDeletionQuota(uid);
+    }
+
+    if (dryRun) {
+      logger.info("Account deletion dry run started", {
+        uidHash: privacySafeUidHash(uid),
+        path,
+      });
+
+      const {wouldDeleteGroups} = await inspectAccountFirestoreData(uid);
+      const payload: AccountDeletionDryRunResponse = {
+        ok: true,
+        dryRun: true,
+        uidScoped: true,
+        wouldDeleteGroups,
+        serverTime: new Date().toISOString(),
+        function: "accountDataDeletion",
+      };
+
+      logger.info("Account deletion dry run finished", {
+        uidHash: privacySafeUidHash(uid),
+        durationMs: Date.now() - requestStarted,
+        wouldDeleteGroupCount: wouldDeleteGroups.length,
+      });
+
+      response.status(200).json(payload);
+      return;
+    }
 
     logger.info("Account deletion started", {
       uidHash: privacySafeUidHash(uid),

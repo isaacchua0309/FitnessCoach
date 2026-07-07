@@ -205,6 +205,124 @@ final class AccountDeletionRemoteClientTests: XCTestCase {
             XCTAssertEqual(error as? AccountDeletionRemoteError, .permissionDenied)
         }
     }
+
+    func testVerifyDeleteEndpointDryRunComposesGatewayURL() async throws {
+        AccountDeletionMockURLProtocol.responseBody = Self.validDryRunResponseData
+
+        let client = makeClient(baseURL: productionBaseURL)
+        _ = try await client.verifyDeleteEndpointDryRun()
+
+        let requestURL = try XCTUnwrap(AccountDeletionMockURLProtocol.capturedRequest?.url)
+        XCTAssertEqual(
+            requestURL.absoluteString,
+            "https://us-central1-fitness-coach-732fd.cloudfunctions.net/accountDataDeletion/v1/account/delete-data"
+        )
+    }
+
+    func testVerifyDeleteEndpointDryRunSendsAuthorizationAndDryRunBody() async throws {
+        AccountDeletionMockURLProtocol.responseBody = Self.validDryRunResponseData
+
+        let client = AccountDeletionRemoteClient(
+            baseURL: productionBaseURL,
+            urlSession: makeMockSession(),
+            authTokenProvider: { "firebase-test-token" }
+        )
+
+        _ = try await client.verifyDeleteEndpointDryRun()
+
+        let captured = try XCTUnwrap(AccountDeletionMockURLProtocol.capturedRequest)
+        XCTAssertEqual(captured.value(forHTTPHeaderField: "Authorization"), "Bearer firebase-test-token")
+        XCTAssertEqual(captured.value(forHTTPHeaderField: "Content-Type"), "application/json")
+
+        let bodyData = try XCTUnwrap(captured.httpBody)
+        let bodyObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
+        )
+        XCTAssertEqual(bodyObject["confirmation"] as? String, "DELETE")
+        XCTAssertEqual(bodyObject["dryRun"] as? Bool, true)
+        XCTAssertNil(bodyObject["uid"])
+        XCTAssertNil(bodyObject["userId"])
+    }
+
+    func testVerifyDeleteEndpointDryRunDecodesResponse() async throws {
+        AccountDeletionMockURLProtocol.responseBody = Self.validDryRunResponseData
+
+        let client = makeClient(baseURL: productionBaseURL)
+        let result = try await client.verifyDeleteEndpointDryRun()
+
+        XCTAssertEqual(
+            result,
+            AccountDeletionDryRunVerificationResult(
+                wouldDeleteGroups: ["profile", "dailyLogs"],
+                serverTime: "2026-07-05T08:00:00.000Z",
+                functionName: "accountDataDeletion"
+            )
+        )
+    }
+
+    func testVerifyDeleteEndpointDryRunMapsHTTP401ToUnauthenticated() async {
+        AccountDeletionMockURLProtocol.responseStatusCode = 401
+        AccountDeletionMockURLProtocol.responseBody = Data(
+            #"{"error":"Invalid Firebase ID token.","backendErrorCategory":"authentication"}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.verifyDeleteEndpointDryRun()
+            XCTFail("Expected unauthenticated error")
+        } catch {
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .unauthenticated)
+        }
+    }
+
+    func testVerifyDeleteEndpointDryRunMapsHTTP403ToPermissionDenied() async {
+        AccountDeletionMockURLProtocol.responseStatusCode = 403
+        AccountDeletionMockURLProtocol.responseBody = Data(
+            #"{"error":"Forbidden.","backendErrorCategory":"authorization"}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.verifyDeleteEndpointDryRun()
+            XCTFail("Expected permissionDenied error")
+        } catch {
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .permissionDenied)
+        }
+    }
+
+    func testVerifyDeleteEndpointDryRunMapsHTTP404ToEndpointNotFound() async {
+        AccountDeletionMockURLProtocol.responseStatusCode = 404
+        AccountDeletionMockURLProtocol.responseBody = Data(
+            #"{"error":"Not found.","backendErrorCategory":"not_found"}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.verifyDeleteEndpointDryRun()
+            XCTFail("Expected endpointNotFound error")
+        } catch {
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .endpointNotFound)
+        }
+    }
+
+    func testVerifyDeleteEndpointDryRunMapsHTTP503ToServerUnavailable() async {
+        AccountDeletionMockURLProtocol.responseStatusCode = 503
+        AccountDeletionMockURLProtocol.responseBody = Data(
+            #"{"error":"Service unavailable.","backendErrorCategory":"timeout"}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.verifyDeleteEndpointDryRun()
+            XCTFail("Expected serverUnavailable error")
+        } catch {
+            XCTAssertEqual(error as? AccountDeletionRemoteError, .serverUnavailable)
+        }
+    }
 }
 
 private extension AccountDeletionRemoteClientTests {
@@ -226,6 +344,12 @@ private extension AccountDeletionRemoteClientTests {
     static let validSuccessResponseData = Data(
         """
         {"ok":true,"uid":"user-a","deleted":{"profile":true,"dailyLogs":2,"foodEntries":3,"waterEntries":1,"weightEntries":1,"dailyReviews":1,"syncMetadata":true,"healthDaily":1,"healthWorkouts":0,"healthRecovery":0,"healthWeeklyReviews":0,"healthSyncMetadata":false}}
+        """.utf8
+    )
+
+    static let validDryRunResponseData = Data(
+        """
+        {"ok":true,"dryRun":true,"uidScoped":true,"wouldDeleteGroups":["profile","dailyLogs"],"serverTime":"2026-07-05T08:00:00.000Z","function":"accountDataDeletion"}
         """.utf8
     )
 }
