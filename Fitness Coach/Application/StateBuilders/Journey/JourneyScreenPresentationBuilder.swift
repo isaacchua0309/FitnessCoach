@@ -575,4 +575,4 @@ enum JourneyScreenPresentationBuilder {
             events: Array(sorted.prefix(JourneyThresholds.maxDisplayedStoryEvents))
         )
     }
-
+}
