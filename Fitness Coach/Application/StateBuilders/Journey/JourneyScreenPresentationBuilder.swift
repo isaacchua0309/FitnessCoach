@@ -9,7 +9,7 @@ import Foundation
 
 enum JourneyScreenPresentationBuilder {
 
-    struct Input: Equatable {
+    struct Input {
         var context: JourneyDashboardBuilder.Context
         var weeklyProgressSummary: WeeklyProgressSummary
         var chapter: JourneyChapterState
