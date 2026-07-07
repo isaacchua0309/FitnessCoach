@@ -165,7 +165,7 @@ final class WorkflowCapturingPhotoAIService: AIServiceProtocol, @unchecked Senda
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
@@ -181,7 +181,7 @@ final class WorkflowCapturingPhotoAIService: AIServiceProtocol, @unchecked Senda
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> DailyReviewAIResponse {
@@ -244,7 +244,7 @@ final class HoldablePhotoAIService: AIServiceProtocol, @unchecked Sendable {
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
@@ -260,7 +260,7 @@ final class HoldablePhotoAIService: AIServiceProtocol, @unchecked Sendable {
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> DailyReviewAIResponse {
@@ -309,7 +309,7 @@ final class RetryImprovingWorkflowAIService: AIServiceProtocol, @unchecked Senda
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
@@ -325,7 +325,7 @@ final class RetryImprovingWorkflowAIService: AIServiceProtocol, @unchecked Senda
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func generateDailyReviewText(input: DailyReviewAIInput, context: CoachContextPacketV2) async throws -> DailyReviewAIResponse {

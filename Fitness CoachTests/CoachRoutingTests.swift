@@ -862,7 +862,7 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func generateDailyReviewText(
@@ -945,7 +945,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func generateDailyReviewText(

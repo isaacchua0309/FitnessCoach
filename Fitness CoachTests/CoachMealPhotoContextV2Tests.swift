@@ -628,7 +628,7 @@ private final class PhotoContextCapturingAIService: AIServiceProtocol, @unchecke
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func generateNutritionEstimate(
