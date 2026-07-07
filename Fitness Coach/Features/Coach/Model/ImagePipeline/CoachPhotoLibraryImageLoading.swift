@@ -7,6 +7,7 @@
 //
 
 import PhotosUI
+import SwiftUI
 import UIKit
 
 typealias CoachPhotoLibraryImageLoader = @Sendable (
