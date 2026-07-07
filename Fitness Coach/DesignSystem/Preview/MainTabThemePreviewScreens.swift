@@ -8,6 +8,7 @@
 import SwiftUI
 
 #if DEBUG
+@MainActor
 enum MainTabThemePreviewScreens {
 
     static func today(

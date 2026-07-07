@@ -8,6 +8,7 @@
 import SwiftUI
 
 #if DEBUG
+@MainActor
 enum HealthIntelligenceThemeMatrixPreviews {
 
     static func todaySection(

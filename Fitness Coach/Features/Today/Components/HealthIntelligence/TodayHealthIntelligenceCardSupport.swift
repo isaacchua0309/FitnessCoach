@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+@MainActor
 enum TodayHealthIntelligenceCardSupport {
 
     static let cardContentSpacing = FormaTokens.Spacing.sm
@@ -166,6 +167,7 @@ struct TodayHealthIntelligenceLoadingCard<Content: View>: View {
 
 // MARK: - Card typography helpers
 
+@MainActor
 enum TodayHealthIntelligenceCardTypography {
     static var headline: Font {
         FormaTokens.Typography.sectionSubtitle.weight(.semibold)

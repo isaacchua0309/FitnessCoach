@@ -517,4 +517,11 @@ final class AuthManager: ObservableObject, AccountAuthDeleting {
             )
         }
     }
+
+    #if DEBUG
+    /// Overrides `authState` for unit/characterization tests without Firebase.
+    func applyTestingAuthState(_ state: AuthState) {
+        authState = state
+    }
+    #endif
 }

@@ -35,7 +35,7 @@ final class TrainingInsightsModel: ObservableObject {
     }
 
     /// Test and preview convenience — routes through `HealthActivityQueryService` with legacy reader fallback.
-    init(
+    convenience init(
         workoutReader: HealthKitWorkoutReading,
         dateProvider: DateProviding? = nil,
         calendar: Calendar = .current

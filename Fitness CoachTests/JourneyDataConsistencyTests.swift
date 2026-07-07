@@ -319,6 +319,7 @@ final class JourneyDataConsistencyTests: XCTestCase {
             ),
             goalProjection: nil,
             healthWorkoutDayStarts: [],
+            monthHealthWorkoutCount: 0,
             asOf: asOf,
             calendar: calendar
         )

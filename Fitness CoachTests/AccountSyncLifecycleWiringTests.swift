@@ -128,8 +128,8 @@ final class AccountSyncLifecycleWiringTests: XCTestCase {
         )
 
         let actionCenter = FitnessActionCenter(
-            foodLogService: harness.foodLogService,
-            waterLogService: harness.waterLogService,
+            foodLogService: harness.base.foodLogService,
+            waterLogService: harness.base.waterLogService,
             weightLogService: harness.weightLogService,
             dailyLogService: harness.dailyLogService,
             targetService: harness.targetService,
@@ -137,8 +137,8 @@ final class AccountSyncLifecycleWiringTests: XCTestCase {
             reviewService: ReviewService(
                 store: harness.store,
                 dailyLogService: harness.dailyLogService,
-                foodLogService: harness.foodLogService,
-                waterLogService: harness.waterLogService,
+                foodLogService: harness.base.foodLogService,
+                waterLogService: harness.base.waterLogService,
                 weightLogService: harness.weightLogService,
                 healthActivityQuery: harness.healthActivityQuery,
                 userProfileService: harness.profileService,

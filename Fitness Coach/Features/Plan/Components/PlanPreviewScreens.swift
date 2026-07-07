@@ -8,6 +8,7 @@
 import SwiftUI
 
 #if DEBUG
+@MainActor
 enum PlanPreviewScreens {
 
     enum Scenario: String, CaseIterable {

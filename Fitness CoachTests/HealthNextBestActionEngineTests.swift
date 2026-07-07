@@ -269,7 +269,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
         )!
     }
 
-    private static func makeNutritionProgress(
+    private func makeNutritionProgress(
         caloriesConsumed: Int = 1_000,
         proteinConsumed: Double = 100,
         proteinTarget: Double = 150,
@@ -291,7 +291,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
         )
     }
 
-    private static func makeWorkoutSummary(
+    private func makeWorkoutSummary(
         hasWorkout: Bool = true,
         demand: WorkoutDemand = .moderate,
         hydrationAdviceMl: Int = 500
@@ -315,7 +315,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
         )
     }
 
-    private static func makeRecoverySummary(status: RecoveryStatus = .moderate) -> RecoverySummary {
+    private func makeRecoverySummary(status: RecoveryStatus = .moderate) -> RecoverySummary {
         RecoverySummary(
             score: status == .low ? 35 : (status == .ready ? 80 : 60),
             status: status,

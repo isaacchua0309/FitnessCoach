@@ -41,14 +41,14 @@ final class HealthBaselineServiceTests: XCTestCase {
         let context = await service.buildContext(for: target, calendar: calendar)
 
         XCTAssertEqual(context.targetDate, calendar.startOfDay(for: target))
-        XCTAssertEqual(context.averageSteps7d, 8_000, accuracy: 0.01)
-        XCTAssertEqual(context.averageSteps28d, 8_000, accuracy: 0.01)
-        XCTAssertEqual(context.averageActiveEnergy7d, 400, accuracy: 0.01)
-        XCTAssertEqual(context.averageActiveEnergy28d, 400, accuracy: 0.01)
-        XCTAssertEqual(context.averageSleepDuration7d, 420, accuracy: 0.01)
-        XCTAssertEqual(context.averageSleepDuration28d, 420, accuracy: 0.01)
-        XCTAssertEqual(context.averageRestingHeartRate28d, 58, accuracy: 0.01)
-        XCTAssertEqual(context.averageHRV28d, 45, accuracy: 0.01)
+        assertEqual(context.averageSteps7d, 8_000, accuracy: 0.01)
+        assertEqual(context.averageSteps28d, 8_000, accuracy: 0.01)
+        assertEqual(context.averageActiveEnergy7d, 400, accuracy: 0.01)
+        assertEqual(context.averageActiveEnergy28d, 400, accuracy: 0.01)
+        assertEqual(context.averageSleepDuration7d, 420, accuracy: 0.01)
+        assertEqual(context.averageSleepDuration28d, 420, accuracy: 0.01)
+        assertEqual(context.averageRestingHeartRate28d, 58, accuracy: 0.01)
+        assertEqual(context.averageHRV28d, 45, accuracy: 0.01)
         XCTAssertNotNil(context.averageWorkoutLoad28d)
         XCTAssertEqual(context.workoutDays7d, 3)
         XCTAssertEqual(context.workoutDays28d, 3)
@@ -68,8 +68,8 @@ final class HealthBaselineServiceTests: XCTestCase {
 
         let context = await service.buildContext(for: target, calendar: calendar)
 
-        XCTAssertEqual(context.averageSteps7d, 10_000, accuracy: 0.01)
-        XCTAssertEqual(context.averageSteps28d, 10_000, accuracy: 0.01)
+        assertEqual(context.averageSteps7d, 10_000, accuracy: 0.01)
+        assertEqual(context.averageSteps28d, 10_000, accuracy: 0.01)
         XCTAssertNil(context.averageActiveEnergy7d)
         XCTAssertNil(context.averageActiveEnergy28d)
         XCTAssertNil(context.averageSleepDuration7d)
@@ -161,9 +161,9 @@ final class HealthBaselineServiceTests: XCTestCase {
 
         let context = await service.buildContext(for: target, calendar: calendar)
 
-        XCTAssertEqual(context.averageSteps7d, 9_000, accuracy: 0.01)
+        assertEqual(context.averageSteps7d, 9_000, accuracy: 0.01)
         XCTAssertNil(context.averageSteps28d)
-        XCTAssertEqual(context.averageActiveEnergy7d, 420, accuracy: 0.01)
+        assertEqual(context.averageActiveEnergy7d, 420, accuracy: 0.01)
         XCTAssertNil(context.averageActiveEnergy28d)
         XCTAssertNotNil(context.averageSleepDuration7d)
         XCTAssertNil(context.averageSleepDuration28d)
@@ -187,6 +187,16 @@ final class HealthBaselineServiceTests: XCTestCase {
     }
 
     // MARK: - Helpers
+
+    private func assertEqual(_ value: Double?, _ expected: Double, accuracy: Double, file: StaticString = #filePath, line: UInt = #line) {
+        guard let value else {
+            XCTFail("Expected \(expected) but value was nil", file: file, line: line)
+            return
+        }
+        XCTAssertEqual(value, expected, accuracy: accuracy, file: file, line: line)
+    }
+
+    // MARK: - Date helpers
 
     private func makeDate(_ year: Int, _ month: Int, _ day: Int) -> Date {
         calendar.date(from: DateComponents(year: year, month: month, day: day))!

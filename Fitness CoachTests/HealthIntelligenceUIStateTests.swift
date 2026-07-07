@@ -259,9 +259,9 @@ final class HealthIntelligenceUIStateTests: XCTestCase {
             HealthIntelligenceUIContext(
                 availability: readableAvailability,
                 snapshot: activityOnlySnapshot,
+                lastSuccessfulLocalSyncAt: staleSync,
                 isAppleHealthConnected: true,
-                cachedDayCount: 5,
-                lastSuccessfulLocalSyncAt: staleSync
+                cachedDayCount: 5
             )
         )
 
@@ -272,19 +272,19 @@ final class HealthIntelligenceUIStateTests: XCTestCase {
             canShowInsight: true,
             reason: .staleLocalCache
         )
-        XCTAssertEqual(state.primaryAction, .refreshHealthData)
+        XCTAssertEqual(state.primaryAction, HealthIntelligenceUIAction.refreshHealthData)
     }
 
     func testRemoteSyncDisabledState() {
         let state = resolve(
             HealthIntelligenceUIContext(
+                isRemoteSyncCapabilityEnabled: true,
+                isRemoteSyncUserEnabled: false,
+                remoteSyncConsentDecision: .optedOut,
                 availability: readableAvailability,
                 snapshot: emptySnapshot,
                 isAppleHealthConnected: true,
-                cachedDayCount: 0,
-                isRemoteSyncCapabilityEnabled: true,
-                isRemoteSyncUserEnabled: false,
-                remoteSyncConsentDecision: .optedOut
+                cachedDayCount: 0
             )
         )
 
@@ -295,8 +295,8 @@ final class HealthIntelligenceUIStateTests: XCTestCase {
             canShowInsight: false,
             reason: .remoteSyncOptedOut
         )
-        XCTAssertEqual(state.primaryAction, .manageHealthDataSync)
-        XCTAssertTrue(state.missingInsightKinds.contains(.remoteSync))
+        XCTAssertEqual(state.primaryAction, HealthIntelligenceUIAction.manageHealthDataSync)
+        XCTAssertTrue(state.missingInsightKinds.contains(HealthInsightAvailability.remoteSync))
     }
 
     func testUnknownStateWhenSnapshotMissing() {
@@ -451,7 +451,7 @@ final class HealthIntelligenceUIStateTests: XCTestCase {
                 ctaTitle: "",
                 destination: .none,
                 priority: 0,
-                reason: .none,
+                reason: .stayOnPlan,
                 createdAt: now,
                 expiresAt: nil
             )
@@ -484,7 +484,7 @@ final class HealthIntelligenceUIStateTests: XCTestCase {
                 ctaTitle: "Log",
                 destination: .logMeal,
                 priority: 2,
-                reason: .nutritionGap,
+                reason: .noMealLogged,
                 createdAt: now,
                 expiresAt: nil
             )
@@ -517,7 +517,7 @@ final class HealthIntelligenceUIStateTests: XCTestCase {
                 ctaTitle: "Log",
                 destination: .logMeal,
                 priority: 2,
-                reason: .nutritionGap,
+                reason: .noMealLogged,
                 createdAt: now,
                 expiresAt: nil
             )
@@ -550,7 +550,7 @@ final class HealthIntelligenceUIStateTests: XCTestCase {
                 ctaTitle: "Add",
                 destination: .addWater,
                 priority: 2,
-                reason: .hydrationGap,
+                reason: .hydration,
                 createdAt: now,
                 expiresAt: nil
             )
@@ -632,7 +632,7 @@ final class HealthIntelligenceUIStateTests: XCTestCase {
                 ctaTitle: "Log",
                 destination: .logMeal,
                 priority: 2,
-                reason: .nutritionGap,
+                reason: .noMealLogged,
                 createdAt: now,
                 expiresAt: nil
             )
@@ -665,7 +665,7 @@ final class HealthIntelligenceUIStateTests: XCTestCase {
                 ctaTitle: "Log",
                 destination: .logMeal,
                 priority: 2,
-                reason: .nutritionGap,
+                reason: .noMealLogged,
                 createdAt: now,
                 expiresAt: nil
             )
@@ -769,7 +769,7 @@ private extension HealthIntelligenceUIContext {
                         ctaTitle: "Log",
                         destination: .logMeal,
                         priority: 1,
-                        reason: .none,
+                        reason: .stayOnPlan,
                         createdAt: now,
                         expiresAt: nil
                     )
@@ -817,7 +817,7 @@ private extension HealthIntelligenceUIContext {
                         ctaTitle: "",
                         destination: .none,
                         priority: 0,
-                        reason: .none,
+                        reason: .stayOnPlan,
                         createdAt: now,
                         expiresAt: nil
                     )
@@ -867,7 +867,7 @@ private extension HealthIntelligenceUIContext {
                         ctaTitle: "Log",
                         destination: .logMeal,
                         priority: 1,
-                        reason: .none,
+                        reason: .stayOnPlan,
                         createdAt: now,
                         expiresAt: nil
                     )
@@ -924,7 +924,7 @@ private extension HealthIntelligenceUIContext {
                         ctaTitle: "Log",
                         destination: .logMeal,
                         priority: 1,
-                        reason: .none,
+                        reason: .stayOnPlan,
                         createdAt: now,
                         expiresAt: nil
                     )
@@ -981,7 +981,7 @@ private extension HealthIntelligenceUIContext {
                         ctaTitle: "Log",
                         destination: .logMeal,
                         priority: 1,
-                        reason: .none,
+                        reason: .stayOnPlan,
                         createdAt: now,
                         expiresAt: nil
                     )
@@ -1028,7 +1028,7 @@ private extension HealthIntelligenceUIContext {
                         ctaTitle: "",
                         destination: .none,
                         priority: 0,
-                        reason: .none,
+                        reason: .stayOnPlan,
                         createdAt: now,
                         expiresAt: nil
                     )
@@ -1042,6 +1042,7 @@ private extension HealthIntelligenceUIContext {
             self.init(explicitErrorMessage: "Failed", syncPhase: .failed, now: now)
         case .staleData:
             self.init(
+                lastSuccessfulLocalSyncAt: now.addingTimeInterval(-48 * 60 * 60),
                 availability: HealthDataAvailability(
                     isHealthDataAvailable: true,
                     permissionStatus: .uniform(.available, isHealthDataAvailable: true),
@@ -1072,18 +1073,20 @@ private extension HealthIntelligenceUIContext {
                         ctaTitle: "Log",
                         destination: .logMeal,
                         priority: 1,
-                        reason: .none,
+                        reason: .stayOnPlan,
                         createdAt: now,
                         expiresAt: nil
                     )
                 ),
-                lastSuccessfulLocalSyncAt: now.addingTimeInterval(-48 * 60 * 60),
                 isAppleHealthConnected: true,
                 cachedDayCount: 5,
                 now: now
             )
         case .remoteSyncDisabled:
             self.init(
+                isRemoteSyncCapabilityEnabled: true,
+                isRemoteSyncUserEnabled: false,
+                remoteSyncConsentDecision: .optedOut,
                 availability: HealthDataAvailability(
                     isHealthDataAvailable: true,
                     permissionStatus: .uniform(.available, isHealthDataAvailable: true),
@@ -1104,16 +1107,13 @@ private extension HealthIntelligenceUIContext {
                         ctaTitle: "",
                         destination: .none,
                         priority: 0,
-                        reason: .none,
+                        reason: .stayOnPlan,
                         createdAt: now,
                         expiresAt: nil
                     )
                 ),
                 isAppleHealthConnected: true,
                 cachedDayCount: 0,
-                isRemoteSyncCapabilityEnabled: true,
-                isRemoteSyncUserEnabled: false,
-                remoteSyncConsentDecision: .optedOut,
                 now: now
             )
         case .unknown:

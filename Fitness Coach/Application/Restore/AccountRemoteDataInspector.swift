@@ -164,11 +164,13 @@ struct AccountRemoteDataInspector: AccountRemoteDataInspecting {
             referenceDate: today,
             calendar: calendar
         )
-        let recentDates = AccountSyncPuller.localDates(
-            from: dailyRange.start,
-            to: dailyRange.end,
-            calendar: calendar
-        )
+        let recentDates = await MainActor.run {
+            AccountSyncPuller.localDates(
+                from: dailyRange.start,
+                to: dailyRange.end,
+                calendar: calendar
+            )
+        }
 
         var failures: [AccountRemoteDataInspectionFailure] = []
         var updatedAtCandidates: [Date?] = []

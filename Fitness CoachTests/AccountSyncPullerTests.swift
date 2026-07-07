@@ -319,7 +319,7 @@ final class AccountSyncPullerTests: XCTestCase {
         try await remoteStore.saveDailyLog(remoteDailyLog, uid: ownerUID)
         try await remoteStore.saveFoodEntry(remoteFood, uid: ownerUID)
 
-        let summary = await puller.mergeFetchedDocuments(
+        let summary = try puller.mergeFetchedDocuments(
             for: ownerUID,
             dailyLogs: [remoteDailyLog],
             foodEntries: [remoteFood],
@@ -406,7 +406,7 @@ final class AccountSyncPullerTests: XCTestCase {
             referenceDate: referenceDate
         ).with {
             $0.caloriesConsumed = caloriesConsumed
-            $0.proteinConsumed = proteinConsumed
+            $0.proteinConsumed = Double(proteinConsumed)
         }
     }
 

@@ -206,7 +206,7 @@ final class HealthIntelligencePhase11FullDataIntegrationTests: XCTestCase {
             date: harness.today,
             snapshotProvider: snapshotProvider,
             healthActivityQuery: harness.healthActivityQuery,
-            loadHealthIntelligence: { flags.coachContextEnabled },
+            loadHealthIntelligence: { self.flags.coachContextEnabled },
             calendar: HealthIntelligencePhase11IntegrationTestSupport.makeCalendar()
         )
 

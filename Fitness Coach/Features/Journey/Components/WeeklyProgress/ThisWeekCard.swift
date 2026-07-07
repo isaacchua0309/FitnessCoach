@@ -129,7 +129,7 @@ struct ThisWeekCard: View {
                     .padding(.vertical, FormaTokens.Spacing.xs)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(FormaCardChrome.background(.surfaceSubtle))
+                            .fill(FormaTokens.Color.surfaceSubtle)
                     )
                     .accessibilityLabel(stat.label)
             }

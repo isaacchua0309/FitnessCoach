@@ -53,6 +53,7 @@ enum UserDataOwnerScope {
         return entityUserId == sessionUID
     }
 
+    @MainActor
     static func filterVisibleNutritionEntities<T: UserDataNutritionOwnershipEntity>(
         _ entities: [T],
         sessionUID: String?
@@ -60,6 +61,7 @@ enum UserDataOwnerScope {
         entities.filter { isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }
     }
 
+    @MainActor
     static func filterVisibleCoachEntities<T: UserDataCoachOwnershipEntity>(
         _ entities: [T],
         sessionUID: String?
@@ -72,6 +74,7 @@ enum UserDataOwnerScope {
         try UserDataOwnership.requireUID(sessionUID, operation: operation)
     }
 
+    @MainActor
     static func stampNewNutritionWrite(
         on entity: some UserDataNutritionOwnershipEntity,
         ownerUID: String,
@@ -82,6 +85,7 @@ enum UserDataOwnerScope {
         entity.entitySchemaVersion = UserDataEntitySchema.currentEntitySchemaVersion
     }
 
+    @MainActor
     static func touchNutritionWrite(
         on entity: some UserDataNutritionOwnershipEntity,
         now: Date = Date()
@@ -89,6 +93,7 @@ enum UserDataOwnerScope {
         entity.localUpdatedAt = now
     }
 
+    @MainActor
     static func stampNewCoachWrite(
         on entity: some UserDataCoachOwnershipEntity,
         userId: String,
@@ -99,6 +104,7 @@ enum UserDataOwnerScope {
         entity.entitySchemaVersion = UserDataEntitySchema.currentEntitySchemaVersion
     }
 
+    @MainActor
     static func touchCoachWrite(
         on entity: some UserDataCoachOwnershipEntity,
         now: Date = Date()
@@ -107,6 +113,7 @@ enum UserDataOwnerScope {
     }
 
     /// Ensures a daily log belongs to the active account before attaching child rows.
+    @MainActor
     static func requireMatchingDailyLogOwner(
         _ dailyLog: DailyLogEntity,
         sessionUID: String

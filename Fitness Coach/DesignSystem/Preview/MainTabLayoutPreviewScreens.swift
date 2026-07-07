@@ -10,6 +10,7 @@ import SwiftUI
 
 #if DEBUG
 
+@MainActor
 enum MainTabLayoutPreviewScreens {
 
     enum Metrics {
@@ -245,6 +246,7 @@ enum MainTabLayoutPreviewScreens {
 
     // MARK: - Snapshot routing
 
+    @ViewBuilder
     static func snapshotView(
         for fixture: MainTabLayoutSnapshotFixture,
         palette: AppThemePalette = .oceanBlue,

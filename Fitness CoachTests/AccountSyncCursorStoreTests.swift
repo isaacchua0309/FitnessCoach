@@ -14,18 +14,20 @@ final class AccountSyncCursorStoreTests: XCTestCase {
     private let uidB = "user-b"
     private let referenceDate = ProfileFixtures.referenceDate
 
+    private var suiteName: String!
     private var defaults: UserDefaults!
     private var store: AccountSyncCursorStore!
 
     override func setUp() {
         super.setUp()
-        defaults = UserDefaults(suiteName: "AccountSyncCursorStoreTests.\(UUID().uuidString)")!
+        suiteName = "AccountSyncCursorStoreTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)!
         store = AccountSyncCursorStore(userDefaults: defaults)
     }
 
     override func tearDown() {
         store = nil
-        defaults.removePersistentDomain(forName: defaults.suiteName!)
+        defaults.removePersistentDomain(forName: suiteName)
         defaults = nil
         super.tearDown()
     }

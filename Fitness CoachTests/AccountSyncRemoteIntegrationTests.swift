@@ -183,7 +183,8 @@ final class AccountSyncRemoteIntegrationTests: XCTestCase {
             entityId: foodID.uuidString,
             localDate: localDate
         )
-        XCTAssertEqual(try await harness.remoteStore.fetchFoodEntries(uid: userA, localDate: localDate).count, 1)
+        let remoteFoodEntriesBeforeDelete = try await harness.remoteStore.fetchFoodEntries(uid: userA, localDate: localDate)
+        XCTAssertEqual(remoteFoodEntriesBeforeDelete.count, 1)
 
         food.deletedAt = referenceDate
         food.syncStatus = .pendingDelete
@@ -197,7 +198,8 @@ final class AccountSyncRemoteIntegrationTests: XCTestCase {
             operation: .delete
         )
 
-        XCTAssertEqual(try await harness.remoteStore.fetchFoodEntries(uid: userA, localDate: localDate).count, 0)
+        let remoteFoodEntriesAfterDelete = try await harness.remoteStore.fetchFoodEntries(uid: userA, localDate: localDate)
+        XCTAssertEqual(remoteFoodEntriesAfterDelete.count, 0)
         XCTAssertNil(try harness.fetchFoodEntity(id: foodID))
     }
 
