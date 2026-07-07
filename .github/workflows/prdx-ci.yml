@@ -1,0 +1,42 @@
+name: PRDX CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  functions:
+    name: functions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        run: npm --prefix functions ci
+
+      - name: Lint
+        run: npm --prefix functions run lint
+
+      - name: Test
+        run: npm --prefix functions test
+
+  ios-fast-core:
+    name: ios-fast-core
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project "Fitness Coach.xcodeproj"
+
+      - name: Run Fast-Core tests
+        run: ./Scripts/run_fast_core_tests.sh

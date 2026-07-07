@@ -17,7 +17,7 @@ struct MainTabHeroText: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.theme) private var theme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .largeTitle) private var fontSize: CGFloat
+    @ScaledMetric private var fontSize: CGFloat
 
     enum Tier {
         /// Dominant tab hero — e.g. Today "2,080 remaining".

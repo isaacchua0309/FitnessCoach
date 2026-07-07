@@ -87,9 +87,9 @@ final class CoachPendingFoodCardLayoutRegressionTests: XCTestCase {
 
         XCTAssertNil(model.pendingConfirmation)
         XCTAssertFalse(model.isConfirmingPending)
-        XCTAssertFalse(harness.actionCenter.getFoodEntries(for: harness.today).isEmpty)
+        XCTAssertFalse(try harness.actionCenter.getFoodEntries(for: harness.today).isEmpty)
         XCTAssertEqual(
-            harness.actionCenter.getFoodEntries(for: harness.today).first?.name,
+            try harness.actionCenter.getFoodEntries(for: harness.today).first?.name,
             draft.primaryMealDraft.displayName
         )
     }

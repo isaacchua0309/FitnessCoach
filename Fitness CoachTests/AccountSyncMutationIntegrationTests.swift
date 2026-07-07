@@ -63,7 +63,7 @@ final class AccountSyncMutationIntegrationTests: XCTestCase {
 
         _ = try harness.actionCenter.editFoodEntry(
             id: entry.id,
-            update: FoodEntryUpdate(calories: 240, name: "Brown rice")
+            update: FoodEntryUpdate(name: "Brown rice", calories: 240)
         )
 
         let foodEntity = try XCTUnwrap(fetchFoodEntity(id: entry.id, in: harness.base.store))
@@ -233,7 +233,7 @@ final class AccountSyncMutationIntegrationTests: XCTestCase {
         let container = try FormaModelContainer.makeContainer(inMemory: false, storeURL: storeURL)
         let store = SwiftDataStore(container: container)
         let outbox = SwiftDataAccountSyncOutboxStore(store: store)
-        let tracker = AccountLocalMutationTracker(outbox: outbox, ownerUIDProvider: { ownerUID })
+        let tracker = AccountLocalMutationTracker(outbox: outbox, ownerUIDProvider: { self.ownerUID })
         let profileService = UserProfileService(store: store)
         let dailyLogService = DailyLogService(
             store: store,

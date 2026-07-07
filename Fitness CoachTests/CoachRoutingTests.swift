@@ -804,79 +804,6 @@ final class CoachRoutingTests: XCTestCase {
 
 // MARK: - Test doubles
 
-private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
-    var classifyCoachIntentCallCount = 0
-    var estimateFoodCallCount = 0
-    var mealAdviceCallCount = 0
-    var parseWorkoutCallCount = 0
-    var mealAdviceError: Error?
-
-    func classifyCoachIntent(
-        _ text: String,
-        context: CoachContextPacketV2,
-        config: CoachModelConfig
-    ) async throws -> CoachIntentResult {
-        classifyCoachIntentCallCount += 1
-        return CoachIntentResult(
-            intent: .unrelatedOrUnsupported,
-            confidence: 0,
-            domain: .unrelated,
-            requiresAppMutation: false,
-            requiresUserContext: false,
-            canAnswerWithCheapModel: false,
-            requiresEscalation: false
-        )
-    }
-
-    func estimateFood(
-        prompt: String,
-        context: CoachContextPacketV2,
-        imageJPEGData: Data?
-    ) async throws -> AIFoodEstimateResponse {
-        estimateFoodCallCount += 1
-        throw AIServiceError.backendUnavailable
-    }
-
-    func generateMealAdvice(
-        prompt: String,
-        context: CoachContextPacketV2,
-        intentResult: CoachIntentResult?,
-        tier: CoachModelTier
-    ) async throws -> AICoachResponse {
-        mealAdviceCallCount += 1
-        if let mealAdviceError { throw mealAdviceError }
-        return AICoachResponse(message: "Stub advice.", confidence: .medium)
-    }
-
-    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
-        parseWorkoutCallCount += 1
-        throw AIServiceError.backendUnavailable
-    }
-
-    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
-    }
-
-    func generateDailyReviewText(
-        input: DailyReviewAIInput,
-        context: CoachContextPacketV2
-    ) async throws -> DailyReviewAIResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
-    }
-
-    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-        throw AIServiceError.backendUnavailable
-    }
-}
-
 private final class StubClassifierAIService: AIServiceProtocol, @unchecked Sendable {
     var classifyCoachIntentCallCount = 0
     var estimateFoodCallCount = 0
@@ -945,7 +872,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func generateDailyReviewText(

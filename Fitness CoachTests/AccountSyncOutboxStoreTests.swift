@@ -280,9 +280,8 @@ final class AccountSyncOutboxStoreTests: XCTestCase {
             mutationGroupId: nil
         )
 
-        let mutationID = try XCTUnwrap(
-            try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate).first?.id
-        )
+        let dueMutations = try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate)
+        let mutationID = try XCTUnwrap(dueMutations.first?.id)
         try await outbox.markInFlight([mutationID], ownerUID: ownerUID)
 
         try await outbox.markFailed(
@@ -326,9 +325,8 @@ final class AccountSyncOutboxStoreTests: XCTestCase {
             mutationGroupId: nil
         )
 
-        let mutationID = try XCTUnwrap(
-            try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate).first?.id
-        )
+        let dueMutations = try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate)
+        let mutationID = try XCTUnwrap(dueMutations.first?.id)
 
         await XCTAssertThrowsErrorAsync {
             try await self.outbox.markInFlight([mutationID], ownerUID: self.otherOwnerUID)
@@ -382,9 +380,8 @@ final class AccountSyncOutboxStoreTests: XCTestCase {
             operation: .upsert,
             mutationGroupId: nil
         )
-        let cancellableID = try XCTUnwrap(
-            try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate).first?.id
-        )
+        let cancellableDueMutations = try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate)
+        let cancellableID = try XCTUnwrap(cancellableDueMutations.first?.id)
         try await outbox.cancel(cancellableID, ownerUID: ownerUID)
         let cancelledEntity = try XCTUnwrap(fetchMutationEntity(id: cancellableID))
         XCTAssertEqual(cancelledEntity.status, .cancelled)
@@ -424,9 +421,8 @@ final class AccountSyncOutboxStoreTests: XCTestCase {
             operation: .upsert,
             mutationGroupId: nil
         )
-        let ownerMutationID = try XCTUnwrap(
-            try await remoteOutbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate).first?.id
-        )
+        let ownerDueMutations = try await remoteOutbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate)
+        let ownerMutationID = try XCTUnwrap(ownerDueMutations.first?.id)
         try await remoteOutbox.markInFlight([ownerMutationID], ownerUID: ownerUID)
         try await remoteOutbox.markSucceeded(ownerMutationID, ownerUID: ownerUID)
         if let ownerEntity = fetchMutationEntity(id: ownerMutationID) {
@@ -442,9 +438,8 @@ final class AccountSyncOutboxStoreTests: XCTestCase {
             operation: .upsert,
             mutationGroupId: nil
         )
-        let otherMutationID = try XCTUnwrap(
-            try await remoteOutbox.fetchDueMutations(ownerUID: otherOwnerUID, limit: 1, now: referenceDate).first?.id
-        )
+        let otherDueMutations = try await remoteOutbox.fetchDueMutations(ownerUID: otherOwnerUID, limit: 1, now: referenceDate)
+        let otherMutationID = try XCTUnwrap(otherDueMutations.first?.id)
         try await remoteOutbox.markInFlight([otherMutationID], ownerUID: otherOwnerUID)
         try await remoteOutbox.markSucceeded(otherMutationID, ownerUID: otherOwnerUID)
 

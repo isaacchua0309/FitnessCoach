@@ -13,17 +13,17 @@ final class CoachCameraCaptureTests: XCTestCase {
 
     func testPrepareJPEGFromUIImageProducesPayload() {
         let image = Self.makeTestImage()
-        guard case .success(let data) = CoachMealPhotoPipeline.prepareJPEG(from: image) else {
+        guard case .success(let processed) = CoachImagePipeline.process(image: image) else {
             return XCTFail("Expected JPEG from camera image")
         }
-        XCTAssertTrue(CoachMealPhotoPipeline.hasImagePayload(data))
+        XCTAssertTrue(CoachMealPhotoPipeline.hasImagePayload(processed.uploadData))
     }
 
     func testPrepareJPEGFromUIImageRejectsEmptyEncoding() {
         let image = UIImage()
         XCTAssertEqual(
-            CoachMealPhotoPipeline.prepareJPEG(from: image),
-            .failure(.loadFailed)
+            CoachImagePipeline.process(image: image),
+            .failure(.invalidInput)
         )
     }
 

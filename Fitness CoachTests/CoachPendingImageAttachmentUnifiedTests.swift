@@ -6,6 +6,7 @@
 //
 
 import PhotosUI
+import SwiftUI
 import UIKit
 import XCTest
 @testable import Fitness_Coach
@@ -33,7 +34,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
         let image = makeTestImage(size: CGSize(width: 900, height: 700), color: .systemGreen)
-        let flow = CoachImagePickFlowController { _ in
+        let flow = CoachImagePickFlowController { [self] _ in
             .success(
                 CoachImagePipeline.PhotoLibraryLoadedImage(
                     image: image,
@@ -43,7 +44,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         }
         let item = PhotosPickerItem(itemIdentifier: "coach-unified-library-attach-test")
 
-        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), CoachPhotoLibraryPickBeginOutcome.started)
         let pickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
         await simulateLibrarySelection(flow: flow, item: item, model: model, pickID: pickID)
 
@@ -58,7 +59,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
         let cameraFlow = CoachImagePickFlowController()
-        let libraryFlow = CoachImagePickFlowController { _ in
+        let libraryFlow = CoachImagePickFlowController { [self] _ in
             .success(
                 CoachImagePipeline.PhotoLibraryLoadedImage(
                     image: makeTestImage(size: CGSize(width: 640, height: 480), color: .systemTeal),
@@ -77,7 +78,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         model.removeStagedMealPhoto()
         cameraFlow.handleAttachmentRemoved()
 
-        XCTAssertEqual(libraryFlow.beginPhotoLibraryPick(model: model), .started)
+        XCTAssertEqual(libraryFlow.beginPhotoLibraryPick(model: model), CoachPhotoLibraryPickBeginOutcome.started)
         let pickID = try XCTUnwrap(libraryFlow.activeLibraryPickSessionID)
         await simulateLibrarySelection(
             flow: libraryFlow,
@@ -102,9 +103,9 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
     func testRemovingLibraryImageClearsComposer() async throws {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
-        let flow = makeLibraryFlow(image: makeTestImage(size: CGSize(width: 500, height: 400)))
+        let flow = makeLibraryFlow(image: makeTestImage(size: CGSize(width: 500, height: 400), color: .systemOrange))
 
-        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), CoachPhotoLibraryPickBeginOutcome.started)
         let pickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
         await simulateLibrarySelection(
             flow: flow,
@@ -121,7 +122,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         XCTAssertNil(model.inputState.imageError)
         XCTAssertNil(model.pendingImageLocalSource(for: localReferenceID))
         XCTAssertTrue(model.inputState.canStartImageSelection)
-        XCTAssertEqual(flow.state, .idle)
+        XCTAssertEqual(flow.state, CoachImagePickFlowState.idle)
         XCTAssertFalse(flow.isPhotoPickerPresented)
     }
 
@@ -130,7 +131,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
     func testReplacingCameraImageWithLibraryImageWorks() async throws {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
-        let flow = CoachImagePickFlowController { _ in
+        let flow = CoachImagePickFlowController { [self] _ in
             .success(
                 CoachImagePipeline.PhotoLibraryLoadedImage(
                     image: makeTestImage(size: CGSize(width: 700, height: 500), color: .systemGreen),
@@ -145,7 +146,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         let cameraUpload = try XCTUnwrap(model.inputState.pendingImage?.uploadData)
         let cameraID = try XCTUnwrap(model.inputState.pendingImage?.id)
 
-        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), CoachPhotoLibraryPickBeginOutcome.started)
         let pickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
         flow.markLibrarySelectionReceived(claimedPickID: pickID)
         XCTAssertTrue(flow.beginPhotoLibrarySelectionHandling())
@@ -169,7 +170,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         let model = makeModel(container: container)
         let flow = makeLibraryFlow(image: makeTestImage(size: CGSize(width: 640, height: 480), color: .systemOrange))
 
-        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), CoachPhotoLibraryPickBeginOutcome.started)
         let pickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
         await simulateLibrarySelection(
             flow: flow,
@@ -194,7 +195,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
         var shouldFail = false
-        let flow = CoachImagePickFlowController { _ in
+        let flow = CoachImagePickFlowController { [self] _ in
             if shouldFail {
                 return .failure(.loadFailed)
             }
@@ -206,7 +207,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
             )
         }
 
-        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), CoachPhotoLibraryPickBeginOutcome.started)
         let firstPickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
         await simulateLibrarySelection(
             flow: flow,
@@ -220,7 +221,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         let originalReferenceID = try XCTUnwrap(model.inputState.pendingImage?.localReferenceID)
 
         shouldFail = true
-        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
+        XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), CoachPhotoLibraryPickBeginOutcome.started)
         let secondPickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
         flow.markLibrarySelectionReceived(claimedPickID: secondPickID)
         XCTAssertTrue(flow.beginPhotoLibrarySelectionHandling())
@@ -251,7 +252,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
     }
 
     private func makeLibraryFlow(image: UIImage) -> CoachImagePickFlowController {
-        CoachImagePickFlowController { _ in
+        CoachImagePickFlowController { [image] _ in
             .success(
                 CoachImagePipeline.PhotoLibraryLoadedImage(
                     image: image,
@@ -297,12 +298,5 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
             color.setFill()
             context.fill(CGRect(origin: .zero, size: size))
         }
-    }
-}
-
-@MainActor
-private extension CoachImagePickFlowController {
-    func setStateForTests(_ newState: CoachImagePickFlowState) {
-        state = newState
     }
 }

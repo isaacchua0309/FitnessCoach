@@ -193,7 +193,7 @@ final class CoachContextHealthIntelligenceDefaultOnTests: XCTestCase {
         ).makeContext(recentMessages: [], mode: .live)
 
         XCTAssertEqual(packet.training?.trainingLoad, TrainingLoadStatus.high.rawValue)
-        XCTAssertEqual(packet.training?.trainingLoadConfidence, .moderate)
+        XCTAssertEqual(packet.training?.trainingLoadConfidence, .medium)
         XCTAssertEqual(packet.healthIntelligence?.trainingLoadStatus, TrainingLoadStatus.high.rawValue)
     }
 

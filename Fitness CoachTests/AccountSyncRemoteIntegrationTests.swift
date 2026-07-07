@@ -183,7 +183,8 @@ final class AccountSyncRemoteIntegrationTests: XCTestCase {
             entityId: foodID.uuidString,
             localDate: localDate
         )
-        XCTAssertEqual(try await harness.remoteStore.fetchFoodEntries(uid: userA, localDate: localDate).count, 1)
+        let remoteFoodCountAfterUpload = try await harness.remoteStore.fetchFoodEntries(uid: userA, localDate: localDate).count
+        XCTAssertEqual(remoteFoodCountAfterUpload, 1)
 
         food.deletedAt = referenceDate
         food.syncStatus = .pendingDelete
@@ -197,7 +198,8 @@ final class AccountSyncRemoteIntegrationTests: XCTestCase {
             operation: .delete
         )
 
-        XCTAssertEqual(try await harness.remoteStore.fetchFoodEntries(uid: userA, localDate: localDate).count, 0)
+        let remoteFoodCountAfterDelete = try await harness.remoteStore.fetchFoodEntries(uid: userA, localDate: localDate).count
+        XCTAssertEqual(remoteFoodCountAfterDelete, 0)
         XCTAssertNil(try harness.fetchFoodEntity(id: foodID))
     }
 
@@ -385,9 +387,9 @@ private struct RemoteSyncHarness {
     func seedDailyLog(
         ownerUID: String,
         caloriesConsumed: Int = 0,
-        proteinConsumed: Int = 0,
-        carbsConsumed: Int = 0,
-        fatConsumed: Int = 0,
+        proteinConsumed: Double = 0,
+        carbsConsumed: Double = 0,
+        fatConsumed: Double = 0,
         waterConsumedMl: Int = 0
     ) throws -> DailyLogEntity {
         let entity = DailyLogEntity(

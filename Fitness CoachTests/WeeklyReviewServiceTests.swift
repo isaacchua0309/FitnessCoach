@@ -294,6 +294,7 @@ private final class WeeklyReviewServiceTestHarness {
         self.cacheStore = MemoryHealthCacheStore()
         self.countingEngine = CountingWeeklyReviewEngine()
         self.clock = FakeClock(now: referenceDate, calendar: calendar)
+        let hiClock = FakeHealthIntelligenceClock(clock: clock)
 
         let resolvedNutrition = nutritionProvider ?? self.nutritionProvider
         let resolvedWeight = weightProvider ?? self.weightProvider
@@ -304,7 +305,7 @@ private final class WeeklyReviewServiceTestHarness {
             nutritionProvider: resolvedNutrition,
             weightProvider: resolvedWeight,
             userPlanProvider: resolvedUserPlan,
-            clock: clock
+            clock: hiClock
         )
 
         self.service = WeeklyReviewService(
@@ -313,7 +314,7 @@ private final class WeeklyReviewServiceTestHarness {
             recoveryEngine: RecoveryEngine(),
             trainingLoadEngine: TrainingLoadEngine(),
             cacheStore: cacheStore,
-            clock: clock,
+            clock: hiClock,
             enginesEnabled: enginesEnabled,
             weeklyReviewEnabled: weeklyReviewEnabled
         )

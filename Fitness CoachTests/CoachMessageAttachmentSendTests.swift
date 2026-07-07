@@ -21,11 +21,12 @@ final class CoachMessageAttachmentSendTests: XCTestCase {
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
         let jpeg = CoachImageWorkflowTestSupport.makeTestJPEG()
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto1 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: jpeg,
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto1)
         await model.sendCurrentMessage()
 
         let userMessage = try XCTUnwrap(model.messages.last(where: { $0.role == .user }))
@@ -43,11 +44,12 @@ final class CoachMessageAttachmentSendTests: XCTestCase {
         let jpeg = CoachImageWorkflowTestSupport.makeTestJPEG()
 
         model.inputText = "Lunch"
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto2 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: jpeg,
             source: .camera
-        ))
+        )
+        XCTAssertTrue(stagedPhoto2)
         await model.sendCurrentMessage()
 
         let userMessage = try XCTUnwrap(model.messages.last(where: { $0.role == .user }))
@@ -63,11 +65,12 @@ final class CoachMessageAttachmentSendTests: XCTestCase {
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
         let jpeg = CoachImageWorkflowTestSupport.makeTestJPEG()
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto3 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: jpeg,
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto3)
         await model.sendCurrentMessage()
 
         let userMessages = model.messages.filter { $0.role == .user }

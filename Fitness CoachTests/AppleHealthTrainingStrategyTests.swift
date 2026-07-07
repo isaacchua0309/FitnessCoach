@@ -544,7 +544,7 @@ private final class StrategyStubClassifierAIService: AIServiceProtocol, @uncheck
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target. Keep logging.", confidence: .medium)
     }
 
     func generateDailyReviewText(

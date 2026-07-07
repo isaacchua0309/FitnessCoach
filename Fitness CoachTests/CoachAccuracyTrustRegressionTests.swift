@@ -6,6 +6,7 @@
 //  Maps manual QA flows 1–13 to automated unit/integration coverage.
 //
 
+import SwiftUI
 import XCTest
 @testable import Fitness_Coach
 
@@ -80,7 +81,7 @@ final class CoachAccuracyTrustTextRegressionTests: XCTestCase {
         )
         XCTAssertEqual(service.classifyCoachIntentCallCount, 0)
         XCTAssertFalse(decision.requiresAPI)
-        XCTAssertEqual(decision.routeSource, .localGuard)
+        XCTAssertEqual(decision.routeSource, CoachRouteSource.localGuard)
         XCTAssertEqual(decision.chosenHandler, "local_food_estimate")
     }
 
@@ -156,13 +157,13 @@ final class CoachAccuracyTrustTextRegressionTests: XCTestCase {
         let response = NutritionEstimateResponse(
             foodName: "Chicken rice",
             displayEmoji: "🍗",
-            servingDescription: "1 plate",
             caloriesKcal: nil,
             caloriesRangeLowerKcal: 520,
             caloriesRangeUpperKcal: 680,
             proteinGrams: 32,
             carbsGrams: 65,
             fatGrams: 16,
+            servingDescription: "1 plate",
             confidenceLevel: .medium,
             confidenceLabel: "Medium confidence",
             confidenceReason: "Portion size varies at hawker stalls.",
@@ -661,13 +662,13 @@ final class CoachAccuracyTrustPlatformRegressionTests: XCTestCase {
             from: NutritionEstimateResponse(
                 foodName: "Chicken rice",
                 displayEmoji: "🍗",
-                servingDescription: "1 plate",
                 caloriesKcal: nil,
                 caloriesRangeLowerKcal: 480,
                 caloriesRangeUpperKcal: 620,
                 proteinGrams: 30,
                 carbsGrams: 55,
                 fatGrams: 14,
+                servingDescription: "1 plate",
                 confidenceLevel: .low,
                 confidenceLabel: "Low confidence",
                 confidenceReason: "Portion size unclear.",

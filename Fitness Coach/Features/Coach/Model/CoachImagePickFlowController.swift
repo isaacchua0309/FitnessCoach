@@ -35,7 +35,9 @@ final class CoachImagePickFlowController: ObservableObject {
     #endif
 
     init(
-        photoLibraryImageLoader: @escaping CoachPhotoLibraryImageLoader = CoachPhotoLibraryImageLoading.live
+        photoLibraryImageLoader: @escaping @Sendable (
+            PhotosPickerItem
+        ) async -> Result<CoachImagePipeline.PhotoLibraryLoadedImage, CoachMealPhotoError> = CoachPhotoLibraryImageLoading.live
     ) {
         self.photoLibraryImageLoader = photoLibraryImageLoader
     }
@@ -552,3 +554,11 @@ final class CoachImagePickFlowController: ObservableObject {
         state = .idle
     }
 }
+
+#if DEBUG
+extension CoachImagePickFlowController {
+    func setStateForTests(_ newState: CoachImagePickFlowState) {
+        state = newState
+    }
+}
+#endif
