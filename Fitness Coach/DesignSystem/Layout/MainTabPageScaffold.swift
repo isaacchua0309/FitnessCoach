@@ -165,6 +165,7 @@ extension MainTabPageScaffold where TrailingAction == EmptyView, BottomAccessory
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
         showsCrossDeviceRefreshBanner: Bool = false,
+        showsPageHeader: Bool = true,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
@@ -174,6 +175,7 @@ extension MainTabPageScaffold where TrailingAction == EmptyView, BottomAccessory
             scrollMode: scrollMode,
             sectionSpacing: sectionSpacing,
             showsCrossDeviceRefreshBanner: showsCrossDeviceRefreshBanner,
+            showsPageHeader: showsPageHeader,
             scrollTarget: scrollTarget,
             trailingAction: { EmptyView() },
             bottomAccessory: { EmptyView() },

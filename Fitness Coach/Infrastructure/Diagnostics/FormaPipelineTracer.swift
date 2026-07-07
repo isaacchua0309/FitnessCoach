@@ -60,7 +60,6 @@ struct PipelineTraceSummary: Identifiable, Sendable, Equatable {
 
 #if DEBUG
 
-@MainActor
 enum FormaPipelineTracer {
 
     static let traceHeaderName = "X-Forma-Trace-Id"
@@ -68,38 +67,38 @@ enum FormaPipelineTracer {
     private static let maxPersistedErrors = 50
     private static let logger = Logger(subsystem: "Forma", category: "PipelineTrace")
 
-    private static var events: [PipelineTraceEvent] = []
-    private static var summaries: [UUID: PipelineTraceSummary] = [:]
-    private static var traceStartTimes: [UUID: Date] = [:]
-    private static var activeTraceId: UUID?
+    @MainActor private static var events: [PipelineTraceEvent] = []
+    @MainActor private static var summaries: [UUID: PipelineTraceSummary] = [:]
+    @MainActor private static var traceStartTimes: [UUID: Date] = [:]
+    @MainActor private static var activeTraceId: UUID?
 
-    static var debugRecordHandler: ((DebugRecord) -> Void)?
+    @MainActor static var debugRecordHandler: ((DebugRecord) -> Void)?
 
-    static var isEnabled: Bool { FormaAbTest.Coach.pipelineTraceEnabled }
+    nonisolated static var isEnabled: Bool { FormaAbTest.Coach.pipelineTraceEnabled }
 
-    static var isVerbose: Bool { FormaAbTest.Coach.pipelineTraceVerbose }
+    nonisolated static var isVerbose: Bool { FormaAbTest.Coach.pipelineTraceVerbose }
 
-    static var usesExtendedHTTPTimeout: Bool {
+    nonisolated static var usesExtendedHTTPTimeout: Bool {
         isEnabled
     }
 
-    static var currentTraceId: UUID? {
+    @MainActor static var currentTraceId: UUID? {
         activeTraceId
     }
 
-    static var recentEvents: [PipelineTraceEvent] {
+    @MainActor static var recentEvents: [PipelineTraceEvent] {
         events
     }
 
-    static var recentSummaries: [PipelineTraceSummary] {
+    @MainActor static var recentSummaries: [PipelineTraceSummary] {
         summaries.values.sorted { $0.startedAt > $1.startedAt }
     }
 
-    static func events(for traceId: UUID) -> [PipelineTraceEvent] {
+    @MainActor static func events(for traceId: UUID) -> [PipelineTraceEvent] {
         events.filter { $0.traceId == traceId }.sorted { $0.timestamp < $1.timestamp }
     }
 
-    static func clear() {
+    @MainActor static func clear() {
         events.removeAll()
         summaries.removeAll()
         traceStartTimes.removeAll()
@@ -107,62 +106,24 @@ enum FormaPipelineTracer {
     }
 
     @discardableResult
-    static func beginTrace(userMessage: String) -> UUID {
+    nonisolated static func beginTrace(userMessage: String) -> UUID {
         guard isEnabled else { return UUID() }
 
         let traceId = UUID()
-        activeTraceId = traceId
-        let now = Date()
-        traceStartTimes[traceId] = now
-        summaries[traceId] = PipelineTraceSummary(
-            traceId: traceId,
-            userMessage: userMessage,
-            startedAt: now,
-            endedAt: nil,
-            outcome: nil,
-            hasError: false
-        )
-
-        record(
-            traceId: traceId,
-            stage: .coachSend,
-            level: .info,
-            message: "Coach message send started",
-            fields: ["userMessageLength": String(userMessage.count)]
-        )
+        Task { @MainActor in
+            beginTraceOnMainActor(traceId: traceId, userMessage: userMessage)
+        }
         return traceId
     }
 
-    static func endTrace(traceId: UUID, outcome: String, durationMs: Int? = nil) {
+    nonisolated static func endTrace(traceId: UUID, outcome: String, durationMs: Int? = nil) {
         guard isEnabled else { return }
-
-        var fields = ["outcome": outcome]
-        if let durationMs {
-            fields["durationMs"] = String(durationMs)
-        } else if let started = traceStartTimes[traceId] {
-            fields["durationMs"] = String(Int(Date().timeIntervalSince(started) * 1_000))
+        Task { @MainActor in
+            endTraceOnMainActor(traceId: traceId, outcome: outcome, durationMs: durationMs)
         }
-
-        if var summary = summaries[traceId] {
-            summary.endedAt = Date()
-            summary.outcome = outcome
-            summaries[traceId] = summary
-        }
-
-        record(
-            traceId: traceId,
-            stage: .coachEnd,
-            level: .info,
-            message: "Coach message completed",
-            fields: fields
-        )
-        if activeTraceId == traceId {
-            activeTraceId = nil
-        }
-        traceStartTimes.removeValue(forKey: traceId)
     }
 
-    static func event(
+    nonisolated static func event(
         traceId: UUID? = nil,
         stage: PipelineTraceStage,
         level: PipelineTraceLevel = .info,
@@ -170,38 +131,35 @@ enum FormaPipelineTracer {
         fields: [String: String] = [:]
     ) {
         guard isEnabled else { return }
-        let resolvedTraceId = traceId ?? activeTraceId ?? UUID()
-        record(traceId: resolvedTraceId, stage: stage, level: level, message: message, fields: fields)
+        Task { @MainActor in
+            eventOnMainActor(
+                traceId: traceId,
+                stage: stage,
+                level: level,
+                message: message,
+                fields: fields
+            )
+        }
     }
 
-    static func logError(
+    nonisolated static func logError(
         traceId: UUID? = nil,
         stage: PipelineTraceStage,
         message: String,
         fields: [String: String] = [:]
     ) {
         guard isEnabled else { return }
-        let resolvedTraceId = traceId ?? activeTraceId ?? UUID()
-
-        if var summary = summaries[resolvedTraceId] {
-            summary.hasError = true
-            summaries[resolvedTraceId] = summary
+        Task { @MainActor in
+            logErrorOnMainActor(
+                traceId: traceId,
+                stage: stage,
+                message: message,
+                fields: fields
+            )
         }
-
-        var merged = fields
-        merged["stage"] = stage.rawValue
-        record(
-            traceId: resolvedTraceId,
-            stage: .error,
-            level: .error,
-            message: message,
-            fields: merged
-        )
-
-        persistErrorIfNeeded(traceId: resolvedTraceId, stage: stage, message: message, fields: merged)
     }
 
-    static func exportTrace(traceId: UUID) -> String {
+    @MainActor static func exportTrace(traceId: UUID) -> String {
         let summary = summaries[traceId]
         var lines: [String] = []
         if let summary {
@@ -229,7 +187,7 @@ enum FormaPipelineTracer {
         return lines.joined(separator: "\n")
     }
 
-    static func sanitizedJSONSnippet(_ data: Data) -> String? {
+    nonisolated static func sanitizedJSONSnippet(_ data: Data) -> String? {
         guard isVerbose else { return nil }
         let limit = 2_048
         let raw = String(data: data.prefix(limit), encoding: .utf8) ?? "<non-utf8>"
@@ -240,13 +198,105 @@ enum FormaPipelineTracer {
         return sanitized
     }
 
-    static func redactSensitiveJSONFields(_ raw: String) -> String {
+    nonisolated static func redactSensitiveJSONFields(_ raw: String) -> String {
         LogRedactor.redactSensitiveJSONFields(raw)
+    }
+
+    // MARK: - MainActor state transitions
+
+    @MainActor private static func beginTraceOnMainActor(traceId: UUID, userMessage: String) {
+        activeTraceId = traceId
+        let now = Date()
+        traceStartTimes[traceId] = now
+        summaries[traceId] = PipelineTraceSummary(
+            traceId: traceId,
+            userMessage: userMessage,
+            startedAt: now,
+            endedAt: nil,
+            outcome: nil,
+            hasError: false
+        )
+
+        record(
+            traceId: traceId,
+            stage: .coachSend,
+            level: .info,
+            message: "Coach message send started",
+            fields: ["userMessageLength": String(userMessage.count)]
+        )
+    }
+
+    @MainActor private static func endTraceOnMainActor(
+        traceId: UUID,
+        outcome: String,
+        durationMs: Int?
+    ) {
+        var fields = ["outcome": outcome]
+        if let durationMs {
+            fields["durationMs"] = String(durationMs)
+        } else if let started = traceStartTimes[traceId] {
+            fields["durationMs"] = String(Int(Date().timeIntervalSince(started) * 1_000))
+        }
+
+        if var summary = summaries[traceId] {
+            summary.endedAt = Date()
+            summary.outcome = outcome
+            summaries[traceId] = summary
+        }
+
+        record(
+            traceId: traceId,
+            stage: .coachEnd,
+            level: .info,
+            message: "Coach message completed",
+            fields: fields
+        )
+        if activeTraceId == traceId {
+            activeTraceId = nil
+        }
+        traceStartTimes.removeValue(forKey: traceId)
+    }
+
+    @MainActor private static func eventOnMainActor(
+        traceId: UUID?,
+        stage: PipelineTraceStage,
+        level: PipelineTraceLevel,
+        message: String,
+        fields: [String: String]
+    ) {
+        let resolvedTraceId = traceId ?? activeTraceId ?? UUID()
+        record(traceId: resolvedTraceId, stage: stage, level: level, message: message, fields: fields)
+    }
+
+    @MainActor private static func logErrorOnMainActor(
+        traceId: UUID?,
+        stage: PipelineTraceStage,
+        message: String,
+        fields: [String: String]
+    ) {
+        let resolvedTraceId = traceId ?? activeTraceId ?? UUID()
+
+        if var summary = summaries[resolvedTraceId] {
+            summary.hasError = true
+            summaries[resolvedTraceId] = summary
+        }
+
+        var merged = fields
+        merged["stage"] = stage.rawValue
+        record(
+            traceId: resolvedTraceId,
+            stage: .error,
+            level: .error,
+            message: message,
+            fields: merged
+        )
+
+        persistErrorIfNeeded(traceId: resolvedTraceId, stage: stage, message: message, fields: merged)
     }
 
     // MARK: - Private
 
-    private static func record(
+    @MainActor private static func record(
         traceId: UUID,
         stage: PipelineTraceStage,
         level: PipelineTraceLevel,
@@ -288,7 +338,7 @@ enum FormaPipelineTracer {
         }
     }
 
-    private static func persistErrorIfNeeded(
+    @MainActor private static func persistErrorIfNeeded(
         traceId: UUID,
         stage: PipelineTraceStage,
         message: String,
