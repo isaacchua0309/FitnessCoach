@@ -17,7 +17,8 @@ final class CoachImageWorkflowHardeningTests: XCTestCase {
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
         let jpeg = CoachImageWorkflowTestSupport.makeTestJPEG()
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: jpeg, source: .library))
+        let stagedPhoto = await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: jpeg, source: .library)
+        XCTAssertTrue(stagedPhoto)
 
         async let firstSend = model.sendCurrentMessage()
         async let secondSend = model.sendCurrentMessage()
@@ -32,11 +33,12 @@ final class CoachImageWorkflowHardeningTests: XCTestCase {
         aiService.injectedError = AIServiceError.authenticationFailed
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto1 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: CoachImageWorkflowTestSupport.makeTestJPEG(),
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto1)
         await model.sendCurrentMessage()
 
         XCTAssertTrue(model.showsAuthRetry)

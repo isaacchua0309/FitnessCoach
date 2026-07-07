@@ -37,11 +37,12 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto1 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: Self.makeTestJPEGData(),
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto1)
 
         XCTAssertNotNil(model.inputState.pendingImage)
         XCTAssertEqual(model.inputState.pendingImage?.source, .library)
@@ -54,13 +55,15 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let model = makeModel(container: container)
         let first = Self.makeTestJPEGData()
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: first, source: .library))
+        let stagedPhoto = await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: first, source: .library)
+        XCTAssertTrue(stagedPhoto)
         XCTAssertNotNil(model.inputState.pendingImage)
 
         model.removeStagedMealPhoto()
         XCTAssertNil(model.inputState.pendingImage)
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: first, source: .camera))
+        let stagedPhoto2 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: first, source: .camera)
+        XCTAssertTrue(stagedPhoto2)
         XCTAssertEqual(model.inputState.pendingImage?.source, .camera)
     }
 
@@ -70,11 +73,13 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let first = Self.makeTestJPEGData()
         let second = Self.makeTestJPEGData(color: .systemBlue)
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: first, source: .library))
+        let stagedPhoto = await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: first, source: .library)
+        XCTAssertTrue(stagedPhoto)
         let firstID = try XCTUnwrap(model.inputState.pendingImage?.id)
 
         XCTAssertTrue(model.requestPhotoPick())
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: second, source: .camera))
+        let stagedPhoto2 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: second, source: .camera)
+        XCTAssertTrue(stagedPhoto2)
 
         XCTAssertNotEqual(model.inputState.pendingImage?.id, firstID)
         XCTAssertEqual(model.inputState.pendingImage?.source, .camera)
@@ -96,7 +101,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: imageData, source: .library))
+        let stagedPhoto = await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: imageData, source: .library)
+        XCTAssertTrue(stagedPhoto)
         await model.sendCurrentMessage()
 
         XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
@@ -129,11 +135,12 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto2 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: Self.makeTestJPEGData(),
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto2)
         await model.sendCurrentMessage()
 
         let userMessage = try XCTUnwrap(model.messages.first { $0.role == .user })
@@ -159,11 +166,12 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         )
 
         model.inputText = "Lunch bowl"
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto3 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: Self.makeTestJPEGData(),
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto3)
         await model.sendCurrentMessage()
 
         XCTAssertEqual(aiService.lastPrompt, "Lunch bowl")
@@ -212,11 +220,12 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto4 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: Self.makeTestJPEGData(),
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto4)
         await model.sendCurrentMessage()
 
         XCTAssertNotNil(model.messages.first { $0.role == .user }?.mealPhotoJPEG)
@@ -249,11 +258,12 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto5 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: Self.makeTestJPEGData(),
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto5)
         await model.sendCurrentMessage()
 
         XCTAssertTrue(model.awaitingPhotoClarification)
@@ -283,11 +293,12 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto6 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: Self.makeTestJPEGData(),
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto6)
         await model.sendCurrentMessage()
 
         XCTAssertNil(model.pendingConfirmation)
@@ -308,11 +319,12 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto7 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: Self.makeTestJPEGData(),
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto7)
         await model.sendCurrentMessage()
 
         guard case .food(let firstDraft) = model.pendingConfirmation else {
@@ -346,11 +358,12 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto8 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: Self.makeTestJPEGData(),
             source: .library
-        ))
+        )
+        XCTAssertTrue(stagedPhoto8)
         await model.sendCurrentMessage()
         XCTAssertNotNil(model.pendingConfirmation)
 
