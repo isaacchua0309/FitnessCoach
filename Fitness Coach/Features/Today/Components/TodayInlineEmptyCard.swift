@@ -14,7 +14,7 @@ struct TodayInlineEmptyCard: View {
     @Environment(\.theme) private var theme
 
     var body: some View {
-        FormaPlanCard {
+        MainTabCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 Text(copy.title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))

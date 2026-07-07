@@ -31,7 +31,11 @@ final class FormaProductCopyEquivalenceTests: XCTestCase {
     func testCoachCopyReturnsExpectedRepresentativeStrings() {
         XCTAssertEqual(
             FormaProductCopy.Coach.headerSubtitle,
-            "What do you want to log or ask?"
+            "Log food, water, weight, or training — or ask what to do next."
+        )
+        XCTAssertEqual(
+            FormaProductCopy.Coach.chatHeaderSubtitle,
+            "Ask, log, or review your day."
         )
         XCTAssertEqual(FormaProductCopy.Coach.composerPlaceholder, "Message Coach…")
         XCTAssertEqual(
@@ -47,7 +51,11 @@ final class FormaProductCopyEquivalenceTests: XCTestCase {
     }
 
     func testJourneyCopyReturnsExpectedRepresentativeStrings() {
-        XCTAssertEqual(FormaProductCopy.Journey.Header.title, "Your journey")
+        XCTAssertEqual(FormaProductCopy.Journey.Header.title, "Journey")
+        XCTAssertEqual(
+            FormaProductCopy.Journey.Header.subtitle,
+            "Your progress story, trends, and weekly reviews."
+        )
         XCTAssertEqual(
             FormaProductCopy.Journey.StartingEmptyState.title,
             "Your journey is just starting."
@@ -68,6 +76,7 @@ final class FormaProductCopyEquivalenceTests: XCTestCase {
         XCTAssertEqual(FormaProductCopy.PlanHeader.title, "Plan")
         XCTAssertEqual(FormaProductCopy.PlanRationale.sectionTitle, "Why This Works")
         XCTAssertEqual(FormaProductCopy.PlanMissionControl.adjustPlan, "Adjust Plan")
+        XCTAssertEqual(FormaProductCopy.PlanMissionControl.adjustPlanPill, "Adjust")
         XCTAssertEqual(FormaProductCopy.PlanEditGoal.loseFatTitle, "Lose fat")
         XCTAssertEqual(FormaProductCopy.PlanDailyTargets.sectionTitle, "Daily Targets")
         XCTAssertEqual(FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle, "Body & stats")

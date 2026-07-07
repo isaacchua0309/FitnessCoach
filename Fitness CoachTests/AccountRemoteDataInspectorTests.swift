@@ -12,7 +12,7 @@ final class AccountRemoteDataInspectorTests: XCTestCase {
 
     private let uidA = "user-a"
     private let uidB = "user-b"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
     private var localDate: String {
         CloudAccountDataDateCodec.localDateString(from: referenceDate, calendar: calendar)
     }
@@ -325,8 +325,8 @@ final class AccountRemoteDataInspectorTests: XCTestCase {
     // MARK: - Fixtures
 
     private func makeProfile(ownerUID: String) throws -> UserProfile {
-        var draft = ProfileTestFixtures.sampleDraft
-        draft.targets = ProfileTestFixtures.sampleTargets
+        var draft = ProfileFixtures.sampleDraft
+        draft.targets = ProfileFixtures.sampleTargets
         let profile = UserProfile(
             id: UUID(),
             ownerUID: ownerUID,

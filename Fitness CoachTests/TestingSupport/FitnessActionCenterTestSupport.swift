@@ -32,7 +32,7 @@ enum FitnessActionCenterTestSupport {
 
         @discardableResult
         func seedProfile(
-            targets: UserTargets = ProfileTestFixtures.sampleTargets,
+            targets: UserTargets = ProfileFixtures.sampleTargets,
             ownerUID: String? = nil
         ) throws -> UserProfile {
             let profile = try base.seedProfile(targets: targets)

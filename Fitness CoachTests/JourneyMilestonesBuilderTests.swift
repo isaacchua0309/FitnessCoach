@@ -14,7 +14,7 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
         return calendar
     }()
 
-    private let asOf = ProfileTestFixtures.referenceDate
+    private let asOf = ProfileFixtures.referenceDate
 
     func testNewUserShowsCurrentFirstMealMilestone() {
         let state = build(foodLogDays: 0, direction: .lose)
@@ -203,7 +203,7 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
             id: UUID(),
             date: date,
             weightKg: nil,
-            targets: ProfileTestFixtures.sampleTargets,
+            targets: ProfileFixtures.sampleTargets,
             totals: MacroTotals(
                 calories: 1_800,
                 protein: protein,

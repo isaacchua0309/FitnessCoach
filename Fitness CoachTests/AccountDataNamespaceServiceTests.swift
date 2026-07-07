@@ -55,7 +55,7 @@ final class AccountDataNamespaceServiceTests: XCTestCase {
         )
         let profileService = UserProfileService(store: store)
         _ = try profileService.createProfile(
-            ProfileTestFixtures.sampleDraft,
+            ProfileFixtures.sampleDraft,
             ownerUID: "user-a"
         )
 
@@ -77,8 +77,8 @@ final class AccountDataNamespaceServiceTests: XCTestCase {
             confidenceRawValue: ConfidenceLevel.high.rawValue,
             imageUrl: nil,
             notes: nil,
-            createdAt: ProfileTestFixtures.referenceDate,
-            updatedAt: ProfileTestFixtures.referenceDate
+            createdAt: ProfileFixtures.referenceDate,
+            updatedAt: ProfileFixtures.referenceDate
         )
         store.modelContext.insert(food)
         try store.save()

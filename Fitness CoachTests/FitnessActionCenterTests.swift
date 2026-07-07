@@ -135,7 +135,7 @@ final class FitnessActionCenterTests: XCTestCase {
     }
 
     func testUpdatePlanWithoutTargetsDoesNotSyncDailyLogTargets() async throws {
-        let originalTargets = ProfileTestFixtures.sampleTargets
+        let originalTargets = ProfileFixtures.sampleTargets
         try harness.seedProfile(targets: originalTargets)
         _ = try harness.actionCenter.ensureTodayLog()
 
@@ -173,7 +173,7 @@ final class FitnessActionCenterTests: XCTestCase {
     // MARK: - Profile
 
     func testCreateProfileNotifiesRefreshAndExposesProfile() throws {
-        let draft = ProfileTestFixtures.onboardingSampleDraft
+        let draft = ProfileFixtures.onboardingSampleDraft
         let profile = try harness.actionCenter.createProfile(draft)
 
         XCTAssertEqual(profile.targets.calorieTarget, draft.targets.calorieTarget)

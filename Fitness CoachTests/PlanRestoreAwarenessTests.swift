@@ -15,7 +15,7 @@ final class PlanRestoreAwarenessTests: XCTestCase {
         let harness = try FitnessActionCenterTestSupport.makeHarness(
             cloudUID: RestoreAwareTestSupport.ownerUID
         )
-        harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
+        harness.cloudStore.storedDocument = ProfileFixtures.cloudDocument()
 
         let bootstrapResult = try await harness.profileBootstrapService.resolve(
             uid: RestoreAwareTestSupport.ownerUID

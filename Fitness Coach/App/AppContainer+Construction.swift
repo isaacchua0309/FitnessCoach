@@ -2,80 +2,29 @@
 //  AppContainer+Construction.swift
 //  Fitness Coach
 //
-//  Private domain-grouped construction helpers for AppContainer.
+//  Thin construction delegates for AppContainer init-time domain bundles.
 //  See Docs/Architecture/DependencyInjectionMap.md
 //
 
 import Foundation
 import SwiftData
 
-// MARK: - Construction bundles (private)
-
 extension AppContainer {
 
-    struct PersistenceDependenciesBundle {
-        let modelContainer: ModelContainer
-        let store: SwiftDataStore
-        let accountSyncOutboxStore: SwiftDataAccountSyncOutboxStore
-        let accountLocalMutationTracker: AccountLocalMutationTracker
-        let userProfileService: UserProfileService
-        let cloudUserProfileStore: CloudUserProfileStoring
-        let accountDataRemoteStore: any AccountDataRemoteStore
-        let accountSyncUploader: AccountSyncUploader
-        let accountSyncPuller: AccountSyncPuller
-        let accountSyncDiagnostics: AccountSyncDiagnostics
-        let accountDeletionGuard: AccountDeletionGuard
-        let accountSyncCoordinator: AccountSyncCoordinator
-        let profileCloudSyncStore: ProfileCloudSyncStore
-        let dailyLogService: DailyLogService
-        let profileBootstrapService: ProfileBootstrapService
-        let profileBootstrapCoordinatorService: ProfileBootstrapCoordinatorService
-        let cloudUploadFailureNotifier: ProfileCloudUploadFailureNotifier
-        let targetService: TargetService
-        let foodLogService: FoodLogService
-        let waterLogService: WaterLogService
-        let weightLogService: WeightLogService
-    }
-
-    struct HealthIntelligenceDependenciesBundle {
-        let healthIntelligenceContextBuilder: HealthIntelligenceContextBuilder
-        let healthIntelligenceEngine: any HealthIntelligenceEngineing
-        let healthIntelligenceSnapshotService: any HealthIntelligenceSnapshotServing
-        let weeklyReviewService: any WeeklyReviewServing
-    }
-
-    struct CoachDependenciesBundle {
-        let coachTimelineStore: SwiftDataCoachTimelineStore
-        let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
-        let coachTimelineBackfillService: CoachTimelineBackfillService
-        let coachTimelineRecorder: DefaultCoachTimelineRecorder
-        let foodCorrectionMemoryStore: FileFoodCorrectionMemoryStore
-    }
-
-    struct AIBundle {
-        let llmClient: LLMClient
-        let aiService: AIService
-        let aiCommandParsingEnabled: Bool
-        #if DEBUG
-        let wiring: (clientType: String, baseURL: URL?, authAttached: Bool)
-        #endif
-    }
-
-    struct SettingsDependenciesBundle {
-        let themeStore: ThemeStore
-    }
-
-    struct TodayDependenciesBundle {
-        let reviewService: ReviewService
-        let actionCenter: FitnessActionCenter
-    }
-}
-
-// MARK: - Auth dependencies
-
-extension AppContainer {
+    // MARK: - Bundle typealiases (legacy construction names)
 
     typealias AuthDependenciesBundle = AuthDependencies
+    typealias AnalyticsDependenciesBundle = AnalyticsDependencies
+    typealias HealthBundle = HealthDependencies
+    typealias PersistenceDependenciesBundle = PersistenceDependencies
+    typealias HealthIntelligenceDependenciesBundle = HealthIntelligenceDependencies
+    typealias CoachDependenciesBundle = CoachPlatformDependencies
+    typealias AIBundle = AIDependencies
+    typealias SyncDependenciesBundle = SyncDependencies
+    typealias SettingsDependenciesBundle = SettingsDependencies
+    typealias TodayDependenciesBundle = TodayDependencies
+
+    // MARK: - Init-time factories
 
     static func buildAuthDependencies(
         inMemory: Bool,
@@ -88,13 +37,6 @@ extension AppContainer {
             onboardingRoutingConfiguration: onboardingRoutingConfiguration
         )
     }
-}
-
-// MARK: - Analytics dependencies
-
-extension AppContainer {
-
-    typealias AnalyticsDependenciesBundle = AnalyticsDependencies
 
     static func buildAnalyticsDependencies(
         onboardingAnalyticsLogger: (any OnboardingAnalyticsLogging)?,
@@ -119,13 +61,6 @@ extension AppContainer {
             healthIntelligenceAnalyticsLogger: healthIntelligenceAnalyticsLogger
         )
     }
-}
-
-// MARK: - Health & training (shared infrastructure)
-
-extension AppContainer {
-
-    typealias HealthBundle = HealthDependencies
 
     static func buildHealth(
         session: AuthDependenciesBundle,
@@ -133,291 +68,44 @@ extension AppContainer {
     ) -> HealthDependencies {
         HealthDependencies.build(session: session, inMemory: inMemory)
     }
-}
-
-// MARK: - Persistence dependencies
-
-extension AppContainer {
 
     static func buildPersistenceDependencies(
         session: AuthDependenciesBundle,
         inMemory: Bool,
         accountDataRemoteStore: (any AccountDataRemoteStore)?
-    ) throws -> PersistenceDependenciesBundle {
-        let modelContainer = try FormaModelContainer.makeContainer(inMemory: inMemory)
-        let store = SwiftDataStore(container: modelContainer)
-        let authManager = session.authManager
-
-        let accountSyncOutboxStore = SwiftDataAccountSyncOutboxStore(store: store)
-        let accountLocalMutationTracker = AccountLocalMutationTracker(
-            outbox: accountSyncOutboxStore,
-            ownerUIDProvider: { [weak authManager] in authManager?.currentUID }
-        )
-
-        let userProfileService = UserProfileService(store: store)
-        let cloudUserProfileStore: CloudUserProfileStoring = inMemory
-            ? NoOpCloudUserProfileStore()
-            : FirestoreCloudUserProfileStore()
-
-        let resolvedRemoteStore: any AccountDataRemoteStore
-        if let accountDataRemoteStore {
-            resolvedRemoteStore = accountDataRemoteStore
-        } else if inMemory || !AccountPersistenceFeatureFlags.cloudSchemaEnabled {
-            resolvedRemoteStore = InMemoryAccountDataRemoteStore()
-        } else {
-            resolvedRemoteStore = FirestoreAccountDataRemoteStore()
-        }
-
-        let accountSyncUploader = AccountSyncUploader(
-            outbox: accountSyncOutboxStore,
-            payloadBuilder: SwiftDataAccountSyncPayloadBuilder(store: store),
-            remoteStore: resolvedRemoteStore,
-            store: store
-        )
-        let accountSyncPuller = AccountSyncPuller(
-            remoteStore: resolvedRemoteStore,
-            store: store
-        )
-        let accountSyncDiagnostics = AccountSyncDiagnostics()
-        let accountDeletionGuard = AccountDeletionGuard()
-        let accountSyncCoordinator = AccountSyncCoordinator(
-            uploader: accountSyncUploader,
-            puller: accountSyncPuller,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID },
-            diagnostics: accountSyncDiagnostics,
-            deletionGuard: accountDeletionGuard
-        )
-
-        let profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: session.onboardingUserDefaults)
-        let dailyLogService = DailyLogService(
-            store: store,
-            userProfileService: userProfileService,
-            mutationTracker: accountLocalMutationTracker
-        )
-        let profileBootstrapService = ProfileBootstrapService(
-            userProfileService: userProfileService,
-            cloudStore: cloudUserProfileStore,
-            cloudSyncStore: profileCloudSyncStore,
-            dailyLogService: dailyLogService
-        )
-        let profileBootstrapCoordinatorService = ProfileBootstrapCoordinatorService(
-            profileBootstrapService: profileBootstrapService,
-            cloudSyncStore: profileCloudSyncStore
-        )
-        let cloudUploadFailureNotifier = ProfileCloudUploadFailureNotifier(
-            syncStore: profileCloudSyncStore
-        )
-        let targetService = TargetService(
-            userProfileService: userProfileService,
-            dailyLogService: dailyLogService
-        )
-        let foodLogService = FoodLogService(
-            store: store,
-            dailyLogService: dailyLogService,
-            mutationTracker: accountLocalMutationTracker
-        )
-        let waterLogService = WaterLogService(
-            store: store,
-            dailyLogService: dailyLogService,
-            mutationTracker: accountLocalMutationTracker
-        )
-        let weightLogService = WeightLogService(
-            store: store,
-            dailyLogService: dailyLogService,
-            mutationTracker: accountLocalMutationTracker
-        )
-
-        return PersistenceDependenciesBundle(
-            modelContainer: modelContainer,
-            store: store,
-            accountSyncOutboxStore: accountSyncOutboxStore,
-            accountLocalMutationTracker: accountLocalMutationTracker,
-            userProfileService: userProfileService,
-            cloudUserProfileStore: cloudUserProfileStore,
-            accountDataRemoteStore: resolvedRemoteStore,
-            accountSyncUploader: accountSyncUploader,
-            accountSyncPuller: accountSyncPuller,
-            accountSyncDiagnostics: accountSyncDiagnostics,
-            accountDeletionGuard: accountDeletionGuard,
-            accountSyncCoordinator: accountSyncCoordinator,
-            profileCloudSyncStore: profileCloudSyncStore,
-            dailyLogService: dailyLogService,
-            profileBootstrapService: profileBootstrapService,
-            profileBootstrapCoordinatorService: profileBootstrapCoordinatorService,
-            cloudUploadFailureNotifier: cloudUploadFailureNotifier,
-            targetService: targetService,
-            foodLogService: foodLogService,
-            waterLogService: waterLogService,
-            weightLogService: weightLogService
+    ) throws -> PersistenceDependencies {
+        try PersistenceDependencies.build(
+            session: session,
+            inMemory: inMemory,
+            accountDataRemoteStore: accountDataRemoteStore
         )
     }
-}
-
-// MARK: - Health Intelligence dependencies
-
-extension AppContainer {
 
     static func buildHealthIntelligenceDependencies(
         health: HealthBundle,
         persistence: PersistenceDependenciesBundle
-    ) -> HealthIntelligenceDependenciesBundle {
-        let healthIntelligenceContextBuilder = HealthIntelligenceContextBuilder(
-            repository: health.healthDataRepository,
-            nutritionProvider: DailyLogNutritionProvider(reader: persistence.dailyLogService),
-            weightProvider: WeightLogWeightProvider(reader: persistence.weightLogService),
-            userPlanProvider: UserProfilePlanProvider(profileService: persistence.userProfileService)
-        )
-        let healthIntelligenceEngine = HealthIntelligenceEngine(
-            contextBuilder: healthIntelligenceContextBuilder,
-            dependencies: HealthIntelligenceEngineDependencies(
-                trainingLoad: health.trainingLoadEngine,
-                workout: health.workoutIntelligenceEngine,
-                recovery: health.recoveryEngine,
-                adaptiveNutrition: health.adaptiveNutritionEngine,
-                nextBestAction: health.nextBestActionEngine,
-                weeklyReview: health.weeklyReviewEngine
-            )
-        )
-        let healthIntelligenceSnapshotService = HealthIntelligenceSnapshotService(
-            engine: healthIntelligenceEngine,
-            cacheStore: health.healthCacheStore,
-            enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
-        )
-        health.healthSyncStateStore.setSnapshotService(healthIntelligenceSnapshotService)
-        let weeklyReviewService = WeeklyReviewService(
-            contextBuilder: healthIntelligenceContextBuilder,
-            weeklyReviewEngine: health.weeklyReviewEngine,
-            recoveryEngine: health.recoveryEngine,
-            trainingLoadEngine: health.trainingLoadEngine,
-            cacheStore: health.healthCacheStore,
-            enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled,
-            weeklyReviewEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled
-        )
-
-        #if DEBUG
-        HealthIntelligenceEngineLogger.wiringRegistered(
-            fields: [
-                "enginesEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled),
-                "uiEnabled": String(HealthIntelligenceFeatureFlags.isUIEnabled),
-                "repository": "HealthDataRepository",
-                "contextBuilder": "HealthIntelligenceContextBuilder"
-            ]
-        )
-        #endif
-
-        return HealthIntelligenceDependenciesBundle(
-            healthIntelligenceContextBuilder: healthIntelligenceContextBuilder,
-            healthIntelligenceEngine: healthIntelligenceEngine,
-            healthIntelligenceSnapshotService: healthIntelligenceSnapshotService,
-            weeklyReviewService: weeklyReviewService
-        )
+    ) -> HealthIntelligenceDependencies {
+        HealthIntelligenceDependencies.build(health: health, persistence: persistence)
     }
-}
-
-// MARK: - Coach dependencies
-
-extension AppContainer {
 
     static func buildCoachDependencies(
         session: AuthDependenciesBundle,
         persistence: PersistenceDependenciesBundle,
         health: HealthBundle
-    ) -> CoachDependenciesBundle {
-        let authManager = session.authManager
-        let coachTimelineStore = SwiftDataCoachTimelineStore(
-            store: persistence.store,
-            userIdProvider: { [weak authManager] in authManager?.currentUID }
-        )
-        let coachChatTranscriptStore = SwiftDataCoachChatTranscriptStore(
-            store: persistence.store,
-            userIdProvider: { [weak authManager] in authManager?.currentUID }
-        )
-        let coachTimelineBackfillService = CoachTimelineBackfillService(
-            timelineStore: coachTimelineStore,
-            foodLogService: persistence.foodLogService,
-            waterLogService: persistence.waterLogService,
-            weightLogService: persistence.weightLogService,
-            healthActivityQuery: health.healthActivityQueryService
-        )
-        let coachTimelineRecorder = DefaultCoachTimelineRecorder(store: coachTimelineStore)
-        let foodCorrectionMemoryStore = FileFoodCorrectionMemoryStore(
-            userIdProvider: { [weak authManager] in authManager?.currentUID }
-        )
-
-        Task { @MainActor [coachTimelineBackfillService] in
-            await coachTimelineBackfillService.runBackfill()
-        }
-
-        return CoachDependenciesBundle(
-            coachTimelineStore: coachTimelineStore,
-            coachChatTranscriptStore: coachChatTranscriptStore,
-            coachTimelineBackfillService: coachTimelineBackfillService,
-            coachTimelineRecorder: coachTimelineRecorder,
-            foodCorrectionMemoryStore: foodCorrectionMemoryStore
+    ) -> CoachPlatformDependencies {
+        CoachPlatformDependencies.build(
+            session: session,
+            persistence: persistence,
+            health: health
         )
     }
-}
-
-// MARK: - AI (Coach / onboarding)
-
-extension AppContainer {
 
     static func buildAI(
         session: AuthDependenciesBundle,
         inMemory: Bool
-    ) -> AIBundle {
-        #if DEBUG
-        let wiring: (clientType: String, baseURL: URL?, authAttached: Bool)
-        #endif
-
-        let authManager = session.authManager
-        let llmClient: LLMClient
-        if inMemory {
-            llmClient = MockLLMClient()
-            #if DEBUG
-            wiring = ("MockLLMClient", nil, false)
-            #endif
-        } else if let backendURL = AIBackendConfiguration.backendURL() {
-            llmClient = FallbackLLMClient(
-                primary: FormaAIBackendClient(
-                    baseURL: backendURL,
-                    authTokenProvider: { try await authManager.idToken() }
-                )
-            )
-            #if DEBUG
-            wiring = ("FallbackLLMClient+FormaAIBackendClient", backendURL, true)
-            #endif
-        } else {
-            llmClient = UnavailableLLMClient(
-                reason: AIBackendConfiguration.unavailableReason()
-            )
-            #if DEBUG
-            wiring = ("UnavailableLLMClient", nil, false)
-            #endif
-        }
-
-        #if DEBUG
-        return AIBundle(
-            llmClient: llmClient,
-            aiService: AIService(llmClient: llmClient),
-            aiCommandParsingEnabled: FormaAbTest.Coach.aiCommandParsingEnabled,
-            wiring: wiring
-        )
-        #else
-        return AIBundle(
-            llmClient: llmClient,
-            aiService: AIService(llmClient: llmClient),
-            aiCommandParsingEnabled: FormaAbTest.Coach.aiCommandParsingEnabled
-        )
-        #endif
+    ) -> AIDependencies {
+        AIDependencies.build(session: session, inMemory: inMemory)
     }
-}
-
-// MARK: - Sync dependencies (account restore / cross-device / deletion)
-
-extension AppContainer {
-
-    typealias SyncDependenciesBundle = SyncDependencies
 
     static func buildSyncDependencies(
         session: AuthDependenciesBundle,
@@ -432,24 +120,12 @@ extension AppContainer {
             inMemory: inMemory
         )
     }
-}
-
-// MARK: - Settings dependencies
-
-extension AppContainer {
 
     static func buildSettingsDependencies(
         analytics: AnalyticsDependenciesBundle
-    ) -> SettingsDependenciesBundle {
-        SettingsDependenciesBundle(
-            themeStore: ThemeStore(analyticsLogger: analytics.themeAnalyticsLogger)
-        )
+    ) -> SettingsDependencies {
+        SettingsDependencies.build(analytics: analytics)
     }
-}
-
-// MARK: - Today dependencies (shared action surface)
-
-extension AppContainer {
 
     static func buildTodayDependencies(
         auth: AuthDependenciesBundle,
@@ -457,186 +133,13 @@ extension AppContainer {
         health: HealthBundle,
         ai: AIBundle,
         refreshCenter: AppRefreshCenter
-    ) -> TodayDependenciesBundle {
-        let reviewService = ReviewService(
-            store: persistence.store,
-            dailyLogService: persistence.dailyLogService,
-            foodLogService: persistence.foodLogService,
-            waterLogService: persistence.waterLogService,
-            weightLogService: persistence.weightLogService,
-            healthActivityQuery: health.healthActivityQueryService,
-            userProfileService: persistence.userProfileService,
-            aiService: ai.aiService,
-            mutationTracker: persistence.accountLocalMutationTracker
-        )
-
-        let actionCenter = FitnessActionCenter(
-            foodLogService: persistence.foodLogService,
-            waterLogService: persistence.waterLogService,
-            weightLogService: persistence.weightLogService,
-            dailyLogService: persistence.dailyLogService,
-            targetService: persistence.targetService,
-            userProfileService: persistence.userProfileService,
-            reviewService: reviewService,
-            refreshCenter: refreshCenter,
-            profileBootstrapService: persistence.profileBootstrapService,
-            cloudUploadFailureNotifier: persistence.cloudUploadFailureNotifier,
-            currentUIDProvider: { [authManager = auth.authManager] in authManager.currentUID },
-            scheduleAccountSyncAfterMutation: { [authManager = auth.authManager, accountSyncCoordinator = persistence.accountSyncCoordinator] in
-                AccountSyncLifecycle.scheduleAfterLocalMutation(
-                    coordinator: accountSyncCoordinator,
-                    uidProvider: { authManager.currentUID }
-                )
-            }
-        )
-
-        return TodayDependenciesBundle(
-            reviewService: reviewService,
-            actionCenter: actionCenter
+    ) -> TodayDependencies {
+        TodayDependencies.build(
+            auth: auth,
+            persistence: persistence,
+            health: health,
+            ai: ai,
+            refreshCenter: refreshCenter
         )
     }
-}
-
-// MARK: - Journey dependencies (feature wiring)
-
-extension AppContainer {
-
-    func buildJourneyDependencies(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> JourneyModel {
-        JourneyModel(
-            dailyLogReader: dailyLogService,
-            weightLogReader: weightLogService,
-            userProfileReader: userProfileService,
-            trainingInsightsStore: trainingInsightsStore,
-            workoutReader: healthKitWorkoutReader,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            weeklyReviewService: weeklyReviewService,
-            healthIntelligenceEngine: healthIntelligenceEngine,
-            healthCacheStore: healthCacheStore,
-            healthActivityQuery: healthActivityQueryService,
-            healthDataRepository: healthDataRepository,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            },
-            restoreSessionState: accountRestoreSessionState,
-            localDataInspector: accountLocalDataInspector,
-            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
-            accountDataRefreshEventBus: accountDataRefreshEventBus,
-            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator,
-            accountSyncCursorStore: accountSyncCursorStore,
-            accountSyncOutboxStore: accountSyncOutboxStore,
-            accountRestoreStateStore: accountRestoreStateStore
-        )
-    }
-}
-
-// MARK: - Plan dependencies (feature wiring)
-
-extension AppContainer {
-
-    func buildPlanDependencies(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
-        planAnalyticsCoordinator: PlanAnalyticsCoordinator? = nil
-    ) -> PlanModel {
-        PlanModel(
-            actionCenter: actionCenter,
-            userProfileReader: userProfileService,
-            planTargetCalculator: targetService,
-            dailyLogReader: dailyLogService,
-            weightLogReader: weightLogService,
-            trainingInsightsStore: trainingInsightsStore,
-            analyticsLogger: planAnalyticsLogger,
-            planAnalyticsCoordinator: planAnalyticsCoordinator,
-            healthBaselineService: healthBaselineService,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            healthDataRepository: healthDataRepository,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            },
-            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
-            accountDataRefreshEventBus: accountDataRefreshEventBus,
-            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
-        )
-    }
-}
-
-// MARK: - Shared utilities
-
-extension AppContainer {
-
-    #if DEBUG
-    static func logAIBackendURLDetection() {
-        if let backendURL = AIBackendConfiguration.backendURL() {
-            FormaPipelineTracer.event(
-                stage: .appWiring,
-                level: .info,
-                message: "AI gateway URL configured",
-                fields: [
-                    "detected": "true",
-                    "gatewayURL": backendURL.absoluteString
-                ]
-            )
-            return
-        }
-
-        switch FormaEnvironment.aiBackendURLDetection() {
-        case .notDetected:
-            FormaPipelineTracer.event(
-                stage: .appWiring,
-                level: .info,
-                message: "FORMA_AI_BACKEND_URL not detected",
-                fields: ["detected": "false"]
-            )
-        case .detected(let source):
-            FormaPipelineTracer.event(
-                stage: .appWiring,
-                level: .info,
-                message: "FORMA_AI_BACKEND_URL rejected or invalid",
-                fields: [
-                    "detected": "false",
-                    "source": source.rawValue
-                ]
-            )
-        }
-    }
-
-    static func logLLMClientWiring(clientType: String, baseURL: URL?, authAttached: Bool) {
-        var fields: [String: String] = [
-            "clientType": clientType,
-            "authAttached": String(authAttached),
-            "traceEnabled": String(FormaPipelineTracer.isEnabled),
-            "traceVerbose": String(FormaPipelineTracer.isVerbose)
-        ]
-        if let baseURL {
-            fields["baseURL"] = baseURL.absoluteString
-        }
-        FormaPipelineTracer.event(
-            stage: .appWiring,
-            level: .info,
-            message: "LLM client wired",
-            fields: fields
-        )
-    }
-    #endif
 }

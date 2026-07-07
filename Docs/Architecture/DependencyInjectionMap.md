@@ -1,7 +1,7 @@
 # Dependency Injection Map
 
 **Last updated:** 2026-07-05  
-**Related:** [AppArchitectureOverview.md](./AppArchitectureOverview.md), `Fitness Coach/App/AppContainer.swift`, `AppContainer+Construction.swift`, `AppContainer+FeatureFactories.swift`
+**Related:** [AppArchitectureOverview.md](./AppArchitectureOverview.md), `Fitness Coach/App/AppContainer.swift`, `AppContainer+Construction.swift`, `App/Dependencies/`, `AppContainer+FeatureFactories.swift`
 
 ---
 
@@ -17,7 +17,7 @@ The app uses **manual constructor injection** via a single composition root:
 | `FormaAbTest.testOverride` | Unit test flag injection |
 | No global service locator | Except `UserDefaults.standard` in a few places (`MainTabView`, migration gate) |
 
-**Construction layout:** Domain-grouped private bundles and `build*Dependencies()` factories live in `AppContainer+Construction.swift` (init-time services plus Journey/Plan model wiring). Feature `make*Model()` factories are thin delegates grouped by tab in `AppContainer+FeatureFactories.swift`. Public `AppContainer` properties and init parameters are unchanged.
+**Construction layout:** Init-time domain bundles live in `Fitness Coach/App/Dependencies/*.swift` as free-standing `struct` types with `static build()` methods. Thin `build*Dependencies()` delegates live in `AppContainer+Construction.swift` (**145 LOC**). Feature `make*Model()` factories are grouped by tab in `AppContainer+FeatureFactories.swift`. Public `AppContainer` properties and init parameters are unchanged.
 
 ---
 
@@ -28,17 +28,17 @@ The app uses **manual constructor injection** via a single composition root:
 | Factory | Domain bundle | File |
 |---------|---------------|------|
 | `buildAuthDependencies` | Auth, onboarding prefs, refresh bus | `Fitness Coach/App/Dependencies/AuthDependencies.swift` |
-| `buildAnalyticsDependencies` | Analytics loggers via `AnalyticsDependencies` | `Fitness Coach/App/Dependencies/AnalyticsDependencies.swift` |
+| `buildAnalyticsDependencies` | Analytics loggers via `AnalyticsDependencies` + `FormaAnalyticsConfiguration` | `Fitness Coach/App/Dependencies/AnalyticsDependencies.swift` |
 | `buildHealth` | HealthKit, sync, training insights (shared) | `Fitness Coach/App/Dependencies/HealthDependencies.swift` |
-| `buildPersistenceDependencies` | SwiftData, account sync core, log services | `AppContainer+Construction.swift` |
-| `buildHealthIntelligenceDependencies` | HI engine, snapshot, weekly review | `AppContainer+Construction.swift` |
-| `buildCoachDependencies` | Coach timeline stores, backfill | `AppContainer+Construction.swift` |
-| `buildAI` | LLM client, AIService | `AppContainer+Construction.swift` |
+| `buildPersistenceDependencies` | SwiftData, account sync core, log services | `Fitness Coach/App/Dependencies/PersistenceDependencies.swift` |
+| `buildHealthIntelligenceDependencies` | HI engine, snapshot, weekly review | `Fitness Coach/App/Dependencies/HealthIntelligenceDependencies.swift` |
+| `buildCoachDependencies` | Coach timeline stores, backfill | `Fitness Coach/App/Dependencies/CoachPlatformDependencies.swift` |
+| `buildAI` | LLM client, AIService | `Fitness Coach/App/Dependencies/AIDependencies.swift` |
 | `buildSyncDependencies` | Restore, cross-device, deletion, export | `Fitness Coach/App/Dependencies/SyncDependencies.swift` |
-| `buildSettingsDependencies` | Theme store | `AppContainer+Construction.swift` |
-| `buildTodayDependencies` | ReviewService, FitnessActionCenter | `AppContainer+Construction.swift` |
-| `buildJourneyDependencies` | JourneyModel wiring (feature factory) | `AppContainer+Construction.swift` |
-| `buildPlanDependencies` | PlanModel wiring (feature factory) | `AppContainer+Construction.swift` |
+| `buildSettingsDependencies` | Theme store | `Fitness Coach/App/Dependencies/SettingsDependencies.swift` |
+| `buildTodayDependencies` | ReviewService, FitnessActionCenter | `Fitness Coach/App/Dependencies/TodayDependencies.swift` |
+| `makeJourneyModel()` | JourneyModel wiring (feature factory) | `AppContainer+FeatureFactories.swift` |
+| `makePlanModel()` | PlanModel wiring (feature factory) | `AppContainer+FeatureFactories.swift` |
 
 ### Init call sequence
 
@@ -55,7 +55,7 @@ buildAuthDependencies
   → buildTodayDependencies
 ```
 
-`makeJourneyModel()` and `makePlanModel()` delegate to `buildJourneyDependencies()` / `buildPlanDependencies()` in `AppContainer+Construction.swift`. Other feature factories remain in `AppContainer+FeatureFactories.swift`.
+`makeJourneyModel()` and `makePlanModel()` are implemented in `AppContainer+FeatureFactories.swift`. Other feature factories remain there as well.
 
 ### Phase A — Session and preferences
 
@@ -199,7 +199,7 @@ CoachView → CoachModel → CoachSendFlowCoordinator
 
 **Assembly (`CoachDependencies.assemble`):** builds `CoachMutationExecutor`, `CoachAIRouteHandler`, `CoachRouteDecider`, `CoachMealPhotoAnalyzer`, and feature coordinators. Any `CoachDependencies` field can be overridden in tests.
 
-**Test pattern:** `CoachRoutingIntegrationTestSupport.makeCoach(services:dependencies:)` or legacy `CoachModel(...)` convenience init.
+**Test pattern:** `CoachRoutingIntegrationTestSupport.makeCoach(services:dependencies:)` or `CoachModelTestFactory.makeModel(...)` for photo/pick-flow tests.
 
 **Legacy log food chain (unchanged semantics):**
 ```
@@ -277,6 +277,7 @@ No shared DI container — module-level imports.
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Domain bundles moved to `App/Dependencies/` as free-standing structs; `AppContainer+Construction.swift` thin delegates (**145 LOC**); HI consolidation v2 loader core on `main` |
 | 2026-07-05 | Coach DI: `makeCoachServices`, `makeCoachDependencies`, `CoachDependencies.assemble`; coordinator call chain |
 | 2026-07-05 | Renamed construction factories to `build*Dependencies()`; grouped feature factories by tab |
 | 2026-07-04 | Initial DI map for PRDX v1 |

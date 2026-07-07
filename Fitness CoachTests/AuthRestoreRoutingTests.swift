@@ -66,7 +66,7 @@ final class AuthRestoreRoutingTests: XCTestCase {
         let uid = "restored-user"
         let summary = RestoreAwareTestSupport.makeRestoreSummary(uid: uid, status: .completed)
         coordinator.applyTestingSignedInUID(uid)
-        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try container.userProfileService.createProfile(ProfileFixtures.sampleDraft)
         _ = try container.userProfileService.assignOwnerUID(uid)
 
         coordinator.completeRouteToMain(uid: uid, restoreSummary: summary)
@@ -87,7 +87,7 @@ final class AuthRestoreRoutingTests: XCTestCase {
         let uid = "partial-user"
         let summary = RestoreAwareTestSupport.makeRestoreSummary(uid: uid, status: .partial)
         coordinator.applyTestingSignedInUID(uid)
-        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try container.userProfileService.createProfile(ProfileFixtures.sampleDraft)
         _ = try container.userProfileService.assignOwnerUID(uid)
 
         coordinator.completeRouteToMain(uid: uid, restoreSummary: summary)

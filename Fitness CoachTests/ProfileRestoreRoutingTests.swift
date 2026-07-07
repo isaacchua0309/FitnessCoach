@@ -13,7 +13,7 @@ final class ProfileRestoreRoutingTests: XCTestCase {
 
     func testRestoreFromCloudSetsMainRouteInputs() async throws {
         let cloudStore = MockCloudUserProfileStore()
-        cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
+        cloudStore.storedDocument = ProfileFixtures.cloudDocument()
 
         let harness = try DailyLogServiceTestSupport.makeHarness()
         let service = ProfileBootstrapService(

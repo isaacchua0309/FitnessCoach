@@ -22,7 +22,9 @@ enum PlanHealthIntelligencePresentationBuilder {
             return loadingSection()
         }
 
-        let uiState = resolveUIState(from: input)
+        let loadingInput = sectionLoadingInput(from: input)
+        let classification = HealthIntelligenceSectionLoaderCore.classifySectionLoading(from: loadingInput)
+        let uiState = HealthIntelligenceSectionLoaderCore.resolveUIState(from: loadingInput)
         let allSignals = healthSignals(from: input)
         let coreSignals = coreHealthSignals(from: input, allSignals: allSignals)
         let dataQuality = dataQuality(from: input, signals: allSignals)
@@ -38,7 +40,7 @@ enum PlanHealthIntelligencePresentationBuilder {
             missingDataActions: missingDataActions,
             isLoading: false,
             fallbackMessage: HealthIntelligencePresentationCore.fallbackMessage(for: uiState, surface: surface),
-            staleDataLabel: HealthIntelligencePresentationCore.staleDataLabel(for: uiState, surface: surface),
+            staleDataLabel: classification.staleDataLabel,
             uiState: uiState,
             accessibilityLabel: sectionAccessibilityLabel(
                 confidenceCard: confidenceCard,
@@ -180,22 +182,20 @@ enum PlanHealthIntelligencePresentationBuilder {
 
         if input.healthConnection == .disconnected {
             actions.append(
-                PlanHealthMissingDataActionState(
+                missingDataAction(
                     id: "connect-health",
                     title: copy.actionConnectHealthTitle,
-                    message: copy.actionConnectHealthMessage,
-                    accessibilityLabel: "\(copy.actionConnectHealthTitle). \(copy.actionConnectHealthMessage)"
+                    message: copy.actionConnectHealthMessage
                 )
             )
         }
 
         if input.healthConnection == .partial {
             actions.append(
-                PlanHealthMissingDataActionState(
+                missingDataAction(
                     id: "partial-permissions",
                     title: copy.actionPartialPermissionsTitle,
-                    message: copy.actionPartialPermissionsMessage,
-                    accessibilityLabel: "\(copy.actionPartialPermissionsTitle). \(copy.actionPartialPermissionsMessage)"
+                    message: copy.actionPartialPermissionsMessage
                 )
             )
         }
@@ -204,11 +204,10 @@ enum PlanHealthIntelligencePresentationBuilder {
 
         if baseline.missingSignals.contains(.sleep), !showsPartialPermissionsAction {
             actions.append(
-                PlanHealthMissingDataActionState(
+                missingDataAction(
                     id: "sleep",
                     title: copy.actionEnableSleepTitle,
-                    message: copy.actionEnableSleepMessage,
-                    accessibilityLabel: "\(copy.actionEnableSleepTitle). \(copy.actionEnableSleepMessage)"
+                    message: copy.actionEnableSleepMessage
                 )
             )
         }
@@ -217,33 +216,30 @@ enum PlanHealthIntelligencePresentationBuilder {
             || baseline.missingSignals.contains(.restingHeartRate),
            !showsPartialPermissionsAction {
             actions.append(
-                PlanHealthMissingDataActionState(
+                missingDataAction(
                     id: "heart-metrics",
                     title: copy.actionEnableHRVTitle,
-                    message: copy.actionEnableHRVMessage,
-                    accessibilityLabel: "\(copy.actionEnableHRVTitle). \(copy.actionEnableHRVMessage)"
+                    message: copy.actionEnableHRVMessage
                 )
             )
         }
 
         if !input.hasRecentWeightLog {
             actions.append(
-                PlanHealthMissingDataActionState(
+                missingDataAction(
                     id: "weight",
                     title: copy.actionLogWeightTitle,
-                    message: copy.actionLogWeightMessage,
-                    accessibilityLabel: "\(copy.actionLogWeightTitle). \(copy.actionLogWeightMessage)"
+                    message: copy.actionLogWeightMessage
                 )
             )
         }
 
         if !input.hasNutritionLogging {
             actions.append(
-                PlanHealthMissingDataActionState(
+                missingDataAction(
                     id: "nutrition",
                     title: copy.actionLogNutritionTitle,
-                    message: copy.actionLogNutritionMessage,
-                    accessibilityLabel: "\(copy.actionLogNutritionTitle). \(copy.actionLogNutritionMessage)"
+                    message: copy.actionLogNutritionMessage
                 )
             )
         }
@@ -270,28 +266,27 @@ enum PlanHealthIntelligencePresentationBuilder {
         }
     }
 
-    // MARK: - UI state
+    // MARK: - Section loading input
 
-    private static func resolveUIState(from input: PlanHealthIntelligenceBuildInput) -> HealthIntelligenceUIState {
-        let presentationContext = HealthIntelligencePresentationCore.presentationContext(
-            snapshot: syntheticSnapshot(from: input),
+    private static func sectionLoadingInput(
+        from input: PlanHealthIntelligenceBuildInput
+    ) -> HealthIntelligenceSectionLoadingInput {
+        HealthIntelligenceSectionLoadingInput(
+            isUIEnabled: true,
             isLoading: input.isLoading,
+            snapshot: syntheticSnapshot(from: input),
             availability: input.healthAvailability,
             isAppleHealthConnected: input.healthConnection != .disconnected,
-            cachedDayCount: input.cachedDayCount,
+            cachedDayCount: input.cachedDayCount > 0
+                ? input.cachedDayCount
+                : (input.healthAvailability?.cachedDayCount ?? 0),
             errorMessage: input.errorMessage,
-            syncPhase: input.syncPhase
-        )
-
-        return HealthIntelligencePresentationCore.resolveUIState(
-            from: HealthIntelligenceUIResolutionInput(
-                presentationContext: presentationContext,
-                baseline: input.baselineContext,
-                lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
-                isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
-                remoteSyncConsentDecision: input.remoteSyncConsentDecision,
-                surface: surface
-            )
+            syncPhase: input.syncPhase,
+            lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
+            baseline: input.baselineContext,
+            surface: surface,
+            isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: input.remoteSyncConsentDecision
         )
     }
 
@@ -405,137 +400,107 @@ enum PlanHealthIntelligencePresentationBuilder {
         let energyValue = baseline.averageActiveEnergy7d ?? baseline.averageActiveEnergy28d
         let sleepMinutes = baseline.averageSleepDuration7d ?? baseline.averageSleepDuration28d
         let heartValue = copy.heartMetricsQualitativeValue(baseline: baseline)
-
-        let workouts = PlanHealthSignalState(
-            id: PlanHealthSignalKind.appleHealthWorkouts.rawValue,
-            kind: .appleHealthWorkouts,
-            title: copy.signalAppleHealthWorkouts,
-            value: input.healthConnection == .disconnected
-                ? copy.signalUnavailable
-                : copy.workoutConsistencyValue(days: workoutDays),
-            detail: input.healthConnection == .partial ? copy.signalPartialSync : nil,
-            status: workoutSignalStatus(from: input, workoutDays: workoutDays),
-            accessibilityLabel: signalAccessibilityLabel(
-                title: copy.signalAppleHealthWorkouts,
-                value: copy.workoutConsistencyValue(days: workoutDays),
-                detail: nil,
-                status: workoutSignalStatus(from: input, workoutDays: workoutDays)
-            )
+        let workoutConsistency = copy.workoutConsistencyValue(days: workoutDays)
+        let workoutStatus = workoutSignalStatus(from: input, workoutDays: workoutDays)
+        let stepsStatus = signalStatus(
+            for: .steps,
+            baseline: baseline,
+            hasValue: stepsValue != nil && (stepsValue ?? 0) > 0
         )
+        let energyStatus = signalStatus(
+            for: .activeEnergy,
+            baseline: baseline,
+            hasValue: energyValue != nil && (energyValue ?? 0) > 0
+        )
+        let sleepStatus = signalStatus(
+            for: .sleep,
+            baseline: baseline,
+            hasValue: sleepMinutes != nil
+        )
+        let heartStatus = heartMetricsStatus(from: baseline)
 
-        let steps = PlanHealthSignalState(
-            id: PlanHealthSignalKind.stepHistory.rawValue,
-            kind: .stepHistory,
-            title: copy.signalStepHistory,
-            value: copy.averageStepsPerDayValue(stepsValue),
-            detail: baseline.averageSteps7d == nil && baseline.averageSteps28d != nil
-                ? copy.signalLimitedDetail
-                : nil,
-            status: signalStatus(for: .steps, baseline: baseline, hasValue: stepsValue != nil && (stepsValue ?? 0) > 0),
-            accessibilityLabel: signalAccessibilityLabel(
+        return [
+            makeHealthSignal(
+                kind: .appleHealthWorkouts,
+                title: copy.signalAppleHealthWorkouts,
+                value: input.healthConnection == .disconnected ? copy.signalUnavailable : workoutConsistency,
+                detail: input.healthConnection == .partial ? copy.signalPartialSync : nil,
+                status: workoutStatus,
+                accessibilityValue: workoutConsistency
+            ),
+            makeHealthSignal(
+                kind: .stepHistory,
                 title: copy.signalStepHistory,
                 value: copy.averageStepsPerDayValue(stepsValue),
-                detail: nil,
-                status: signalStatus(for: .steps, baseline: baseline, hasValue: stepsValue != nil && (stepsValue ?? 0) > 0)
-            )
-        )
-
-        let activeEnergy = PlanHealthSignalState(
-            id: PlanHealthSignalKind.activeEnergy.rawValue,
-            kind: .activeEnergy,
-            title: copy.signalActiveEnergy,
-            value: copy.activeEnergyValue(energyValue),
-            detail: baseline.averageActiveEnergy7d == nil && baseline.averageActiveEnergy28d != nil
-                ? copy.signalLimitedDetail
-                : nil,
-            status: signalStatus(
-                for: .activeEnergy,
-                baseline: baseline,
-                hasValue: energyValue != nil && (energyValue ?? 0) > 0
+                detail: baseline.averageSteps7d == nil && baseline.averageSteps28d != nil
+                    ? copy.signalLimitedDetail
+                    : nil,
+                status: stepsStatus
             ),
-            accessibilityLabel: signalAccessibilityLabel(
+            makeHealthSignal(
+                kind: .activeEnergy,
                 title: copy.signalActiveEnergy,
                 value: copy.activeEnergyValue(energyValue),
-                detail: nil,
-                status: signalStatus(
-                    for: .activeEnergy,
-                    baseline: baseline,
-                    hasValue: energyValue != nil && (energyValue ?? 0) > 0
-                )
-            )
-        )
-
-        let sleep = PlanHealthSignalState(
-            id: PlanHealthSignalKind.sleep.rawValue,
-            kind: .sleep,
-            title: copy.signalSleep,
-            value: copy.sleepAverageValue(minutes: sleepMinutes),
-            detail: baseline.missingSignals.contains(.sleep) ? copy.signalLimitedDetail : nil,
-            status: signalStatus(
-                for: .sleep,
-                baseline: baseline,
-                hasValue: sleepMinutes != nil
+                detail: baseline.averageActiveEnergy7d == nil && baseline.averageActiveEnergy28d != nil
+                    ? copy.signalLimitedDetail
+                    : nil,
+                status: energyStatus
             ),
-            accessibilityLabel: signalAccessibilityLabel(
+            makeHealthSignal(
+                kind: .sleep,
                 title: copy.signalSleep,
                 value: copy.sleepAverageValue(minutes: sleepMinutes),
-                detail: nil,
-                status: signalStatus(
-                    for: .sleep,
-                    baseline: baseline,
-                    hasValue: sleepMinutes != nil
-                )
-            )
-        )
-
-        let heartMetrics = PlanHealthSignalState(
-            id: PlanHealthSignalKind.heartMetrics.rawValue,
-            kind: .heartMetrics,
-            title: copy.signalHeartMetrics,
-            value: heartValue,
-            detail: baseline.missingSignals.contains(.hrv) || baseline.missingSignals.contains(.restingHeartRate)
-                ? copy.signalLimitedDetail
-                : nil,
-            status: heartMetricsStatus(from: baseline),
-            accessibilityLabel: signalAccessibilityLabel(
+                detail: baseline.missingSignals.contains(.sleep) ? copy.signalLimitedDetail : nil,
+                status: sleepStatus
+            ),
+            makeHealthSignal(
+                kind: .heartMetrics,
                 title: copy.signalHeartMetrics,
                 value: heartValue,
-                detail: nil,
-                status: heartMetricsStatus(from: baseline)
-            )
-        )
-
-        let weight = PlanHealthSignalState(
-            id: PlanHealthSignalKind.weight.rawValue,
-            kind: .weight,
-            title: copy.signalWeight,
-            value: input.hasRecentWeightLog ? copy.signalWeightLogged : copy.signalUnavailable,
-            detail: input.hasRecentWeightLog ? nil : copy.signalLimitedDetail,
-            status: input.hasRecentWeightLog ? .available : .missing,
-            accessibilityLabel: signalAccessibilityLabel(
+                detail: baseline.missingSignals.contains(.hrv) || baseline.missingSignals.contains(.restingHeartRate)
+                    ? copy.signalLimitedDetail
+                    : nil,
+                status: heartStatus
+            ),
+            makeHealthSignal(
+                kind: .weight,
                 title: copy.signalWeight,
                 value: input.hasRecentWeightLog ? copy.signalWeightLogged : copy.signalUnavailable,
-                detail: nil,
+                detail: input.hasRecentWeightLog ? nil : copy.signalLimitedDetail,
                 status: input.hasRecentWeightLog ? .available : .missing
-            )
-        )
-
-        let nutrition = PlanHealthSignalState(
-            id: PlanHealthSignalKind.nutritionLogs.rawValue,
-            kind: .nutritionLogs,
-            title: copy.signalNutrition,
-            value: input.hasNutritionLogging ? copy.signalNutritionLogged : copy.signalUnavailable,
-            detail: input.hasNutritionLogging ? nil : copy.signalLimitedDetail,
-            status: input.hasNutritionLogging ? .available : .missing,
-            accessibilityLabel: signalAccessibilityLabel(
+            ),
+            makeHealthSignal(
+                kind: .nutritionLogs,
                 title: copy.signalNutrition,
                 value: input.hasNutritionLogging ? copy.signalNutritionLogged : copy.signalUnavailable,
-                detail: nil,
+                detail: input.hasNutritionLogging ? nil : copy.signalLimitedDetail,
                 status: input.hasNutritionLogging ? .available : .missing
             )
-        )
+        ]
+    }
 
-        return [workouts, steps, activeEnergy, sleep, heartMetrics, weight, nutrition]
+    private static func makeHealthSignal(
+        kind: PlanHealthSignalKind,
+        title: String,
+        value: String,
+        detail: String?,
+        status: PlanHealthSignalStatus,
+        accessibilityValue: String? = nil
+    ) -> PlanHealthSignalState {
+        PlanHealthSignalState(
+            id: kind.rawValue,
+            kind: kind,
+            title: title,
+            value: value,
+            detail: detail,
+            status: status,
+            accessibilityLabel: signalAccessibilityLabel(
+                title: title,
+                value: accessibilityValue ?? value,
+                detail: nil,
+                status: status
+            )
+        )
     }
 
     private static func assumptionItems(
@@ -616,7 +581,7 @@ enum PlanHealthIntelligencePresentationBuilder {
 
         if let uiState {
             for availability in uiState.missingSignals where availability.isMissing {
-                let label = planSignalLabel(for: availability.kind)
+                let label = HealthIntelligencePresentationCopy.Plan.insightKindLabel(for: availability.kind)
                 guard !rows.contains(where: { $0.1 == label }) else { continue }
                 rows.append((
                     "missing-\(availability.kind.rawValue)",
@@ -627,18 +592,23 @@ enum PlanHealthIntelligencePresentationBuilder {
             }
         }
 
-        return rows.map { id, label, value, isLimited in
-            PlanAssumptionItemState(
-                id: id,
-                label: label,
-                value: value,
-                isLimited: isLimited,
-                accessibilityLabel: "\(label), \(value)"
-                    + (isLimited
-                        ? ". \(copy.limitedStatAccessibilitySuffix)"
-                        : "")
-            )
-        }
+        return rows.map { makeAssumptionItem(id: $0.0, label: $0.1, value: $0.2, isLimited: $0.3) }
+    }
+
+    private static func makeAssumptionItem(
+        id: String,
+        label: String,
+        value: String,
+        isLimited: Bool
+    ) -> PlanAssumptionItemState {
+        let limitedSuffix = FormaProductCopy.PlanHealthIntelligencePresentation.limitedStatAccessibilitySuffix
+        return PlanAssumptionItemState(
+            id: id,
+            label: label,
+            value: value,
+            isLimited: isLimited,
+            accessibilityLabel: "\(label), \(value)" + (isLimited ? ". \(limitedSuffix)" : "")
+        )
     }
 
     private static func confidenceReasons(
@@ -697,7 +667,9 @@ enum PlanHealthIntelligencePresentationBuilder {
         }
 
         if let uiState, !uiState.missingInsightKinds.isEmpty {
-            let missingLabels = uiState.missingInsightKinds.map(planSignalLabel(for:)).sorted()
+            let missingLabels = uiState.missingInsightKinds
+                .map { HealthIntelligencePresentationCopy.Plan.insightKindLabel(for: $0) }
+                .sorted()
             reasons.append("Optional improvements: \(missingLabels.joined(separator: ", ")).")
         }
 
@@ -810,24 +782,6 @@ enum PlanHealthIntelligencePresentationBuilder {
         return hasValue ? .limited : .missing
     }
 
-    private static func planSignalLabel(for kind: HealthInsightKind) -> String {
-        let copy = FormaProductCopy.PlanHealthIntelligencePresentation.self
-        switch kind {
-        case .workouts:
-            return copy.signalAppleHealthWorkouts
-        case .steps, .activeEnergy, .exerciseMinutes:
-            return copy.signalStepHistory
-        case .sleep:
-            return copy.signalSleep
-        case .restingHeartRate, .hrv:
-            return copy.signalHeartMetrics
-        case .weight:
-            return copy.signalWeight
-        case .recoveryBaseline, .remoteSync:
-            return copy.dataQualitySectionTitle
-        }
-    }
-
     private static func isLowConfidence(label: String, score: Double) -> Bool {
         label == FormaProductCopy.PlanHealthIntelligencePresentation.confidenceLow
             || score > 0 && score < 0.45
@@ -861,6 +815,23 @@ enum PlanHealthIntelligencePresentationBuilder {
         )
     }
 
+    // MARK: - Missing data action helpers
+
+    private static func missingDataAction(
+        id: String,
+        title: String,
+        message: String
+    ) -> PlanHealthMissingDataActionState {
+        PlanHealthMissingDataActionState(
+            id: id,
+            title: title,
+            message: message,
+            accessibilityLabel: HealthIntelligencePresentationAccessibility.joinedLabel(
+                parts: [title, message]
+            )
+        )
+    }
+
     // MARK: - Accessibility
 
     private static func confidenceAccessibilityLabel(
@@ -871,15 +842,16 @@ enum PlanHealthIntelligencePresentationBuilder {
         reasons: [String],
         disclaimerLine: String
     ) -> String {
-        var parts = [headline, summary, "Confidence, \(confidenceLabel)"]
-        if let scorePercent {
-            parts.append("\(scorePercent) percent")
-        }
-        if !reasons.isEmpty {
-            parts.append(reasons.joined(separator: ". "))
-        }
-        parts.append(disclaimerLine)
-        return parts.joined(separator: ". ")
+        HealthIntelligencePresentationAccessibility.joinedLabel(
+            parts: [
+                headline,
+                summary,
+                "Confidence, \(confidenceLabel)",
+                scorePercent.map { "\($0) percent" },
+                reasons.isEmpty ? nil : reasons.joined(separator: ". "),
+                disclaimerLine
+            ]
+        )
     }
 
     private static func dataQualityAccessibilityLabel(
@@ -887,16 +859,27 @@ enum PlanHealthIntelligencePresentationBuilder {
         explanation: String,
         signals: [PlanHealthSignalState]
     ) -> String {
-        let signalLabels = signals.map(\.accessibilityLabel).joined(separator: ". ")
-        return "\(FormaProductCopy.PlanHealthIntelligencePresentation.dataQualitySectionTitle). \(qualityLabel). \(explanation). \(signalLabels)"
+        HealthIntelligencePresentationAccessibility.cardLabel(
+            sectionTitle: FormaProductCopy.PlanHealthIntelligencePresentation.dataQualitySectionTitle,
+            parts: [
+                qualityLabel,
+                explanation,
+                signals.isEmpty ? nil : signals.map(\.accessibilityLabel).joined(separator: ". ")
+            ]
+        )
     }
 
     private static func assumptionsAccessibilityLabel(
         summary: String,
         items: [PlanAssumptionItemState]
     ) -> String {
-        let itemLabels = items.map(\.accessibilityLabel).joined(separator: ". ")
-        return "\(FormaProductCopy.PlanHealthIntelligencePresentation.assumptionsSectionTitle). \(summary). \(itemLabels)"
+        HealthIntelligencePresentationAccessibility.cardLabel(
+            sectionTitle: FormaProductCopy.PlanHealthIntelligencePresentation.assumptionsSectionTitle,
+            parts: [
+                summary,
+                items.isEmpty ? nil : items.map(\.accessibilityLabel).joined(separator: ". ")
+            ]
+        )
     }
 
     private static func signalAccessibilityLabel(
@@ -905,14 +888,15 @@ enum PlanHealthIntelligencePresentationBuilder {
         detail: String?,
         status: PlanHealthSignalStatus
     ) -> String {
-        var parts = ["\(title), \(value)"]
-        if let detail {
-            parts.append(detail)
-        }
-        if status != .available {
-            parts.append(FormaProductCopy.PlanHealthIntelligencePresentation.limitedStatAccessibilitySuffix)
-        }
-        return parts.joined(separator: ". ")
+        HealthIntelligencePresentationAccessibility.joinedLabel(
+            parts: [
+                "\(title), \(value)",
+                detail,
+                status != .available
+                    ? FormaProductCopy.PlanHealthIntelligencePresentation.limitedStatAccessibilitySuffix
+                    : nil
+            ]
+        )
     }
 
     private static func sectionAccessibilityLabel(
@@ -921,17 +905,16 @@ enum PlanHealthIntelligencePresentationBuilder {
         dataQuality: PlanHealthDataQualityState,
         missingDataActions: [PlanHealthMissingDataActionState]
     ) -> String {
-        var parts = [
-            FormaProductCopy.PlanHealthIntelligencePresentation.sectionTitle,
-            confidenceCard.accessibilityLabel,
-            assumptions.accessibilityLabel,
-            dataQuality.accessibilityLabel
-        ]
-        if !missingDataActions.isEmpty {
-            parts.append(
-                missingDataActions.map(\.accessibilityLabel).joined(separator: ". ")
-            )
-        }
-        return parts.joined(separator: ". ")
+        HealthIntelligencePresentationAccessibility.joinedLabel(
+            parts: [
+                FormaProductCopy.PlanHealthIntelligencePresentation.sectionTitle,
+                confidenceCard.accessibilityLabel,
+                assumptions.accessibilityLabel,
+                dataQuality.accessibilityLabel,
+                missingDataActions.isEmpty
+                    ? nil
+                    : missingDataActions.map(\.accessibilityLabel).joined(separator: ". ")
+            ]
+        )
     }
 }

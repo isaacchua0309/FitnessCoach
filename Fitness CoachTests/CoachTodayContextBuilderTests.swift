@@ -11,7 +11,7 @@ import XCTest
 final class CoachTodayContextBuilderTests: XCTestCase {
 
     func testBuildUsesTodayDashboardNutritionMapper() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = DailyLogFixtures.baselineLog
         let (calorie, macro, water) = TodayDashboardNutritionMapper.maps(from: log)
 
         let state = CoachTodayContextBuilder.build(
@@ -44,7 +44,7 @@ final class CoachTodayContextBuilderTests: XCTestCase {
     }
 
     func testSuggestedFocusMatchesTodayFocusBuilder() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = DailyLogFixtures.baselineLog
         let (_, macro, water) = TodayDashboardNutritionMapper.maps(from: log)
 
         let state = CoachTodayContextBuilder.build(
@@ -67,7 +67,7 @@ final class CoachTodayContextBuilderTests: XCTestCase {
     }
 
     func testEmptyDayFormatsEatenAndTargets() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = DailyLogFixtures.baselineLog
         var emptyLog = log
         emptyLog.totals = MacroTotals(
             calories: 0,
@@ -99,7 +99,7 @@ final class CoachTodayContextBuilderTests: XCTestCase {
     }
 
     func testActivityLinesIncludeLatestMealStepsAndWorkout() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = DailyLogFixtures.baselineLog
         let entry = CoachMutationTestFixtures.chickenFoodEntry
 
         let state = CoachTodayContextBuilder.build(
@@ -122,7 +122,7 @@ final class CoachTodayContextBuilderTests: XCTestCase {
     }
 
     func testHealthUnavailableUsesHintInsteadOfStepsUnavailableLine() {
-        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let log = DailyLogFixtures.baselineLog
 
         let state = CoachTodayContextBuilder.build(
             dailyLog: log,

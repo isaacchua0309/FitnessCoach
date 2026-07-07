@@ -39,9 +39,4 @@ jobs:
         run: xcodebuild -resolvePackageDependencies -project "Fitness Coach.xcodeproj"
 
       - name: Run Fast-Core tests
-        run: |
-          xcodebuild test \
-            -scheme "Fitness Coach" \
-            -destination "platform=iOS Simulator,name=iPhone 17" \
-            -testPlan Fast-Core \
-            -parallel-testing-enabled NO
+        run: ./Scripts/run_fast_core_tests.sh

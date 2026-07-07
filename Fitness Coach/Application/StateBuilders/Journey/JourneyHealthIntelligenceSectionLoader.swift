@@ -32,7 +32,7 @@ enum JourneyHealthIntelligenceSectionLoader {
             for: referenceDate,
             calendar: calendar
         )
-        let healthConnection = resolveHealthConnection(
+        let healthConnection = HealthIntelligenceSectionLoaderCore.journeyHealthConnection(
             isAppleHealthConnected: isAppleHealthConnected,
             availability: availability,
             todaySnapshot: todaySnapshot
@@ -63,7 +63,7 @@ enum JourneyHealthIntelligenceSectionLoader {
             calendar: calendar
         )
         let weeklyReview = weeklyReviewEnabled
-            ? await loadWeeklyReview(
+            ? await HealthIntelligenceSectionLoaderCore.loadWeeklyReview(
                 referenceDate: referenceDate,
                 provider: weeklyReviewProvider,
                 forceRefresh: forceWeeklyReviewRefresh,
@@ -82,30 +82,6 @@ enum JourneyHealthIntelligenceSectionLoader {
             cachedDayCount: availability.cachedDayCount,
             recoveryTimelineDayCount: recoveryTimelineDayCount
         )
-    }
-
-    // MARK: - Weekly review
-
-    private static func loadWeeklyReview(
-        referenceDate: Date,
-        provider: any WeeklyReviewServing,
-        forceRefresh: Bool,
-        calendar: Calendar
-    ) async -> WeeklyHealthReview? {
-        if forceRefresh,
-           let weekStart = WeeklyReviewWeekPolicy.latestCompletedWeekStart(
-               referenceDate: referenceDate,
-               calendar: calendar
-           ) {
-            return await provider.generateWeeklyReview(
-                for: weekStart,
-                forceRefresh: true,
-                allowPreview: false,
-                calendar: calendar
-            )
-        }
-
-        return await provider.getLatestCompletedWeeklyReview(calendar: calendar)
     }
 
     // MARK: - Recovery
@@ -211,24 +187,6 @@ enum JourneyHealthIntelligenceSectionLoader {
     }
 
     // MARK: - Connection
-
-    private static func resolveHealthConnection(
-        isAppleHealthConnected: Bool,
-        availability: HealthDataAvailability,
-        todaySnapshot: HealthIntelligenceSnapshot?
-    ) -> JourneyHealthConnectionState {
-        if let todaySnapshot,
-           todaySnapshot.nextBestAction.reason == .connectHealth,
-           !todaySnapshot.nextBestAction.id.isEmpty {
-            return .notConnected
-        }
-
-        if isAppleHealthConnected || availability.hasAnyReadableSignal {
-            return .connected
-        }
-
-        return .notConnected
-    }
 
     private static func planProgress(
         from review: WeeklyHealthReview?

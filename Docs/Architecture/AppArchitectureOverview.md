@@ -53,7 +53,7 @@ App → everything (composition only)
 ```
 Fitness_CoachApp (@main)
   ├── FirebaseApp.configure()
-  ├── AppContainer()                    # DI root
+  ├── AppContainer()                    # DI root — domain bundles in App/Dependencies/
   └── AuthGateView(container:)
         └── AuthGateRouteView
               ├── PublicWelcomeView / ExistingUserSignInView / restore & conflict views
@@ -111,8 +111,10 @@ Fitness_CoachApp (@main)
 |--------|--------|
 | **Ownership** | `Features/Coach/`, `Application/UseCases/Coach/` |
 | **Model** | `CoachModel` (~350 LOC) — `@MainActor ObservableObject`; thin orchestration over coordinators |
-| **Coordinators** | `CoachInputCoordinator`, `CoachSendFlowCoordinator`, `CoachPhotoFlowCoordinator`, `CoachPendingConfirmationCoordinator`, `CoachMessagePersistenceCoordinator`, `CoachContextPacketCoordinator`, `CoachTodayContextCoordinator`, `CoachLaunchChromeCoordinator`, `CoachNutritionEstimateActionCoordinator`, `CoachModelStateReducer` |
+| **Coordinators** | `CoachInputCoordinator`, `CoachSendFlowCoordinator`, `CoachPhotoFlowCoordinator` (wired in `init`), `CoachPendingConfirmationCoordinator`, `CoachMessagePersistenceCoordinator`, `CoachContextPacketCoordinator`, `CoachTodayContextCoordinator`, `CoachLaunchChromeCoordinator`, `CoachNutritionEstimateActionCoordinator`, `CoachModelStateReducer` |
 | **DI** | `CoachServices` + `CoachDependencies` → `CoachAssembledPipeline` (`Features/Coach/Model/CoachDependencies.swift`) |
+| **Tests** | `CoachModelTestFactory` (retired long-parameter init); `CoachRoutingIntegrationTestSupport` for routing harnesses |
+| **Debt** | TD-COACH-001 mostly closed — see [CoachModelDecompositionV1.md](../Coach/CoachModelDecompositionV1.md) |
 | **Pipeline** | `CoachRouteDecider`, `CoachAIRouteHandler`, `CoachMutationExecutor`, `CoachMealPhotoAnalyzer` (assembled, not owned by model) |
 | **AI** | `AIService` → `LLMClient` → Firebase `aiGateway` (Bearer ID token) |
 | **Context** | `CoachContextPacketV2Builder` — ephemeral per request |
@@ -151,9 +153,14 @@ Fitness_CoachApp (@main)
 
 | Aspect | Detail |
 |--------|--------|
-| **Ownership** | `Health/`, `Features/HealthIntelligence/` |
+| **Ownership** | `Health/`, `Features/HealthIntelligence/`, `Application/StateBuilders/HealthIntelligence/` |
 | **Stack** | HealthKit → `HealthDataRepository` → cache → engines → snapshot service → presentation builders |
+| **Shared module (v2)** | `HealthIntelligenceSectionLoaderCore` (fetch/gating); `HealthIntelligencePresentationCore` + `Policy` + `CardPresentationFactory` (card mapping/copy) |
+| **Tab loaders** | `TodayHealthIntelligenceSectionLoader`, `JourneyHealthIntelligenceSectionLoader`, `PlanHealthIntelligenceSectionLoader` — delegate to core |
+| **Tab builders** | `*HealthIntelligencePresentationBuilder` per tab — surface-specific layout shells remain |
+| **Parity gate** | `HealthIntelligencePresentationParityTests` (fixtures A–E) |
 | **Flags** | `HealthIntelligenceFeatureFlags` facade over `FormaAbTest` |
+| **Debt** | TD-HI-002 mostly closed; TD-HI-003 (`NormalizedWorkout` shim) open — see [CLEANUP_STATUS.md](../HealthIntelligence/CLEANUP_STATUS.md) |
 | **Release posture** | See [FeatureFlagRegistry.md](./FeatureFlagRegistry.md) — UI/weekly/remote sync documented as off for safe ship |
 
 ### 4.9 Account persistence (sync / restore / cross-device)
@@ -317,5 +324,6 @@ Full list: [TestStrategy.md](./TestStrategy.md) §6. Non-negotiable for PRDX v1:
 
 | Date | Change |
 |------|--------|
-| 2026-07-05 | Coach section updated for decomposition v1 (`CoachModel` + coordinators, `CoachDependencies`) |
+| 2026-07-05 | HI consolidation v2 — shared loader/presentation core, `App/Dependencies/` bundles, TD-HI-002 mostly closed |
+| 2026-07-05 | Coach section updated for decomposition v1 tail (`CoachModelTestFactory`, photo-flow coordinator) |
 | 2026-07-04 | Initial production architecture overview for PRDX v1 |

@@ -10,7 +10,7 @@ import XCTest
 
 final class AccountRestorePolicyTests: XCTestCase {
 
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     func testBlockingLookbackConstants() {
         XCTAssertEqual(AccountRestorePolicy.blockingDailyLogLookbackDays, 30)

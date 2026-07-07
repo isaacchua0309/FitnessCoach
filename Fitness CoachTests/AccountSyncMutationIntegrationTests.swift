@@ -245,7 +245,7 @@ final class AccountSyncMutationIntegrationTests: XCTestCase {
             dailyLogService: dailyLogService,
             mutationTracker: tracker
         )
-        _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try profileService.createProfile(ProfileFixtures.sampleDraft)
         _ = try profileService.assignOwnerUID(ownerUID)
 
         let entry = try foodLogService.addFoodEntry(

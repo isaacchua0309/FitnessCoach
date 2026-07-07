@@ -102,7 +102,7 @@ final class StreakCalculatorTests: XCTestCase {
             id: UUID(),
             date: evening,
             weightKg: nil,
-            targets: ProfileTestFixtures.sampleTargets,
+            targets: ProfileFixtures.sampleTargets,
             totals: MacroTotals(calories: 600, protein: 40, carbs: 50, fat: 20, fiber: nil, sodium: nil),
             waterConsumedMl: 0,
             steps: nil,
@@ -137,7 +137,7 @@ final class StreakCalculatorTests: XCTestCase {
             id: UUID(),
             date: date,
             weightKg: nil,
-            targets: ProfileTestFixtures.sampleTargets,
+            targets: ProfileFixtures.sampleTargets,
             totals: MacroTotals(
                 calories: calories,
                 protein: 120,

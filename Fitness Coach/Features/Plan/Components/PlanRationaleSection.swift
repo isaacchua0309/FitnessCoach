@@ -12,7 +12,7 @@ struct PlanRationaleSection: View {
     @State private var showsCalculationDetailsSheet = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
+        VStack(alignment: .leading, spacing: PlanLayout.headerToCardSpacing) {
             FormaSectionLabel(title: explanation.sectionTitle)
 
             FormaPlanCard {

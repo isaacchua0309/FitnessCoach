@@ -8,7 +8,7 @@
 import SwiftUI
 
 enum PlanHealthIntelligenceCardSupport {
-    static let headerToCardSpacing = PlanLayout.itemSpacing
+    static let headerToCardSpacing = PlanLayout.headerToCardSpacing
     static let contentSpacing = FormaTokens.Spacing.sm
     static let rowSpacing = FormaTokens.Spacing.xs
     static let actionSpacing = FormaTokens.Spacing.md

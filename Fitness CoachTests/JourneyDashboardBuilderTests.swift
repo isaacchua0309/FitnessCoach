@@ -76,7 +76,7 @@ final class JourneyDashboardBuilderTests: XCTestCase {
     // MARK: - Helpers
 
     private func makeContext(
-        profile: UserProfile? = ProfileTestFixtures.sampleProfile,
+        profile: UserProfile? = ProfileFixtures.sampleProfile,
         baseline: JourneyBaseline? = nil,
         weekLogs: [DailyLog] = [],
         maturityLogs: [DailyLog] = [],

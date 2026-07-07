@@ -25,9 +25,9 @@ struct TodayActivitySection: View {
     var body: some View {
         let _ = themeManager.themeRevision
         return VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: FormaProductCopy.Today.Activity.sectionTitle)
+            SectionLabel(title: FormaProductCopy.Today.Activity.sectionTitle)
 
-            FormaPlanCard {
+            MainTabCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                     Text(display.stepsLine)
                         .font(FormaTokens.Typography.sectionSubtitle)

@@ -230,18 +230,18 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
             dailyLogId: UUID(),
             summaryText: "",
             caloriesSummary: DailyReviewFormatter.caloriesSummary(
-                from: buildReviewSummary(for: DailyNutritionSummaryTestFixtures.baselineLog)
+                from: buildReviewSummary(for: DailyLogFixtures.baselineLog)
             ),
             proteinSummary: DailyReviewFormatter.proteinSummary(
-                from: buildReviewSummary(for: DailyNutritionSummaryTestFixtures.baselineLog)
+                from: buildReviewSummary(for: DailyLogFixtures.baselineLog)
             ),
             hydrationSummary: DailyReviewFormatter.hydrationSummary(
-                from: buildReviewSummary(for: DailyNutritionSummaryTestFixtures.baselineLog)
+                from: buildReviewSummary(for: DailyLogFixtures.baselineLog)
             ),
             workoutSummary: nil,
             weightSummary: nil,
             tomorrowRecommendation: DailyReviewFormatter.tomorrowRecommendation(
-                from: buildReviewSummary(for: DailyNutritionSummaryTestFixtures.baselineLog)
+                from: buildReviewSummary(for: DailyLogFixtures.baselineLog)
             ),
             createdAt: Date()
         )

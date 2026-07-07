@@ -37,67 +37,54 @@ enum PlanPreviewScreens {
     }
 
     @ViewBuilder
-    static func content(
+    static func screen(
         _ scenario: Scenario,
         palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
-        ScrollView {
-            PlanDashboardContent(state: dashboard(scenario))
+        MainTabPageScaffold(
+            title: FormaProductCopy.PlanHeader.title,
+            subtitle: FormaProductCopy.PlanHeader.subtitle,
+            sectionSpacing: PlanLayout.sectionSpacing,
+            trailingAction: {
+                PageActionPill(title: FormaProductCopy.PlanMissionControl.adjustPlanPill)
+            }
+        ) {
+            PlanDashboardContent(
+                state: dashboard(scenario),
+                onOpenSettings: {}
+            )
         }
-        .formaMainTabScrollInsets()
-        .background(FormaTokens.Color.canvas)
         .formaThemePreview(appearance: appearance, palette: palette)
     }
 }
 
 #Preview("Aggressive cut") {
-    NavigationStack {
-        PlanPreviewScreens.content(.aggressiveCut)
-            .navigationTitle(FormaProductCopy.PlanHeader.title)
-    }
+    PlanPreviewScreens.screen(.aggressiveCut)
 }
 
 #Preview("Moderate cut") {
-    NavigationStack {
-        PlanPreviewScreens.content(.moderateCut)
-            .navigationTitle(FormaProductCopy.PlanHeader.title)
-    }
+    PlanPreviewScreens.screen(.moderateCut)
 }
 
 #Preview("Maintenance") {
-    NavigationStack {
-        PlanPreviewScreens.content(.maintenance)
-            .navigationTitle(FormaProductCopy.PlanHeader.title)
-    }
+    PlanPreviewScreens.screen(.maintenance)
 }
 
 #Preview("Lean gain") {
-    NavigationStack {
-        PlanPreviewScreens.content(.leanGain)
-            .navigationTitle(FormaProductCopy.PlanHeader.title)
-    }
+    PlanPreviewScreens.screen(.leanGain)
 }
 
 #Preview("Low confidence") {
-    NavigationStack {
-        PlanPreviewScreens.content(.lowConfidence)
-            .navigationTitle(FormaProductCopy.PlanHeader.title)
-    }
+    PlanPreviewScreens.screen(.lowConfidence)
 }
 
 #Preview("Strong confidence") {
-    NavigationStack {
-        PlanPreviewScreens.content(.strongConfidence)
-            .navigationTitle(FormaProductCopy.PlanHeader.title)
-    }
+    PlanPreviewScreens.screen(.strongConfidence)
 }
 
 #Preview("Aggressive cut — small iPhone") {
-    NavigationStack {
-        PlanPreviewScreens.content(.aggressiveCut)
-            .navigationTitle(FormaProductCopy.PlanHeader.title)
-            .frame(width: 375, height: 667)
-    }
+    PlanPreviewScreens.screen(.aggressiveCut)
+        .frame(width: 375, height: 667)
 }
 #endif

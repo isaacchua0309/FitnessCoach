@@ -11,7 +11,7 @@ import XCTest
 final class AccountRestoreLoggerTests: XCTestCase {
 
     private let sampleUID = "firebase-user-abc123xyz789"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     func testDiagnosticsSnapshotUsesHashedUIDOnly() {
         let summary = makeSummary(uid: sampleUID, status: .completed)

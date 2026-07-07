@@ -123,7 +123,7 @@ final class JourneyStreakBuilderTests: XCTestCase {
             id: UUID(),
             date: date,
             weightKg: nil,
-            targets: ProfileTestFixtures.sampleTargets,
+            targets: ProfileFixtures.sampleTargets,
             totals: MacroTotals(
                 calories: calories,
                 protein: 120,

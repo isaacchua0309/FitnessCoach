@@ -214,7 +214,7 @@ final class AccountLocalMutationTrackingTests: XCTestCase {
             dailyLogService: dailyLogService,
             mutationTracker: tracker
         )
-        _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try profileService.createProfile(ProfileFixtures.sampleDraft)
         _ = try profileService.assignOwnerUID(ownerUID)
 
         _ = try foodLogService.addFoodEntry(

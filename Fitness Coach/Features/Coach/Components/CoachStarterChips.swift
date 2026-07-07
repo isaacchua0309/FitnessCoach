@@ -23,47 +23,25 @@ struct CoachStarterChips: View {
     }
 
     var body: some View {
-        CoachFlowLayout(
-            horizontalSpacing: CoachDesignTokens.Spacing.xs,
-            verticalSpacing: CoachDesignTokens.Spacing.xs
+        LazyVGrid(
+            columns: MainTabResponsiveLayout.quickActionGridColumns(),
+            alignment: .leading,
+            spacing: FormaTokens.Spacing.xs
         ) {
             ForEach(prompts) { prompt in
-                Button {
-                    CoachHaptics.toolbarTap()
-                    onTap(prompt)
-                } label: {
-                    HStack(spacing: CoachDesignTokens.Spacing.xs) {
-                        Image(systemName: prompt.symbolName)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(CoachDesignTokens.Color.primary)
-
-                        Text(prompt.label)
-                            .font(CoachDesignTokens.Typography.chip)
-                            .foregroundStyle(CoachDesignTokens.Color.primaryText)
-                    }
-                    .padding(.horizontal, CoachDesignTokens.Spacing.sm + 2)
-                    .frame(minHeight: CoachDesignTokens.Layout.chipMinTouch)
-                    .background(CoachDesignTokens.Color.chipFill, in: Capsule())
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(CoachDesignTokens.Color.chipStroke, lineWidth: 0.5)
-                    )
-                }
-                .buttonStyle(CoachStarterChipButtonStyle())
+                FormaQuickActionChip(
+                    title: prompt.label,
+                    action: {
+                        CoachHaptics.toolbarTap()
+                        onTap(prompt)
+                    },
+                    systemImage: prompt.symbolName,
+                    accessibilityHint: prompt.accessibilityHint
+                )
                 .disabled(isDisabled)
-                .accessibilityLabel(prompt.label)
-                .accessibilityHint(prompt.accessibilityHint)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-    }
-}
-
-private struct CoachStarterChipButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(CoachDesignTokens.Motion.quick, value: configuration.isPressed)
     }
 }
 

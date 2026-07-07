@@ -12,7 +12,7 @@ final class AccountSyncCursorStoreTests: XCTestCase {
 
     private let uidA = "user-a"
     private let uidB = "user-b"
-    private let referenceDate = ProfileTestFixtures.referenceDate
+    private let referenceDate = ProfileFixtures.referenceDate
 
     private var defaults: UserDefaults!
     private var store: AccountSyncCursorStore!
