@@ -59,6 +59,11 @@ final class PlanLayoutCompositionTests: XCTestCase {
         XCTAssertTrue(removed.contains("apple_health"))
         XCTAssertTrue(removed.contains("activity_assumptions"))
         XCTAssertTrue(removed.contains("adjust_plan"))
+        XCTAssertTrue(removed.contains("plan_status"))
+        XCTAssertTrue(removed.contains("why_this_works"))
+        XCTAssertTrue(removed.contains("when_to_adjust"))
+        XCTAssertTrue(removed.contains("plan_assumptions"))
+        XCTAssertTrue(removed.contains("adjust_plan_cta"))
     }
 
     func testScrollBottomPaddingUsesMainTabInset() {

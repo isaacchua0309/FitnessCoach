@@ -356,6 +356,16 @@ Normal pull-to-refresh must **not** regenerate weekly review (`generateCallCount
 
 Partial-permissions action **suppresses** redundant sleep/HRV granular CTAs.
 
+### Default Plan HI surface
+
+**File:** `Fitness Coach/Features/Plan/Components/HealthIntelligence/PlanHealthIntelligenceSection.swift`
+
+Plan scroll keeps HI **confidence-first**:
+
+- Always show `PlanHealthConfidenceCard` (+ optional stale banner)
+- Show at most **one** primary missing-data CTA (prefer connect-health / partial-permissions)
+- Signals, assumptions, and data-quality cards stay behind a collapsed **“What Forma is using”** disclosure so sparse-data users are not forced through empty rows
+
 ### Composition policy
 
 **File:** `Fitness Coach/Features/Plan/Model/PlanDashboardCompositionPolicy.swift`

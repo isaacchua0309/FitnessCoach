@@ -9,6 +9,10 @@ import SwiftUI
 
 struct PlanMissionControlHeroSection: View {
     let strategy: PlanStrategyState
+    var explanation: PlanExplanationState? = nil
+    var onCalculationDetailsOpened: (() -> Void)? = nil
+
+    @State private var showsCalculationDetailsSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.headerToCardSpacing) {
@@ -27,33 +31,34 @@ struct PlanMissionControlHeroSection: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, FormaTokens.Spacing.xs)
                         .accessibilityHidden(true)
+
+                    if let explanation, explanation.showsCalculationAction {
+                        calculationDetailsButton(title: explanation.seeCalculationTitle)
+                    }
                 }
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(strategy.accessibilitySummary)
         }
+        .sheet(isPresented: $showsCalculationDetailsSheet) {
+            if let details = explanation?.calculationDetails {
+                PlanCalculationDetailsSheet(details: details)
+            }
+        }
     }
 
     private var keyValuesBlock: some View {
         VStack(alignment: .leading, spacing: 0) {
-            FormaPlanDisplayRow(
-                label: strategy.dailyTargetLabel,
-                value: strategy.dailyTargetValue
-            )
-            .accessibilityHidden(true)
-
             if let expectedPaceLabel = strategy.expectedPaceLabel,
                let expectedPaceValue = strategy.expectedPaceValue {
-                FormaPlanRowDivider()
-
                 FormaPlanDisplayRow(
                     label: expectedPaceLabel,
                     value: expectedPaceValue
                 )
                 .accessibilityHidden(true)
-            }
 
-            FormaPlanRowDivider()
+                FormaPlanRowDivider()
+            }
 
             FormaPlanDisplayRow(
                 label: strategy.strategyStatusLabel,
@@ -63,13 +68,31 @@ struct PlanMissionControlHeroSection: View {
         }
         .padding(.top, FormaTokens.Spacing.xs)
     }
+
+    private func calculationDetailsButton(title: String) -> some View {
+        Button {
+            onCalculationDetailsOpened?()
+            showsCalculationDetailsSheet = true
+        } label: {
+            Text(title)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(FormaTokens.Theme.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, FormaTokens.Spacing.xs)
+        .accessibilityLabel(title)
+        .accessibilityHint(FormaProductCopy.PlanMissionControl.seeCalculationAccessibilityHint)
+    }
 }
 
 // MARK: - Previews
 
 #Preview("Lose weight") {
     PlanMissionControlHeroSection(
-        strategy: PlanMissionControlFixtures.loseDashboard.strategy
+        strategy: PlanMissionControlFixtures.loseDashboard.strategy,
+        explanation: PlanMissionControlFixtures.loseDashboard.explanation
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -78,37 +101,11 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Large Dynamic Type") {
     PlanMissionControlHeroSection(
-        strategy: PlanMissionControlFixtures.loseDashboard.strategy
+        strategy: PlanMissionControlFixtures.loseDashboard.strategy,
+        explanation: PlanMissionControlFixtures.loseDashboard.explanation
     )
     .padding()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
-    .dynamicTypeSize(.accessibility3)
-}
-
-#Preview("Active user") {
-    PlanMissionControlHeroSection(
-        strategy: PlanMissionControlFixtures.activeUserDashboard.strategy
-    )
-    .padding()
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
-}
-
-#Preview("Maintain") {
-    PlanMissionControlHeroSection(
-        strategy: PlanMissionControlFixtures.maintainDashboard.strategy
-    )
-    .padding()
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
-}
-
-#Preview("Muscle gain") {
-    PlanMissionControlHeroSection(
-        strategy: PlanMissionControlFixtures.gainDashboard.strategy
-    )
-    .padding()
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
+    .dynamicTypeSize(.accessibility2)
 }

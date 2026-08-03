@@ -73,13 +73,19 @@ final class PlanStrategyHeroTests: XCTestCase {
         XCTAssertEqual(strategy.supportiveLine, "Built for steady progress.")
     }
 
-    func testAccessibilitySummaryIncludesStrategyFields() {
+    func testAccessibilitySummaryIncludesStrategyFieldsWithoutDailyCalories() {
         let strategy = PlanMissionControlFixtures.loseDashboard.strategy
 
         XCTAssertTrue(strategy.accessibilitySummary.contains("Your Strategy"))
         XCTAssertTrue(strategy.accessibilitySummary.contains(strategy.primaryGoal))
-        XCTAssertTrue(strategy.accessibilitySummary.contains(strategy.dailyTargetValue))
         XCTAssertTrue(strategy.accessibilitySummary.contains(strategy.strategyStatusValue))
         XCTAssertTrue(strategy.accessibilitySummary.contains(strategy.supportiveLine))
+        XCTAssertFalse(
+            strategy.accessibilitySummary.contains(strategy.dailyTargetValue),
+            "Daily calories belong on Daily Targets, not Strategy accessibility"
+        )
+        if let expectedPaceValue = strategy.expectedPaceValue {
+            XCTAssertTrue(strategy.accessibilitySummary.contains(expectedPaceValue))
+        }
     }
 }
