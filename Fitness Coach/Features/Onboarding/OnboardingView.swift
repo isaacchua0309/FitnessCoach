@@ -220,7 +220,7 @@ struct OnboardingView: View {
                     : nil,
                 onBack: {
                     fieldNavigator.dismissFocus()
-                    model.goBack()
+                    model.handleBack(exitToWelcome: onExitToWelcome)
                 },
                 onContinue: handleContinueTapped,
                 onComplete: {

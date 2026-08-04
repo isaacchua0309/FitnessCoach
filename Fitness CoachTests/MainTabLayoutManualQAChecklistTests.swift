@@ -58,11 +58,56 @@ final class MainTabLayoutManualQAChecklistTests: XCTestCase {
 
     func testTodayScrollReservesTabBarClearance() {
         XCTAssertGreaterThan(FormaMainTabLayout.scrollContentBottomPadding, 0)
-        XCTAssertGreaterThan(
-            FormaMainTabLayout.bottomContentInset(
-                safeAreaBottom: FormaMainTabLayout.defaultBottomSafeAreaFallback
-            ),
-            FormaMainTabLayout.tabBarReservedHeight
+        XCTAssertEqual(
+            FormaMainTabLayout.bottomContentInset(),
+            FormaMainTabLayout.scrollContentBottomPadding + FormaMainTabLayout.tabBarBreathingRoom
+        )
+        XCTAssertLessThan(
+            FormaMainTabLayout.bottomContentInset(),
+            FormaMainTabLayout.tabBarReservedHeight,
+            "Scroll padding must not re-reserve the system tab bar height."
+        )
+    }
+
+    func testScaffoldDoesNotFeedbackMeasureSafeAreaIntoClearanceInset() throws {
+        let scaffold = try productionSource(
+            "Fitness Coach/DesignSystem/Layout/MainTabPageScaffold.swift"
+        )
+        let layout = try productionSource(
+            "Fitness Coach/DesignSystem/Layout/FormaMainTabLayout.swift"
+        )
+
+        XCTAssertFalse(
+            scaffold.contains("MainTabSafeAreaBottomPreferenceKey"),
+            "Scaffold must not measure safeAreaInsets.bottom into a clearance inset."
+        )
+        XCTAssertFalse(
+            scaffold.contains("measuredSafeAreaBottom"),
+            "Scaffold must not retain measured bottom safe-area state for clearance."
+        )
+        XCTAssertFalse(
+            scaffold.contains("MainTabTabBarClearanceSpacer"),
+            "Scaffold must not reserve a second tab-bar clearance spacer; TabView owns that inset."
+        )
+        XCTAssertFalse(
+            layout.contains("safeAreaBottom"),
+            "Main-tab bottom inset must not take a measured safe-area value."
+        )
+        XCTAssertTrue(
+            scaffold.contains("bottomContentInset(dynamicTypeSize:"),
+            "Scroll mode should apply breathing-room padding inside scroll content."
+        )
+        XCTAssertTrue(
+            scaffold.contains("scrollBounceBehavior(.basedOnSize)"),
+            "Short main-tab pages should not bounce when content fits the viewport."
+        )
+        XCTAssertTrue(
+            scaffold.contains("MainTabBottomAccessoryInsetModifier"),
+            "Empty bottom accessories must not reserve a bottom safe-area inset."
+        )
+        XCTAssertFalse(
+            scaffold.contains("UIScrollView.appearance()"),
+            "Do not disable bounce globally via UIScrollView appearance."
         )
     }
 
@@ -118,6 +163,11 @@ final class MainTabLayoutManualQAChecklistTests: XCTestCase {
         )
         XCTAssertTrue(conversation.contains("CoachConversationScrollAnchor.bottom"))
         XCTAssertTrue(conversation.contains("safeAreaInset(edge: .bottom"))
+        XCTAssertTrue(conversation.contains("scrollBounceBehavior(.basedOnSize)"))
+        XCTAssertTrue(
+            conversation.contains("bottomContentInset(dynamicTypeSize:"),
+            "Coach transcript should use shared breathing-room padding, not a second tab-bar spacer."
+        )
     }
 
     // MARK: - 4. Journey
@@ -245,6 +295,7 @@ enum MainTabLayoutManualQAChecklist {
             expected: [
                 "Today's Mission appears directly below the header.",
                 "Water quick-add buttons respond.",
+                "Page content uses the full height above the tab bar with no large empty lower block.",
                 "Last scroll content clears the floating tab bar."
             ]
         ),
@@ -259,6 +310,7 @@ enum MainTabLayoutManualQAChecklist {
             ],
             expected: [
                 "Header and empty-state content scroll together.",
+                "No large empty block between content and the tab bar.",
                 "Input bar never collides with the tab bar."
             ]
         ),
@@ -287,6 +339,7 @@ enum MainTabLayoutManualQAChecklist {
                 "Scroll to Weekly Review."
             ],
             expected: [
+                "Page content uses the full height above the tab bar with no large empty lower block.",
                 "Weekly Review card is not covered by the tab bar."
             ]
         ),
@@ -301,6 +354,7 @@ enum MainTabLayoutManualQAChecklist {
                 "Open settings from the bottom settings row."
             ],
             expected: [
+                "Page content uses the full height above the tab bar with no large empty lower block.",
                 "No legacy floating Adjust Plan header or header gear icon.",
                 "Bottom Adjust Plan CTA still opens adjust flow with distinct analytics."
             ]

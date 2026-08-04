@@ -22,6 +22,8 @@ struct FormaRootThemeModifier: ViewModifier {
             .environment(\.formaResolvedTheme, state.resolved)
             .environment(\.formaThemePalette, state.legacyPalette)
             .environment(\.theme, theme)
+            // Re-publish so nested modifiers (e.g. formaThemeReactive) resolve ThemeStore.
+            .environmentObject(themeStore)
             .tint(theme.tabBarSelectedIcon)
             .formaUIKitAppearance()
             .formaThemeReactive()
@@ -30,14 +32,15 @@ struct FormaRootThemeModifier: ViewModifier {
 
 extension View {
 
-    /// Apply once at the app root. Requires `ThemeStore` / `ThemeManager` on the environment.
+    /// Apply once at the app root. Requires `ThemeStore` / `ThemeManager` on the environment
+    /// via `.environmentObject` applied *after* this modifier (ancestor), or use `formaRootTheme(store:)`.
     func formaRootTheme() -> some View {
         modifier(FormaRootThemeModifier())
     }
 
-    /// Legacy entry point — prefer `.formaRootTheme()` with `environmentObject(themeStore)`.
+    /// Convenience that injects `ThemeStore` as an ancestor of the root theme modifier.
     func formaRootTheme(store: ThemeStore) -> some View {
-        environmentObject(store).formaRootTheme()
+        formaRootTheme().environmentObject(store)
     }
 }
 

@@ -13,6 +13,12 @@ enum OnboardingCompletionIntent: Equatable, Sendable {
     case signIn
 }
 
+enum OnboardingBackAction: Equatable, Sendable {
+    case moveToPreviousStep
+    case exitToWelcome
+    case none
+}
+
 @MainActor
 final class OnboardingModel: ObservableObject {
 
@@ -173,9 +179,36 @@ final class OnboardingModel: ObservableObject {
         )
     }
 
+    /// Single owner for the shared onboarding back control.
+    /// Root routing (welcome exit) is invoked only via the supplied closure — never mixed
+    /// with an in-wizard step mutation in the same call.
+    func resolveBackAction() -> OnboardingBackAction {
+        if canExitToWelcome {
+            return .exitToWelcome
+        }
+        if canGoBack {
+            return .moveToPreviousStep
+        }
+        return .none
+    }
+
+    /// Performs exactly one back transition owned by this model (or delegates welcome exit).
+    func handleBack(exitToWelcome: (() -> Void)? = nil) {
+        switch resolveBackAction() {
+        case .exitToWelcome:
+            exitToWelcome?()
+        case .moveToPreviousStep:
+            goBack()
+        case .none:
+            break
+        }
+    }
+
     func goBack() {
         clearError()
         guard let previous = backTarget(for: currentStep) else { return }
+        // Ignore duplicate requests that target the same step (rapid taps after arrival).
+        guard previous != currentStep else { return }
 
         if currentStep.clearsGeneratedPlanWhenNavigatingBack(in: OnboardingStep.flow) {
             clearGeneratedPlan()

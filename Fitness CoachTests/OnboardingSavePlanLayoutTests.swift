@@ -5,6 +5,7 @@
 //  Forma — Fixed-viewport layout guardrails for protect-progress.
 //
 
+import SwiftUI
 import XCTest
 @testable import Fitness_Coach
 

@@ -198,8 +198,8 @@ final class MainTabThemeSmokeTests: XCTestCase {
             "Root theme modifier must observe the shared ThemeStore environment object."
         )
         XCTAssertTrue(
-            rootModifierSource.contains("func formaRootTheme()"),
-            "App root must use parameterless formaRootTheme() with environmentObject(themeStore)."
+            rootModifierSource.contains("func formaRootTheme(store: ThemeStore)"),
+            "Root theme API must expose formaRootTheme(store:) that injects ThemeStore as an ancestor."
         )
     }
 }

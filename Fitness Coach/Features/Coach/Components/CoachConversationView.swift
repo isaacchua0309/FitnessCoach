@@ -22,6 +22,7 @@ struct CoachConversationView<BottomAccessory: View>: View {
     var onNutritionAction: ((NutritionSuggestedAction) -> Void)?
     @ViewBuilder var bottomAccessory: () -> BottomAccessory
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isNearBottom = true
     @State private var scrollTask: Task<Void, Never>?
 
@@ -48,9 +49,11 @@ struct CoachConversationView<BottomAccessory: View>: View {
                         transcriptContent
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // Breathing room above the composer inset — not a second tab-bar reservation.
+                .padding(.bottom, FormaMainTabLayout.bottomContentInset(dynamicTypeSize: dynamicTypeSize))
             }
+            .scrollBounceBehavior(.basedOnSize)
             .accessibilityIdentifier(CoachAccessibilityIdentifier.chatScroll)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomAccessory()

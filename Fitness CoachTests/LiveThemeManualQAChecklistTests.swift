@@ -82,8 +82,14 @@ final class LiveThemeManualQAChecklistTests: XCTestCase {
         )
 
         XCTAssertTrue(settingsSource.contains("themeManager.setTheme"))
-        XCTAssertTrue(appSource.contains(".environmentObject(container.themeStore)"))
-        XCTAssertTrue(appSource.contains(".formaRootTheme()"))
+        XCTAssertTrue(
+            appSource.contains(".formaRootTheme(store: container.themeStore)")
+                || (
+                    appSource.contains(".formaRootTheme()")
+                        && appSource.contains(".environmentObject(container.themeStore)")
+                ),
+            "App root must inject ThemeStore as an ancestor of formaRootTheme."
+        )
         XCTAssertFalse(settingsSource.contains("@AppStorage"))
     }
 

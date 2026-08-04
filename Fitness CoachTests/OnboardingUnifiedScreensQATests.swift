@@ -5,6 +5,7 @@
 //  Forma — QA coverage for intro proof and Apple Health unified onboarding screens.
 //
 
+import SwiftUI
 import XCTest
 @testable import Fitness_Coach
 

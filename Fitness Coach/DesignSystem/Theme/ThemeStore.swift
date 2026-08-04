@@ -5,8 +5,8 @@
 //  Forma — Local theme preferences (UserDefaults-backed, not cloud-synced).
 //
 //  Single app-wide source of truth for theme palette and appearance. Injected once
-//  at the root in `Fitness_CoachApp` via `environmentObject` + `formaRootTheme()` so
-//  onboarding, auth, and main tabs all observe the same live palette.
+//  at the root in `Fitness_CoachApp` via `formaRootTheme()` then `environmentObject`
+//  (ancestor order) so onboarding, auth, and main tabs all observe the same live palette.
 //
 
 import Combine

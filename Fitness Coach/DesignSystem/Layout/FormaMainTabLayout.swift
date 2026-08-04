@@ -33,25 +33,27 @@ enum FormaMainTabLayout {
     static let cardPadding: CGFloat = 24
     static let cardCompactPadding: CGFloat = FormaTokens.Spacing.md
 
-    // MARK: Floating tab bar clearance
+    // MARK: Tab bar clearance
 
     /// Visual height of the floating tab bar capsule (excluding the home-indicator safe area).
+    ///
+    /// The system `TabView` already reserves this in the tab content safe area.
+    /// Do **not** re-apply this height via a root `safeAreaInset` on tab pages — that
+    /// double-counts the tab bar and compresses content into the upper half of the screen.
     static let tabBarReservedHeight = FormaTokens.Layout.floatingTabBarHeight
-    /// Comfortable gap between the last scroll item and the floating tab bar.
+    /// Comfortable gap between the last scroll item and the system tab-bar safe area.
     static let tabBarBreathingRoom = FormaTokens.Layout.floatingTabBarBreathingRoom
-    /// Fallback home-indicator height used before the first safe-area measurement (modern iPhone).
-    static let defaultBottomSafeAreaFallback: CGFloat = 34
     /// Padding below the last scroll content block inside the scroll area.
     static let scrollContentBottomPadding = FormaTokens.Layout.mainTabScrollContentPadding
 
-    /// Total bottom space scrollable main-tab content must reserve above the floating tab bar.
+    /// Extra scroll-content padding so the last item is not flush against the tab-bar safe area.
     ///
-    /// Includes tab bar height, breathing room, and the device bottom safe area (home indicator).
+    /// This is **content padding**, not a layout-reserving `safeAreaInset`. The system
+    /// `TabView` owns tab-bar and home-indicator safe areas; only breathing room belongs here.
     static func bottomContentInset(
-        safeAreaBottom: CGFloat,
         dynamicTypeSize: DynamicTypeSize = .large
     ) -> CGFloat {
-        var inset = tabBarReservedHeight + tabBarBreathingRoom + safeAreaBottom
+        var inset = scrollContentBottomPadding + tabBarBreathingRoom
         if dynamicTypeSize >= .accessibility3 {
             inset += FormaTokens.Spacing.md
         } else if dynamicTypeSize >= .accessibility1 {
@@ -60,77 +62,36 @@ enum FormaMainTabLayout {
         return inset
     }
 
-    /// Legacy alias — minimum inset without measured safe area (pre-layout / tests).
+    /// Legacy alias for scroll-content bottom padding (breathing room only).
     static var scrollBottomInset: CGFloat {
-        bottomContentInset(safeAreaBottom: 0)
+        bottomContentInset()
     }
 
     /// Extra clearance when Dynamic Type is enlarged so content stays above the tab bar.
     static func scrollBottomInset(dynamicTypeSize: DynamicTypeSize) -> CGFloat {
-        bottomContentInset(safeAreaBottom: 0, dynamicTypeSize: dynamicTypeSize)
+        bottomContentInset(dynamicTypeSize: dynamicTypeSize)
     }
 }
 
-// MARK: - Safe area measurement
-
-struct MainTabSafeAreaBottomPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-// MARK: - Tab bar clearance spacer
-
-/// Clearance reserved beneath main-tab content so the floating tab bar never covers scroll items.
-struct MainTabTabBarClearanceSpacer: View {
-    var safeAreaBottom: CGFloat
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    var body: some View {
-        Color.clear
-            .frame(height: FormaMainTabLayout.bottomContentInset(
-                safeAreaBottom: safeAreaBottom,
-                dynamicTypeSize: dynamicTypeSize
-            ))
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-    }
-}
-
-// MARK: - Scroll inset (legacy / previews outside scaffold)
+// MARK: - Scroll content breathing room
 
 private struct FormaMainTabScrollInsetModifier: ViewModifier {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var safeAreaBottom = FormaMainTabLayout.defaultBottomSafeAreaFallback
 
     func body(content: Content) -> some View {
         content
-            .background {
-                GeometryReader { geometry in
-                    Color.clear
-                        .preference(
-                            key: MainTabSafeAreaBottomPreferenceKey.self,
-                            value: geometry.safeAreaInsets.bottom
-                        )
-                }
-            }
-            .onPreferenceChange(MainTabSafeAreaBottomPreferenceKey.self) { measured in
-                let resolved = measured > 0 ? measured : FormaMainTabLayout.defaultBottomSafeAreaFallback
-                if safeAreaBottom != resolved {
-                    safeAreaBottom = resolved
-                }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                MainTabTabBarClearanceSpacer(safeAreaBottom: safeAreaBottom)
-            }
+            .safeAreaPadding(.bottom, FormaMainTabLayout.bottomContentInset(
+                dynamicTypeSize: dynamicTypeSize
+            ))
     }
 }
 
 extension View {
-    /// Reserves scroll clearance above the floating main tab bar.
-    /// Prefer `MainTabPageScaffold`, which applies this globally.
+    /// Adds modest bottom breathing room above the system tab-bar safe area.
+    /// Prefer `MainTabPageScaffold`, which applies this inside scroll content.
+    ///
+    /// Do not combine with a measured `safeAreaInsets.bottom` fed back into
+    /// `safeAreaInset` — that creates a layout feedback loop.
     func formaMainTabScrollInsets() -> some View {
         modifier(FormaMainTabScrollInsetModifier())
     }

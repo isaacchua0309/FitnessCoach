@@ -401,6 +401,8 @@ struct SettingsRootView: View {
             developerDestinationView(for: destination)
         case .accountRestoreDiagnostics:
             developerDestinationView(for: destination)
+        case .contextLoopReport:
+            developerDestinationView(for: destination)
         }
     }
 
@@ -422,6 +424,12 @@ struct SettingsRootView: View {
                 AccountSyncDiagnosticsView()
             case .accountRestoreDiagnostics:
                 AccountRestoreDiagnosticsView()
+            case .contextLoopReport:
+                #if DEBUG
+                FormaContextLoopReportView()
+                #else
+                EmptyView()
+                #endif
             default:
                 EmptyView()
             }

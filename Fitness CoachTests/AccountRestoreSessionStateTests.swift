@@ -32,28 +32,25 @@ final class AccountRestoreSessionStateTests: XCTestCase {
         let inspector = StubAccountLocalDataInspector(isEffectivelyEmpty: true)
 
         session.recordRestoreCompletion(makeSummary(status: .completed))
-        XCTAssertFalse(
-            await session.shouldShowPendingRestoreUI(
-                ownerUID: "user-1",
-                localDataInspector: inspector
-            )
+        let showsCompletedRestore = await session.shouldShowPendingRestoreUI(
+            ownerUID: "user-1",
+            localDataInspector: inspector
         )
+        XCTAssertFalse(showsCompletedRestore)
 
         session.recordRestoreCompletion(makeSummary(status: .offline))
-        XCTAssertTrue(
-            await session.shouldShowPendingRestoreUI(
-                ownerUID: "user-1",
-                localDataInspector: inspector
-            )
+        let showsOfflineRestore = await session.shouldShowPendingRestoreUI(
+            ownerUID: "user-1",
+            localDataInspector: inspector
         )
+        XCTAssertTrue(showsOfflineRestore)
 
         session.recordRestoreCompletion(makeSummary(status: .partial))
-        XCTAssertTrue(
-            await session.shouldShowPendingRestoreUI(
-                ownerUID: "user-1",
-                localDataInspector: inspector
-            )
+        let showsPartialRestore = await session.shouldShowPendingRestoreUI(
+            ownerUID: "user-1",
+            localDataInspector: inspector
         )
+        XCTAssertTrue(showsPartialRestore)
     }
 
     func testPendingRestoreUISuppressedWhenLocalDataExists() async {
@@ -61,12 +58,11 @@ final class AccountRestoreSessionStateTests: XCTestCase {
         session.recordRestoreCompletion(makeSummary(status: .offline))
 
         let inspector = StubAccountLocalDataInspector(isEffectivelyEmpty: false)
-        XCTAssertFalse(
-            await session.shouldShowPendingRestoreUI(
-                ownerUID: "user-1",
-                localDataInspector: inspector
-            )
+        let showsRestoreWithLocalData = await session.shouldShowPendingRestoreUI(
+            ownerUID: "user-1",
+            localDataInspector: inspector
         )
+        XCTAssertFalse(showsRestoreWithLocalData)
     }
 
     func testClearForSignOutResetsSession() {

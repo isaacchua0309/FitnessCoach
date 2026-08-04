@@ -70,8 +70,13 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func bindOnboardingModelChanges() {
-        onboardingModelCancellable = onboardingModel?.objectWillChange
-            .sink { [weak self] _ in self?.objectWillChange.send() }
+        // Do not forward every OnboardingModel property change into the auth-gate
+        // shell. `@Published onboardingModel` already republishes create/clear, which
+        // is all routing needs (`isOnboardingModelReady`). Forwarding `currentStep`
+        // rebuilds AuthGateRouteView on every back/forward and can re-trigger shell
+        // lifecycle side effects (resolveLocalProfile / bootstrap) that hop steps.
+        onboardingModelCancellable?.cancel()
+        onboardingModelCancellable = nil
     }
 
     // MARK: - Routing
@@ -138,7 +143,11 @@ final class AuthGateCoordinator: ObservableObject {
 
     func preparePreAuthOnboardingIfNeeded() {
         guard !AppRouteResolver.isSignedIn(authManager.authState) else { return }
-        rootModel.resolveLocalProfile()
+        // Avoid re-resolving root profile on every shell appearance while a session
+        // already owns navigation — that republishes RootModel and can bounce the shell.
+        if onboardingModel == nil {
+            rootModel.resolveLocalProfile()
+        }
         if publicEntryDestination == WelcomeOnboardingHandoffPolicy.createPlanDestination {
             ensurePreAuthOnboardingModel()
         } else {
@@ -312,10 +321,10 @@ final class AuthGateCoordinator: ObservableObject {
     func bootstrapOnboardingIfNeeded() {
         let signedIn = AppRouteResolver.isSignedIn(authManager.authState)
 
-        // After explicit sign-out, stay on welcome until the user chooses Create My Plan.
+        // After explicit sign-out / welcome exit, never recreate a pre-auth onboarding
+        // session until the user chooses Create My Plan (`clearExplicitSignOut`).
         if !signedIn,
-           container.publicEntrySessionStore.suppressAutomaticPublicEntryResume,
-           publicEntryDestination == .welcome {
+           container.publicEntrySessionStore.suppressAutomaticPublicEntryResume {
             return
         }
 

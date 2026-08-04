@@ -206,7 +206,13 @@ enum AccountRestoreLogger {
         "errorcategory",
         "wasoffline",
         "waspartial",
-        "pendingcount"
+        "pendingcount",
+        "stage",
+        "cancelled",
+        "cachehit",
+        "daycount",
+        "childdatecount",
+        "trigger"
     ]
 }
 

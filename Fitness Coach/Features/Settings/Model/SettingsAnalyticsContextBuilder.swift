@@ -51,6 +51,7 @@ enum SettingsAnalyticsContextBuilder {
         case .coachContextInspector: return "coach_context_inspector"
         case .accountSyncDiagnostics: return "account_sync_diagnostics"
         case .accountRestoreDiagnostics: return "account_restore_diagnostics"
+        case .contextLoopReport: return "context_loop_report"
         }
     }
 

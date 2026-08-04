@@ -181,7 +181,7 @@ final class MaintenanceEstimateCalculatorTests: XCTestCase {
         )
 
         XCTAssertEqual(estimate.weightChangeKg, -1)
-        XCTAssertEqual(estimate.weeklyWeightChangeKg, -0.5, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(estimate.weeklyWeightChangeKg), -0.5, accuracy: 0.001)
     }
 
     // MARK: - Plausibility & rounding
@@ -236,8 +236,8 @@ final class MaintenanceEstimateCalculatorTests: XCTestCase {
                 averageDailyCalories: 2_000,
                 startingWeightKg: 80,
                 endingWeightKg: 79,
-                hasSuddenSpike: true,
-                staticTDEE: nil
+                staticTDEE: nil,
+                hasSuddenSpike: true
             )
         )
 
@@ -245,7 +245,11 @@ final class MaintenanceEstimateCalculatorTests: XCTestCase {
         XCTAssertTrue(
             estimate.caveats.contains(FormaProductCopy.WeightSpikeEducation.holdSteadyNote)
         )
-        XCTAssertTrue(estimate.sufficiency.reasons.contains(.weightTrendTooNoisy))
+        XCTAssertTrue(
+            estimate.sufficiency.reasons.contains(
+                WeeklyProgressInsufficientDataReason.weightTrendTooNoisy
+            )
+        )
     }
 
     func testStaticTDEEBlendForMediumConfidenceIfImplemented() {

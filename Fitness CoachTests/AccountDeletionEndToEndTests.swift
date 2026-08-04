@@ -744,19 +744,15 @@ private final class EndToEndDelayedSyncPuller: AccountSyncPulling {
         from startDate: String,
         to endDate: String
     ) async -> AccountSyncPullSummary {
-        AccountSyncPullSummary(
-            uid: uid,
-            dailyLogsFetched: 0,
-            foodEntriesFetched: 0,
-            waterEntriesFetched: 0,
-            weightEntriesFetched: 0,
-            dailyReviewsFetched: 0,
-            inserted: 0,
-            updated: 0,
-            skippedLocalNewer: 0,
-            conflicts: 0,
-            failed: 0
-        )
+        emptyPullSummary(uid: uid)
+    }
+
+    func pullWeightEntries(
+        for uid: String,
+        from startDate: String,
+        to endDate: String
+    ) async -> AccountSyncPullSummary {
+        emptyPullSummary(uid: uid)
     }
 
     func mergeFetchedDocuments(
@@ -771,6 +767,22 @@ private final class EndToEndDelayedSyncPuller: AccountSyncPulling {
             inserted: 0,
             updated: 0,
             deleted: 0,
+            skippedLocalNewer: 0,
+            conflicts: 0,
+            failed: 0
+        )
+    }
+
+    private func emptyPullSummary(uid: String) -> AccountSyncPullSummary {
+        AccountSyncPullSummary(
+            uid: uid,
+            dailyLogsFetched: 0,
+            foodEntriesFetched: 0,
+            waterEntriesFetched: 0,
+            weightEntriesFetched: 0,
+            dailyReviewsFetched: 0,
+            inserted: 0,
+            updated: 0,
             skippedLocalNewer: 0,
             conflicts: 0,
             failed: 0

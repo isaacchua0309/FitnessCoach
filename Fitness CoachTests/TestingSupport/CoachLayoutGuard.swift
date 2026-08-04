@@ -97,6 +97,7 @@ enum CoachLayoutGuard {
                 violations.append(
                     "\(coachSourceRoot)/**/\(requirement.fileSuffix): \(requirement.reason)"
                 )
+                continue
             }
         }
 

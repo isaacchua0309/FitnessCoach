@@ -200,6 +200,11 @@ final class FormaAIBackendClient: LLMClient {
             message: "HTTP POST started",
             fields: requestFields
         )
+        #if DEBUG
+        await MainActor.run {
+            FormaContextLoopIntegration.recordRequest(started: endpoint.rawValue)
+        }
+        #endif
 
         let started = Date()
         let data: Data
@@ -223,6 +228,12 @@ final class FormaAIBackendClient: LLMClient {
                 ]
             )
             #if DEBUG
+            await MainActor.run {
+                FormaContextLoopIntegration.recordRequest(
+                    failed: endpoint.rawValue,
+                    code: String(describing: mappedError)
+                )
+            }
             if endpoint == .analyzeMealImage {
                 CoachImageAnalysisDebugLogger.logBackendResponse(
                     status: -1,
@@ -290,6 +301,14 @@ final class FormaAIBackendClient: LLMClient {
                     fields: errorFields
                 )
             }
+            #if DEBUG
+            await MainActor.run {
+                FormaContextLoopIntegration.recordRequest(
+                    failed: endpoint.rawValue,
+                    code: "http_\(statusCode)"
+                )
+            }
+            #endif
             throw mappedStatusError
         }
 
@@ -311,6 +330,9 @@ final class FormaAIBackendClient: LLMClient {
         )
 
         #if DEBUG
+        await MainActor.run {
+            FormaContextLoopIntegration.recordRequest(completed: endpoint.rawValue)
+        }
         if endpoint == .analyzeMealImage {
             CoachImageAnalysisDebugLogger.logBackendResponse(
                 status: statusCode,

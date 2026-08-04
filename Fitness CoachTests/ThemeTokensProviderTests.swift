@@ -40,6 +40,7 @@ final class ThemeTokensProviderTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testSettingResolvedThemeSyncsThemeEnvironment() {
         var environment = EnvironmentValues()
         let resolved = ThemeTestSupport.makeResolved(palette: .blossomPink, systemColorScheme: .dark)

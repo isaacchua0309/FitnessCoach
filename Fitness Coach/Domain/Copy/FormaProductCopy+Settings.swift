@@ -47,6 +47,7 @@ extension FormaProductCopy {
             static let coachContextInspector = "Coach context inspector"
             static let accountSyncDiagnostics = "Account sync diagnostics"
             static let accountRestoreDiagnostics = "Account restore diagnostics"
+            static let contextLoopReport = "Report with ContextLoop"
         }
 
         enum Developer {

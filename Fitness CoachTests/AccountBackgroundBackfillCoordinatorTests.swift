@@ -155,9 +155,11 @@ private final class RecordingBackgroundBackfillService: AccountInitialRestoring 
 
     func runBlockingInitialRestore(
         uid: String,
-        reason: AccountRestoreReason
+        reason: AccountRestoreReason,
+        prefetchedRemoteStatus: AccountRemoteDataStatus?
     ) async -> AccountRestoreSummary {
-        skippedSummary(uid: uid, reason: reason)
+        _ = prefetchedRemoteStatus
+        return skippedSummary(uid: uid, reason: reason)
     }
 
     func runBackgroundBackfill(

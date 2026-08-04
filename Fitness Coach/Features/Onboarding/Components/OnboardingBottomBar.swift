@@ -116,11 +116,8 @@ struct OnboardingBottomBar: View {
                 if showsBackButton {
                     Button {
                         OnboardingHaptics.selectionChanged()
-                        if showsWelcomeExitBackButton, let onExitToWelcome {
-                            onExitToWelcome()
-                        } else {
-                            onBack()
-                        }
+                        // Single owner: parent wires `onBack` → `OnboardingModel.handleBack`.
+                        onBack()
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.semibold))

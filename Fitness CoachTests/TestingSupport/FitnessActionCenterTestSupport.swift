@@ -28,6 +28,8 @@ enum FitnessActionCenterTestSupport {
         var store: SwiftDataStore { base.store }
         var profileService: UserProfileService { base.profileService }
         var dailyLogService: DailyLogService { base.dailyLogService }
+        var foodLogService: FoodLogService { base.foodLogService }
+        var waterLogService: WaterLogService { base.waterLogService }
         var today: Date { base.today }
 
         @discardableResult

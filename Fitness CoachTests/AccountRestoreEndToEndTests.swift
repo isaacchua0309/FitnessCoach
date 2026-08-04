@@ -253,7 +253,7 @@ private final class AccountRestoreEndToEndHarness {
     let waterLogService: WaterLogService
     let weightLogService: WeightLogService
     let remoteStore: InMemoryAccountDataRemoteStore
-    let profileStore: RestoreTestCloudProfileStore
+    var profileStore: RestoreTestCloudProfileStore
     let networkChecker: RestoreTestNetworkChecker
     let stateStore: AccountRestoreStateStore
     let coordinator: AccountRestoreCoordinator
@@ -265,6 +265,46 @@ private final class AccountRestoreEndToEndHarness {
     let healthActivityQuery: HealthActivityQueryService
 
     private let currentUIDBox: CurrentUIDBox
+
+    init(
+        store: SwiftDataStore,
+        profileService: UserProfileService,
+        dailyLogService: DailyLogService,
+        foodLogService: FoodLogService,
+        waterLogService: WaterLogService,
+        weightLogService: WeightLogService,
+        remoteStore: InMemoryAccountDataRemoteStore,
+        profileStore: RestoreTestCloudProfileStore,
+        networkChecker: RestoreTestNetworkChecker,
+        stateStore: AccountRestoreStateStore,
+        coordinator: AccountRestoreCoordinator,
+        sessionState: AccountRestoreSessionState,
+        signedInUID: String,
+        referenceDate: Date,
+        calendar: Calendar,
+        localDate: String,
+        healthActivityQuery: HealthActivityQueryService,
+        currentUIDBox: CurrentUIDBox
+    ) {
+        self.store = store
+        self.profileService = profileService
+        self.dailyLogService = dailyLogService
+        self.foodLogService = foodLogService
+        self.waterLogService = waterLogService
+        self.weightLogService = weightLogService
+        self.remoteStore = remoteStore
+        self.profileStore = profileStore
+        self.networkChecker = networkChecker
+        self.stateStore = stateStore
+        self.coordinator = coordinator
+        self.sessionState = sessionState
+        self.signedInUID = signedInUID
+        self.referenceDate = referenceDate
+        self.calendar = calendar
+        self.localDate = localDate
+        self.healthActivityQuery = healthActivityQuery
+        self.currentUIDBox = currentUIDBox
+    }
 
     static func make(
         signedInUID: String,
@@ -286,13 +326,14 @@ private final class AccountRestoreEndToEndHarness {
         referenceDate: Date,
         calendar: Calendar
     ) throws -> AccountRestoreEndToEndHarness {
-        let profileStore = RestoreTestCloudProfileStore()
+        var profileStore = RestoreTestCloudProfileStore()
         profileStore.fetchError = URLError(.notConnectedToInternet)
         return try makeHarness(
             signedInUID: signedInUID,
             referenceDate: referenceDate,
             calendar: calendar,
-            remoteStore: EndToEndThrowingAccountDataRemoteStore(
+            remoteStore: InMemoryAccountDataRemoteStore(),
+            remoteStoreInterface: EndToEndThrowingAccountDataRemoteStore(
                 error: URLError(.notConnectedToInternet)
             ),
             profileStore: profileStore,
@@ -587,6 +628,7 @@ private final class AccountRestoreEndToEndHarness {
             weightLogReader: weightLogService,
             userProfileReader: profileService,
             trainingInsightsStore: trainingStore,
+            healthIntelligenceLoadEnabled: { false },
             restoreSessionState: sessionState,
             localDataInspector: AccountLocalDataInspector(
                 store: store,
@@ -595,8 +637,7 @@ private final class AccountRestoreEndToEndHarness {
                 dateProvider: FixedDailyLogTestDateProvider(now: referenceDate, calendar: calendar),
                 calendar: calendar
             ),
-            ownerUIDProvider: { signedInUID },
-            healthIntelligenceLoadEnabled: { false }
+            ownerUIDProvider: { self.signedInUID }
         )
     }
 }

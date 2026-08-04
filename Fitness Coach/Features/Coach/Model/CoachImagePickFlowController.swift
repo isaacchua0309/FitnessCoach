@@ -40,6 +40,12 @@ final class CoachImagePickFlowController: ObservableObject {
         self.photoLibraryImageLoader = photoLibraryImageLoader
     }
 
+    #if DEBUG
+    func setStateForTests(_ newState: CoachImagePickFlowState) {
+        state = newState
+    }
+    #endif
+
     var allowsAttachmentPick: Bool {
         !state.isBusy
     }

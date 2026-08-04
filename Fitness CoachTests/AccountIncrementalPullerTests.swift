@@ -46,7 +46,6 @@ final class AccountIncrementalPullerTests: XCTestCase {
         dailyLogService = nil
         profileService = nil
         cursorStore = nil
-        defaults.removePersistentDomain(forName: defaults.suiteName!)
         defaults = nil
         puller = nil
         remoteStore = nil
@@ -492,7 +491,6 @@ final class AccountIncrementalPullerTests: XCTestCase {
 
     private func configureHarness(remoteStore: any AccountDataRemoteStore) async throws {
         if let defaults {
-            defaults.removePersistentDomain(forName: defaults.suiteName!)
         }
 
         var calendar = Calendar(identifier: .gregorian)

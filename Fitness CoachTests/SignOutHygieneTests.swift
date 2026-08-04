@@ -114,7 +114,7 @@ final class SignOutHygieneTests: XCTestCase {
     }
 
     func testSignOutPreservesNutritionDataOnDisk() async throws {
-        let base = try DailyLogServiceTestSupport.makeHarness(sessionUID: "signed-in-user")
+        let base = try DailyLogServiceTestSupport.makeHarness(ownerUID: "signed-in-user")
         _ = try base.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
             ownerUID: "signed-in-user"

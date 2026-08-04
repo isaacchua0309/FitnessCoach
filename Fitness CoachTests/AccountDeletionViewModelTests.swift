@@ -232,7 +232,7 @@ final class AccountDeletionViewModelTests: XCTestCase {
         XCTAssertTrue(finished, "Expected deletion to reach a terminal phase.")
     }
 
-    private static func completedLocalSummary(uid: String) -> AccountDeletionSummary {
+    static func completedLocalSummary(uid: String) -> AccountDeletionSummary {
         AccountDeletionSummary(
             uid: uid,
             scope: .fullAccount,

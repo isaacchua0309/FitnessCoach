@@ -78,6 +78,7 @@ final class TodayCopyGuardrailTests: XCTestCase {
             TodayMissionHeroFormatter.displayModel(
                 calorieSummary: overTarget.mission.calorieSummary,
                 proteinProgress: overTarget.macroHydration.macroSummary.protein,
+                waterSummary: overTarget.macroHydration.waterSummary,
                 mealsEmptyKind: overTarget.emptyContext.mealsEmptyKind
             ).statusLine
         )

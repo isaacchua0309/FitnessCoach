@@ -1,11 +1,12 @@
 //
-//  CoachDependencies.swift
+//  CoachPlatformDependencies.swift
 //  Fitness Coach
 //
 //  Coach platform persistence construction for AppContainer.
 //  See Docs/Architecture/DependencyInjectionMap.md
 //
 //  Note: distinct from `Features/Coach/Model/CoachDependencies` (feature assembly).
+//  Filename must stay unique in the target (avoids CoachDependencies.stringsdata clash).
 //
 
 import Foundation

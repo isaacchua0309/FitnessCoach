@@ -183,12 +183,8 @@ final class CoachImagePickFlowTests: XCTestCase {
 @MainActor
 private extension CoachImagePickFlowController {
     func handleFailureForTests(_ error: CoachMealPhotoError, model: CoachModel) async {
-        state = .failed(error)
+        setStateForTests(.failed(error))
         model.appendMealPhotoSelectionFailure(error)
-        state = .idle
-    }
-
-    func setStateForTests(_ newState: CoachImagePickFlowState) {
-        state = newState
+        setStateForTests(.idle)
     }
 }

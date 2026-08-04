@@ -286,7 +286,7 @@ final class TodayAppleHealthSuggestedNextStepTests: XCTestCase {
         )
         XCTAssertEqual(nextStep.destination, .connectHealth)
         XCTAssertTrue(
-            nextStep.message.lowercased().contains("settings")
+            nextStep.message?.lowercased().contains("settings") == true
                 || nextStep.ctaTitle?.lowercased().contains("permission") == true
         )
 

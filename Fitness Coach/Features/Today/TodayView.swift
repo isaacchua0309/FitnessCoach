@@ -304,6 +304,9 @@ struct TodayView: View {
         .onAppear {
             syncAnalyticsContext(for: state)
             actionCoordinator.logTodayViewed()
+            #if DEBUG
+            FormaContextLoopIntegration.recordScreen("today")
+            #endif
         }
         .onChange(of: state.date) { _, _ in
             syncAnalyticsContext(for: state)

@@ -319,7 +319,7 @@ final class AccountSyncPullerTests: XCTestCase {
         try await remoteStore.saveDailyLog(remoteDailyLog, uid: ownerUID)
         try await remoteStore.saveFoodEntry(remoteFood, uid: ownerUID)
 
-        let summary = await puller.mergeFetchedDocuments(
+        let summary = try puller.mergeFetchedDocuments(
             for: ownerUID,
             dailyLogs: [remoteDailyLog],
             foodEntries: [remoteFood],
@@ -398,7 +398,7 @@ final class AccountSyncPullerTests: XCTestCase {
     private func makeDailyLogDocument(
         userId: String = "userA",
         caloriesConsumed: Int = 520,
-        proteinConsumed: Int = 35
+        proteinConsumed: Double = 35
     ) -> CloudDailyLogDocument {
         FirestoreAccountDataRemoteStoreTestFixtures.dailyLog(
             userId: userId,
@@ -497,6 +497,99 @@ final class AccountSyncPullerTests: XCTestCase {
         var descriptor = FetchDescriptor<FoodEntryEntity>(predicate: #Predicate { $0.id == uuid })
         descriptor.fetchLimit = 1
         return try store.fetchOne(descriptor)
+    }
+
+    // MARK: - Critical-path fan-out
+
+    func testPullerOnlyFetchesChildrenForDatesWithDailyLogs() async throws {
+        let range = AccountSyncPuller.defaultRecentDateRange(
+            referenceDate: referenceDate,
+            dayCount: 14,
+            calendar: calendar
+        )
+        try await remoteStore.saveDailyLog(makeDailyLogDocument(caloriesConsumed: 200), uid: ownerUID)
+        try await remoteStore.saveFoodEntry(
+            makeFoodDocument(entryId: UUID().uuidString, name: "Sparse Meal", updatedAt: referenceDate),
+            uid: ownerUID
+        )
+        await remoteStore.resetFetchCounters()
+
+        let summary = await puller.pullRecentAccountData(
+            for: ownerUID,
+            from: range.start,
+            to: range.end
+        )
+
+        XCTAssertEqual(summary.dailyLogsFetched, 1)
+        XCTAssertEqual(summary.foodEntriesFetched, 1)
+        // Sparse fan-out: one log day ⇒ one food/water/review probe, not 14 empty days.
+        let foodFetches = await remoteStore.foodFetchCount
+        let waterFetches = await remoteStore.waterFetchCount
+        let reviewFetches = await remoteStore.dailyReviewFetchCount
+        XCTAssertEqual(foodFetches, 1)
+        XCTAssertEqual(waterFetches, 1)
+        XCTAssertEqual(reviewFetches, 1)
+    }
+
+    func testPullWeightEntriesDoesNotFanOutChildCollections() async throws {
+        try await remoteStore.saveDailyLog(makeDailyLogDocument(caloriesConsumed: 200), uid: ownerUID)
+        try await remoteStore.saveFoodEntry(
+            makeFoodDocument(entryId: UUID().uuidString, name: "Ignored", updatedAt: referenceDate),
+            uid: ownerUID
+        )
+        try await remoteStore.saveWeightEntry(
+            FirestoreAccountDataRemoteStoreTestFixtures.weightEntry(
+                userId: ownerUID,
+                localDate: localDate,
+                referenceDate: referenceDate,
+                entryId: UUID().uuidString
+            ),
+            uid: ownerUID
+        )
+        await remoteStore.resetFetchCounters()
+
+        let summary = await puller.pullWeightEntries(
+            for: ownerUID,
+            from: localDate,
+            to: localDate
+        )
+
+        XCTAssertEqual(summary.weightEntriesFetched, 1)
+        let weightFetches = await remoteStore.weightFetchCount
+        let foodFetches = await remoteStore.foodFetchCount
+        let waterFetches = await remoteStore.waterFetchCount
+        let reviewFetches = await remoteStore.dailyReviewFetchCount
+        let dailyLogFetches = await remoteStore.dailyLogRangeFetchCount
+        XCTAssertEqual(weightFetches, 1)
+        XCTAssertEqual(foodFetches, 0)
+        XCTAssertEqual(waterFetches, 0)
+        XCTAssertEqual(reviewFetches, 0)
+        XCTAssertEqual(dailyLogFetches, 0)
+    }
+
+    func testChildFetchDatesUsesOnlyVisibleDailyLogs() {
+        let visible = makeDailyLogDocument(caloriesConsumed: 100)
+        var deleted = makeDailyLogDocument(caloriesConsumed: 50)
+        deleted.deletedAt = referenceDate
+
+        let dates = AccountSyncPuller.childFetchDates(
+            dailyLogs: [visible, deleted],
+            rangeStart: localDate,
+            rangeEnd: localDate,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(dates, [localDate])
+    }
+
+    func testChildFetchDatesEmptyWhenNoDailyLogs() {
+        let dates = AccountSyncPuller.childFetchDates(
+            dailyLogs: [],
+            rangeStart: localDate,
+            rangeEnd: localDate,
+            calendar: calendar
+        )
+        XCTAssertTrue(dates.isEmpty)
     }
 }
 

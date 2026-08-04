@@ -185,7 +185,7 @@ final class CoachModelCharacterizationTests: XCTestCase {
     await model.send("weight 89.2kg")
 
     XCTAssertNil(model.pendingConfirmation)
-    XCTAssertEqual(try harness.dailyLogService.getTodayLog().weightKg, 89.2, accuracy: 0.01)
+    XCTAssertEqual(try harness.dailyLogService.getTodayLog().weightKg ?? 0, 89.2, accuracy: 0.01)
     XCTAssertEqual(aiService.classifyCoachIntentCallCount, 0)
   }
 
@@ -248,13 +248,12 @@ final class CoachModelCharacterizationTests: XCTestCase {
     let aiService = CharacterizationAIService()
     let model = harness.makeCoach(aiService: aiService)
 
-    XCTAssertTrue(
-      await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+    let stagedPhoto1 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
         on: model,
         jpeg: CoachModelCharacterizationTestSupport.testJPEG(),
         source: .library
       )
-    )
+XCTAssertTrue(stagedPhoto1)
 
     XCTAssertNotNil(model.inputState.pendingImage)
     XCTAssertTrue(model.inputState.hasReadyPendingImage)
@@ -267,13 +266,12 @@ final class CoachModelCharacterizationTests: XCTestCase {
     let aiService = CharacterizationAIService()
     let model = harness.makeCoach(aiService: aiService)
 
-    XCTAssertTrue(
-      await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+    let stagedPhoto2 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
         on: model,
         jpeg: CoachModelCharacterizationTestSupport.testJPEG(),
         source: .library
       )
-    )
+XCTAssertTrue(stagedPhoto2)
     await model.sendCurrentMessage()
 
     XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
@@ -289,13 +287,12 @@ final class CoachModelCharacterizationTests: XCTestCase {
     aiService.analyzeMealImageError = AIServiceError.networkUnavailable
     let model = harness.makeCoach(aiService: aiService)
 
-    XCTAssertTrue(
-      await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+    let stagedPhoto3 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
         on: model,
         jpeg: CoachModelCharacterizationTestSupport.testJPEG(),
         source: .library
       )
-    )
+XCTAssertTrue(stagedPhoto3)
     await model.sendCurrentMessage()
 
     XCTAssertTrue(model.messages.contains { $0.photoAnalysisLink?.isFailure == true })
@@ -315,13 +312,12 @@ final class CoachModelCharacterizationTests: XCTestCase {
     let aiService = CharacterizationClarifyingPhotoAIService()
     let model = harness.makeCoach(aiService: aiService)
 
-    XCTAssertTrue(
-      await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+    let stagedPhoto4 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
         on: model,
         jpeg: CoachModelCharacterizationTestSupport.testJPEG(),
         source: .library
       )
-    )
+XCTAssertTrue(stagedPhoto4)
     await model.sendCurrentMessage()
 
     XCTAssertTrue(model.awaitingPhotoClarification)

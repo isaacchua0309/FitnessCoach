@@ -20,6 +20,7 @@ final class CoachMealImageAIRequestBuilderTests: XCTestCase {
         let attachment = CoachMealImageUploadAttachment.from(processed: processed)
         let result = CoachMealImageAIRequestBuilder.buildAnalysisRequest(
             attachment: attachment,
+            context: .test,
             message: "Lunch bowl"
         )
 
@@ -49,10 +50,12 @@ final class CoachMealImageAIRequestBuilderTests: XCTestCase {
             filename: CoachMealImageAIRequestBuilder.defaultFilename
         )
 
-        XCTAssertEqual(
-            CoachMealImageAIRequestBuilder.validate(attachment),
-            .failure(.emptyUploadData)
-        )
+        switch CoachMealImageAIRequestBuilder.validate(attachment) {
+        case .failure(.emptyUploadData):
+            break
+        default:
+            XCTFail("Expected empty upload data validation failure")
+        }
         XCTAssertEqual(
             CoachMealImageAIRequestBuilder.mapBuildError(.emptyUploadData),
             .imageEncodingFailed
@@ -67,10 +70,13 @@ final class CoachMealImageAIRequestBuilderTests: XCTestCase {
             filename: CoachMealImageAIRequestBuilder.defaultFilename
         )
 
-        XCTAssertEqual(
-            CoachMealImageAIRequestBuilder.validate(attachment),
-            .failure(.uploadExceedsMaxBytes(byteCount: maxBytes + 1, maxBytes: maxBytes))
-        )
+        switch CoachMealImageAIRequestBuilder.validate(attachment) {
+        case .failure(.uploadExceedsMaxBytes(let byteCount, let limit)):
+            XCTAssertEqual(byteCount, maxBytes + 1)
+            XCTAssertEqual(limit, maxBytes)
+        default:
+            XCTFail("Expected oversized upload validation failure")
+        }
         XCTAssertEqual(
             CoachMealImageAIRequestBuilder.mapBuildError(
                 .uploadExceedsMaxBytes(byteCount: maxBytes + 1, maxBytes: maxBytes)

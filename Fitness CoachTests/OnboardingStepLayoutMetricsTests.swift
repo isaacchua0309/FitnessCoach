@@ -5,6 +5,7 @@
 //  Forma — Unified onboarding step layout metrics tests.
 //
 
+import SwiftUI
 import XCTest
 @testable import Fitness_Coach
 

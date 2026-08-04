@@ -31,7 +31,6 @@ final class AccountRestoreStateStoreTests: XCTestCase {
 
     override func tearDown() {
         store = nil
-        defaults.removePersistentDomain(forName: defaults.suiteName!)
         defaults = nil
         super.tearDown()
     }

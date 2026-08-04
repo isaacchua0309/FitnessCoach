@@ -359,6 +359,95 @@ final class AccountInitialRestoreServiceTests: XCTestCase {
         )
     }
 
+    func testBlockingRestoreUsesCriticalWindowNotFullHistoryFanOut() async throws {
+        try await harness.seedFullCloudNutritionData()
+        // Older day outside the critical daily window should not force empty-day fan-out.
+        let olderDate = try XCTUnwrap(calendar.date(byAdding: .day, value: -20, to: referenceDate))
+        let olderLocalDate = CloudAccountDataDateCodec.localDateString(from: olderDate, calendar: calendar)
+        try await harness.remoteStore.saveDailyLog(
+            FirestoreAccountDataRemoteStoreTestFixtures.dailyLog(
+                userId: ownerUID,
+                localDate: olderLocalDate,
+                referenceDate: olderDate
+            ),
+            uid: ownerUID
+        )
+        await harness.remoteStore.resetFetchCounters()
+
+        let summary = await harness.service.runBlockingInitialRestore(
+            uid: ownerUID,
+            reason: .afterSignIn
+        )
+
+        XCTAssertEqual(summary.status, .completed)
+        XCTAssertTrue(summary.profileRestored || summary.dailyLogsRestored > 0)
+
+        let foodFetches = await harness.remoteStore.foodFetchCount
+        let reviewFetches = await harness.remoteStore.dailyReviewFetchCount
+        // Critical path must not walk every calendar day in the old 30/180 windows.
+        // Inspector probes one day; puller fans out only dates with logs inside the 7-day window.
+        XCTAssertLessThan(foodFetches, 10)
+        XCTAssertLessThan(reviewFetches, 10)
+    }
+
+    func testOptionalWeightFailureDoesNotFailCriticalBootstrapWhenLogsRestore() async throws {
+        let partialHarness = try await RestoreServiceHarness.makeWithFailingRemote(
+            ownerUID: ownerUID,
+            referenceDate: referenceDate,
+            calendar: calendar,
+            failingOperations: [.fetchWeightEntries]
+        )
+        try await partialHarness.seedCloudNutritionData()
+
+        let summary = await partialHarness.service.runBlockingInitialRestore(
+            uid: ownerUID,
+            reason: .afterSignIn
+        )
+
+        // Weight failure marks partial, but critical logs/food still restore and entry is allowed.
+        XCTAssertEqual(summary.status, .partial)
+        XCTAssertTrue(summary.allowsContinuedEntry)
+        XCTAssertGreaterThan(summary.foodEntriesRestored, 0)
+        XCTAssertGreaterThan(try partialHarness.store.fetch(FetchDescriptor<FoodEntryEntity>()).count, 0)
+    }
+
+    func testBackgroundHydrationRunsAfterCriticalBlockingRestore() async throws {
+        try await harness.seedCloudNutritionData()
+
+        let blocking = await harness.service.runBlockingInitialRestore(
+            uid: ownerUID,
+            reason: .afterSignIn
+        )
+        XCTAssertEqual(blocking.status, .completed)
+
+        let olderDate = try XCTUnwrap(calendar.date(byAdding: .day, value: -40, to: referenceDate))
+        let olderLocalDate = CloudAccountDataDateCodec.localDateString(from: olderDate, calendar: calendar)
+        try await harness.remoteStore.saveDailyLog(
+            FirestoreAccountDataRemoteStoreTestFixtures.dailyLog(
+                userId: ownerUID,
+                localDate: olderLocalDate,
+                referenceDate: olderDate
+            ),
+            uid: ownerUID
+        )
+
+        XCTAssertTrue(
+            harness.stateStore.shouldRunBackgroundBackfill(uid: ownerUID, now: referenceDate.addingTimeInterval(1))
+        )
+
+        let backfill = await harness.service.runBackgroundBackfill(
+            uid: ownerUID,
+            reason: .appLaunch
+        )
+        XCTAssertEqual(backfill.status, .completed)
+        let logs = try harness.store.fetch(FetchDescriptor<DailyLogEntity>())
+        XCTAssertTrue(
+            logs.contains {
+                CloudAccountDataDateCodec.localDateString(from: $0.date, calendar: calendar) == olderLocalDate
+            }
+        )
+    }
+
     // MARK: - Fixtures
 
     private func completedBlockingSummary() -> AccountRestoreSummary {
@@ -393,13 +482,39 @@ private final class RestoreServiceHarness {
     let profileService: UserProfileService
     let dailyLogService: DailyLogService
     let remoteStore: InMemoryAccountDataRemoteStore
-    let profileStore: RestoreTestCloudProfileStore
+    var profileStore: RestoreTestCloudProfileStore
     let stateStore: AccountRestoreStateStore
     let networkChecker: RestoreTestNetworkChecker
     let service: AccountInitialRestoreService
     let ownerUID: String
     let referenceDate: Date
     let localDate: String
+
+    init(
+        store: SwiftDataStore,
+        profileService: UserProfileService,
+        dailyLogService: DailyLogService,
+        remoteStore: InMemoryAccountDataRemoteStore,
+        profileStore: RestoreTestCloudProfileStore,
+        stateStore: AccountRestoreStateStore,
+        networkChecker: RestoreTestNetworkChecker,
+        service: AccountInitialRestoreService,
+        ownerUID: String,
+        referenceDate: Date,
+        localDate: String
+    ) {
+        self.store = store
+        self.profileService = profileService
+        self.dailyLogService = dailyLogService
+        self.remoteStore = remoteStore
+        self.profileStore = profileStore
+        self.stateStore = stateStore
+        self.networkChecker = networkChecker
+        self.service = service
+        self.ownerUID = ownerUID
+        self.referenceDate = referenceDate
+        self.localDate = localDate
+    }
 
     static func make(
         ownerUID: String,

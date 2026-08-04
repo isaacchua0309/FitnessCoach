@@ -225,7 +225,10 @@ final class WeeklyReviewEngineTests: XCTestCase {
         let input = makeInput(
             dailyMetrics: weekMetrics(steps: 7_500),
             workouts: [makeWorkout(day: 2), makeWorkout(day: 5)],
-            nutritionDailySummaries: weekNutrition(days: 6, proteinHit: true, calorieHit: true)
+            recoverySummaries: [],
+            nutritionDailySummaries: weekNutrition(days: 6, proteinHit: true, calorieHit: true),
+            weightRecords: [],
+            userPlan: defaultPlan()
         )
 
         let first = try! engine.evaluate(input)

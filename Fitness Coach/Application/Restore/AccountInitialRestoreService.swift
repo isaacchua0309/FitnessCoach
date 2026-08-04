@@ -13,13 +13,27 @@ import Foundation
 protocol AccountInitialRestoring {
     func runBlockingInitialRestore(
         uid: String,
-        reason: AccountRestoreReason
+        reason: AccountRestoreReason,
+        prefetchedRemoteStatus: AccountRemoteDataStatus?
     ) async -> AccountRestoreSummary
 
     func runBackgroundBackfill(
         uid: String,
         reason: AccountRestoreReason
     ) async -> AccountRestoreSummary
+}
+
+extension AccountInitialRestoring {
+    func runBlockingInitialRestore(
+        uid: String,
+        reason: AccountRestoreReason
+    ) async -> AccountRestoreSummary {
+        await runBlockingInitialRestore(
+            uid: uid,
+            reason: reason,
+            prefetchedRemoteStatus: nil
+        )
+    }
 }
 
 enum AccountInitialRestoreServiceSupport {
@@ -85,13 +99,15 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
 
     func runBlockingInitialRestore(
         uid: String,
-        reason: AccountRestoreReason
+        reason: AccountRestoreReason,
+        prefetchedRemoteStatus: AccountRemoteDataStatus?
     ) async -> AccountRestoreSummary {
         let mode: AccountRestoreMode = reason == .manualRetry ? .manualRetry : .blockingInitial
         return await runRestore(
             uid: uid,
             reason: reason,
-            mode: mode
+            mode: mode,
+            prefetchedRemoteStatus: prefetchedRemoteStatus
         )
     }
 
@@ -214,11 +230,16 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             calendar: calendar
         )
 
-        let recentPullSummary = await puller.pullRecentAccountData(
-            for: uid,
-            from: dailyRange.start,
-            to: dailyRange.end
-        )
+        let recentPullSummary = await AccountRestoreBootstrapTracer.measure(
+            "background_hydration_daily",
+            fields: ["mode": AccountRestoreMode.backgroundBackfill.rawValue]
+        ) {
+            await puller.pullRecentAccountData(
+                for: uid,
+                from: dailyRange.start,
+                to: dailyRange.end
+            )
+        }
 
         if Task.isCancelled || !isUIDStillCurrent(uid) {
             return finishBackgroundSkipped(
@@ -231,11 +252,13 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
 
         var pullSummary = recentPullSummary
         if weightRange.start != dailyRange.start || weightRange.end != dailyRange.end {
-            let weightPullSummary = await puller.pullRecentAccountData(
-                for: uid,
-                from: weightRange.start,
-                to: weightRange.end
-            )
+            let weightPullSummary = await AccountRestoreBootstrapTracer.measure("background_hydration_weight") {
+                await puller.pullWeightEntries(
+                    for: uid,
+                    from: weightRange.start,
+                    to: weightRange.end
+                )
+            }
             pullSummary = AccountRestoreOutcomeSupport.mergePullSummaries(
                 recentPullSummary,
                 weightPullSummary
@@ -388,9 +411,19 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
     private func runRestore(
         uid: String,
         reason: AccountRestoreReason,
-        mode: AccountRestoreMode
+        mode: AccountRestoreMode,
+        prefetchedRemoteStatus: AccountRemoteDataStatus? = nil
     ) async -> AccountRestoreSummary {
         let startedAt = dateProvider.now
+        AccountRestoreBootstrapTracer.event(
+            "restore_task_started",
+            fields: [
+                "reason": reason.rawValue,
+                "mode": mode.rawValue,
+                "trigger": "blocking_or_retry",
+                "cachehit": prefetchedRemoteStatus == nil ? "false" : "true"
+            ]
+        )
 
         guard let normalizedUID = normalizedUID(uid) else {
             return failedSummary(
@@ -431,7 +464,9 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
 
         let localStatus: AccountLocalDataStatus
         do {
-            localStatus = try await localInspector.inspectLocalData(for: normalizedUID)
+            localStatus = try await AccountRestoreBootstrapTracer.measure("local_profile_lookup") {
+                try await localInspector.inspectLocalData(for: normalizedUID)
+            }
         } catch {
             AccountRestoreLogger.error("local_inspection_failed", fields: ["uid": normalizedUID], underlying: error)
             return finishFailed(
@@ -449,6 +484,10 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
                localDataStatus: localStatus,
                now: startedAt
            ) {
+            AccountRestoreBootstrapTracer.event(
+                "blocking_restore_skipped_local_ready",
+                fields: ["cachehit": "true"]
+            )
             return finishSkipped(
                 uid: normalizedUID,
                 reason: reason,
@@ -459,7 +498,22 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         }
 
         let today = dateProvider.now
-        let remoteStatus = await remoteInspector.inspectRemoteData(for: normalizedUID, today: today)
+        let remoteStatus: AccountRemoteDataStatus
+        if let prefetchedRemoteStatus,
+           prefetchedRemoteStatus.uid == normalizedUID {
+            AccountRestoreBootstrapTracer.event(
+                "cloud_metadata_lookup",
+                fields: ["cachehit": "true", "durationMs": "0"]
+            )
+            remoteStatus = prefetchedRemoteStatus
+        } else {
+            remoteStatus = await AccountRestoreBootstrapTracer.measure(
+                "cloud_metadata_lookup",
+                fields: ["cachehit": "false"]
+            ) {
+                await remoteInspector.inspectRemoteData(for: normalizedUID, today: today)
+            }
+        }
 
         if let remoteFailure = remoteStatus.failure,
            !remoteStatus.hasAnyRestorableData {
@@ -529,7 +583,10 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         if mode == .blockingInitial || mode == .manualRetry || !hadLocalProfile {
             stateStore.markProgress(uid: normalizedUID, status: .restoringProfile, now: dateProvider.now)
             do {
-                switch try await profileBootstrapService.resolve(uid: normalizedUID) {
+                let resolveOutcome = try await AccountRestoreBootstrapTracer.measure("critical_profile_resolve") {
+                    try await profileBootstrapService.resolve(uid: normalizedUID)
+                }
+                switch resolveOutcome {
                 case .main:
                     profileRestored = !hadLocalProfile && remoteStatus.hasCloudProfile
                 case .missingCloudProfile:
@@ -594,7 +651,6 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             )
         }
 
-        let dateRange = dateRange(for: mode, referenceDate: today)
         let dailyRange = AccountRestorePolicy.dailyLogDateRange(
             for: mode,
             referenceDate: today,
@@ -606,22 +662,30 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             calendar: calendar
         )
 
+        // Phase 1 critical bootstrap: recent logs + weight in the daily window.
         stateStore.markProgress(uid: normalizedUID, status: .restoringRecentData, now: dateProvider.now)
-        let recentPullSummary = await puller.pullRecentAccountData(
-            for: normalizedUID,
-            from: dailyRange.start,
-            to: dailyRange.end
-        )
+        let recentPullSummary = await AccountRestoreBootstrapTracer.measure(
+            "critical_cloud_profile_download",
+            fields: ["mode": mode.rawValue]
+        ) {
+            await puller.pullRecentAccountData(
+                for: normalizedUID,
+                from: dailyRange.start,
+                to: dailyRange.end
+            )
+        }
 
         var pullSummary = recentPullSummary
-        if mode == .blockingInitial || mode == .manualRetry,
-           weightRange.start != dailyRange.start || weightRange.end != dailyRange.end {
+        // Extended weight history only — never re-fan-out food/water/review for the wider window.
+        if weightRange.start != dailyRange.start || weightRange.end != dailyRange.end {
             stateStore.markProgress(uid: normalizedUID, status: .restoringWeightHistory, now: dateProvider.now)
-            let weightPullSummary = await puller.pullRecentAccountData(
-                for: normalizedUID,
-                from: weightRange.start,
-                to: weightRange.end
-            )
+            let weightPullSummary = await AccountRestoreBootstrapTracer.measure("critical_weight_download") {
+                await puller.pullWeightEntries(
+                    for: normalizedUID,
+                    from: weightRange.start,
+                    to: weightRange.end
+                )
+            }
             pullSummary = AccountRestoreOutcomeSupport.mergePullSummaries(
                 recentPullSummary,
                 weightPullSummary
@@ -639,9 +703,11 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         }
 
         stateStore.markProgress(uid: normalizedUID, status: .rebuildingLocalViews, now: dateProvider.now)
-        refreshDailyTotals(from: dateRange.start, to: dateRange.end)
+        await AccountRestoreBootstrapTracer.measure("local_persistence_rebuild") {
+            refreshDailyTotals(from: dailyRange.start, to: dailyRange.end)
+        }
 
-        return finishPullOutcome(
+        let summary = finishPullOutcome(
             uid: normalizedUID,
             reason: reason,
             mode: mode,
@@ -650,6 +716,14 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             pullSummary: pullSummary,
             remoteFailure: remoteStatus.failure
         )
+        AccountRestoreBootstrapTracer.event(
+            "time_to_first_usable_screen_ready",
+            fields: [
+                "durationMs": String(max(0, Int((summary.duration ?? 0) * 1_000))),
+                "status": summary.status.rawValue
+            ]
+        )
+        return summary
     }
 
     // MARK: - Terminal outcomes
@@ -970,24 +1044,6 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             return false
         }
         return currentUID == uid
-    }
-
-    private func dateRange(for mode: AccountRestoreMode, referenceDate: Date) -> (start: String, end: String) {
-        switch mode {
-        case .blockingInitial, .manualRetry:
-            // Puller uses one shared date range; weight lookback is the widest blocking window.
-            return AccountRestorePolicy.weightDateRange(
-                for: .blockingInitial,
-                referenceDate: referenceDate,
-                calendar: calendar
-            )
-        case .backgroundBackfill:
-            return AccountRestorePolicy.weightDateRange(
-                for: .backgroundBackfill,
-                referenceDate: referenceDate,
-                calendar: calendar
-            )
-        }
     }
 
     private func refreshDailyTotals(from startDate: String, to endDate: String) {

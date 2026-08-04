@@ -446,14 +446,24 @@ enum HealthIntelligencePresentationCharacterizationFixtures {
   ) -> JourneyHealthIntelligenceSectionState? {
     switch fixture {
     case .fullyReady:
-      var snapshot = fullyReadyWorkoutSnapshot()
-      snapshot.weeklyReview = weeklyReview()
+      let review = weeklyReview()
+      let base = fullyReadyWorkoutSnapshot()
+      let snapshot = HealthIntelligenceSnapshot(
+        date: base.date,
+        recovery: base.recovery,
+        workout: base.workout,
+        activity: base.activity,
+        nutritionAdjustment: base.nutritionAdjustment,
+        weeklyReview: review,
+        planConfidence: base.planConfidence,
+        nextBestAction: base.nextBestAction
+      )
       return JourneyHealthIntelligencePresentationBuilder.buildSection(
         input: JourneyHealthIntelligenceBuildInput(
           todaySnapshot: snapshot,
           recoveryDays: journeyRecoveryDays(),
           workoutRecords: [journeyWorkoutRecord()],
-          weeklyReview: weeklyReview(),
+          weeklyReview: review,
           healthConnection: .connected,
           availability: connectedAvailability,
           cachedDayCount: connectedAvailability.cachedDayCount
@@ -611,7 +621,7 @@ enum HealthIntelligencePresentationCharacterizationFixtures {
     let isConnected: Bool
     let cachedDayCount: Int
     let lastSync: Date?
-    let weeklyReview: WeeklyHealthReview?
+    let review: WeeklyHealthReview?
 
     switch fixture {
     case .fullyReady:
@@ -620,7 +630,7 @@ enum HealthIntelligencePresentationCharacterizationFixtures {
       isConnected = true
       cachedDayCount = connectedAvailability.cachedDayCount
       lastSync = now
-      weeklyReview = surface == .journey ? weeklyReview() : nil
+      review = surface == .journey ? weeklyReview() : nil
 
     case .healthKitDisconnected:
       snapshot = disconnectedSnapshot()
@@ -628,7 +638,7 @@ enum HealthIntelligencePresentationCharacterizationFixtures {
       isConnected = false
       cachedDayCount = 0
       lastSync = nil
-      weeklyReview = nil
+      review = nil
 
     case .staleData:
       snapshot = fullyReadyWorkoutSnapshot()
@@ -636,7 +646,7 @@ enum HealthIntelligencePresentationCharacterizationFixtures {
       isConnected = true
       cachedDayCount = 10
       lastSync = staleLastSyncAt(from: now)
-      weeklyReview = nil
+      review = nil
 
     case .partialSignals:
       snapshot = partialSignalsSnapshot()
@@ -644,7 +654,7 @@ enum HealthIntelligencePresentationCharacterizationFixtures {
       isConnected = true
       cachedDayCount = partialStepsOnlyAvailability.cachedDayCount
       lastSync = now
-      weeklyReview = nil
+      review = nil
 
     case .weeklyReviewUnavailable:
       snapshot = fullyReadyWorkoutSnapshot()
@@ -652,7 +662,7 @@ enum HealthIntelligencePresentationCharacterizationFixtures {
       isConnected = true
       cachedDayCount = connectedAvailability.cachedDayCount
       lastSync = now
-      weeklyReview = nil
+      review = nil
     }
 
     return HealthIntelligenceSectionLoadingInput(
@@ -660,7 +670,7 @@ enum HealthIntelligencePresentationCharacterizationFixtures {
       isLoading: isLoading,
       enginesEnabled: enginesEnabled,
       weeklyReviewEnabled: weeklyReviewEnabled,
-      weeklyReview: weeklyReview,
+      weeklyReview: review,
       snapshot: snapshot,
       availability: availability,
       isAppleHealthConnected: isConnected,

@@ -69,9 +69,17 @@ final class PublicEntryFlowCoordinator {
 
     func returnToWelcomeFromOnboarding() {
         guard let delegate else { return }
-        delegate.clearOnboardingModel()
-        delegate.clearOnboardingDraft()
+        // Order is load-bearing:
+        // 1) Suppress automatic draft / awaiting-sign-in welcome bypass.
+        // 2) Set destination to welcome while the session still exists so
+        //    AuthGateRoutingPolicy cannot prefer onboarding over welcome.
+        // 3) Clear draft, then clear the model last so we never land on
+        //    `.onboardingStartInitializing` (LaunchLoadingView.onAppear → bootstrap)
+        //    with a residual draft that restores a mid-flow step.
+        container.publicEntrySessionStore.markExplicitSignOut()
         delegate.publicEntryDestination = .welcome
+        delegate.clearOnboardingDraft()
+        delegate.clearOnboardingModel()
     }
 
     func beginOnboardingFromExistingUserSignIn() {

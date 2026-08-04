@@ -14,11 +14,13 @@ enum AccountRestorePolicy {
 
     // MARK: - Lookback windows (days)
 
-    /// Recent daily logs + child food/water/review documents for blocking restore.
-    static let blockingDailyLogLookbackDays = 30
+    /// Critical daily logs + child food/water/review documents for blocking restore.
+    /// Enough for Today / recent history; extended history hydrates in background.
+    static let blockingDailyLogLookbackDays = 7
 
-    /// Weight entries for blocking restore (Journey baseline / trend).
-    static let blockingWeightLookbackDays = 180
+    /// Weight entries for blocking restore (recent Journey baseline).
+    /// Full history hydrates via background backfill.
+    static let blockingWeightLookbackDays = 30
 
     /// Extended daily log history for background backfill.
     static let backgroundDailyLogLookbackDays = 365
@@ -29,10 +31,11 @@ enum AccountRestorePolicy {
     // MARK: - Blocking restore UX timeouts (seconds)
 
     /// Minimum time to show the blocking restore surface (avoids flicker).
-    static let minimumBlockingRestoreTimeoutSeconds = 8
+    static let minimumBlockingRestoreTimeoutSeconds = 1
 
     /// Maximum time to block the main shell before continuing with partial progress.
-    static let maximumBlockingRestoreTimeoutSeconds = 20
+    /// Critical bootstrap should finish well under this; remainder hydrates in background.
+    static let maximumBlockingRestoreTimeoutSeconds = 8
 
     // MARK: - Scope exclusions (Phase 4)
 

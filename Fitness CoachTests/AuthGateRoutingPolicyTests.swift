@@ -122,6 +122,26 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
         )
     }
 
+    func testSuppressBlocksPreferenceEvenWhileInitializingShell() {
+        XCTAssertEqual(
+            AuthGateRoutingPolicy.effectiveRoute(
+                baseRoute: .onboardingStartInitializing,
+                isSignedIn: false,
+                hasActiveOnboardingSession: false,
+                suppressAutomaticPublicEntryResume: true
+            ),
+            .onboardingStartInitializing
+        )
+        XCTAssertFalse(
+            AuthGateRoutingPolicy.shouldPreferActiveOnboardingSession(
+                isSignedIn: false,
+                hasActiveOnboardingSession: true,
+                baseRoute: .onboardingStartInitializing,
+                suppressAutomaticPublicEntryResume: true
+            )
+        )
+    }
+
     // MARK: - Silent auth restore (launch)
 
     func testShouldReloadCloudProfileOnFreshSignInWithoutLocalProfile() {

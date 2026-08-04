@@ -6,6 +6,7 @@
 //  Maps manual QA flows 1–13 to automated unit/integration coverage.
 //
 
+import SwiftUI
 import XCTest
 @testable import Fitness_Coach
 
@@ -80,7 +81,7 @@ final class CoachAccuracyTrustTextRegressionTests: XCTestCase {
         )
         XCTAssertEqual(service.classifyCoachIntentCallCount, 0)
         XCTAssertFalse(decision.requiresAPI)
-        XCTAssertEqual(decision.routeSource, .localGuard)
+        XCTAssertEqual(decision.routeSource, CoachRouteSource.localGuard)
         XCTAssertEqual(decision.chosenHandler, "local_food_estimate")
     }
 
@@ -156,23 +157,23 @@ final class CoachAccuracyTrustTextRegressionTests: XCTestCase {
         let response = NutritionEstimateResponse(
             foodName: "Chicken rice",
             displayEmoji: "🍗",
-            servingDescription: "1 plate",
             caloriesKcal: nil,
             caloriesRangeLowerKcal: 520,
             caloriesRangeUpperKcal: 680,
             proteinGrams: 32,
             carbsGrams: 65,
             fatGrams: 16,
+            servingDescription: "1 plate",
             confidenceLevel: .medium,
             confidenceLabel: "Medium confidence",
             confidenceReason: "Portion size varies at hawker stalls.",
+            sourceType: .common,
             coachSummary: "A typical plate is moderate in protein.",
             coachTip: nil,
             caveats: ["Sauce and oil can add hidden calories."],
             suggestedActions: [
                 NutritionSuggestedAction(title: "Log this meal", type: .logMeal)
-            ],
-            sourceType: .common
+            ]
         )
 
         let card = NutritionEstimateCardFormatter.cardState(from: response, dailyLog: nil)
@@ -661,21 +662,21 @@ final class CoachAccuracyTrustPlatformRegressionTests: XCTestCase {
             from: NutritionEstimateResponse(
                 foodName: "Chicken rice",
                 displayEmoji: "🍗",
-                servingDescription: "1 plate",
                 caloriesKcal: nil,
                 caloriesRangeLowerKcal: 480,
                 caloriesRangeUpperKcal: 620,
                 proteinGrams: 30,
                 carbsGrams: 55,
                 fatGrams: 14,
+                servingDescription: "1 plate",
                 confidenceLevel: .low,
                 confidenceLabel: "Low confidence",
                 confidenceReason: "Portion size unclear.",
+                sourceType: .common,
                 coachSummary: nil,
                 coachTip: "Review before logging.",
                 caveats: [],
-                suggestedActions: [],
-                sourceType: .common
+                suggestedActions: []
             ),
             dailyLog: nil
         )

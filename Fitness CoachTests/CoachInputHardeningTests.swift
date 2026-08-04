@@ -581,7 +581,7 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
 
 // MARK: - Test doubles
 
-private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
+final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
     var classifyCoachIntentCallCount = 0
 
     func classifyCoachIntent(
@@ -631,7 +631,7 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target.", confidence: .medium)
     }
 
     func generateDailyReviewText(
@@ -696,7 +696,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target.", confidence: .medium)
     }
 
     func generateDailyReviewText(
@@ -764,7 +764,7 @@ private final class FlakyClassifierAIService: AIServiceProtocol, @unchecked Send
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target.", confidence: .medium)
     }
 
     func generateDailyReviewText(
@@ -779,7 +779,7 @@ private final class FlakyClassifierAIService: AIServiceProtocol, @unchecked Send
     }
 }
 
-private extension CoachContextPacketV2 {
+extension CoachContextPacketV2 {
     static var hardeningTest: CoachContextPacketV2 {
         CoachContextPacketV2(
             meta: CoachContextMeta(

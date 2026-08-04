@@ -5,6 +5,7 @@
 //  Guardrails for small-screen and Dynamic Type layout on main tabs.
 //
 
+import SwiftUI
 import XCTest
 @testable import Fitness_Coach
 
@@ -50,8 +51,8 @@ final class MainTabResponsiveLayoutTests: XCTestCase {
     }
 
     func testTabBarClearanceIncreasesForAccessibilitySizes() {
-        let standard = FormaMainTabLayout.bottomContentInset(safeAreaBottom: 34, dynamicTypeSize: .large)
-        let enlarged = FormaMainTabLayout.bottomContentInset(safeAreaBottom: 34, dynamicTypeSize: .accessibility2)
+        let standard = FormaMainTabLayout.bottomContentInset(dynamicTypeSize: .large)
+        let enlarged = FormaMainTabLayout.bottomContentInset(dynamicTypeSize: .accessibility2)
         XCTAssertGreaterThan(enlarged, standard)
     }
 }

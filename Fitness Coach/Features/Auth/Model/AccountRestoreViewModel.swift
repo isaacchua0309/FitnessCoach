@@ -295,7 +295,8 @@ final class AccountRestoreViewModel: ObservableObject {
 
         switch result.status {
         case .completed, .skipped:
-            try? await Task.sleep(nanoseconds: 350_000_000)
+            // Brief settle so the completed phase can paint; keep well under perceived lag.
+            try? await Task.sleep(nanoseconds: 80_000_000)
             guard !Task.isCancelled else { return }
             onContinueToMain?(result)
         case .partial, .offline, .failed:

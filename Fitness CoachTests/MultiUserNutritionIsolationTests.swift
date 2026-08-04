@@ -165,7 +165,10 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
         XCTAssertEqual(entries.count, 1)
         XCTAssertEqual(entries.first?.name, "Kill-Safe Meal")
         XCTAssertEqual(entries.first?.calories, 600)
-        XCTAssertEqual(entries.first?.ownerUID, "user-a")
+        let entity = try XCTUnwrap(
+            try readHarness.store.fetch(FetchDescriptor<FoodEntryEntity>()).first
+        )
+        XCTAssertEqual(entity.ownerUID, "user-a")
     }
 
     // MARK: - Helpers
@@ -192,34 +195,40 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
         let store = SwiftDataStore(container: container)
         let profileService = UserProfileService(store: store, dateProvider: dateProvider)
         let uidProvider = { [sessionUID] in sessionUID.uid }
+        let outbox = SwiftDataAccountSyncOutboxStore(store: store)
+        let mutationTracker = AccountLocalMutationTracker(
+            outbox: outbox,
+            ownerUIDProvider: uidProvider
+        )
         let dailyLogService = DailyLogService(
             store: store,
             userProfileService: profileService,
             dateProvider: dateProvider,
-            currentUIDProvider: uidProvider
+            mutationTracker: mutationTracker
         )
         let foodLogService = FoodLogService(
             store: store,
             dailyLogService: dailyLogService,
-            currentUIDProvider: uidProvider
+            mutationTracker: mutationTracker
         )
         let waterLogService = WaterLogService(
             store: store,
             dailyLogService: dailyLogService,
-            currentUIDProvider: uidProvider
+            mutationTracker: mutationTracker
         )
         let weightLogService = WeightLogService(
             store: store,
             dailyLogService: dailyLogService,
             dateProvider: dateProvider,
-            currentUIDProvider: uidProvider
+            mutationTracker: mutationTracker
         )
         let namespaceDefaults = UserDefaults(
             suiteName: "MultiUserNutritionIsolationTests.\(UUID().uuidString)"
         )!
         let namespaceService = AccountDataNamespaceService(
+            store: store,
+            healthCacheStore: LocalHealthCacheStore(userProvider: AuthUIDCache()),
             userDefaults: namespaceDefaults,
-            uidProvider: StubNamespaceUIDProvider(uidProvider: uidProvider)
         )
 
         return Harness(

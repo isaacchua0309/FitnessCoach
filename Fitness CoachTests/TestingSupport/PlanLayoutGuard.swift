@@ -101,6 +101,7 @@ enum PlanLayoutGuard {
                 violations.append(
                     "\(planSourceRoot)/**/\(requirement.fileSuffix): \(requirement.reason)"
                 )
+                continue
             }
         }
 

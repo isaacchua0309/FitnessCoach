@@ -33,8 +33,8 @@ final class DailyReviewUpgradeTests: XCTestCase {
         let verboseAI = DailyReviewAIResponse(
             statusSummary: "Daily review (Asia/Singapore): Win! " + String(repeating: "Great day. ", count: 12),
             bestNextMove: "Win tomorrow with consistency.",
-            detailNote: "Steps aren't available. Sleep isn't available. HRV isn't available.",
-            missingSignals: ["Steps", "Sleep"]
+            missingSignals: ["Steps", "Sleep"],
+            detailNote: "Steps aren't available. Sleep isn't available. HRV isn't available."
         )
 
         let payload = DailyReviewPayloadBuilder.buildSafely(
@@ -154,8 +154,8 @@ final class DailyReviewUpgradeTests: XCTestCase {
             aiResponse: DailyReviewAIResponse(
                 statusSummary: "You are still within today's calorie target.",
                 bestNextMove: "Add protein at your next meal.",
-                detailNote: "Steps aren't available from Apple Health right now.",
-                missingSignals: ["Steps", "Workout"]
+                missingSignals: ["Steps", "Workout"],
+                detailNote: "Steps aren't available from Apple Health right now."
             ),
             contextHints: DailyReviewUpgradeFixtures.allMissingAppleHealthContext()
         )

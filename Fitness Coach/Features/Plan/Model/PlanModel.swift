@@ -452,6 +452,12 @@ final class PlanModel: ObservableObject {
                 $0.initialStep = stepIndex
             }
         )
+        #if DEBUG
+        FormaContextLoopIntegration.noteInvokedBreadcrumb(
+            name: "forma.plan_adjustment_started",
+            metadata: ["entryPoint": entryPoint.rawValue]
+        )
+        #endif
         formErrorMessage = nil
         editFormState = formState
         editBaselineProfile = state.profile
@@ -590,6 +596,9 @@ final class PlanModel: ObservableObject {
                     healthConnected: trainingInsightsStore.integrationState.isConnected
                 )
             )
+            #if DEBUG
+            FormaContextLoopIntegration.noteInvokedBreadcrumb(name: "forma.plan_adjustment_completed")
+            #endif
             dismissSettings()
             await refresh()
             actionCenter.notifyDataChanged()

@@ -104,7 +104,7 @@ final class CoachContextPacketV2CompactionTests: XCTestCase {
                 id: UUID(),
                 timestamp: baseDate.addingTimeInterval(TimeInterval(index)),
                 type: CoachTimelineEventType.assistantMessage.rawValue,
-                source: CoachTimelineEventSourceAttribution.aiBackend.rawValue,
+                source: CoachTimelineEventSourceAttribution.estimateFood.rawValue,
                 status: CoachTimelineEventStatus.confirmed.rawValue,
                 summary: String(repeating: "Long assistant summary ", count: 30) + "\(index)",
                 compactPayload: ["detail": String(repeating: "x", count: 200)],
@@ -292,15 +292,15 @@ final class CoachContextPacketV2CompactionTests: XCTestCase {
     func testOutputBelowSizeLimitAfterCompaction() {
         var packet = makeBasePacket()
         packet.today = CoachContextTodayPacket(
+            targets: CoachTodayTargetsContext(calorieTarget: 2_200, proteinTarget: 160),
             nutrition: CoachTodayNutritionContext(
                 caloriesConsumed: 3_500,
-                proteinConsumed: 180,
-                carbsConsumed: 320,
-                fatConsumed: 90,
                 caloriesRemaining: 0,
-                proteinRemaining: 0
-            ),
-            targets: CoachTodayTargetsContext(calorieTarget: 2_200, proteinTarget: 160)
+                proteinConsumed: 180,
+                proteinRemaining: 0,
+                carbsConsumed: 320,
+                fatConsumed: 90
+            )
         )
         packet.recentMealsStructured = (0..<10).map { index in
             CoachRecentMealContext(
@@ -352,13 +352,13 @@ final class CoachContextPacketV2CompactionTests: XCTestCase {
         var packet = makeBasePacket()
         packet.recentMealsStructured = meals
         packet.today = CoachContextTodayPacket(
+            targets: CoachTodayTargetsContext(calorieTarget: 2_500, proteinTarget: 160),
             nutrition: CoachTodayNutritionContext(
                 caloriesConsumed: meals.compactMap(\.calories).reduce(0, +),
-                proteinConsumed: meals.compactMap(\.proteinGrams).reduce(0, +),
                 caloriesRemaining: 0,
+                proteinConsumed: meals.compactMap(\.proteinGrams).reduce(0, +),
                 proteinRemaining: 0
-            ),
-            targets: CoachTodayTargetsContext(calorieTarget: 2_500, proteinTarget: 160)
+            )
         )
 
         let validated = CoachContextCorrectnessValidator.validateAndCorrect(packet, calendar: calendar)
@@ -381,7 +381,7 @@ final class CoachContextPacketV2CompactionTests: XCTestCase {
         let clarification = CoachTimelineEvent.make(
             type: .clarificationAsked,
             source: .aiBackend,
-            sourceAttribution: .analyzeMealImage,
+            sourceAttribution: .mealImage,
             status: .confirmed,
             payload: .message(MessagePayload(textPreview: "What portion?", role: "assistant")),
             occurredAt: baseDate.addingTimeInterval(30),
@@ -440,7 +440,7 @@ final class CoachContextPacketV2CompactionTests: XCTestCase {
         CoachTimelineEvent.make(
             type: .assistantMessage,
             source: .aiBackend,
-            sourceAttribution: .aiBackend,
+            sourceAttribution: .estimateFood,
             status: .confirmed,
             payload: .message(MessagePayload(textPreview: text, role: "assistant")),
             occurredAt: baseDate.addingTimeInterval(offset),
@@ -466,7 +466,7 @@ final class CoachContextPacketV2CompactionTests: XCTestCase {
             source: .system,
             sourceAttribution: .healthKit,
             status: .confirmed,
-            payload: .steps(StepsUpdatedPayload(steps: steps)),
+            payload: .steps(StepsPayload(steps: steps)),
             occurredAt: baseDate.addingTimeInterval(offset),
             calendar: calendar
         )

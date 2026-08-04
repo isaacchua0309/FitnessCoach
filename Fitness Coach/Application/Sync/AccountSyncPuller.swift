@@ -38,6 +38,13 @@ protocol AccountSyncPulling: AnyObject {
         to endDate: String
     ) async -> AccountSyncPullSummary
 
+    /// Pulls only weight entries for a date range (no per-day food/water/review fan-out).
+    func pullWeightEntries(
+        for uid: String,
+        from startDate: String,
+        to endDate: String
+    ) async -> AccountSyncPullSummary
+
     func mergeFetchedDocuments(
         for uid: String,
         dailyLogs: [CloudDailyLogDocument],
@@ -80,6 +87,37 @@ final class AccountSyncPuller: AccountSyncPulling {
         from startDate: String,
         to endDate: String
     ) async -> AccountSyncPullSummary {
+        await AccountRestoreBootstrapTracer.measure(
+            "pull_recent_account_data",
+            fields: ["daycount": "range"]
+        ) {
+            await pullRecentAccountDataInstrumented(
+                for: uid,
+                from: startDate,
+                to: endDate
+            )
+        }
+    }
+
+    func pullWeightEntries(
+        for uid: String,
+        from startDate: String,
+        to endDate: String
+    ) async -> AccountSyncPullSummary {
+        await AccountRestoreBootstrapTracer.measure("pull_weight_entries") {
+            await pullWeightEntriesInstrumented(
+                for: uid,
+                from: startDate,
+                to: endDate
+            )
+        }
+    }
+
+    private func pullRecentAccountDataInstrumented(
+        for uid: String,
+        from startDate: String,
+        to endDate: String
+    ) async -> AccountSyncPullSummary {
         let normalizedUID: String
         let range: (String, String)
         do {
@@ -90,10 +128,11 @@ final class AccountSyncPuller: AccountSyncPulling {
         }
 
         var stats = PullStats()
-        let localDates = Self.localDates(from: range.0, to: range.1, calendar: calendar)
 
+        // 1) Range-fetch daily logs first so child fan-out only hits dates that exist.
+        var dailyLogs: [CloudDailyLogDocument] = []
         do {
-            let dailyLogs = try await remoteStore.fetchDailyLogs(
+            dailyLogs = try await remoteStore.fetchDailyLogs(
                 uid: normalizedUID,
                 from: range.0,
                 to: range.1
@@ -106,54 +145,195 @@ final class AccountSyncPuller: AccountSyncPulling {
             stats.failed += 1
         }
 
-        for localDate in localDates {
-            do {
-                let foodEntries = try await remoteStore.fetchFoodEntries(uid: normalizedUID, localDate: localDate)
-                stats.foodEntriesFetched += foodEntries.count
-                for document in foodEntries {
-                    mergeFoodEntry(document, uid: normalizedUID, stats: &stats)
-                }
-            } catch {
-                stats.failed += 1
-            }
+        let childDates = Self.childFetchDates(
+            dailyLogs: dailyLogs,
+            rangeStart: range.0,
+            rangeEnd: range.1,
+            calendar: calendar
+        )
+        AccountRestoreBootstrapTracer.event(
+            "pull_child_dates_resolved",
+            fields: ["childdatecount": String(childDates.count)]
+        )
 
-            do {
-                let waterEntries = try await remoteStore.fetchWaterEntries(uid: normalizedUID, localDate: localDate)
-                stats.waterEntriesFetched += waterEntries.count
-                for document in waterEntries {
-                    mergeWaterEntry(document, uid: normalizedUID, stats: &stats)
-                }
-            } catch {
-                stats.failed += 1
-            }
+        // 2) Fetch weight + per-day children concurrently, then merge on the main actor.
+        async let weightResult = fetchWeightDocuments(
+            uid: normalizedUID,
+            from: range.0,
+            to: range.1
+        )
+        async let childResult = fetchChildDocuments(
+            uid: normalizedUID,
+            localDates: childDates
+        )
 
-            do {
-                if let review = try await remoteStore.fetchDailyReview(uid: normalizedUID, localDate: localDate) {
-                    stats.dailyReviewsFetched += 1
-                    mergeDailyReview(review, uid: normalizedUID, stats: &stats)
-                }
-            } catch {
-                stats.failed += 1
-            }
-        }
+        let fetchedWeights = await weightResult
+        let fetchedChildren = await childResult
 
-        do {
-            let weightEntries = try await remoteStore.fetchWeightEntries(
-                uid: normalizedUID,
-                from: range.0,
-                to: range.1
-            )
+        switch fetchedWeights {
+        case .success(let weightEntries):
             stats.weightEntriesFetched = weightEntries.count
             for document in weightEntries {
                 mergeWeightEntry(document, uid: normalizedUID, stats: &stats)
             }
-        } catch {
+        case .failure:
             stats.failed += 1
+        }
+
+        stats.foodEntriesFetched += fetchedChildren.foodEntries.count
+        stats.waterEntriesFetched += fetchedChildren.waterEntries.count
+        stats.dailyReviewsFetched += fetchedChildren.dailyReviews.count
+        stats.failed += fetchedChildren.failed
+
+        for document in fetchedChildren.foodEntries {
+            mergeFoodEntry(document, uid: normalizedUID, stats: &stats)
+        }
+        for document in fetchedChildren.waterEntries {
+            mergeWaterEntry(document, uid: normalizedUID, stats: &stats)
+        }
+        for document in fetchedChildren.dailyReviews {
+            mergeDailyReview(document, uid: normalizedUID, stats: &stats)
         }
 
         try? store.save()
 
         return stats.summary(uid: normalizedUID)
+    }
+
+    private func pullWeightEntriesInstrumented(
+        for uid: String,
+        from startDate: String,
+        to endDate: String
+    ) async -> AccountSyncPullSummary {
+        let normalizedUID: String
+        let range: (String, String)
+        do {
+            normalizedUID = try AccountSyncMutationValidation.normalizedOwnerUID(uid)
+            range = try AccountDataRemoteStoreSupport.validateDateRange(from: startDate, to: endDate)
+        } catch {
+            return emptySummary(uid: uid.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+
+        var stats = PullStats()
+        switch await fetchWeightDocuments(uid: normalizedUID, from: range.0, to: range.1) {
+        case .success(let weightEntries):
+            stats.weightEntriesFetched = weightEntries.count
+            for document in weightEntries {
+                mergeWeightEntry(document, uid: normalizedUID, stats: &stats)
+            }
+        case .failure:
+            stats.failed += 1
+        }
+
+        try? store.save()
+        return stats.summary(uid: normalizedUID)
+    }
+
+    private struct ChildFetchBatch: Sendable {
+        var foodEntries: [CloudFoodEntryDocument] = []
+        var waterEntries: [CloudWaterEntryDocument] = []
+        var dailyReviews: [CloudDailyReviewDocument] = []
+        var failed: Int = 0
+    }
+
+    private enum DayChildPayload: Sendable {
+        case food([CloudFoodEntryDocument])
+        case water([CloudWaterEntryDocument])
+        case review(CloudDailyReviewDocument?)
+        case failed
+    }
+
+    private func fetchWeightDocuments(
+        uid: String,
+        from startDate: String,
+        to endDate: String
+    ) async -> Result<[CloudWeightEntryDocument], Error> {
+        do {
+            let documents = try await remoteStore.fetchWeightEntries(
+                uid: uid,
+                from: startDate,
+                to: endDate
+            )
+            return .success(documents)
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    private func fetchChildDocuments(
+        uid: String,
+        localDates: [String]
+    ) async -> ChildFetchBatch {
+        guard !localDates.isEmpty else { return ChildFetchBatch() }
+
+        return await withTaskGroup(of: DayChildPayload.self, returning: ChildFetchBatch.self) { group in
+            for localDate in localDates {
+                group.addTask { [remoteStore] in
+                    do {
+                        let food = try await remoteStore.fetchFoodEntries(uid: uid, localDate: localDate)
+                        return .food(food)
+                    } catch {
+                        return .failed
+                    }
+                }
+                group.addTask { [remoteStore] in
+                    do {
+                        let water = try await remoteStore.fetchWaterEntries(uid: uid, localDate: localDate)
+                        return .water(water)
+                    } catch {
+                        return .failed
+                    }
+                }
+                group.addTask { [remoteStore] in
+                    do {
+                        let review = try await remoteStore.fetchDailyReview(uid: uid, localDate: localDate)
+                        return .review(review)
+                    } catch {
+                        return .failed
+                    }
+                }
+            }
+
+            var batch = ChildFetchBatch()
+            for await payload in group {
+                switch payload {
+                case .food(let entries):
+                    batch.foodEntries.append(contentsOf: entries)
+                case .water(let entries):
+                    batch.waterEntries.append(contentsOf: entries)
+                case .review(let review):
+                    if let review {
+                        batch.dailyReviews.append(review)
+                    }
+                case .failed:
+                    batch.failed += 1
+                }
+            }
+            return batch
+        }
+    }
+
+    /// Child collections only exist under daily-log documents. Prefer those dates;
+    /// fall back to the full range only when the daily-log range query itself failed.
+    static func childFetchDates(
+        dailyLogs: [CloudDailyLogDocument],
+        rangeStart: String,
+        rangeEnd: String,
+        calendar: Calendar
+    ) -> [String] {
+        let datesFromLogs = Set(
+            dailyLogs
+                .filter { $0.deletedAt == nil }
+                .map(\.localDate)
+        )
+        if !datesFromLogs.isEmpty {
+            return datesFromLogs.sorted()
+        }
+        // No remote logs in range — skip empty-day fan-out entirely.
+        _ = rangeStart
+        _ = rangeEnd
+        _ = calendar
+        return []
     }
 
     func mergeFetchedDocuments(

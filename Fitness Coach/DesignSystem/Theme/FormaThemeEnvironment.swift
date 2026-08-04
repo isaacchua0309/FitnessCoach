@@ -138,8 +138,8 @@ extension View {
         store.setAppearance(appearance)
         store.setTheme(palette)
         return preferredColorScheme(ThemeResolver.preferredColorScheme(for: appearance))
-            .environmentObject(store)
             .formaRootTheme()
+            .environmentObject(store)
     }
 
     /// Injects a fixed resolved theme (and legacy palette bridge) for previews.
@@ -147,8 +147,8 @@ extension View {
         let store = ThemeStore(userDefaults: ThemeStore.previewUserDefaults())
         store.setAppearance(theme.preferences.appearance)
         store.setTheme(theme.preferences.palette)
-        return environmentObject(store)
-            .formaRootTheme()
+        return formaRootTheme()
+            .environmentObject(store)
     }
 
     /// Injects resolved plan-flow colors for previews and tests.

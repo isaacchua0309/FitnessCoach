@@ -11,6 +11,7 @@ import XCTest
 @MainActor
 enum AuthGateCharacterizationTestSupport {
 
+  @MainActor
   struct Harness {
     let container: AppContainer
     let analytics: CapturingPublicEntryAnalyticsLogger
@@ -84,6 +85,7 @@ enum AuthGateCharacterizationTestSupport {
     }
   }
 
+  @MainActor
   struct RouteScenario: Sendable {
     let name: String
     let authState: AuthState

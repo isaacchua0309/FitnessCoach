@@ -153,7 +153,22 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
             timelineRecorder: recorder
         )
 
-        await model.handleMealPhotoSelection(.success(makeTestJPEGData()), source: .library)
+        let photoStaged1 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+
+
+            on: model,
+
+
+            jpeg: makeTestJPEGData(),
+
+
+            source: .library
+
+
+        )
+
+
+        XCTAssertTrue(photoStaged1)
         await model.sendCurrentMessage()
 
         let failedEvent = try await waitForEvent { $0.type == .photoAnalysisFailed }
@@ -173,7 +188,22 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
             timelineRecorder: recorder
         )
 
-        await model.handleMealPhotoSelection(.success(makeTestJPEGData()), source: .library)
+        let photoStaged2 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+
+
+            on: model,
+
+
+            jpeg: makeTestJPEGData(),
+
+
+            source: .library
+
+
+        )
+
+
+        XCTAssertTrue(photoStaged2)
         await model.sendCurrentMessage()
         XCTAssertNotNil(model.pendingConfirmation)
 
@@ -200,7 +230,22 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
             timelineRecorder: recorder
         )
 
-        await model.handleMealPhotoSelection(.success(makeTestJPEGData()), source: .library)
+        let photoStaged3 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+
+
+            on: model,
+
+
+            jpeg: makeTestJPEGData(),
+
+
+            source: .library
+
+
+        )
+
+
+        XCTAssertTrue(photoStaged3)
         await model.sendCurrentMessage()
 
         let asked = try await waitForEvent { $0.type == .clarificationAsked }
@@ -313,7 +358,22 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
             timelineRecorder: DefaultCoachTimelineRecorder(store: timelineStore)
         )
 
-        await model.handleMealPhotoSelection(.success(makeTestJPEGData()), source: .library)
+        let photoStaged4 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+
+
+            on: model,
+
+
+            jpeg: makeTestJPEGData(),
+
+
+            source: .library
+
+
+        )
+
+
+        XCTAssertTrue(photoStaged4)
         await model.sendCurrentMessage()
         XCTAssertNotNil(model.pendingConfirmation)
 
@@ -338,7 +398,22 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
             timelineRecorder: recorder
         )
 
-        await model.handleMealPhotoSelection(.success(makeTestJPEGData()), source: .library)
+        let photoStaged5 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+
+
+            on: model,
+
+
+            jpeg: makeTestJPEGData(),
+
+
+            source: .library
+
+
+        )
+
+
+        XCTAssertTrue(photoStaged5)
         await model.sendCurrentMessage()
         _ = try await waitForEvent { $0.type == .photoAnalysisCompleted }
 
@@ -628,7 +703,7 @@ private final class PhotoContextCapturingAIService: AIServiceProtocol, @unchecke
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target.", confidence: .medium)
     }
 
     func generateNutritionEstimate(

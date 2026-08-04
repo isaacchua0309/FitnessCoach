@@ -81,8 +81,9 @@ final class AccountRestoreCoordinatorTests: XCTestCase {
 
     func testAccountSwitchIgnoresOldRestoreResult() async throws {
         harness.restoreEnabled = true
-        harness.initialRestore.blockingUIDProvider = { [weak harness] in
-            harness?.currentUID = self.otherUID
+        harness.initialRestore.blockingUIDProvider = { [harness] in
+            guard let harness else { return "" }
+            harness.currentUID = self.otherUID
             return self.ownerUID
         }
         try await harness.seedCloudNutritionData()
@@ -201,8 +202,9 @@ final class AccountRestoreCoordinatorTests: XCTestCase {
 
     func testAccountSwitchDuringRestoreReturnsSkippedSummary() async throws {
         harness.restoreEnabled = true
-        harness.initialRestore.blockingUIDProvider = { [weak harness] in
-            harness?.currentUID = self.otherUID
+        harness.initialRestore.blockingUIDProvider = { [harness] in
+            guard let harness else { return "" }
+            harness.currentUID = self.otherUID
             return self.ownerUID
         }
         try await harness.seedCloudNutritionData()
@@ -270,18 +272,52 @@ final class AccountRestoreCoordinatorTests: XCTestCase {
 @MainActor
 private final class RestoreCoordinatorHarness {
 
+    let ownerUID: String
+    let referenceDate: Date
     let store: SwiftDataStore
     let profileService: UserProfileService
     let remoteStore: InMemoryAccountDataRemoteStore
-    let profileStore: RestoreCoordinatorProfileStore
+    var profileStore: RestoreCoordinatorProfileStore
     let stateStore: AccountRestoreStateStore
     let namespaceService: AccountDataNamespaceService
     let migrationService: RecordingAccountMigrationService
     let initialRestore: RecordingInitialRestoreService
     let syncCoordinator: RecordingSyncCoordinator
-    let remoteInspector: StubRemoteInspector
+    var remoteInspector: StubRemoteInspector
     let coordinator: AccountRestoreCoordinator
     let currentUIDBox: CurrentUIDBox
+
+    init(
+        ownerUID: String,
+        referenceDate: Date,
+        store: SwiftDataStore,
+        profileService: UserProfileService,
+        remoteStore: InMemoryAccountDataRemoteStore,
+        profileStore: RestoreCoordinatorProfileStore,
+        stateStore: AccountRestoreStateStore,
+        namespaceService: AccountDataNamespaceService,
+        migrationService: RecordingAccountMigrationService,
+        initialRestore: RecordingInitialRestoreService,
+        syncCoordinator: RecordingSyncCoordinator,
+        remoteInspector: StubRemoteInspector,
+        coordinator: AccountRestoreCoordinator,
+        currentUIDBox: CurrentUIDBox
+    ) {
+        self.ownerUID = ownerUID
+        self.referenceDate = referenceDate
+        self.store = store
+        self.profileService = profileService
+        self.remoteStore = remoteStore
+        self.profileStore = profileStore
+        self.stateStore = stateStore
+        self.namespaceService = namespaceService
+        self.migrationService = migrationService
+        self.initialRestore = initialRestore
+        self.syncCoordinator = syncCoordinator
+        self.remoteInspector = remoteInspector
+        self.coordinator = coordinator
+        self.currentUIDBox = currentUIDBox
+    }
     var restoreEnabled: Bool {
         get { RestoreCoordinatorFeatureGate.isRestoreEnabled }
         set { RestoreCoordinatorFeatureGate.isRestoreEnabled = newValue }
@@ -334,6 +370,8 @@ private final class RestoreCoordinatorHarness {
         )
 
         return RestoreCoordinatorHarness(
+            ownerUID: ownerUID,
+            referenceDate: referenceDate,
             store: store,
             profileService: profileService,
             remoteStore: remoteStore,
@@ -516,7 +554,8 @@ private final class RecordingInitialRestoreService: AccountInitialRestoring {
 
     func runBlockingInitialRestore(
         uid: String,
-        reason: AccountRestoreReason
+        reason: AccountRestoreReason,
+        prefetchedRemoteStatus: AccountRemoteDataStatus?
     ) async -> AccountRestoreSummary {
         blockingCallCount += 1
         _ = blockingUIDProvider?()
@@ -524,7 +563,11 @@ private final class RecordingInitialRestoreService: AccountInitialRestoring {
             try? await Task.sleep(nanoseconds: blockingDelayNanoseconds)
         }
         if let fallbackService {
-            return await fallbackService.runBlockingInitialRestore(uid: uid, reason: reason)
+            return await fallbackService.runBlockingInitialRestore(
+                uid: uid,
+                reason: reason,
+                prefetchedRemoteStatus: prefetchedRemoteStatus
+            )
         }
         return AccountRestoreSummary(
             uid: uid,
@@ -552,7 +595,11 @@ private final class RecordingInitialRestoreService: AccountInitialRestoring {
         reason: AccountRestoreReason
     ) async -> AccountRestoreSummary {
         backgroundCallCount += 1
-        return runBlockingInitialRestore(uid: uid, reason: reason)
+        return await runBlockingInitialRestore(
+            uid: uid,
+            reason: reason,
+            prefetchedRemoteStatus: nil
+        )
     }
 }
 

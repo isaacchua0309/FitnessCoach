@@ -28,7 +28,13 @@ final class FormaSchemaV7MigrationTests: XCTestCase {
     }
 
     func testActiveSchemaIsV9() {
-        XCTAssertEqual(FormaModelContainer.schema.versionIdentifier, FormaSchemaV9.versionIdentifier)
+        // `Schema` does not expose `versionIdentifier`; verify the active container
+        // is built from FormaSchemaV9 and that V9's version stamp is correct.
+        XCTAssertEqual(FormaSchemaV9.versionIdentifier, Schema.Version(9, 0, 0))
+        XCTAssertEqual(
+            FormaModelContainer.schema.entities.map(\.name).sorted(),
+            Schema(versionedSchema: FormaSchemaV9.self).entities.map(\.name).sorted()
+        )
     }
 
     func testV7SchemaRegistersSyncMetadataEntities() {

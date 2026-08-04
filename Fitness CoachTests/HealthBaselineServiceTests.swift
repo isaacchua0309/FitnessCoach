@@ -41,14 +41,14 @@ final class HealthBaselineServiceTests: XCTestCase {
         let context = await service.buildContext(for: target, calendar: calendar)
 
         XCTAssertEqual(context.targetDate, calendar.startOfDay(for: target))
-        XCTAssertEqual(context.averageSteps7d, 8_000, accuracy: 0.01)
-        XCTAssertEqual(context.averageSteps28d, 8_000, accuracy: 0.01)
-        XCTAssertEqual(context.averageActiveEnergy7d, 400, accuracy: 0.01)
-        XCTAssertEqual(context.averageActiveEnergy28d, 400, accuracy: 0.01)
-        XCTAssertEqual(context.averageSleepDuration7d, 420, accuracy: 0.01)
-        XCTAssertEqual(context.averageSleepDuration28d, 420, accuracy: 0.01)
-        XCTAssertEqual(context.averageRestingHeartRate28d, 58, accuracy: 0.01)
-        XCTAssertEqual(context.averageHRV28d, 45, accuracy: 0.01)
+        XCTAssertEqual(context.averageSteps7d ?? 0, 8_000, accuracy: 0.01)
+        XCTAssertEqual(context.averageSteps28d ?? 0, 8_000, accuracy: 0.01)
+        XCTAssertEqual(context.averageActiveEnergy7d ?? 0, 400, accuracy: 0.01)
+        XCTAssertEqual(context.averageActiveEnergy28d ?? 0, 400, accuracy: 0.01)
+        XCTAssertEqual(context.averageSleepDuration7d ?? 0, 420, accuracy: 0.01)
+        XCTAssertEqual(context.averageSleepDuration28d ?? 0, 420, accuracy: 0.01)
+        XCTAssertEqual(context.averageRestingHeartRate28d ?? 0, 58, accuracy: 0.01)
+        XCTAssertEqual(context.averageHRV28d ?? 0, 45, accuracy: 0.01)
         XCTAssertNotNil(context.averageWorkoutLoad28d)
         XCTAssertEqual(context.workoutDays7d, 3)
         XCTAssertEqual(context.workoutDays28d, 3)
@@ -68,8 +68,8 @@ final class HealthBaselineServiceTests: XCTestCase {
 
         let context = await service.buildContext(for: target, calendar: calendar)
 
-        XCTAssertEqual(context.averageSteps7d, 10_000, accuracy: 0.01)
-        XCTAssertEqual(context.averageSteps28d, 10_000, accuracy: 0.01)
+        XCTAssertEqual(context.averageSteps7d ?? 0, 10_000, accuracy: 0.01)
+        XCTAssertEqual(context.averageSteps28d ?? 0, 10_000, accuracy: 0.01)
         XCTAssertNil(context.averageActiveEnergy7d)
         XCTAssertNil(context.averageActiveEnergy28d)
         XCTAssertNil(context.averageSleepDuration7d)
@@ -161,9 +161,9 @@ final class HealthBaselineServiceTests: XCTestCase {
 
         let context = await service.buildContext(for: target, calendar: calendar)
 
-        XCTAssertEqual(context.averageSteps7d, 9_000, accuracy: 0.01)
+        XCTAssertEqual(context.averageSteps7d ?? 0, 9_000, accuracy: 0.01)
         XCTAssertNil(context.averageSteps28d)
-        XCTAssertEqual(context.averageActiveEnergy7d, 420, accuracy: 0.01)
+        XCTAssertEqual(context.averageActiveEnergy7d ?? 0, 420, accuracy: 0.01)
         XCTAssertNil(context.averageActiveEnergy28d)
         XCTAssertNotNil(context.averageSleepDuration7d)
         XCTAssertNil(context.averageSleepDuration28d)
@@ -265,7 +265,7 @@ final class HealthBaselineServiceTests: XCTestCase {
         let days = HealthBaselineService.days(in: window, calendar: calendar).suffix(nights)
         return days.map { wakeDay in
             let start = calendar.date(byAdding: .hour, value: -8, to: wakeDay)!
-            NormalizedSleepRecord(
+            return NormalizedSleepRecord(
                 id: UUID(),
                 startDate: start,
                 endDate: wakeDay,

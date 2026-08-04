@@ -466,6 +466,10 @@ final class FakeCoachTimelineStore: CoachTimelineStoring {
         events.append(event)
     }
 
+    func replaceEventsForTests(_ newEvents: [CoachTimelineEvent]) {
+        events = newEvents
+    }
+
     func appendMany(_ events: [CoachTimelineEvent]) async throws {
         for event in events {
             try await append(event)

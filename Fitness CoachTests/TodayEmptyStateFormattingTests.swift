@@ -20,6 +20,7 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
         let mission = TodayMissionHeroFormatter.displayModel(
             calorieSummary: emptyCalories,
             proteinProgress: emptyProtein,
+            waterSummary: emptyWater,
             mealsEmptyKind: .newProfileNoMeals
         )
         let mealsCopy = TodayEmptyStateFormatting.mealsEmptyCopy(for: .newProfileNoMeals)
@@ -37,6 +38,7 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
         let mission = TodayMissionHeroFormatter.displayModel(
             calorieSummary: emptyCalories,
             proteinProgress: emptyProtein,
+            waterSummary: emptyWater,
             mealsEmptyKind: kind
         )
         let mealsCopy = TodayEmptyStateFormatting.mealsEmptyCopy(for: kind)
@@ -102,6 +104,7 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
             TodayMissionHeroFormatter.displayModel(
                 calorieSummary: emptyCalories,
                 proteinProgress: emptyProtein,
+                waterSummary: emptyWater,
                 mealsEmptyKind: .hasMeals
             ).showsLogMealCTA
         )
@@ -231,5 +234,9 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
 
     private var emptyProtein: MacroProgress {
         MacroProgress(consumed: 0, target: 170, remaining: 170, progress: 0)
+    }
+
+    private var emptyWater: WaterSummary {
+        WaterSummary(consumedMl: 0, targetMl: 3_500, remainingMl: 3_500, progress: 0)
     }
 }

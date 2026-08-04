@@ -7,15 +7,16 @@
 //
 
 import PhotosUI
+import SwiftUI
 import UIKit
 
-typealias CoachPhotoLibraryImageLoader = @Sendable (
+typealias CoachPhotoLibraryImageLoader = (
     PhotosPickerItem
 ) async -> Result<CoachImagePipeline.PhotoLibraryLoadedImage, CoachMealPhotoError>
 
 enum CoachPhotoLibraryImageLoading {
     /// Production adapter — reads bytes from `PhotosPickerItem` via `CoachImagePipeline`.
-    static let live: CoachPhotoLibraryImageLoader = { item in
+    static let live: CoachPhotoLibraryImageLoader = { @Sendable item in
         await CoachImagePipeline.loadImageFromPhotoLibrary(item)
     }
 }

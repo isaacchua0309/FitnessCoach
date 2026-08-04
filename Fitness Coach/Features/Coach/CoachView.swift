@@ -79,6 +79,11 @@ struct CoachView: View {
             }
             .onAppear {
                 model.refreshTodayContext()
+                #if DEBUG
+                if isActive {
+                    FormaContextLoopIntegration.recordScreen("coach")
+                }
+                #endif
             }
             .onDisappear {
                 speechService.stopRecording()
@@ -89,6 +94,9 @@ struct CoachView: View {
                     imagePickFlow.dismissPresentedPickers()
                     model.handleCoachBecameInactive()
                 } else {
+                    #if DEBUG
+                    FormaContextLoopIntegration.recordScreen("coach")
+                    #endif
                     focusComposerIfRequested()
                     presentCameraIfRequested()
                 }

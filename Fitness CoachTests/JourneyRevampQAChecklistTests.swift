@@ -168,11 +168,14 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
             XCTAssertFalse(sample.milestone.rewardCopy.isEmpty)
         }
 
-        XCTAssertGreaterThan(
-            FormaMainTabLayout.bottomContentInset(
-                safeAreaBottom: FormaMainTabLayout.defaultBottomSafeAreaFallback
-            ),
-            FormaTokens.Layout.floatingTabBarHeight
+        XCTAssertEqual(
+            FormaMainTabLayout.bottomContentInset(),
+            FormaMainTabLayout.scrollContentBottomPadding + FormaMainTabLayout.tabBarBreathingRoom
+        )
+        XCTAssertLessThan(
+            FormaMainTabLayout.bottomContentInset(),
+            FormaTokens.Layout.floatingTabBarHeight,
+            "Journey scroll padding must not re-reserve the system tab bar height."
         )
     }
 

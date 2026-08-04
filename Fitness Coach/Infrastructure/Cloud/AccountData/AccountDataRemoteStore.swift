@@ -225,6 +225,21 @@ actor InMemoryAccountDataRemoteStore: AccountDataRemoteStore {
     private var syncMetadata: [String: CloudSyncMetadataDocument] = [:]
     private var cloudProfiles: [String: CloudUserProfileDocument] = [:]
 
+    /// Test/diagnostics counters for restore fan-out verification.
+    private(set) var dailyLogRangeFetchCount = 0
+    private(set) var foodFetchCount = 0
+    private(set) var waterFetchCount = 0
+    private(set) var weightFetchCount = 0
+    private(set) var dailyReviewFetchCount = 0
+
+    func resetFetchCounters() {
+        dailyLogRangeFetchCount = 0
+        foodFetchCount = 0
+        waterFetchCount = 0
+        weightFetchCount = 0
+        dailyReviewFetchCount = 0
+    }
+
     func fetchDailyLog(uid: String, localDate: String) async throws -> CloudDailyLogDocument? {
         let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
         let normalizedDate = try AccountDataRemoteStoreSupport.validateLocalDate(localDate)
@@ -241,6 +256,7 @@ actor InMemoryAccountDataRemoteStore: AccountDataRemoteStore {
     func fetchDailyLogs(uid: String, from startDate: String, to endDate: String) async throws -> [CloudDailyLogDocument] {
         let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
         let range = try AccountDataRemoteStoreSupport.validateDateRange(from: startDate, to: endDate)
+        dailyLogRangeFetchCount += 1
         return (dailyLogs[normalizedUID] ?? [:])
             .filter { range.0 <= $0.key && $0.key <= range.1 }
             .map(\.value)
@@ -250,6 +266,7 @@ actor InMemoryAccountDataRemoteStore: AccountDataRemoteStore {
     func fetchFoodEntries(uid: String, localDate: String) async throws -> [CloudFoodEntryDocument] {
         let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
         let normalizedDate = try AccountDataRemoteStoreSupport.validateLocalDate(localDate)
+        foodFetchCount += 1
         return Array((foodEntries[normalizedUID]?[normalizedDate] ?? [:]).values)
     }
 
@@ -269,6 +286,7 @@ actor InMemoryAccountDataRemoteStore: AccountDataRemoteStore {
     func fetchWaterEntries(uid: String, localDate: String) async throws -> [CloudWaterEntryDocument] {
         let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
         let normalizedDate = try AccountDataRemoteStoreSupport.validateLocalDate(localDate)
+        waterFetchCount += 1
         return Array((waterEntries[normalizedUID]?[normalizedDate] ?? [:]).values)
     }
 
@@ -297,6 +315,7 @@ actor InMemoryAccountDataRemoteStore: AccountDataRemoteStore {
             _ = try AccountDataRemoteStoreSupport.validateDateRange(from: start, to: end)
         }
 
+        weightFetchCount += 1
         return (weightEntries[normalizedUID] ?? [:])
             .values
             .filter { document in
@@ -321,6 +340,7 @@ actor InMemoryAccountDataRemoteStore: AccountDataRemoteStore {
     func fetchDailyReview(uid: String, localDate: String) async throws -> CloudDailyReviewDocument? {
         let normalizedUID = try AccountDataRemoteStoreSupport.normalizedUID(uid)
         let normalizedDate = try AccountDataRemoteStoreSupport.validateLocalDate(localDate)
+        dailyReviewFetchCount += 1
         return dailyReviews[normalizedUID]?[normalizedDate]
     }
 

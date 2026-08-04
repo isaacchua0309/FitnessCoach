@@ -5,6 +5,7 @@
 //  Forma — Theme settings catalog, selection state, and store wiring.
 //
 
+import SwiftUI
 import XCTest
 @testable import Fitness_Coach
 

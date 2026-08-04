@@ -5,6 +5,7 @@
 //  Forma — Fixed-viewport marketing layout policy tests.
 //
 
+import SwiftUI
 import XCTest
 @testable import Fitness_Coach
 

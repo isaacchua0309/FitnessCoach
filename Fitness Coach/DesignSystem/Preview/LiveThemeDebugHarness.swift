@@ -72,8 +72,8 @@ private struct LiveThemeDebugShell<Content: View>: View {
   var body: some View {
     NavigationStack {
       content(themeStore)
-        .environmentObject(themeStore)
         .formaRootTheme()
+        .environmentObject(themeStore)
         .toolbar {
           ToolbarItem(placement: .topBarTrailing) {
             LiveThemeDebugHarness.themeSwitcherMenu(themeManager: themeStore)

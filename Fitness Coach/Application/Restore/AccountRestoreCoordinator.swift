@@ -228,6 +228,14 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
             mode: coordinatorMode,
             uid: normalizedUID
         )
+        AccountRestoreBootstrapTracer.event(
+            "coordinator_restore_started",
+            fields: [
+                "reason": reason.rawValue,
+                "mode": coordinatorMode.rawValue,
+                "trigger": forceBlocking ? "manual_retry" : "sign_in_or_launch"
+            ]
+        )
 
         guard await namespaceService.prepareForSignedInUID(normalizedUID) else {
             return finishRun(
@@ -297,10 +305,12 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
             )
         }
 
-        let remoteStatus = await remoteInspector.inspectRemoteData(
-            for: normalizedUID,
-            today: dateProvider.now
-        )
+        let remoteStatus = await AccountRestoreBootstrapTracer.measure("coordinator_cloud_metadata_lookup") {
+            await remoteInspector.inspectRemoteData(
+                for: normalizedUID,
+                today: dateProvider.now
+            )
+        }
 
         guard isUIDStillCurrent(normalizedUID) else {
             return finishRun(
@@ -329,13 +339,23 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
             remoteStatus: remoteStatus,
             uid: normalizedUID
         )
+        AccountRestoreBootstrapTracer.event(
+            "coordinator_blocking_decision",
+            fields: [
+                "cachehit": shouldBlock ? "false" : "true",
+                "status": shouldBlock ? "blocking" : "skip_local_ready"
+            ]
+        )
 
         let summary: AccountRestoreSummary
         if shouldBlock {
-            summary = await runBlockingRestoreWithTimeout(
-                uid: normalizedUID,
-                reason: reason
-            )
+            summary = await AccountRestoreBootstrapTracer.measure("coordinator_blocking_restore") {
+                await runBlockingRestoreWithTimeout(
+                    uid: normalizedUID,
+                    reason: reason,
+                    prefetchedRemoteStatus: remoteStatus
+                )
+            }
         } else {
             await uploadPendingIfNeeded(for: normalizedUID)
             summary = skippedSummary(
@@ -379,7 +399,8 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
 
     private func runBlockingRestoreWithTimeout(
         uid: String,
-        reason: AccountRestoreReason
+        reason: AccountRestoreReason,
+        prefetchedRemoteStatus: AccountRemoteDataStatus? = nil
     ) async -> AccountRestoreSummary {
         let startedAt = dateProvider.now
         let timeoutNanoseconds = UInt64(
@@ -390,7 +411,8 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
             group.addTask { [initialRestoreService] in
                 let summary = await initialRestoreService.runBlockingInitialRestore(
                     uid: uid,
-                    reason: reason
+                    reason: reason,
+                    prefetchedRemoteStatus: prefetchedRemoteStatus
                 )
                 return .finished(summary)
             }

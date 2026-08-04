@@ -19,6 +19,7 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
 
     private var sessionUID: String?
     private var defaults: UserDefaults!
+    private var defaultsSuiteName: String!
     private var healthCacheRoot: URL!
     private var wipeService: LocalAccountDataWipeService!
     private var store: SwiftDataStore!
@@ -31,7 +32,8 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         sessionUID = userA
-        defaults = UserDefaults(suiteName: "LocalAccountDataWipeServiceTests.\(UUID().uuidString)")!
+        defaultsSuiteName = "LocalAccountDataWipeServiceTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: defaultsSuiteName)!
         healthCacheRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("LocalAccountDataWipeServiceTests.\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: healthCacheRoot, withIntermediateDirectories: true)
@@ -40,17 +42,14 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
         store = SwiftDataStore(container: container)
         let dateProvider = FixedDailyLogTestDateProvider(now: referenceDate)
         profileService = UserProfileService(store: store, dateProvider: dateProvider)
-        let uidProvider = { [weak self] in self?.sessionUID }
         let dailyLogService = DailyLogService(
             store: store,
             userProfileService: profileService,
-            dateProvider: dateProvider,
-            currentUIDProvider: uidProvider
+            dateProvider: dateProvider
         )
         foodLogService = FoodLogService(
             store: store,
-            dailyLogService: dailyLogService,
-            currentUIDProvider: uidProvider
+            dailyLogService: dailyLogService
         )
 
         restoreStateStore = AccountRestoreStateStore(userDefaults: defaults)
@@ -91,8 +90,9 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
         syncCursorStore = nil
         restoreStateStore = nil
         profileCloudSyncStore = nil
-        defaults.removePersistentDomain(forName: defaults.suiteName!)
+        defaults.removePersistentDomain(forName: defaultsSuiteName)
         defaults = nil
+        defaultsSuiteName = nil
         try? FileManager.default.removeItem(at: healthCacheRoot)
         healthCacheRoot = nil
         sessionUID = nil
@@ -203,10 +203,7 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
     private func seedUserAFoodWaterWeight() throws {
         sessionUID = userA
         _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: userA)
-        _ = try foodLogService.addFoodEntry(
-            DailyLogServiceTestSupport.foodDraft(name: "User A Meal", calories: 420),
-            for: referenceDate
-        )
+        try insertOwnedFood(name: "User A Meal", calories: 420, ownerUID: userA)
         let dailyLogId = try store.fetch(FetchDescriptor<DailyLogEntity>()).first?.id ?? UUID()
         store.modelContext.insert(
             WaterEntryEntity(
@@ -233,10 +230,7 @@ final class LocalAccountDataWipeServiceTests: XCTestCase {
     private func seedUserADailyLogAndReview() throws {
         sessionUID = userA
         _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: userA)
-        _ = try foodLogService.addFoodEntry(
-            DailyLogServiceTestSupport.foodDraft(name: "User A Meal", calories: 420),
-            for: referenceDate
-        )
+        try insertOwnedFood(name: "User A Meal", calories: 420, ownerUID: userA)
         let dailyLogId = try store.fetch(FetchDescriptor<DailyLogEntity>()).first?.id ?? UUID()
         store.modelContext.insert(
             DailyReviewEntity(

@@ -51,7 +51,7 @@ final class DailyReviewAIResponseNormalizerTests: XCTestCase {
         XCTAssertEqual(normalized?.bestNextMove, "Add protein at your next meal.")
     }
 
-    func testNormalizerTruncatesFieldsToContractMaxLengths() {
+    func testNormalizerTruncatesFieldsToContractMaxLengths() throws {
         let summary = makeSummary()
         let response = DailyReviewAIResponse(
             statusSummary: String(repeating: "Within target today. ", count: 12),

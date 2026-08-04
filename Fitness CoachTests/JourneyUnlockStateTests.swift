@@ -174,7 +174,7 @@ final class JourneyUnlockStateTests: XCTestCase {
         let baseline = makeBaseline()
         let streakSummary = StreakCalculator.calculate(
             logs: maturityLogs,
-            workoutDates: Array(healthWorkoutDayStarts),
+            workoutDates: healthWorkoutDayStarts,
             asOf: asOf,
             calendar: calendar
         )
@@ -194,7 +194,7 @@ final class JourneyUnlockStateTests: XCTestCase {
                 JourneyStreakBuilder.Input(
                     streakSummary: streakSummary,
                     maturityLogs: maturityLogs,
-                    workoutDates: Array(healthWorkoutDayStarts),
+                    workoutDates: healthWorkoutDayStarts,
                     isAppleHealthConnected: !healthWorkoutDayStarts.isEmpty,
                     asOf: asOf,
                     calendar: calendar

@@ -6,6 +6,7 @@
 //
 
 import PhotosUI
+import SwiftUI
 import UIKit
 import XCTest
 @testable import Fitness_Coach
@@ -61,7 +62,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         let libraryFlow = CoachImagePickFlowController { _ in
             .success(
                 CoachImagePipeline.PhotoLibraryLoadedImage(
-                    image: makeTestImage(size: CGSize(width: 640, height: 480), color: .systemTeal),
+                    image: self.makeTestImage(size: CGSize(width: 640, height: 480), color: .systemTeal),
                     originalEstimatedBytes: 900
                 )
             )
@@ -102,7 +103,9 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
     func testRemovingLibraryImageClearsComposer() async throws {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
-        let flow = makeLibraryFlow(image: makeTestImage(size: CGSize(width: 500, height: 400)))
+        let flow = makeLibraryFlow(
+            image: makeTestImage(size: CGSize(width: 500, height: 400), color: .systemTeal)
+        )
 
         XCTAssertEqual(flow.beginPhotoLibraryPick(model: model), .started)
         let pickID = try XCTUnwrap(flow.activeLibraryPickSessionID)
@@ -133,7 +136,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
         let flow = CoachImagePickFlowController { _ in
             .success(
                 CoachImagePipeline.PhotoLibraryLoadedImage(
-                    image: makeTestImage(size: CGSize(width: 700, height: 500), color: .systemGreen),
+                    image: self.makeTestImage(size: CGSize(width: 700, height: 500), color: .systemGreen),
                     originalEstimatedBytes: 1_100
                 )
             )
@@ -200,7 +203,7 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
             }
             return .success(
                 CoachImagePipeline.PhotoLibraryLoadedImage(
-                    image: makeTestImage(size: CGSize(width: 500, height: 500), color: .systemGreen),
+                    image: self.makeTestImage(size: CGSize(width: 500, height: 500), color: .systemGreen),
                     originalEstimatedBytes: 800
                 )
             )
@@ -300,9 +303,3 @@ final class CoachPendingImageAttachmentUnifiedTests: XCTestCase {
     }
 }
 
-@MainActor
-private extension CoachImagePickFlowController {
-    func setStateForTests(_ newState: CoachImagePickFlowState) {
-        state = newState
-    }
-}

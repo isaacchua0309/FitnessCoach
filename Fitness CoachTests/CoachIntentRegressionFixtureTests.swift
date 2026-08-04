@@ -275,7 +275,7 @@ private final class RecordingRegressionAIService: AIServiceProtocol, @unchecked 
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target.", confidence: .medium)
     }
 
     func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
@@ -291,7 +291,7 @@ private final class RecordingRegressionAIService: AIServiceProtocol, @unchecked 
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target.", confidence: .medium)
     }
 
     func generateDailyReviewText(
@@ -338,7 +338,7 @@ private final class StubRegressionClassifierAIService: AIServiceProtocol, @unche
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target.", confidence: .medium)
     }
 
     func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
@@ -354,7 +354,7 @@ private final class StubRegressionClassifierAIService: AIServiceProtocol, @unche
     }
 
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        DailyReviewAIResponse(statusSummary: "Within target.", bestNextMove: "Keep logging.")
+        AICoachResponse(message: "Within target.", confidence: .medium)
     }
 
     func generateDailyReviewText(

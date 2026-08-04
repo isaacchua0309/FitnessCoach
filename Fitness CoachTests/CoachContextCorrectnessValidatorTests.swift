@@ -60,7 +60,7 @@ final class CoachContextCorrectnessValidatorTests: XCTestCase {
         let result = CoachContextCorrectnessValidator.validateAndCorrect(packet, calendar: calendar)
 
         XCTAssertTrue(result.issues.contains { $0.rule == .macrosMatchConfirmedFood })
-        XCTAssertEqual(result.correctedPacket.today?.nutrition?.proteinConsumed, 28, accuracy: 0.01)
+        XCTAssertEqual(result.correctedPacket.today?.nutrition?.proteinConsumed ?? 0, 28, accuracy: 0.01)
     }
 
     func testMacrosConsumedCannotBeNegative() {
@@ -98,7 +98,7 @@ final class CoachContextCorrectnessValidatorTests: XCTestCase {
 
         XCTAssertTrue(result.issues.contains { $0.rule == .remainingValuesConsistent })
         XCTAssertEqual(result.correctedPacket.today?.nutrition?.caloriesRemaining, 1_580)
-        XCTAssertEqual(result.correctedPacket.today?.nutrition?.proteinRemaining, 112, accuracy: 0.01)
+        XCTAssertEqual(result.correctedPacket.today?.nutrition?.proteinRemaining ?? 0, 112, accuracy: 0.01)
         XCTAssertEqual(result.correctedPacket.today?.hydration?.waterRemainingMl, 1_300)
     }
 
@@ -164,7 +164,7 @@ final class CoachContextCorrectnessValidatorTests: XCTestCase {
                 calories: 900,
                 proteinGrams: 40,
                 localDate: packet.meta.localDate,
-                source: CoachTimelineEventSourceAttribution.aiBackend.rawValue
+                source: CoachTimelineEventSourceAttribution.estimateFood.rawValue
             )
         ]
 

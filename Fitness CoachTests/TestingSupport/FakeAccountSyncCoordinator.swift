@@ -102,6 +102,7 @@ final class DelayedMockAccountSyncUploader: AccountSyncUploading {
 final class MockAccountSyncPuller: AccountSyncPulling {
 
     var pullCallCount = 0
+    var weightPullCallCount = 0
 
     func pullRecentAccountData(
         for uid: String,
@@ -109,19 +110,16 @@ final class MockAccountSyncPuller: AccountSyncPulling {
         to endDate: String
     ) async -> AccountSyncPullSummary {
         pullCallCount += 1
-        return AccountSyncPullSummary(
-            uid: uid,
-            dailyLogsFetched: 0,
-            foodEntriesFetched: 0,
-            waterEntriesFetched: 0,
-            weightEntriesFetched: 0,
-            dailyReviewsFetched: 0,
-            inserted: 0,
-            updated: 0,
-            skippedLocalNewer: 0,
-            conflicts: 0,
-            failed: 0
-        )
+        return emptyPullSummary(uid: uid)
+    }
+
+    func pullWeightEntries(
+        for uid: String,
+        from startDate: String,
+        to endDate: String
+    ) async -> AccountSyncPullSummary {
+        weightPullCallCount += 1
+        return emptyPullSummary(uid: uid)
     }
 
     func mergeFetchedDocuments(
@@ -143,12 +141,29 @@ final class MockAccountSyncPuller: AccountSyncPulling {
     }
 
     func cancelPendingWork() {}
+
+    private func emptyPullSummary(uid: String) -> AccountSyncPullSummary {
+        AccountSyncPullSummary(
+            uid: uid,
+            dailyLogsFetched: 0,
+            foodEntriesFetched: 0,
+            waterEntriesFetched: 0,
+            weightEntriesFetched: 0,
+            dailyReviewsFetched: 0,
+            inserted: 0,
+            updated: 0,
+            skippedLocalNewer: 0,
+            conflicts: 0,
+            failed: 0
+        )
+    }
 }
 
 @MainActor
 final class DelayedMockAccountSyncPuller: AccountSyncPulling {
 
     var pullCallCount = 0
+    var weightPullCallCount = 0
 
     func pullRecentAccountData(
         for uid: String,
@@ -156,19 +171,16 @@ final class DelayedMockAccountSyncPuller: AccountSyncPulling {
         to endDate: String
     ) async -> AccountSyncPullSummary {
         pullCallCount += 1
-        return AccountSyncPullSummary(
-            uid: uid,
-            dailyLogsFetched: 0,
-            foodEntriesFetched: 0,
-            waterEntriesFetched: 0,
-            weightEntriesFetched: 0,
-            dailyReviewsFetched: 0,
-            inserted: 0,
-            updated: 0,
-            skippedLocalNewer: 0,
-            conflicts: 0,
-            failed: 0
-        )
+        return emptyPullSummary(uid: uid)
+    }
+
+    func pullWeightEntries(
+        for uid: String,
+        from startDate: String,
+        to endDate: String
+    ) async -> AccountSyncPullSummary {
+        weightPullCallCount += 1
+        return emptyPullSummary(uid: uid)
     }
 
     func mergeFetchedDocuments(
@@ -190,6 +202,22 @@ final class DelayedMockAccountSyncPuller: AccountSyncPulling {
     }
 
     func cancelPendingWork() {}
+
+    private func emptyPullSummary(uid: String) -> AccountSyncPullSummary {
+        AccountSyncPullSummary(
+            uid: uid,
+            dailyLogsFetched: 0,
+            foodEntriesFetched: 0,
+            waterEntriesFetched: 0,
+            weightEntriesFetched: 0,
+            dailyReviewsFetched: 0,
+            inserted: 0,
+            updated: 0,
+            skippedLocalNewer: 0,
+            conflicts: 0,
+            failed: 0
+        )
+    }
 }
 
 final class MockAccountSyncNetworkChecker: AccountSyncNetworkChecking, @unchecked Sendable {

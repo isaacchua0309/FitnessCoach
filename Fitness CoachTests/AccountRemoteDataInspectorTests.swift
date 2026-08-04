@@ -22,7 +22,7 @@ final class AccountRemoteDataInspectorTests: XCTestCase {
         return calendar
     }()
 
-    private var remoteStore: InMemoryAccountDataRemoteStore!
+    private var remoteStore: (any AccountDataRemoteStore)!
     private var profileStore: TestCloudUserProfileStore!
     private var inspector: AccountRemoteDataInspector!
 
@@ -214,7 +214,7 @@ final class AccountRemoteDataInspectorTests: XCTestCase {
     }
 
     func testOutOfRangeWeightHistoryIsIgnored() async throws {
-        let oldDate = try XCTUnwrap(calendar.date(byAdding: .day, value: -200, to: referenceDate))
+        let oldDate = try XCTUnwrap(calendar.date(byAdding: .day, value: -40, to: referenceDate))
         let oldLocalDate = CloudAccountDataDateCodec.localDateString(from: oldDate, calendar: calendar)
         try await remoteStore.saveWeightEntry(
             FirestoreAccountDataRemoteStoreTestFixtures.weightEntry(

@@ -202,7 +202,7 @@ final class AccountLocalMutationTrackingTests: XCTestCase {
         let container = try FormaModelContainer.makeContainer(inMemory: false, storeURL: storeURL)
         let store = SwiftDataStore(container: container)
         let outbox = SwiftDataAccountSyncOutboxStore(store: store)
-        let tracker = AccountLocalMutationTracker(outbox: outbox, ownerUIDProvider: { ownerUID })
+        let tracker = AccountLocalMutationTracker(outbox: outbox, ownerUIDProvider: { self.ownerUID })
         let profileService = UserProfileService(store: store)
         let dailyLogService = DailyLogService(
             store: store,

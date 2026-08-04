@@ -8,6 +8,7 @@ import XCTest
 
 final class HealthIntelligenceCompositionTests: XCTestCase {
 
+    @MainActor
     func testAppContainerRegistersHealthIntelligenceEngines() throws {
         let container = try AppContainer(inMemory: true)
 
@@ -211,8 +212,7 @@ final class HealthIntelligenceCompositionTests: XCTestCase {
         cache.storeIntelligenceSnapshot(
             HealthIntelligenceSnapshot.placeholder(for: today),
             for: today,
-            calendar: calendar,
-            cachedAt: staleCachedAt
+            calendar: calendar
         )
         let service = HealthIntelligenceSnapshotService(
             engine: engine,

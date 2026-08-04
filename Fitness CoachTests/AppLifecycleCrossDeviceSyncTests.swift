@@ -19,6 +19,7 @@ final class AppLifecycleCrossDeviceSyncTests: XCTestCase {
     private var incrementalPuller: TrackingAccountIncrementalPuller!
     private var cursorStore: AccountSyncCursorStore!
     private var defaults: UserDefaults!
+    private var defaultsSuiteName: String!
     private var refreshCenter: AppRefreshCenter!
     private var sessionUID: String?
     private var coordinator: CrossDeviceSyncCoordinator!
@@ -28,7 +29,8 @@ final class AppLifecycleCrossDeviceSyncTests: XCTestCase {
         try await super.setUp()
         syncCoordinator = TrackingAccountSyncCoordinator()
         incrementalPuller = TrackingAccountIncrementalPuller()
-        defaults = UserDefaults(suiteName: "AppLifecycleCrossDeviceSyncTests.\(UUID().uuidString)")!
+        defaultsSuiteName = "AppLifecycleCrossDeviceSyncTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: defaultsSuiteName)!
         cursorStore = AccountSyncCursorStore(userDefaults: defaults)
         refreshCenter = AppRefreshCenter(now: referenceDate)
         sessionUID = ownerUID
@@ -53,8 +55,9 @@ final class AppLifecycleCrossDeviceSyncTests: XCTestCase {
         coordinator = nil
         refreshCenter = nil
         cursorStore = nil
-        defaults.removePersistentDomain(forName: defaults.suiteName!)
+        defaults.removePersistentDomain(forName: defaultsSuiteName)
         defaults = nil
+        defaultsSuiteName = nil
         incrementalPuller = nil
         syncCoordinator = nil
         try await super.tearDown()

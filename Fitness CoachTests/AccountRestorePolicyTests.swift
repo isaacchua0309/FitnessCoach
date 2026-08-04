@@ -13,16 +13,16 @@ final class AccountRestorePolicyTests: XCTestCase {
     private let referenceDate = ProfileFixtures.referenceDate
 
     func testBlockingLookbackConstants() {
-        XCTAssertEqual(AccountRestorePolicy.blockingDailyLogLookbackDays, 30)
-        XCTAssertEqual(AccountRestorePolicy.blockingWeightLookbackDays, 180)
+        XCTAssertEqual(AccountRestorePolicy.blockingDailyLogLookbackDays, 7)
+        XCTAssertEqual(AccountRestorePolicy.blockingWeightLookbackDays, 30)
         XCTAssertEqual(AccountRestorePolicy.backgroundDailyLogLookbackDays, 365)
         XCTAssertEqual(AccountRestorePolicy.backgroundWeightLookbackDays, 730)
     }
 
     func testBlockingTimeoutRange() {
         let range = AccountRestorePolicy.blockingRestoreTimeoutRange()
-        XCTAssertEqual(range.lowerBound, 8)
-        XCTAssertEqual(range.upperBound, 20)
+        XCTAssertEqual(range.lowerBound, 1)
+        XCTAssertEqual(range.upperBound, 8)
         XCTAssertTrue(range.contains(AccountRestorePolicy.preferredBlockingRestoreTimeoutSeconds))
     }
 
@@ -36,11 +36,26 @@ final class AccountRestorePolicyTests: XCTestCase {
     func testDailyLogLookbackDaysByMode() {
         XCTAssertEqual(
             AccountRestorePolicy.dailyLogLookbackDays(for: .blockingInitial),
-            30
+            7
         )
         XCTAssertEqual(
             AccountRestorePolicy.dailyLogLookbackDays(for: .backgroundBackfill),
             365
+        )
+    }
+
+    func testCriticalBootstrapWindowsAreSmallerThanBackgroundHydration() {
+        XCTAssertLessThan(
+            AccountRestorePolicy.blockingDailyLogLookbackDays,
+            AccountRestorePolicy.backgroundDailyLogLookbackDays
+        )
+        XCTAssertLessThan(
+            AccountRestorePolicy.blockingWeightLookbackDays,
+            AccountRestorePolicy.backgroundWeightLookbackDays
+        )
+        XCTAssertLessThanOrEqual(
+            AccountRestorePolicy.preferredBlockingRestoreTimeoutSeconds,
+            TimeInterval(AccountRestorePolicy.maximumBlockingRestoreTimeoutSeconds)
         )
     }
 

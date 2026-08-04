@@ -13,8 +13,17 @@
 		2B045F192FEE414C008A8666 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F182FEE414C008A8666 /* FirebaseFirestore */; };
 		2B045F1B2FEE414C008A8666 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F1A2FEE414C008A8666 /* FirebaseFunctions */; };
 		2BHEALTH012FEE414C008A8666 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2BHEALTH022FEE414C008A8666 /* HealthKit.framework */; };
+		2C48724C3C83B85D7CAB48A0 /* ContextLoopSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 8AE76C7108A5603F8B9A1E6D /* ContextLoopSDK */; };
+		3441E0C34FB77CC1321E3315 /* ContextLoopSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 1420BB881773F24DB30E11F8 /* ContextLoopSDK */; };
+		42347D4F6F5C4421A473C7C3 /* FormaContextLoopIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B81D01E885B4152A7ECFE9A /* FormaContextLoopIntegrationTests.swift */; };
+		595EA63622A1459396493DD6 /* OnboardingWelcomeExitNavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20A0917293654F4C91DE95F2 /* OnboardingWelcomeExitNavigationTests.swift */; };
 		5CF927B65664223A23A021D8 /* SwiftHorizontalRuler in Frameworks */ = {isa = PBXBuildFile; productRef = 5BA7C20FB689E2E375B3EEDD /* SwiftHorizontalRuler */; };
+		92FFA4CCA9464793A8184E90 /* AuthGateRoutingPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7C96D205F1C43D4B0F98292 /* AuthGateRoutingPolicyTests.swift */; };
+		9CCA7070F3644497907CD5AE /* ContextLoopSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 18E4412AAA9F4AA291C92F42 /* ContextLoopSDK */; };
+		A70EA04FCCB7410DACF7688A /* CapturingAnalyticsLoggers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E4C11598EC413ABD6FD5B9 /* CapturingAnalyticsLoggers.swift */; };
 		A8A81B9E5B3728580EF61D19 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C029C846955106DBDB3889A0 /* GoogleSignIn */; };
+		CBF934CD8B884304A7E33318 /* SettingsDeveloperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76ADE0D3FA5D4DC0AC47B954 /* SettingsDeveloperTests.swift */; };
+		FD637F58528C4F8A9709A106 /* OnboardingNavigationStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D652E6FA579E4B67BC166FF0 /* OnboardingNavigationStateMachineTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,12 +34,28 @@
 			remoteGlobalIDString = 2B89F3F72FECF33300F9B990;
 			remoteInfo = "Fitness Coach";
 		};
+		662F761920EC43BFA26BC2B4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2B89F3F02FECF33300F9B990 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2B89F3F72FECF33300F9B990;
+			remoteInfo = "Fitness Coach";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1F41DE37FFE9473B8205FCDD /* AsyncTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AsyncTestSupport.swift; path = "Fitness CoachTests/TestingSupport/AsyncTestSupport.swift"; sourceTree = SOURCE_ROOT; };
+		20A0917293654F4C91DE95F2 /* OnboardingWelcomeExitNavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OnboardingWelcomeExitNavigationTests.swift; path = "Fitness CoachTests/OnboardingWelcomeExitNavigationTests.swift"; sourceTree = SOURCE_ROOT; };
+		28E4C11598EC413ABD6FD5B9 /* CapturingAnalyticsLoggers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CapturingAnalyticsLoggers.swift; path = "Fitness CoachTests/TestingSupport/CapturingAnalyticsLoggers.swift"; sourceTree = SOURCE_ROOT; };
 		2B89F3F82FECF33300F9B990 /* Fitness Coach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fitness Coach.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2BHEALTH022FEE414C008A8666 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
+		327B66F49E824B7685BB773A /* FormaContextLoopTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FormaContextLoopTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3936E63E9E9D4645B9EDC98C /* OnboardingModelTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OnboardingModelTestSupport.swift; path = "Fitness CoachTests/TestingSupport/OnboardingModelTestSupport.swift"; sourceTree = SOURCE_ROOT; };
 		3A0000012FEE000100000001 /* Fitness CoachTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Fitness CoachTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6B81D01E885B4152A7ECFE9A /* FormaContextLoopIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FormaContextLoopIntegrationTests.swift; path = "Fitness CoachTests/FormaContextLoopIntegrationTests.swift"; sourceTree = SOURCE_ROOT; };
+		76ADE0D3FA5D4DC0AC47B954 /* SettingsDeveloperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SettingsDeveloperTests.swift; path = "Fitness CoachTests/SettingsDeveloperTests.swift"; sourceTree = SOURCE_ROOT; };
+		D652E6FA579E4B67BC166FF0 /* OnboardingNavigationStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OnboardingNavigationStateMachineTests.swift; path = "Fitness CoachTests/OnboardingNavigationStateMachineTests.swift"; sourceTree = SOURCE_ROOT; };
+		F7C96D205F1C43D4B0F98292 /* AuthGateRoutingPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AuthGateRoutingPolicyTests.swift; path = "Fitness CoachTests/AuthGateRoutingPolicyTests.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -59,6 +84,7 @@
 				2B045F152FEE414C008A8666 /* FirebaseAuth in Frameworks */,
 				A8A81B9E5B3728580EF61D19 /* GoogleSignIn in Frameworks */,
 				5CF927B65664223A23A021D8 /* SwiftHorizontalRuler in Frameworks */,
+				3441E0C34FB77CC1321E3315 /* ContextLoopSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,6 +92,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2C48724C3C83B85D7CAB48A0 /* ContextLoopSDK in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA7C788DA50F4AFFB989E51E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9CCA7070F3644497907CD5AE /* ContextLoopSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -86,6 +121,7 @@
 			isa = PBXGroup;
 			children = (
 				2B89F3F82FECF33300F9B990 /* Fitness Coach.app */,
+				327B66F49E824B7685BB773A /* FormaContextLoopTests.xctest */,
 				3A0000012FEE000100000001 /* Fitness CoachTests.xctest */,
 			);
 			name = Products;
@@ -95,6 +131,14 @@
 			isa = PBXGroup;
 			children = (
 				2BHEALTH022FEE414C008A8666 /* HealthKit.framework */,
+				6B81D01E885B4152A7ECFE9A /* FormaContextLoopIntegrationTests.swift */,
+				76ADE0D3FA5D4DC0AC47B954 /* SettingsDeveloperTests.swift */,
+				D652E6FA579E4B67BC166FF0 /* OnboardingNavigationStateMachineTests.swift */,
+				F7C96D205F1C43D4B0F98292 /* AuthGateRoutingPolicyTests.swift */,
+				3936E63E9E9D4645B9EDC98C /* OnboardingModelTestSupport.swift */,
+				28E4C11598EC413ABD6FD5B9 /* CapturingAnalyticsLoggers.swift */,
+				1F41DE37FFE9473B8205FCDD /* AsyncTestSupport.swift */,
+				20A0917293654F4C91DE95F2 /* OnboardingWelcomeExitNavigationTests.swift */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -109,6 +153,7 @@
 				2B89F3F42FECF33300F9B990 /* Sources */,
 				2B89F3F52FECF33300F9B990 /* Frameworks */,
 				2B89F3F62FECF33300F9B990 /* Resources */,
+				C4DF376D05A7F8D52A602226 /* Inject CONTEXTLOOP_GIT_SHA */,
 			);
 			buildRules = (
 			);
@@ -126,10 +171,31 @@
 				2B045F1A2FEE414C008A8666 /* FirebaseFunctions */,
 				C029C846955106DBDB3889A0 /* GoogleSignIn */,
 				5BA7C20FB689E2E375B3EEDD /* SwiftHorizontalRuler */,
+				1420BB881773F24DB30E11F8 /* ContextLoopSDK */,
 			);
 			productName = "Fitness Coach";
 			productReference = 2B89F3F82FECF33300F9B990 /* Fitness Coach.app */;
 			productType = "com.apple.product-type.application";
+		};
+		3073F325510541E1B70C2DAA /* FormaContextLoopTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 53A4993351A341C4A81CD108 /* Build configuration list for PBXNativeTarget "FormaContextLoopTests" */;
+			buildPhases = (
+				B035F00B77A04BA18AD35662 /* Sources */,
+				EA7C788DA50F4AFFB989E51E /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				66F9164754E54D93868DAB9E /* PBXTargetDependency */,
+			);
+			name = FormaContextLoopTests;
+			packageProductDependencies = (
+				18E4412AAA9F4AA291C92F42 /* ContextLoopSDK */,
+			);
+			productName = FormaContextLoopTests;
+			productReference = 327B66F49E824B7685BB773A /* FormaContextLoopTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		3A0000062FEE000100000001 /* Fitness CoachTests */ = {
 			isa = PBXNativeTarget;
@@ -149,6 +215,7 @@
 			);
 			name = "Fitness CoachTests";
 			packageProductDependencies = (
+				8AE76C7108A5603F8B9A1E6D /* ContextLoopSDK */,
 			);
 			productName = "Fitness CoachTests";
 			productReference = 3A0000012FEE000100000001 /* Fitness CoachTests.xctest */;
@@ -190,6 +257,7 @@
 				2B045F112FEE414C008A8666 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				20FB786BAFCA63B76D979247 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				7346DDDF76BAC004994C5C7C /* XCRemoteSwiftPackageReference "SwiftHorizontalRuler" */,
+				F99544AC6B9D6E6ECBBA0AC6 /* XCLocalSwiftPackageReference "../ContextLoop" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2B89F3F92FECF33300F9B990 /* Products */;
@@ -198,6 +266,7 @@
 			targets = (
 				2B89F3F72FECF33300F9B990 /* Fitness Coach */,
 				3A0000062FEE000100000001 /* Fitness CoachTests */,
+				3073F325510541E1B70C2DAA /* FormaContextLoopTests */,
 			);
 		};
 /* End PBXProject section */
@@ -219,6 +288,25 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		C4DF376D05A7F8D52A602226 /* Inject CONTEXTLOOP_GIT_SHA */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Inject CONTEXTLOOP_GIT_SHA";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"${SRCROOT}/scripts/inject-contextloop-debug-plist.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		2B89F3F42FECF33300F9B990 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -234,6 +322,19 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B035F00B77A04BA18AD35662 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				42347D4F6F5C4421A473C7C3 /* FormaContextLoopIntegrationTests.swift in Sources */,
+				CBF934CD8B884304A7E33318 /* SettingsDeveloperTests.swift in Sources */,
+				FD637F58528C4F8A9709A106 /* OnboardingNavigationStateMachineTests.swift in Sources */,
+				595EA63622A1459396493DD6 /* OnboardingWelcomeExitNavigationTests.swift in Sources */,
+				92FFA4CCA9464793A8184E90 /* AuthGateRoutingPolicyTests.swift in Sources */,
+				A70EA04FCCB7410DACF7688A /* CapturingAnalyticsLoggers.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -241,6 +342,11 @@
 			isa = PBXTargetDependency;
 			target = 2B89F3F72FECF33300F9B990 /* Fitness Coach */;
 			targetProxy = 3A0000072FEE000100000001 /* PBXContainerItemProxy */;
+		};
+		66F9164754E54D93868DAB9E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2B89F3F72FECF33300F9B990 /* Fitness Coach */;
+			targetProxy = 662F761920EC43BFA26BC2B4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -283,7 +389,7 @@
 				DEVELOPMENT_TEAM = X3D9AZPJUA;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -347,7 +453,7 @@
 				DEVELOPMENT_TEAM = X3D9AZPJUA;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -373,9 +479,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Fitness Coach/Fitness Coach.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				CONTEXTLOOP_ENV = debug;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = C3PWC866NM;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FORMA_AI_BACKEND_URL = "https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway";
 				FORMA_INTERNAL_BUILD = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -383,6 +491,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Forma;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Forma uses your camera so you can attach meal photos to Coach conversations.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forma reads steps, workouts, active energy, exercise time, sleep, heart rate and variability, and weight from Apple Health to show activity on Today, training insights, recovery guidance, and plan confidence. Forma does not write to Apple Health.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Forma Debug uses ContextLoop local alpha to reach the development API on your Mac. Do not use production data.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Forma uses your microphone so you can dictate messages to Coach.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Forma uses your photo library so you can attach meal photos to Coach conversations.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Forma uses speech recognition to turn your voice into text in Coach.";
@@ -419,6 +528,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = C3PWC866NM;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FORMA_AI_BACKEND_URL = "https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway";
 				FORMA_INTERNAL_BUILD = 0;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -500,6 +610,48 @@
 			};
 			name = Release;
 		};
+		80F0CEE281AA4085AD2C7616 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C3PWC866NM;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.isaacchua.forma2.FormaContextLoopTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fitness Coach.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fitness Coach";
+			};
+			name = Release;
+		};
+		ABBAE40F2A56402899575511 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C3PWC866NM;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.isaacchua.forma2.FormaContextLoopTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Fitness Coach.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Fitness Coach";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -530,7 +682,23 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		53A4993351A341C4A81CD108 /* Build configuration list for PBXNativeTarget "FormaContextLoopTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ABBAE40F2A56402899575511 /* Debug */,
+				80F0CEE281AA4085AD2C7616 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		F99544AC6B9D6E6ECBBA0AC6 /* XCLocalSwiftPackageReference "../ContextLoop" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../ContextLoop;
+		};
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		20FB786BAFCA63B76D979247 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
@@ -560,6 +728,15 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		1420BB881773F24DB30E11F8 /* ContextLoopSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ContextLoopSDK;
+		};
+		18E4412AAA9F4AA291C92F42 /* ContextLoopSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F99544AC6B9D6E6ECBBA0AC6 /* XCLocalSwiftPackageReference "../ContextLoop" */;
+			productName = ContextLoopSDK;
+		};
 		2B045F122FEE414C008A8666 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 2B045F112FEE414C008A8666 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
@@ -589,6 +766,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7346DDDF76BAC004994C5C7C /* XCRemoteSwiftPackageReference "SwiftHorizontalRuler" */;
 			productName = SwiftHorizontalRuler;
+		};
+		8AE76C7108A5603F8B9A1E6D /* ContextLoopSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ContextLoopSDK;
 		};
 		C029C846955106DBDB3889A0 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;

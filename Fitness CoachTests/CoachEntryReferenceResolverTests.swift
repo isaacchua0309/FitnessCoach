@@ -386,6 +386,7 @@ final class CoachEntryReferenceResolverTests: XCTestCase {
     ) {
         guard case .clarify = resolution.outcome else {
             XCTFail("Expected clarification, got \(resolution.outcome)", file: file, line: line)
+            return
         }
     }
 
@@ -396,6 +397,7 @@ final class CoachEntryReferenceResolverTests: XCTestCase {
     ) {
         guard case .blocked = resolution.outcome else {
             XCTFail("Expected blocked resolution, got \(resolution.outcome)", file: file, line: line)
+            return
         }
     }
 }

@@ -20,8 +20,8 @@ final class HealthNextBestActionEngineTests: XCTestCase {
     func testPostWorkoutProteinRemaining() {
         let input = makeInput(
             timeOfDay: makeDate(2026, 7, 3, hour: 14),
-            nutritionProgress: makeNutritionProgress(proteinRemaining: 45),
-            workoutSummary: makeWorkoutSummary(demand: .high, hydrationAdviceMl: 700)
+            nutritionProgress: Self.makeNutritionProgress(proteinRemaining: 45),
+            workoutSummary: Self.makeWorkoutSummary(demand: .high, hydrationAdviceMl: 700)
         )
 
         let action = try! engine.evaluate(input)
@@ -38,12 +38,12 @@ final class HealthNextBestActionEngineTests: XCTestCase {
     func testPostWorkoutProteinAlreadyHit() {
         let input = makeInput(
             timeOfDay: makeDate(2026, 7, 3, hour: 14),
-            nutritionProgress: makeNutritionProgress(
+            nutritionProgress: Self.makeNutritionProgress(
                 proteinConsumed: 145,
                 proteinTarget: 150,
                 proteinRemaining: 5
             ),
-            workoutSummary: makeWorkoutSummary(demand: .high, hydrationAdviceMl: 0)
+            workoutSummary: Self.makeWorkoutSummary(demand: .high, hydrationAdviceMl: 0)
         )
 
         let action = try! engine.evaluate(input)
@@ -56,13 +56,13 @@ final class HealthNextBestActionEngineTests: XCTestCase {
     func testHydrationBehind() {
         let input = makeInput(
             timeOfDay: makeDate(2026, 7, 3, hour: 14),
-            nutritionProgress: makeNutritionProgress(
+            nutritionProgress: Self.makeNutritionProgress(
                 waterConsumed: 800,
                 waterTarget: 2_500,
                 waterRemaining: 1_200
             ),
-            workoutSummary: makeWorkoutSummary(hasWorkout: false, demand: .low),
-            recoverySummary: makeRecoverySummary(status: .ready)
+            workoutSummary: Self.makeWorkoutSummary(hasWorkout: false, demand: .low),
+            recoverySummary: Self.makeRecoverySummary(status: .ready)
         )
 
         let action = try! engine.evaluate(input)
@@ -78,13 +78,13 @@ final class HealthNextBestActionEngineTests: XCTestCase {
     func testLowRecovery() {
         let input = makeInput(
             timeOfDay: makeDate(2026, 7, 3, hour: 9),
-            nutritionProgress: makeNutritionProgress(
+            nutritionProgress: Self.makeNutritionProgress(
                 waterConsumed: 2_300,
                 waterTarget: 2_500,
                 waterRemaining: 200
             ),
-            workoutSummary: makeWorkoutSummary(hasWorkout: false, demand: .low),
-            recoverySummary: makeRecoverySummary(status: .low)
+            workoutSummary: Self.makeWorkoutSummary(hasWorkout: false, demand: .low),
+            recoverySummary: Self.makeRecoverySummary(status: .low)
         )
 
         let action = try! engine.evaluate(input)
@@ -99,9 +99,9 @@ final class HealthNextBestActionEngineTests: XCTestCase {
     func testNoMealLoggedLateMorning() {
         let input = makeInput(
             timeOfDay: makeDate(2026, 7, 3, hour: 12),
-            nutritionProgress: makeNutritionProgress(caloriesConsumed: 0),
-            workoutSummary: makeWorkoutSummary(hasWorkout: false, demand: .low),
-            recoverySummary: makeRecoverySummary(status: .ready)
+            nutritionProgress: Self.makeNutritionProgress(caloriesConsumed: 0),
+            workoutSummary: Self.makeWorkoutSummary(hasWorkout: false, demand: .low),
+            recoverySummary: Self.makeRecoverySummary(status: .ready)
         )
 
         let action = try! engine.evaluate(input)
@@ -116,14 +116,14 @@ final class HealthNextBestActionEngineTests: XCTestCase {
     func testLowStepsLateDay() {
         let input = makeInput(
             timeOfDay: makeDate(2026, 7, 3, hour: 17),
-            nutritionProgress: makeNutritionProgress(
+            nutritionProgress: Self.makeNutritionProgress(
                 caloriesConsumed: 1_200,
                 waterConsumed: 2_300,
                 waterTarget: 2_500,
                 waterRemaining: 200
             ),
-            workoutSummary: makeWorkoutSummary(hasWorkout: false, demand: .low),
-            recoverySummary: makeRecoverySummary(status: .ready),
+            workoutSummary: Self.makeWorkoutSummary(hasWorkout: false, demand: .low),
+            recoverySummary: Self.makeRecoverySummary(status: .ready),
             activitySummary: ActivitySummary(steps: 2_000, activeEnergyKcal: 120, exerciseMinutes: 10)
         )
 
@@ -138,14 +138,14 @@ final class HealthNextBestActionEngineTests: XCTestCase {
     func testMissingWeight() {
         let input = makeInput(
             timeOfDay: makeDate(2026, 7, 3, hour: 17),
-            nutritionProgress: makeNutritionProgress(
+            nutritionProgress: Self.makeNutritionProgress(
                 caloriesConsumed: 500,
                 waterConsumed: 2_300,
                 waterTarget: 2_500,
                 waterRemaining: 200
             ),
-            workoutSummary: makeWorkoutSummary(hasWorkout: false, demand: .low),
-            recoverySummary: makeRecoverySummary(status: .ready),
+            workoutSummary: Self.makeWorkoutSummary(hasWorkout: false, demand: .low),
+            recoverySummary: Self.makeRecoverySummary(status: .ready),
             activitySummary: ActivitySummary(steps: 6_000, activeEnergyKcal: 250, exerciseMinutes: 30),
             hasLoggedWeightRecently: false
         )
@@ -161,7 +161,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
     func testDefaultAction() {
         let input = makeInput(
             timeOfDay: makeDate(2026, 7, 3, hour: 9),
-            nutritionProgress: makeNutritionProgress(
+            nutritionProgress: Self.makeNutritionProgress(
                 caloriesConsumed: 800,
                 proteinConsumed: 140,
                 proteinTarget: 150,
@@ -170,8 +170,8 @@ final class HealthNextBestActionEngineTests: XCTestCase {
                 waterTarget: 2_500,
                 waterRemaining: 200
             ),
-            workoutSummary: makeWorkoutSummary(hasWorkout: false, demand: .low),
-            recoverySummary: makeRecoverySummary(status: .ready),
+            workoutSummary: Self.makeWorkoutSummary(hasWorkout: false, demand: .low),
+            recoverySummary: Self.makeRecoverySummary(status: .ready),
             activitySummary: ActivitySummary(steps: 7_000, activeEnergyKcal: 300, exerciseMinutes: 35),
             hasLoggedWeightRecently: true
         )
@@ -188,15 +188,15 @@ final class HealthNextBestActionEngineTests: XCTestCase {
     func testPriorityConflictResolution() {
         let input = makeInput(
             timeOfDay: makeDate(2026, 7, 3, hour: 14),
-            nutritionProgress: makeNutritionProgress(
+            nutritionProgress: Self.makeNutritionProgress(
                 caloriesConsumed: 0,
                 proteinRemaining: 40,
                 waterConsumed: 500,
                 waterTarget: 2_500,
                 waterRemaining: 1_500
             ),
-            workoutSummary: makeWorkoutSummary(demand: .high, hydrationAdviceMl: 800),
-            recoverySummary: makeRecoverySummary(status: .low),
+            workoutSummary: Self.makeWorkoutSummary(demand: .high, hydrationAdviceMl: 800),
+            recoverySummary: Self.makeRecoverySummary(status: .low),
             hasLoggedWeightRecently: false
         )
 
@@ -211,8 +211,8 @@ final class HealthNextBestActionEngineTests: XCTestCase {
     func testDeterministicOutput() {
         let input = makeInput(
             timeOfDay: makeDate(2026, 7, 3, hour: 14),
-            nutritionProgress: makeNutritionProgress(proteinRemaining: 30),
-            workoutSummary: makeWorkoutSummary(demand: .moderate)
+            nutritionProgress: Self.makeNutritionProgress(proteinRemaining: 30),
+            workoutSummary: Self.makeWorkoutSummary(demand: .moderate)
         )
 
         let first = try! engine.evaluate(input)
@@ -225,14 +225,14 @@ final class HealthNextBestActionEngineTests: XCTestCase {
 
     private func makeInput(
         timeOfDay: Date,
-        nutritionProgress: AdaptiveNutritionProgress = makeNutritionProgress(),
+        nutritionProgress: AdaptiveNutritionProgress? = nil,
         userPlan: AdaptiveNutritionUserPlan = AdaptiveNutritionUserPlan(
             calorieTarget: 2_200,
             proteinTargetGrams: 150,
             waterTargetMl: 2_500
         ),
-        recoverySummary: RecoverySummary = makeRecoverySummary(),
-        workoutSummary: WorkoutSummary = makeWorkoutSummary(),
+        workoutSummary: WorkoutSummary? = nil,
+        recoverySummary: RecoverySummary? = nil,
         activitySummary: ActivitySummary = ActivitySummary(
             steps: 5_000,
             activeEnergyKcal: 200,
@@ -245,10 +245,10 @@ final class HealthNextBestActionEngineTests: XCTestCase {
         NextBestActionEngineInput(
             targetDate: targetDate,
             timeOfDay: timeOfDay,
-            nutritionProgress: nutritionProgress,
+            nutritionProgress: nutritionProgress ?? Self.makeNutritionProgress(),
             userPlan: userPlan,
-            recoverySummary: recoverySummary,
-            workoutSummary: workoutSummary,
+            recoverySummary: recoverySummary ?? Self.makeRecoverySummary(),
+            workoutSummary: workoutSummary ?? Self.makeWorkoutSummary(),
             activitySummary: activitySummary,
             adaptiveNutritionSummary: adaptiveNutritionSummary,
             trainingLoadSummary: trainingLoadSummary,

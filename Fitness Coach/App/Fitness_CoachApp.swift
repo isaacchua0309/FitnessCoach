@@ -34,13 +34,16 @@ struct Fitness_CoachApp: App {
         } catch {
             fatalError("Could not create Forma app container: \(error)")
         }
+
+        #if DEBUG
+        FormaContextLoopIntegration.bootstrap()
+        #endif
     }
 
     var body: some Scene {
         WindowGroup {
             AuthGateView(container: container)
-                .environmentObject(container.themeStore)
-                .formaRootTheme()
+                .formaRootTheme(store: container.themeStore)
                 .onOpenURL { url in
                     _ = container.authManager.handleIncomingURL(url)
                 }

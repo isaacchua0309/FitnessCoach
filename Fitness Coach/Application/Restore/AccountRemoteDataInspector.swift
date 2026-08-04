@@ -22,7 +22,7 @@ struct AccountRemoteDataStatus: Equatable, Sendable {
     let failure: AccountRemoteDataInspectionFailure?
 }
 
-enum AccountRemoteDataInspectionFailure: Equatable, Sendable {
+enum AccountRemoteDataInspectionFailure: Error, Equatable, Sendable {
     case offline
     case permissionDenied
     case unauthenticated
@@ -164,11 +164,25 @@ struct AccountRemoteDataInspector: AccountRemoteDataInspecting {
             referenceDate: today,
             calendar: calendar
         )
-        let recentDates = AccountSyncPuller.localDates(
+
+        // Presence probe only: three concurrent range/document reads.
+        // Child collections are probed for at most one recent day when top-level
+        // signals are empty — never walk the full lookback window.
+        async let profileOutcome = fetchProfilePresence(uid: normalizedUID)
+        async let dailyLogsOutcome = fetchDailyLogsPresence(
+            uid: normalizedUID,
             from: dailyRange.start,
-            to: dailyRange.end,
-            calendar: calendar
+            to: dailyRange.end
         )
+        async let weightOutcome = fetchWeightPresence(
+            uid: normalizedUID,
+            from: weightRange.start,
+            to: weightRange.end
+        )
+
+        let profile = await profileOutcome
+        let dailyLogs = await dailyLogsOutcome
+        let weights = await weightOutcome
 
         var failures: [AccountRemoteDataInspectionFailure] = []
         var updatedAtCandidates: [Date?] = []
@@ -180,103 +194,44 @@ struct AccountRemoteDataInspector: AccountRemoteDataInspecting {
         var hasWeightHistory = false
         var hasDailyReviews = false
 
-        do {
-            if let profile = try await cloudProfileStore.fetch(uid: normalizedUID) {
+        switch profile {
+        case .success(let updatedAt):
+            if let updatedAt {
                 hasCloudProfile = true
-                updatedAtCandidates.append(profile.updatedAt)
+                updatedAtCandidates.append(updatedAt)
             }
-        } catch {
-            failures.append(AccountRemoteDataInspectionSupport.classify(error))
+        case .failure(let failure):
+            failures.append(failure)
         }
 
-        do {
-            let dailyLogs = try await remoteStore.fetchDailyLogs(
-                uid: normalizedUID,
-                from: dailyRange.start,
-                to: dailyRange.end
-            )
-            let visibleLogs = dailyLogs.filter { AccountRemoteDataInspectionSupport.isVisible($0.deletedAt) }
-            hasRecentDailyLogs = !visibleLogs.isEmpty
-            updatedAtCandidates.append(contentsOf: visibleLogs.map(\.updatedAt))
-        } catch {
-            failures.append(AccountRemoteDataInspectionSupport.classify(error))
+        var newestLogDate: String?
+        switch dailyLogs {
+        case .success(let result):
+            hasRecentDailyLogs = result.hasLogs
+            updatedAtCandidates.append(contentsOf: result.updatedAts)
+            newestLogDate = result.newestLocalDate
+        case .failure(let failure):
+            failures.append(failure)
         }
 
-        if !hasRecentFoodEntries {
-            for localDate in recentDates {
-                do {
-                    let foodEntries = try await remoteStore.fetchFoodEntries(
-                        uid: normalizedUID,
-                        localDate: localDate
-                    )
-                    let visibleEntries = foodEntries.filter {
-                        AccountRemoteDataInspectionSupport.isVisible($0.deletedAt)
-                    }
-                    if !visibleEntries.isEmpty {
-                        hasRecentFoodEntries = true
-                        updatedAtCandidates.append(contentsOf: visibleEntries.map(\.updatedAt))
-                        break
-                    }
-                } catch {
-                    failures.append(AccountRemoteDataInspectionSupport.classify(error))
-                    break
-                }
-            }
+        switch weights {
+        case .success(let result):
+            hasWeightHistory = result.hasEntries
+            updatedAtCandidates.append(contentsOf: result.updatedAts)
+        case .failure(let failure):
+            failures.append(failure)
         }
 
-        if !hasRecentWaterEntries {
-            for localDate in recentDates {
-                do {
-                    let waterEntries = try await remoteStore.fetchWaterEntries(
-                        uid: normalizedUID,
-                        localDate: localDate
-                    )
-                    let visibleEntries = waterEntries.filter {
-                        AccountRemoteDataInspectionSupport.isVisible($0.deletedAt)
-                    }
-                    if !visibleEntries.isEmpty {
-                        hasRecentWaterEntries = true
-                        updatedAtCandidates.append(contentsOf: visibleEntries.map(\.updatedAt))
-                        break
-                    }
-                } catch {
-                    failures.append(AccountRemoteDataInspectionSupport.classify(error))
-                    break
-                }
-            }
-        }
-
-        if !hasDailyReviews {
-            for localDate in recentDates {
-                do {
-                    if let review = try await remoteStore.fetchDailyReview(
-                        uid: normalizedUID,
-                        localDate: localDate
-                    ), AccountRemoteDataInspectionSupport.isVisible(review.deletedAt) {
-                        hasDailyReviews = true
-                        updatedAtCandidates.append(review.updatedAt)
-                        break
-                    }
-                } catch {
-                    failures.append(AccountRemoteDataInspectionSupport.classify(error))
-                    break
-                }
-            }
-        }
-
-        do {
-            let weightEntries = try await remoteStore.fetchWeightEntries(
-                uid: normalizedUID,
-                from: weightRange.start,
-                to: weightRange.end
-            )
-            let visibleEntries = weightEntries.filter {
-                AccountRemoteDataInspectionSupport.isVisible($0.deletedAt)
-            }
-            hasWeightHistory = !visibleEntries.isEmpty
-            updatedAtCandidates.append(contentsOf: visibleEntries.map(\.updatedAt))
-        } catch {
-            failures.append(AccountRemoteDataInspectionSupport.classify(error))
+        // Single-day child probe (newest log or today) — never walk the full lookback.
+        let probeDate = newestLogDate
+            ?? CloudAccountDataDateCodec.localDateString(from: today, calendar: calendar)
+        let childPresence = await fetchChildPresence(uid: normalizedUID, localDate: probeDate)
+        hasRecentFoodEntries = childPresence.hasFood
+        hasRecentWaterEntries = childPresence.hasWater
+        hasDailyReviews = childPresence.hasReview
+        updatedAtCandidates.append(contentsOf: childPresence.updatedAts)
+        if !hasCloudProfile && !hasRecentDailyLogs && !hasWeightHistory {
+            failures.append(contentsOf: childPresence.failures)
         }
 
         let hasAnyRestorableData = hasCloudProfile
@@ -301,6 +256,172 @@ struct AccountRemoteDataInspector: AccountRemoteDataInspecting {
                 hasAnyRestorableData: hasAnyRestorableData
             )
         )
+    }
+
+    private struct DailyLogsPresence: Sendable {
+        var hasLogs = false
+        var newestLocalDate: String?
+        var updatedAts: [Date?] = []
+    }
+
+    private struct WeightPresence: Sendable {
+        var hasEntries = false
+        var updatedAts: [Date?] = []
+    }
+
+    private struct ChildPresence: Sendable {
+        var hasFood = false
+        var hasWater = false
+        var hasReview = false
+        var updatedAts: [Date?] = []
+        var failures: [AccountRemoteDataInspectionFailure] = []
+    }
+
+    private func fetchProfilePresence(
+        uid: String
+    ) async -> Result<Date?, AccountRemoteDataInspectionFailure> {
+        do {
+            if let profile = try await cloudProfileStore.fetch(uid: uid) {
+                return .success(profile.updatedAt)
+            }
+            let missing: Date? = nil
+            return .success(missing)
+        } catch {
+            return .failure(AccountRemoteDataInspectionSupport.classify(error))
+        }
+    }
+
+    private func fetchDailyLogsPresence(
+        uid: String,
+        from startDate: String,
+        to endDate: String
+    ) async -> Result<DailyLogsPresence, AccountRemoteDataInspectionFailure> {
+        do {
+            let dailyLogs = try await remoteStore.fetchDailyLogs(
+                uid: uid,
+                from: startDate,
+                to: endDate
+            )
+            let visibleLogs = dailyLogs.filter { AccountRemoteDataInspectionSupport.isVisible($0.deletedAt) }
+            let newest = visibleLogs.max(by: { $0.localDate < $1.localDate })
+            return .success(
+                DailyLogsPresence(
+                    hasLogs: !visibleLogs.isEmpty,
+                    newestLocalDate: newest?.localDate,
+                    updatedAts: visibleLogs.map(\.updatedAt)
+                )
+            )
+        } catch {
+            return .failure(AccountRemoteDataInspectionSupport.classify(error))
+        }
+    }
+
+    private func fetchWeightPresence(
+        uid: String,
+        from startDate: String,
+        to endDate: String
+    ) async -> Result<WeightPresence, AccountRemoteDataInspectionFailure> {
+        do {
+            let weightEntries = try await remoteStore.fetchWeightEntries(
+                uid: uid,
+                from: startDate,
+                to: endDate
+            )
+            let visibleEntries = weightEntries.filter {
+                AccountRemoteDataInspectionSupport.isVisible($0.deletedAt)
+            }
+            return .success(
+                WeightPresence(
+                    hasEntries: !visibleEntries.isEmpty,
+                    updatedAts: visibleEntries.map(\.updatedAt)
+                )
+            )
+        } catch {
+            return .failure(AccountRemoteDataInspectionSupport.classify(error))
+        }
+    }
+
+    private func fetchChildPresence(uid: String, localDate: String) async -> ChildPresence {
+        async let foodOutcome = fetchFoodPresence(uid: uid, localDate: localDate)
+        async let waterOutcome = fetchWaterPresence(uid: uid, localDate: localDate)
+        async let reviewOutcome = fetchReviewPresence(uid: uid, localDate: localDate)
+
+        let food = await foodOutcome
+        let water = await waterOutcome
+        let review = await reviewOutcome
+
+        var presence = ChildPresence()
+        switch food {
+        case .success(let result):
+            presence.hasFood = result.hasEntries
+            presence.updatedAts.append(contentsOf: result.updatedAts)
+        case .failure(let failure):
+            presence.failures.append(failure)
+        }
+        switch water {
+        case .success(let result):
+            presence.hasWater = result.hasEntries
+            presence.updatedAts.append(contentsOf: result.updatedAts)
+        case .failure(let failure):
+            presence.failures.append(failure)
+        }
+        switch review {
+        case .success(let updatedAt):
+            if let updatedAt {
+                presence.hasReview = true
+                presence.updatedAts.append(updatedAt)
+            }
+        case .failure(let failure):
+            presence.failures.append(failure)
+        }
+        return presence
+    }
+
+    private struct EntriesPresence: Sendable {
+        var hasEntries = false
+        var updatedAts: [Date?] = []
+    }
+
+    private func fetchFoodPresence(
+        uid: String,
+        localDate: String
+    ) async -> Result<EntriesPresence, AccountRemoteDataInspectionFailure> {
+        do {
+            let foodEntries = try await remoteStore.fetchFoodEntries(uid: uid, localDate: localDate)
+            let visible = foodEntries.filter { AccountRemoteDataInspectionSupport.isVisible($0.deletedAt) }
+            return .success(EntriesPresence(hasEntries: !visible.isEmpty, updatedAts: visible.map(\.updatedAt)))
+        } catch {
+            return .failure(AccountRemoteDataInspectionSupport.classify(error))
+        }
+    }
+
+    private func fetchWaterPresence(
+        uid: String,
+        localDate: String
+    ) async -> Result<EntriesPresence, AccountRemoteDataInspectionFailure> {
+        do {
+            let waterEntries = try await remoteStore.fetchWaterEntries(uid: uid, localDate: localDate)
+            let visible = waterEntries.filter { AccountRemoteDataInspectionSupport.isVisible($0.deletedAt) }
+            return .success(EntriesPresence(hasEntries: !visible.isEmpty, updatedAts: visible.map(\.updatedAt)))
+        } catch {
+            return .failure(AccountRemoteDataInspectionSupport.classify(error))
+        }
+    }
+
+    private func fetchReviewPresence(
+        uid: String,
+        localDate: String
+    ) async -> Result<Date?, AccountRemoteDataInspectionFailure> {
+        do {
+            if let review = try await remoteStore.fetchDailyReview(uid: uid, localDate: localDate),
+               AccountRemoteDataInspectionSupport.isVisible(review.deletedAt) {
+                return .success(review.updatedAt)
+            }
+            let missing: Date? = nil
+            return .success(missing)
+        } catch {
+            return .failure(AccountRemoteDataInspectionSupport.classify(error))
+        }
     }
 
     private static var defaultCalendar: Calendar {

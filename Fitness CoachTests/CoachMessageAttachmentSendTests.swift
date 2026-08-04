@@ -21,15 +21,16 @@ final class CoachMessageAttachmentSendTests: XCTestCase {
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
         let jpeg = CoachImageWorkflowTestSupport.makeTestJPEG()
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto1 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: jpeg,
             source: .library
-        ))
+        )
+XCTAssertTrue(stagedPhoto1)
         await model.sendCurrentMessage()
 
         let userMessage = try XCTUnwrap(model.messages.last(where: { $0.role == .user }))
-        XCTAssertTrue(userMessage.hasAttachedImage)
+        XCTAssertTrue(userMessage.hasMealPhotoAttachment)
         XCTAssertTrue(userMessage.text.isEmpty)
         XCTAssertNil(model.inputState.pendingImage)
         XCTAssertTrue(model.inputText.isEmpty)
@@ -43,16 +44,17 @@ final class CoachMessageAttachmentSendTests: XCTestCase {
         let jpeg = CoachImageWorkflowTestSupport.makeTestJPEG()
 
         model.inputText = "Lunch"
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto2 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: jpeg,
             source: .camera
-        ))
+        )
+XCTAssertTrue(stagedPhoto2)
         await model.sendCurrentMessage()
 
         let userMessage = try XCTUnwrap(model.messages.last(where: { $0.role == .user }))
         XCTAssertEqual(userMessage.text, "Lunch")
-        XCTAssertTrue(userMessage.hasAttachedImage)
+        XCTAssertTrue(userMessage.hasMealPhotoAttachment)
         XCTAssertNil(model.inputState.pendingImage)
         XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
     }
@@ -63,21 +65,22 @@ final class CoachMessageAttachmentSendTests: XCTestCase {
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
         let jpeg = CoachImageWorkflowTestSupport.makeTestJPEG()
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let stagedPhoto3 = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: jpeg,
             source: .library
-        ))
+        )
+XCTAssertTrue(stagedPhoto3)
         await model.sendCurrentMessage()
 
         let userMessages = model.messages.filter { $0.role == .user }
         XCTAssertEqual(userMessages.count, 1)
-        XCTAssertTrue(userMessages[0].hasAttachedImage)
+        XCTAssertTrue(userMessages[0].hasMealPhotoAttachment)
         XCTAssertEqual(model.messages.last?.role, .assistant)
         XCTAssertNil(model.inputState.pendingImage)
     }
 
-    func testChatMessageHasAttachedImageRequiresNonEmptyBytes() {
+    func testChatMessageHasMealPhotoAttachmentRequiresMealPhotoKind() {
         let message = ChatMessage(
             id: UUID(),
             role: .user,
@@ -85,9 +88,9 @@ final class CoachMessageAttachmentSendTests: XCTestCase {
             createdAt: Date(),
             relatedDailyLogId: nil,
             relatedEntryId: nil,
-            attachedImageJPEGData: Data()
+            imageAttachment: nil
         )
 
-        XCTAssertFalse(message.hasAttachedImage)
+        XCTAssertFalse(message.hasMealPhotoAttachment)
     }
 }

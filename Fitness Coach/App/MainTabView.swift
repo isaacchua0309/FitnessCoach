@@ -212,6 +212,16 @@ struct MainTabView: View {
             await bootstrapAfterEntry()
         }
         .onChange(of: selectedTab) { _, newTab in
+            #if DEBUG
+            FormaContextLoopIntegration.recordTabChanged(newTab.rawValue)
+            FormaContextLoopIntegration.recordActivePlan(container.profileBootstrapService.hasLocalProfile())
+            FormaContextLoopIntegration.recordAuth(
+                isAuthenticated: {
+                    if case .signedIn = container.authManager.authState { return true }
+                    return false
+                }()
+            )
+            #endif
             guard newTab == .today else { return }
             CoachTodaySyncDebugLogger.todayRefreshTriggered(
                 source: "tab_return",

@@ -17,7 +17,7 @@ struct JourneyProgressDots: View {
                 Circle()
                     .fill(index < completedCount
                         ? FormaTokens.Theme.primary
-                        : FormaCardChrome.background(.surfaceSubtle))
+                        : FormaTokens.Color.surfaceSubtle)
                     .frame(width: 6, height: 6)
             }
         }

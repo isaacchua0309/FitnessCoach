@@ -212,6 +212,26 @@ final class AuthGateCoordinatorDecompositionCharacterizationTests: XCTestCase {
     XCTAssertNil(harness.coordinator.onboardingModel)
     XCTAssertEqual(harness.coordinator.publicEntryDestination, .welcome)
     XCTAssertFalse(harness.container.onboardingDraftStore.hasDraft)
+    XCTAssertTrue(
+      harness.container.publicEntrySessionStore.suppressAutomaticPublicEntryResume,
+      "Welcome exit must suppress automatic draft/awaiting-sign-in resume"
+    )
+  }
+
+  func testReturnToWelcomeFromOnboarding_staysOnWelcomeDespiteAwaitingSignInBypass() throws {
+    harness.applySignedOut()
+    // Unowned local profile resumes save-plan / bypasses welcome unless suppress is set.
+    _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+    XCTAssertTrue(harness.container.profileBootstrapService.localProfileAwaitingSignIn())
+    harness.coordinator.startPreAuthOnboarding()
+    XCTAssertEqual(harness.coordinator.effectiveRoute, .onboardingStart)
+
+    harness.coordinator.returnToWelcomeFromOnboarding()
+
+    harness.assertEffectiveRoute(.welcome)
+    harness.coordinator.bootstrapOnboardingIfNeeded()
+    XCTAssertNil(harness.coordinator.onboardingModel)
+    harness.assertEffectiveRoute(.welcome)
   }
 
   func testHandleOnboardingCompletionRequest_whenSignedOut_setsPendingSignIn() {

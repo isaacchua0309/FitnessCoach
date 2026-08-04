@@ -7,6 +7,7 @@
 //
 
 import PhotosUI
+import SwiftUI
 import UIKit
 import XCTest
 @testable import Fitness_Coach
@@ -111,6 +112,7 @@ final class FakeCoachPhotoLibraryImageLoader: @unchecked Sendable {
         }
     }
 
+    @MainActor
     func makeFlow() -> CoachImagePickFlowController {
         CoachImagePickFlowController(photoLibraryImageLoader: loader)
     }
@@ -137,13 +139,6 @@ final class FakeCoachPhotoLibraryImageLoader: @unchecked Sendable {
         releaseGate?()
         releaseGate = nil
         lock.unlock()
-    }
-}
-
-@MainActor
-extension CoachImagePickFlowController {
-    func setStateForTests(_ newState: CoachImagePickFlowState) {
-        state = newState
     }
 }
 

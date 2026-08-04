@@ -32,7 +32,7 @@ The app uses **manual constructor injection** via a single composition root:
 | `buildHealth` | HealthKit, sync, training insights (shared) | `App/Dependencies/HealthDependencies.swift` |
 | `buildPersistenceDependencies` | SwiftData, account sync core, log services | `App/Dependencies/PersistenceDependencies.swift` |
 | `buildHealthIntelligenceDependencies` | HI engine, snapshot, weekly review | `App/Dependencies/HealthIntelligenceDependencies.swift` |
-| `buildCoachDependencies` | Coach timeline stores, backfill | `App/Dependencies/CoachDependencies.swift` |
+| `buildCoachDependencies` | Coach timeline stores, backfill | `App/Dependencies/CoachPlatformDependencies.swift` |
 | `buildAI` | LLM client, AIService | `App/Dependencies/AIDependencies.swift` |
 | `buildSyncDependencies` | Restore, cross-device, deletion, export | `App/Dependencies/SyncDependencies.swift` |
 | `buildSettingsDependencies` | Theme store | `App/Dependencies/SettingsDependencies.swift` |

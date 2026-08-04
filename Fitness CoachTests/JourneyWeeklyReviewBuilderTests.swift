@@ -300,7 +300,7 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
     func testJourneyReloadAfterFoodRefreshUpdatesWeeklyProgress() async throws {
         let harness = try FitnessActionCenterTestSupport.makeHarness()
         let refreshEventBus = AccountDataRefreshEventBus()
-        let sessionUID = harness.cloudUID
+        let sessionUID = try XCTUnwrap(harness.cloudUID)
         _ = try harness.seedProfile(ownerUID: sessionUID)
 
         let model = makeJourneyModel(
@@ -342,7 +342,7 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
     func testJourneyReloadAfterWeightRefreshUpdatesWeeklyProgress() async throws {
         let harness = try FitnessActionCenterTestSupport.makeHarness()
         let refreshEventBus = AccountDataRefreshEventBus()
-        let sessionUID = harness.cloudUID
+        let sessionUID = try XCTUnwrap(harness.cloudUID)
         _ = try harness.seedProfile(ownerUID: sessionUID)
 
         let model = makeJourneyModel(

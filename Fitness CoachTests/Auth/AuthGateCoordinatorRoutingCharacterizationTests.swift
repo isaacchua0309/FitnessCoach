@@ -326,6 +326,41 @@ final class AuthGateCoordinatorRoutingCharacterizationTests: XCTestCase {
     harness.coordinator.returnToWelcomeFromOnboarding()
 
     harness.assertEffectiveRoute(.welcome)
+    XCTAssertTrue(harness.container.publicEntrySessionStore.suppressAutomaticPublicEntryResume)
+  }
+
+  func testEffectiveRoute_afterReturnToWelcome_withDraftCleared_doesNotReopenViaBootstrap() throws {
+    harness.applySignedOut()
+    var formState = OnboardingFormState()
+    OnboardingModelTestSupport.seedCanonicalForm(&formState)
+    harness.container.onboardingDraftStore.saveDraft(
+      OnboardingDraft(formState: formState, step: .activityLevel)
+    )
+    harness.coordinator.startPreAuthOnboarding()
+    XCTAssertEqual(harness.coordinator.onboardingModel?.currentStep, .activityLevel)
+
+    harness.coordinator.returnToWelcomeFromOnboarding()
+    // Simulate the former race: bootstrap after model clear must not recreate session.
+    harness.coordinator.bootstrapOnboardingIfNeeded()
+
+    harness.assertEffectiveRoute(.welcome)
+    XCTAssertNil(harness.coordinator.onboardingModel)
+    XCTAssertFalse(harness.container.onboardingDraftStore.hasDraft)
+  }
+
+  func testReentryAfterWelcomeExit_startsCleanPreAuthSession() {
+    harness.applySignedOut()
+    harness.coordinator.startPreAuthOnboarding()
+    harness.coordinator.onboardingModel?.goNext()
+    XCTAssertEqual(harness.coordinator.onboardingModel?.currentStep, .heightWeight)
+
+    harness.coordinator.returnToWelcomeFromOnboarding()
+    harness.assertEffectiveRoute(.welcome)
+
+    harness.coordinator.startPreAuthOnboarding()
+    XCTAssertEqual(harness.coordinator.effectiveRoute, .onboardingStart)
+    XCTAssertEqual(harness.coordinator.onboardingModel?.currentStep, .introProof)
+    XCTAssertFalse(harness.container.publicEntrySessionStore.suppressAutomaticPublicEntryResume)
   }
 
   func testEffectiveRoute_afterReturnToWelcomeFromExistingUserSignIn_returnsWelcome() {

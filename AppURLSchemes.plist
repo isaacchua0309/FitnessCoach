@@ -17,5 +17,8 @@
 	<string>$(FORMA_AI_BACKEND_URL)</string>
 	<key>FORMA_INTERNAL_BUILD</key>
 	<string>$(FORMA_INTERNAL_BUILD)</string>
+	<!-- Debug sets CONTEXTLOOP_ENV=debug; Inject CONTEXTLOOP_GIT_SHA also stamps the built Info.plist. -->
+	<key>CONTEXTLOOP_ENV</key>
+	<string>$(CONTEXTLOOP_ENV)</string>
 </dict>
 </plist>

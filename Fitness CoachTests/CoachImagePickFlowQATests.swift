@@ -146,11 +146,12 @@ final class CoachImagePickFlowQATests: XCTestCase {
         aiService.injectedError = AIServiceError.networkUnavailable
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
 
-        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+        let didStagePhoto = await CoachImageWorkflowTestSupport.stageTestMealPhoto(
             on: model,
             jpeg: CoachImageWorkflowTestSupport.makeTestJPEG(),
             source: .library
-        ))
+        )
+        XCTAssertTrue(didStagePhoto)
         await model.sendCurrentMessage()
 
         let userMessageID = try XCTUnwrap(model.messages.first { $0.role == .user }?.id)
@@ -232,7 +233,8 @@ final class CoachImagePickFlowQATests: XCTestCase {
             return XCTFail("Expected large photo to process")
         }
 
-        XCTAssertTrue(await model.stagePipelineProcessedPhoto(imported, source: .library))
+        let didStagePhoto = await model.stagePipelineProcessedPhoto(imported, source: .library)
+        XCTAssertTrue(didStagePhoto)
         XCTAssertEqual(model.inputState.pendingImage?.status, .ready)
         XCTAssertNil(model.inputState.imageError)
         XCTAssertLessThanOrEqual(
@@ -259,7 +261,8 @@ final class CoachImagePickFlowQATests: XCTestCase {
             return XCTFail("Expected screenshot-style image to process")
         }
 
-        XCTAssertTrue(await model.stagePipelineProcessedPhoto(imported, source: .library))
+        let didStagePhoto = await model.stagePipelineProcessedPhoto(imported, source: .library)
+        XCTAssertTrue(didStagePhoto)
         XCTAssertTrue(model.inputState.canSend)
     }
 

@@ -72,13 +72,9 @@ final class CoachImagePickFlowRetryTests: XCTestCase {
 @MainActor
 private extension CoachImagePickFlowController {
     func simulateProcessingFailure(_ error: CoachMealPhotoError, model: CoachModel) async {
-        state = .processingImage(.camera)
+        setStateForTests(.processingImage(.camera))
         model.failPendingImageProcessing(error)
-        state = .failed(error)
-        state = .idle
-    }
-
-    func setStateForTests(_ newState: CoachImagePickFlowState) {
-        state = newState
+        setStateForTests(.failed(error))
+        setStateForTests(.idle)
     }
 }

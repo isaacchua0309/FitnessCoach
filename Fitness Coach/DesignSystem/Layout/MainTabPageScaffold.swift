@@ -8,7 +8,7 @@
 import SwiftUI
 
 enum MainTabPageScaffoldScrollMode {
-    /// Wraps content in a `ScrollView` with tab-bar clearance insets.
+    /// Wraps content in a `ScrollView` with scroll-content breathing-room padding.
     case scrollView
     /// Content manages its own scrolling (Coach conversation surface).
     case embedded
@@ -41,7 +41,6 @@ struct MainTabPageScaffold<
     @EnvironmentObject private var themeManager: ThemeManager
     @Environment(\.theme) private var theme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var measuredSafeAreaBottom = FormaMainTabLayout.defaultBottomSafeAreaFallback
 
     init(
         title: String,
@@ -71,6 +70,23 @@ struct MainTabPageScaffold<
         let _ = themeManager.themeRevision
         let _ = theme.accent
 
+        pageShell
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(theme.appBackground.ignoresSafeArea())
+            .overlay(alignment: .top) {
+                if showsCrossDeviceRefreshBanner {
+                    crossDeviceRefreshBanner
+                }
+            }
+            // Only real bottom chrome (e.g. future accessories) may reserve bottom safe area.
+            // Never feed measured safeAreaInsets.bottom back into a clearance spacer here —
+            // that creates a layout feedback loop that shrinks the scroll viewport until
+            // page content can be dragged fully off-screen.
+            .modifier(MainTabBottomAccessoryInsetModifier(accessory: bottomAccessory))
+            .formaThemeReactive()
+    }
+
+    private var pageShell: some View {
         VStack(spacing: 0) {
             if showsPageHeader {
                 PageHeader(title: title, subtitle: subtitle, trailingAction: trailingAction)
@@ -81,35 +97,6 @@ struct MainTabPageScaffold<
 
             scrollBody
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background {
-            GeometryReader { geometry in
-                Color.clear
-                    .preference(
-                        key: MainTabSafeAreaBottomPreferenceKey.self,
-                        value: geometry.safeAreaInsets.bottom
-                    )
-            }
-        }
-        .onPreferenceChange(MainTabSafeAreaBottomPreferenceKey.self) { measured in
-            let resolved = measured > 0 ? measured : FormaMainTabLayout.defaultBottomSafeAreaFallback
-            if measuredSafeAreaBottom != resolved {
-                measuredSafeAreaBottom = resolved
-            }
-        }
-        .background(theme.appBackground.ignoresSafeArea())
-        .overlay(alignment: .top) {
-            if showsCrossDeviceRefreshBanner {
-                crossDeviceRefreshBanner
-            }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 0) {
-                bottomAccessory()
-                MainTabTabBarClearanceSpacer(safeAreaBottom: measuredSafeAreaBottom)
-            }
-        }
-        .formaThemeReactive()
     }
 
     @ViewBuilder
@@ -131,10 +118,13 @@ struct MainTabPageScaffold<
                     content()
                 }
                 .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, FormaMainTabLayout.horizontalPadding)
-                .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
+                // Breathing room only. System TabView already owns tab-bar + home-indicator insets.
+                .padding(.bottom, FormaMainTabLayout.bottomContentInset(dynamicTypeSize: dynamicTypeSize))
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .onChange(of: scrollTarget?.trigger) { _, _ in
                 guard let scrollTarget else { return }
                 withAnimation {
@@ -156,6 +146,23 @@ struct MainTabPageScaffold<
     }
 }
 
+/// Applies a bottom `safeAreaInset` only when the accessory is a real view.
+/// `EmptyView` accessories must not reserve layout space on tab-root screens.
+private struct MainTabBottomAccessoryInsetModifier<Accessory: View>: ViewModifier {
+    @ViewBuilder var accessory: () -> Accessory
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if Accessory.self == EmptyView.self {
+            content
+        } else {
+            content.safeAreaInset(edge: .bottom, spacing: 0) {
+                accessory()
+            }
+        }
+    }
+}
+
 // MARK: - Convenience initializers
 
 extension MainTabPageScaffold where TrailingAction == EmptyView, BottomAccessory == EmptyView {
@@ -165,6 +172,7 @@ extension MainTabPageScaffold where TrailingAction == EmptyView, BottomAccessory
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
         showsCrossDeviceRefreshBanner: Bool = false,
+        showsPageHeader: Bool = true,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
@@ -174,6 +182,7 @@ extension MainTabPageScaffold where TrailingAction == EmptyView, BottomAccessory
             scrollMode: scrollMode,
             sectionSpacing: sectionSpacing,
             showsCrossDeviceRefreshBanner: showsCrossDeviceRefreshBanner,
+            showsPageHeader: showsPageHeader,
             scrollTarget: scrollTarget,
             trailingAction: { EmptyView() },
             bottomAccessory: { EmptyView() },
@@ -189,6 +198,7 @@ extension MainTabPageScaffold where BottomAccessory == EmptyView {
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
         showsCrossDeviceRefreshBanner: Bool = false,
+        showsPageHeader: Bool = true,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder trailingAction: @escaping () -> TrailingAction,
         @ViewBuilder content: @escaping () -> Content
@@ -199,6 +209,7 @@ extension MainTabPageScaffold where BottomAccessory == EmptyView {
             scrollMode: scrollMode,
             sectionSpacing: sectionSpacing,
             showsCrossDeviceRefreshBanner: showsCrossDeviceRefreshBanner,
+            showsPageHeader: showsPageHeader,
             scrollTarget: scrollTarget,
             trailingAction: trailingAction,
             bottomAccessory: { EmptyView() },
@@ -214,6 +225,7 @@ extension MainTabPageScaffold where TrailingAction == EmptyView {
         scrollMode: MainTabPageScaffoldScrollMode = .scrollView,
         sectionSpacing: CGFloat = FormaMainTabLayout.sectionSpacing,
         showsCrossDeviceRefreshBanner: Bool = false,
+        showsPageHeader: Bool = true,
         scrollTarget: MainTabScrollTarget? = nil,
         @ViewBuilder bottomAccessory: @escaping () -> BottomAccessory,
         @ViewBuilder content: @escaping () -> Content
@@ -224,6 +236,7 @@ extension MainTabPageScaffold where TrailingAction == EmptyView {
             scrollMode: scrollMode,
             sectionSpacing: sectionSpacing,
             showsCrossDeviceRefreshBanner: showsCrossDeviceRefreshBanner,
+            showsPageHeader: showsPageHeader,
             scrollTarget: scrollTarget,
             trailingAction: { EmptyView() },
             bottomAccessory: bottomAccessory,
