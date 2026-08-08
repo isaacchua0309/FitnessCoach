@@ -196,14 +196,21 @@ final class MainTabLayoutManualQAChecklistTests: XCTestCase {
         XCTFail("Plan layout guard failed:\n\(violations.joined(separator: "\n"))")
     }
 
-    func testPlanDashboardShowsStrategyTargetsAndStatusSections() throws {
+    func testPlanDashboardShowsHighROISectionsOnly() throws {
         let content = try productionSource(
             "Fitness Coach/Features/Plan/Components/PlanDashboardContent.swift"
         )
         XCTAssertTrue(content.contains("PlanMissionControlHeroSection"))
         XCTAssertTrue(content.contains("PlanDailyTargetsSection"))
-        XCTAssertTrue(content.contains("PlanStatusSection"))
+        XCTAssertTrue(content.contains("PlanWeeklyRecommendationSection"))
+        XCTAssertTrue(content.contains("PlanConfidenceSection"))
+        XCTAssertTrue(content.contains("PlanReviewSection"))
         XCTAssertTrue(content.contains("PlanSettingsAccessRow"))
+        XCTAssertFalse(content.contains("PlanStatusSection("))
+        XCTAssertFalse(content.contains("PlanRationaleSection("))
+        XCTAssertFalse(content.contains("PlanAdjustmentRulesSection("))
+        XCTAssertFalse(content.contains("PlanAssumptionsSection("))
+        XCTAssertFalse(content.contains("PlanAdjustPlanCTASection("))
     }
 
     func testPlanRemovedFloatingHeaderGearAndLegacyAdjustFromHeader() throws {
@@ -350,13 +357,14 @@ enum MainTabLayoutManualQAChecklist {
                 "Open Plan on a loaded dashboard.",
                 "Confirm header, subtitle, compact Adjust pill.",
                 "Tap Adjust and confirm PlanEditWizard opens.",
-                "Review Strategy, Daily Targets, and Plan Status cards.",
+                "Review Strategy, Daily Targets, Weekly Recommendation, and compact Plan Confidence.",
+                "Confirm Plan Status, Why This Works, When to Adjust, Plan Assumptions, and bottom Adjust CTA are not on the scroll.",
                 "Open settings from the bottom settings row."
             ],
             expected: [
                 "Page content uses the full height above the tab bar with no large empty lower block.",
                 "No legacy floating Adjust Plan header or header gear icon.",
-                "Bottom Adjust Plan CTA still opens adjust flow with distinct analytics."
+                "Header Adjust is the primary adjust entry; Weekly Recommendation may still offer Review."
             ]
         ),
         Section(

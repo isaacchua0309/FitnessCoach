@@ -13,17 +13,12 @@ final class PlanStructureTests: XCTestCase {
             .header,
             .goalProgress,
             .todayMission,
-            .planStatus,
             .weeklyRecommendation,
-            .whyThisWorks,
             .planConfidence,
-            .whenToAdjust,
-            .planAssumptions,
-            .nextReview,
-            .adjustPlanCTA
+            .nextReview
         ])
         XCTAssertEqual(PlanProductLayout.sectionOrder.first, .header)
-        XCTAssertEqual(PlanProductLayout.sectionOrder.last, .adjustPlanCTA)
+        XCTAssertEqual(PlanProductLayout.sectionOrder.last, .nextReview)
     }
 
     func testPrimaryAndSecondarySectionsComposeCanonicalOrder() {
@@ -50,13 +45,14 @@ final class PlanStructureTests: XCTestCase {
         XCTAssertEqual(dashboard.header.subtitle, FormaProductCopy.PlanHeader.subtitle)
         XCTAssertEqual(dashboard.strategy.sectionTitle, FormaProductCopy.PlanStrategyHero.sectionTitle)
         XCTAssertEqual(dashboard.dailyTargets.sectionTitle, "Daily Targets")
-        XCTAssertEqual(dashboard.status.sectionTitle, "Plan Status")
         XCTAssertEqual(dashboard.weeklyRecommendation.sectionTitle, "Weekly recommendation")
-        XCTAssertEqual(dashboard.explanation.sectionTitle, "Why This Works")
         XCTAssertEqual(dashboard.confidence.sectionTitle, "Plan Confidence")
+        XCTAssertEqual(dashboard.review.sectionTitle, "Next Review")
+        // Kept in presentation state for calculation sheet / fixtures, not on scroll:
+        XCTAssertEqual(dashboard.status.sectionTitle, "Plan Status")
+        XCTAssertEqual(dashboard.explanation.sectionTitle, "Why This Works")
         XCTAssertEqual(dashboard.adjustmentRules.sectionTitle, "When to Adjust")
         XCTAssertEqual(dashboard.assumptions.sectionTitle, "Plan Assumptions")
-        XCTAssertEqual(dashboard.review.sectionTitle, "Next Review")
     }
 
     func testRationaleKeepsCalculationDetailsAccessible() throws {
@@ -77,6 +73,11 @@ final class PlanStructureTests: XCTestCase {
         XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("this_week"))
         XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("next_milestone"))
         XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("adjust_plan"))
+        XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("plan_status"))
+        XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("why_this_works"))
+        XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("when_to_adjust"))
+        XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("plan_assumptions"))
+        XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("adjust_plan_cta"))
     }
 
     func testDashboardStateEmbedsPresentationSectionsNotLegacyProductSections() {
@@ -88,12 +89,16 @@ final class PlanStructureTests: XCTestCase {
         XCTAssertNotNil(state.explanation.calculationDetails)
     }
 
-    func testLegacyPlanPageStringsDoNotAppearOnDashboard() {
-        let forbiddenSectionTitles = [
+    func testTrimmedPlanPageOmitsLowROISectionTitlesFromVisibleContract() {
+        let forbiddenOnScroll = [
             "Next Milestone",
             "This Week",
             "Activity Assumptions",
-            "Complete 7 days of logging"
+            "Complete 7 days of logging",
+            "Plan Status",
+            "Why This Works",
+            "When to Adjust",
+            "Plan Assumptions"
         ]
 
         for dashboard in [
@@ -103,10 +108,10 @@ final class PlanStructureTests: XCTestCase {
         ] {
             let combined = planDashboardVisibleCopy(from: dashboard)
 
-            for title in forbiddenSectionTitles {
+            for title in forbiddenOnScroll {
                 XCTAssertFalse(
                     combined.contains(title),
-                    "Legacy section title '\(title)' should not appear on Plan dashboard"
+                    "Section title '\(title)' should not appear in trimmed Plan visible contract"
                 )
             }
 
@@ -114,11 +119,11 @@ final class PlanStructureTests: XCTestCase {
                 combined.contains("Current ") && combined.contains("→ Goal "),
                 "Legacy progress route summary should not appear on Plan dashboard"
             )
-            XCTAssertEqual(
-                combined.components(separatedBy: "Plan Assumptions").count - 1,
-                1,
-                "Plan Assumptions should appear once, not as a duplicated card"
-            )
+            XCTAssertTrue(combined.contains("Your Strategy"))
+            XCTAssertTrue(combined.contains("Daily Targets"))
+            XCTAssertTrue(combined.contains("Weekly recommendation"))
+            XCTAssertTrue(combined.contains("Plan Confidence"))
+            XCTAssertTrue(combined.contains("Next Review"))
         }
     }
 
@@ -130,34 +135,29 @@ final class PlanStructureTests: XCTestCase {
             dashboard.strategy.primaryGoal,
             dashboard.strategy.supportiveLine,
             dashboard.dailyTargets.sectionTitle,
+            dashboard.dailyTargets.caloriesLabel,
             dashboard.dailyTargets.prescriptionCopy,
-            dashboard.status.sectionTitle,
-            dashboard.status.statusName,
-            dashboard.status.explanation,
             dashboard.weeklyRecommendation.sectionTitle,
             dashboard.weeklyRecommendation.safetyCopy,
-            dashboard.explanation.sectionTitle,
-            dashboard.explanation.guidanceCopy,
             dashboard.confidence.sectionTitle,
             dashboard.confidence.scoreHeadline,
-            dashboard.adjustmentRules.sectionTitle,
-            dashboard.assumptions.sectionTitle,
             dashboard.review.sectionTitle,
             dashboard.review.headline,
-            dashboard.review.bodyCopy,
-            dashboard.adjustPlanCTA.heading,
-            dashboard.adjustPlanCTA.bodyCopy
+            dashboard.review.bodyCopy
         ]
 
+        if let expectedPaceLabel = dashboard.strategy.expectedPaceLabel,
+           let expectedPaceValue = dashboard.strategy.expectedPaceValue {
+            parts.append("\(expectedPaceLabel) \(expectedPaceValue)")
+        }
+        parts.append("\(dashboard.strategy.strategyStatusLabel) \(dashboard.strategy.strategyStatusValue)")
         parts += dashboard.confidence.improvementActions.map(\.text)
         parts += dashboard.confidence.compactSignals.map { "\($0.label) \($0.value)" }
-        parts += dashboard.assumptions.rows.map { "\($0.label) \($0.value)" }
-        parts += dashboard.adjustmentRules.rules.map(\.text)
-        parts += dashboard.explanation.energyLines.map { "\($0.label) \($0.value)" }
 
         if let hint = dashboard.review.weighInHint { parts.append(hint) }
-        if let note = dashboard.adjustmentRules.aggressivePlanNote { parts.append(note) }
-        if let trend = dashboard.adjustmentRules.trendHint { parts.append(trend) }
+        if dashboard.explanation.showsCalculationAction {
+            parts.append(dashboard.explanation.seeCalculationTitle)
+        }
 
         return parts.joined(separator: " ")
     }

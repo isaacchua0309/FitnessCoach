@@ -15,7 +15,6 @@ struct PlanDashboardContent: View {
     var planHealthIntelligenceSectionState: PlanHealthIntelligenceSectionState?
     var highlightWeeklyRecommendation: Bool = false
     var onGoToToday: (() -> Void)? = nil
-    var onAdjustActivity: () -> Void = {}
     var onAdjustPlan: () -> Void = {}
     var onOpenSettings: (() -> Void)? = nil
     var onReviewWeeklyRecommendation: (() -> Void)? = nil
@@ -70,8 +69,12 @@ struct PlanDashboardContent: View {
             EmptyView()
 
         case .goalProgress:
-            PlanMissionControlHeroSection(strategy: state.strategy)
-                .onAppear { onSectionAppear?(.goalProgress) }
+            PlanMissionControlHeroSection(
+                strategy: state.strategy,
+                explanation: state.explanation,
+                onCalculationDetailsOpened: onCalculationDetailsOpened
+            )
+            .onAppear { onSectionAppear?(.goalProgress) }
 
         case .todayMission:
             PlanDailyTargetsSection(
@@ -79,9 +82,6 @@ struct PlanDashboardContent: View {
                 onGoToToday: onGoToToday
             )
             .onAppear { onSectionAppear?(.todayMission) }
-
-        case .planStatus:
-            PlanStatusSection(state: state.status)
 
         case .weeklyRecommendation:
             PlanWeeklyRecommendationSection(
@@ -98,13 +98,6 @@ struct PlanDashboardContent: View {
                 }
             }
             .onAppear { onSectionAppear?(.weeklyRecommendation) }
-
-        case .whyThisWorks:
-            PlanRationaleSection(
-                explanation: state.explanation,
-                onCalculationDetailsOpened: onCalculationDetailsOpened
-            )
-            .onAppear { onSectionAppear?(.whyThisWorks) }
 
         case .planConfidence:
             if showsHealthIntelligenceSection,
@@ -129,24 +122,11 @@ struct PlanDashboardContent: View {
                 .onAppear { onSectionAppear?(.planConfidence) }
             }
 
-        case .whenToAdjust:
-            PlanAdjustmentRulesSection(state: state.adjustmentRules)
-
-        case .planAssumptions:
-            PlanAssumptionsSection(
-                state: state.assumptions,
-                onAdjustActivity: onAdjustActivity
-            )
-            .onAppear { onSectionAppear?(.planAssumptions) }
-
         case .nextReview:
             PlanReviewSection(state: state.review)
 
-        case .adjustPlanCTA:
-            PlanAdjustPlanCTASection(
-                state: state.adjustPlanCTA,
-                onAdjustPlan: onAdjustPlan
-            )
+        case .planStatus, .whyThisWorks, .whenToAdjust, .planAssumptions, .adjustPlanCTA:
+            EmptyView()
         }
     }
 }

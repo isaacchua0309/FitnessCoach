@@ -13,6 +13,8 @@ struct PlanHealthIntelligenceSection: View {
     var onMissingDataAction: ((PlanHealthMissingDataActionState) -> Void)? = nil
     var onConnectHealth: (() -> Void)? = nil
 
+    @State private var isHealthDetailsExpanded = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
             if let staleDataLabel = state.staleDataLabel {
@@ -32,7 +34,41 @@ struct PlanHealthIntelligenceSection: View {
                 )
             }
 
+            if let primaryAction = primaryMissingDataAction {
+                missingDataActionCard(primaryAction)
+            }
+
             if !state.isLoading {
+                healthDetailsDisclosure
+            }
+
+            if let fallbackMessage = state.fallbackMessage {
+                planInfoBanner(label: fallbackMessage)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("plan-health-intelligence-section")
+        .formaThemeReactive()
+    }
+
+    /// Prefer a single primary CTA (connect / permissions) over a multi-card action stack.
+    private var primaryMissingDataAction: PlanHealthMissingDataActionState? {
+        guard !state.missingDataActions.isEmpty else { return nil }
+        if let connect = state.missingDataActions.first(where: { $0.id == "connect-health" }) {
+            return connect
+        }
+        if let permissions = state.missingDataActions.first(where: { $0.id == "partial-permissions" }) {
+            return permissions
+        }
+        return state.missingDataActions.first
+    }
+
+    private var healthDetailsDisclosure: some View {
+        DisclosureGroup(
+            isExpanded: $isHealthDetailsExpanded
+        ) {
+            VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
                 PlanHealthSignalsCard(
                     sectionTitle: FormaProductCopy.PlanHealthIntelligencePresentation.coreSignalsSectionTitle,
                     signals: state.coreSignals,
@@ -50,28 +86,15 @@ struct PlanHealthIntelligenceSection: View {
                     isLoading: state.isLoading
                 )
             }
-
-            if let fallbackMessage = state.fallbackMessage {
-                planInfoBanner(label: fallbackMessage)
-            }
-
-            if !state.missingDataActions.isEmpty {
-                missingDataActionsBlock
-            }
+            .padding(.top, FormaTokens.Spacing.sm)
+        } label: {
+            Text(FormaProductCopy.PlanHealthIntelligencePresentation.confidenceReasonsHeading)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .textCase(.uppercase)
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(state.accessibilityLabel)
-        .accessibilityIdentifier("plan-health-intelligence-section")
-        .formaThemeReactive()
-    }
-
-    @ViewBuilder
-    private var missingDataActionsBlock: some View {
-        VStack(alignment: .leading, spacing: PlanHealthIntelligenceCardSupport.actionSpacing) {
-            ForEach(state.missingDataActions) { action in
-                missingDataActionCard(action)
-            }
-        }
+        .tint(FormaTokens.Color.textSecondary)
+        .accessibilityIdentifier("plan-hi-health-details-disclosure")
     }
 
     @ViewBuilder

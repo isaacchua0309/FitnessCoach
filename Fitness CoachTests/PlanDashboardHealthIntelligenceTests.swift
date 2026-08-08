@@ -8,14 +8,17 @@ import XCTest
 
 final class PlanDashboardHealthIntelligenceTests: XCTestCase {
 
-    func testPlanConfidenceSectionAppearsNearStrategyInLayout() {
+    func testPlanConfidenceSectionAppearsAfterWeeklyRecommendationInLayout() {
         let order = PlanProductLayout.sectionOrder
         let strategyIndex = order.firstIndex(of: .goalProgress)
+        let weeklyIndex = order.firstIndex(of: .weeklyRecommendation)
         let confidenceIndex = order.firstIndex(of: .planConfidence)
 
         XCTAssertEqual(strategyIndex, 1)
-        XCTAssertEqual(confidenceIndex, 6)
+        XCTAssertEqual(weeklyIndex, 3)
+        XCTAssertEqual(confidenceIndex, 4)
         XCTAssertLessThan(strategyIndex!, confidenceIndex!)
+        XCTAssertLessThan(weeklyIndex!, confidenceIndex!)
     }
 
     func testShouldPlanModelLoadHealthIntelligenceRequiresEnginesAndUIOrDebugFetch() {

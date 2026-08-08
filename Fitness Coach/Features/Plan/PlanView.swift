@@ -156,16 +156,10 @@ struct PlanView: View {
         await model.refresh()
     }
 
-    /// Header Adjust pill — same wizard as the legacy top-right Adjust Plan control.
+    /// Header Adjust pill — primary adjust entry for the trimmed Plan dashboard.
     private func openAdjustPlanFromHeader(healthConnected: Bool) {
         model.logPlanAdjustCTATapped(healthConnected: healthConnected)
         model.showEditPlan(entryPoint: .planTab)
-    }
-
-    /// Bottom dashboard Adjust Plan CTA — preserves the dedicated bottom entry analytics.
-    private func openAdjustPlanFromBottomCTA(healthConnected: Bool) {
-        model.logPlanAdjustCTATapped(healthConnected: healthConnected)
-        model.showEditPlan(entryPoint: .adjustPlanCTA)
     }
 
     @ViewBuilder
@@ -245,11 +239,8 @@ struct PlanView: View {
                         handler()
                     }
                 },
-                onAdjustActivity: {
-                    model.showEditPlanActivity()
-                },
                 onAdjustPlan: {
-                    openAdjustPlanFromBottomCTA(healthConnected: healthConnected)
+                    openAdjustPlanFromHeader(healthConnected: healthConnected)
                 },
                 onOpenSettings: {
                     model.showSettings()
@@ -328,13 +319,11 @@ struct PlanView: View {
         switch section {
         case .goalProgress:
             model.logSectionImpression(.strategy, healthConnected: healthConnected)
-        case .planStatus:
-            model.logSectionImpression(.status, healthConnected: healthConnected)
         case .weeklyRecommendation:
             model.logWeeklyRecommendationShown(healthConnected: healthConnected)
         case .planConfidence:
             model.logSectionImpression(.confidence, healthConnected: healthConnected)
-        case .header, .todayMission, .whyThisWorks, .whenToAdjust, .planAssumptions, .nextReview, .adjustPlanCTA:
+        case .header, .todayMission, .nextReview, .planStatus, .whyThisWorks, .whenToAdjust, .planAssumptions, .adjustPlanCTA:
             break
         }
     }

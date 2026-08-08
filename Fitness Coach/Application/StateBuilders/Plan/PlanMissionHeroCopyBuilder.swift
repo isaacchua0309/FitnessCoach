@@ -135,14 +135,13 @@ enum PlanMissionHeroCopyBuilder {
         var parts = [
             strategy.sectionTitle,
             strategy.primaryGoal,
-            "\(strategy.dailyTargetLabel), \(strategy.dailyTargetValue)",
             "\(strategy.strategyStatusLabel), \(strategy.strategyStatusValue)",
             strategy.supportiveLine
         ]
 
         if let expectedPaceLabel = strategy.expectedPaceLabel,
            let expectedPaceValue = strategy.expectedPaceValue {
-            parts.insert("\(expectedPaceLabel), \(expectedPaceValue)", at: 3)
+            parts.insert("\(expectedPaceLabel), \(expectedPaceValue)", at: 2)
         }
 
         return parts.joined(separator: ". ")
